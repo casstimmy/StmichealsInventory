@@ -96,7 +96,7 @@ export function useLocationTenders(locationId) {
 /**
  * Example usage in a component:
  * 
- * import { useLocationTenders } from '@/src/hooks/useLocationTenders';
+ * import { useLocationTenders } from '../../../src/hooks/useLocationTenders';
  * 
  * function MyComponent() {
  *   const { tenders, loading, error } = useLocationTenders('locationId123');

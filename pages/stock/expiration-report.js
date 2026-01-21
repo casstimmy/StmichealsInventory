@@ -12,84 +12,80 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function ExpirationReport() {
-  const [products, setProducts] = useState([]);
+  const [batches, setBatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'critical', 'warning', 'ok'
   const [sortBy, setSortBy] = useState('daysRemaining'); // 'daysRemaining', 'expiryDate', 'name'
 
-  // Fetch products on mount
+  // Fetch stock movements with batch details on mount
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchBatches = async () => {
       try {
         setLoading(true);
-        const res = await fetch('/api/products');
-        if (!res.ok) throw new Error('Failed to fetch products');
+        const res = await fetch('/api/stock-movement/batches-with-expiry');
+        if (!res.ok) throw new Error('Failed to fetch batches');
         
         const data = await res.json();
-        console.log('Fetched data:', data);
+        console.log('Fetched batch data:', data);
         
         // Handle different API response formats
-        let productList = [];
+        let batchList = [];
         if (Array.isArray(data)) {
-          productList = data;
+          batchList = data;
         } else if (data.data && Array.isArray(data.data)) {
-          productList = data.data;
-        } else if (data.products && Array.isArray(data.products)) {
-          productList = data.products;
+          batchList = data.data;
+        } else if (data.batches && Array.isArray(data.batches)) {
+          batchList = data.batches;
         }
         
-        console.log('Processed product list:', productList);
-        console.log('Total products:', productList.length);
+        console.log('Processed batch list:', batchList);
+        console.log('Total batches:', batchList.length);
         
-        // Get all products, not just those with expiryDate
-        const allProducts = productList.map(p => {
-          // Ensure expiryDate is properly formatted - handle both Date objects and strings
+        // Get all batches with proper date formatting
+        const allBatches = batchList.map(batch => {
           let expiryDate = null;
           
-          if (p.expiryDate) {
-            if (typeof p.expiryDate === 'string') {
-              // If it's a string like "2025-12-31" or ISO date, use it directly
-              expiryDate = p.expiryDate.split('T')[0]; // Remove time portion if present
-            } else if (p.expiryDate instanceof Date) {
-              // If it's a Date object, convert to YYYY-MM-DD
-              expiryDate = p.expiryDate.toISOString().split('T')[0];
-            } else if (typeof p.expiryDate === 'object' && p.expiryDate.$date) {
-              // If it's a MongoDB Date object { $date: ... }, handle it
-              expiryDate = new Date(p.expiryDate.$date).toISOString().split('T')[0];
+          if (batch.expiryDate) {
+            if (typeof batch.expiryDate === 'string') {
+              expiryDate = batch.expiryDate.split('T')[0];
+            } else if (batch.expiryDate instanceof Date) {
+              expiryDate = batch.expiryDate.toISOString().split('T')[0];
+            } else if (typeof batch.expiryDate === 'object' && batch.expiryDate.$date) {
+              expiryDate = new Date(batch.expiryDate.$date).toISOString().split('T')[0];
             }
           }
           
-          console.log(`Product: ${p.name}, Raw expiryDate: ${p.expiryDate}, Formatted: ${expiryDate}`);
+          console.log(`Batch: ${batch.batchId || batch.transRef}, Product: ${batch.productName}, ExpiryDate: ${expiryDate}, Qty: ${batch.quantity}, Location: ${batch.locationName}, Category: ${batch.category}`);
           
           return {
-            ...p,
+            ...batch,
             expiryDate: expiryDate,
           };
         });
         
-        // Filter to only include products with expiry dates
-        const expiringProducts = allProducts.filter(p => p.expiryDate);
-        console.log(`Found ${expiringProducts.length} products with expiry dates out of ${allProducts.length} total`);
+        // Filter to only include batches with expiry dates
+        const expiringBatches = allBatches.filter(b => b.expiryDate);
+        console.log(`Found ${expiringBatches.length} batches with expiry dates out of ${allBatches.length} total`);
         
-        setProducts(expiringProducts);
+        setBatches(expiringBatches);
       } catch (err) {
-        console.error('Error fetching products:', err);
-        setProducts([]);
+        console.error('Error fetching batches:', err);
+        setBatches([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProducts();
+    fetchBatches();
   }, []);
 
   // Calculate days remaining and status
-  const processedProducts = useMemo(() => {
+  const processedBatches = useMemo(() => {
     const now = new Date();
     
-    return products.map(product => {
-      const expiryDate = new Date(product.expiryDate);
+    return batches.map(batch => {
+      const expiryDate = new Date(batch.expiryDate);
       const daysRemaining = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24));
       
       let status = 'ok';
@@ -98,30 +94,31 @@ export default function ExpirationReport() {
       else if (daysRemaining <= 30) status = 'warning';
       
       return {
-        ...product,
+        ...batch,
         daysRemaining,
         status,
         expiryDate: expiryDate.toISOString().split('T')[0],
       };
     });
-  }, [products]);
+  }, [batches]);
 
-  // Filter and sort products
-  const filteredProducts = useMemo(() => {
-    let filtered = [...processedProducts]; // Create a copy to avoid mutations
+  // Filter and sort batches
+  const filteredBatches = useMemo(() => {
+    let filtered = [...processedBatches]; // Create a copy to avoid mutations
 
     // Apply status filter
     if (filterStatus !== 'all') {
-      filtered = filtered.filter(p => p.status === filterStatus);
+      filtered = filtered.filter(b => b.status === filterStatus);
     }
 
     // Apply search filter
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(p =>
-        (p.name && p.name.toLowerCase().includes(term)) ||
-        (p.sku && p.sku.toLowerCase().includes(term)) ||
-        (p.category && p.category.toLowerCase().includes(term))
+      filtered = filtered.filter(b =>
+        (b.productName && b.productName.toLowerCase().includes(term)) ||
+        (b.batchId && b.batchId.toLowerCase().includes(term)) ||
+        (b.category && b.category.toLowerCase().includes(term)) ||
+        (b.locationName && b.locationName.toLowerCase().includes(term))
       );
     }
 
@@ -138,25 +135,25 @@ export default function ExpirationReport() {
         const dateB = new Date(b.expiryDate || '9999-12-31');
         return dateA - dateB;
       } else if (sortBy === 'name') {
-        // Sort alphabetically by name
-        return (a.name || '').localeCompare(b.name || '');
+        // Sort alphabetically by product name
+        return (a.productName || '').localeCompare(b.productName || '');
       }
       return 0;
     });
 
     return filtered;
-  }, [processedProducts, filterStatus, searchTerm, sortBy]);
+  }, [processedBatches, filterStatus, searchTerm, sortBy]);
 
   // Calculate summary statistics
   const stats = useMemo(() => {
     return {
-      total: processedProducts.length,
-      expired: processedProducts.filter(p => p.status === 'expired').length,
-      critical: processedProducts.filter(p => p.status === 'critical').length,
-      warning: processedProducts.filter(p => p.status === 'warning').length,
-      ok: processedProducts.filter(p => p.status === 'ok').length,
+      total: processedBatches.length,
+      expired: processedBatches.filter(b => b.status === 'expired').length,
+      critical: processedBatches.filter(b => b.status === 'critical').length,
+      warning: processedBatches.filter(b => b.status === 'warning').length,
+      ok: processedBatches.filter(b => b.status === 'ok').length,
     };
-  }, [processedProducts]);
+  }, [processedBatches]);
 
   // Get status badge styling
   const getStatusStyles = (status) => {
@@ -191,15 +188,16 @@ export default function ExpirationReport() {
 
   // Export to CSV
   const handleExport = () => {
-    const headers = ['Product Name', 'SKU', 'Expiry Date', 'Days Remaining', 'Status', 'Quantity', 'Location'];
-    const rows = filteredProducts.map(p => [
-      p.name || 'N/A',
-      p.sku || 'N/A',
-      p.expiryDate,
-      p.daysRemaining,
-      getStatusLabel(p.status),
-      p.quantity || 0,
-      p.location || 'N/A',
+    const headers = ['Batch ID', 'Product Name', 'Category', 'Location', 'Expiry Date', 'Days Remaining', 'Batch Quantity', 'Status'];
+    const rows = filteredBatches.map(b => [
+      b.batchId || b.transRef || 'N/A',
+      b.productName || 'N/A',
+      b.category || 'N/A',
+      b.locationName || 'N/A',
+      b.expiryDate,
+      b.daysRemaining,
+      b.quantity,
+      getStatusLabel(b.status),
     ]);
 
     let csvContent = headers.join(',') + '\n';
@@ -209,7 +207,7 @@ export default function ExpirationReport() {
 
     const element = document.createElement('a');
     element.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent));
-    element.setAttribute('download', `expiration-report-${new Date().toISOString().split('T')[0]}.csv`);
+    element.setAttribute('download', `batch-expiration-report-${new Date().toISOString().split('T')[0]}.csv`);
     element.style.display = 'none';
     document.body.appendChild(element);
     element.click();
@@ -226,9 +224,9 @@ export default function ExpirationReport() {
               <div>
                 <h1 className="text-4xl font-bold text-gray-900 flex items-center gap-3">
                   <FontAwesomeIcon icon={faCalendarAlt} className="text-cyan-600" />
-                  Product Expiration Report
+                  Batch Expiration Report
                 </h1>
-                <p className="text-gray-600 mt-2">Monitor and manage products approaching their expiration dates</p>
+                <p className="text-gray-600 mt-2">Monitor and manage product batches approaching their expiration dates</p>
               </div>
               <button
                 onClick={handleExport}
@@ -246,7 +244,7 @@ export default function ExpirationReport() {
             <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-cyan-600">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Total Products</p>
+                  <p className="text-sm text-gray-600 mb-1">Total Batches</p>
                   <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
                 </div>
                 <FontAwesomeIcon icon={faBox} className="text-4xl text-cyan-200" />
@@ -303,7 +301,7 @@ export default function ExpirationReport() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Search */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Search Products</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Search Batches</label>
                 <div className="relative">
                   <FontAwesomeIcon 
                     icon={faSearch} 
@@ -311,7 +309,7 @@ export default function ExpirationReport() {
                   />
                   <input
                     type="text"
-                    placeholder="Search by name, SKU, or category..."
+                    placeholder="Search by product, batch ID, category, or location..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
@@ -355,12 +353,12 @@ export default function ExpirationReport() {
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
             {loading ? (
               <div className="p-12 text-center">
-                <p className="text-gray-600 text-lg">Loading products...</p>
+                <p className="text-gray-600 text-lg">Loading batches...</p>
               </div>
-            ) : filteredProducts.length === 0 ? (
+            ) : filteredBatches.length === 0 ? (
               <div className="p-12 text-center">
                 <FontAwesomeIcon icon={faCheckCircle} className="text-6xl text-green-400 mb-4" />
-                <p className="text-gray-600 text-lg">No products found matching your criteria</p>
+                <p className="text-gray-600 text-lg">No batches found matching your criteria</p>
                 {searchTerm && <p className="text-gray-500 text-sm mt-2">Try adjusting your search terms</p>}
               </div>
             ) : (
@@ -368,52 +366,52 @@ export default function ExpirationReport() {
                 <table className="w-full">
                   <thead className="bg-gray-100 border-b border-gray-200">
                     <tr>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Batch ID</th>
                       <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Product Name</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">SKU</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Category</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Location</th>
                       <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Expiry Date</th>
                       <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">Days Remaining</th>
+                      <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">Batch Qty</th>
                       <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">Status</th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">Quantity</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Location</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Category</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredProducts.map((product, idx) => (
+                    {filteredBatches.map((batch, idx) => (
                       <tr 
                         key={idx} 
                         className={`border-b border-gray-200 hover:bg-gray-50 transition ${
-                          product.status === 'expired' ? 'bg-red-50' :
-                          product.status === 'critical' ? 'bg-orange-50' :
-                          product.status === 'warning' ? 'bg-yellow-50' :
+                          batch.status === 'expired' ? 'bg-red-50' :
+                          batch.status === 'critical' ? 'bg-orange-50' :
+                          batch.status === 'warning' ? 'bg-yellow-50' :
                           ''
                         }`}
                       >
+                        <td className="px-6 py-4 text-sm font-mono text-gray-900">{batch.batchId || batch.transRef || 'N/A'}</td>
                         <td className="px-6 py-4">
-                          <p className="font-semibold text-gray-900">{product.name || 'N/A'}</p>
+                          <p className="font-semibold text-gray-900">{batch.productName || 'N/A'}</p>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{product.sku || 'N/A'}</td>
-                        <td className="px-6 py-4 text-sm text-gray-900 font-medium">{product.expiryDate}</td>
+                        <td className="px-6 py-4 text-sm text-gray-600">{batch.category || 'N/A'}</td>
+                        <td className="px-6 py-4 text-sm text-gray-600">{batch.locationName || 'N/A'}</td>
+                        <td className="px-6 py-4 text-sm text-gray-900 font-medium">{batch.expiryDate}</td>
                         <td className="px-6 py-4 text-center">
                           <span className={`font-bold ${
-                            product.daysRemaining <= 0 ? 'text-red-600' :
-                            product.daysRemaining <= 7 ? 'text-orange-600' :
-                            product.daysRemaining <= 30 ? 'text-yellow-600' :
+                            batch.daysRemaining <= 0 ? 'text-red-600' :
+                            batch.daysRemaining <= 7 ? 'text-orange-600' :
+                            batch.daysRemaining <= 30 ? 'text-yellow-600' :
                             'text-green-600'
                           }`}>
-                            {product.daysRemaining} {product.daysRemaining === 1 ? 'day' : 'days'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusStyles(product.status)}`}>
-                            {getStatusLabel(product.status)}
+                            {batch.daysRemaining} {batch.daysRemaining === 1 ? 'day' : 'days'}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-center text-sm font-medium text-gray-900">
-                          {product.quantity || 0}
+                          {batch.quantity || 0}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{product.location || 'N/A'}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{product.category || 'N/A'}</td>
+                        <td className="px-6 py-4 text-center">
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusStyles(batch.status)}`}>
+                            {getStatusLabel(batch.status)}
+                          </span>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -422,10 +420,10 @@ export default function ExpirationReport() {
             )}
 
             {/* Footer with count */}
-            {filteredProducts.length > 0 && (
+            {filteredBatches.length > 0 && (
               <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
                 <p className="text-sm text-gray-600">
-                  Showing <span className="font-semibold">{filteredProducts.length}</span> of <span className="font-semibold">{stats.total}</span> products
+                  Showing <span className="font-semibold">{filteredBatches.length}</span> of <span className="font-semibold">{stats.total}</span> batches
                 </p>
               </div>
             )}

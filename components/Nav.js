@@ -172,10 +172,10 @@ export default function Sidebar() {
                   { href: "/manage/archived", label: "Archived Products" },
                   { href: "/manage/categories", label: "Categories" },
                   { href: "/manage/promotions", label: "Promotions" },
-                  { href: "/manage/promotions-management", label: "🎯 Customer Promotions", indent: false },
+                  { href: "/manage/promotions-management", label: "Customer Promotions", indent: false },
                   { href: "/manage/orders", label: "Orders" },
                   { href: "/manage/staff", label: "Staff" },
-                  { href: "/manage/customers", label: "🧑 Customers", indent: false },
+                  { href: "/manage/customers", label: "Customers", indent: false },
                   { href: "/manage/customer-search", label: "Customer Search", indent: true },
                   { href: "/manage/campaigns", label: "Campaigns", indent: true },
                 ])}

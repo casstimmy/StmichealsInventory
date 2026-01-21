@@ -4,10 +4,42 @@ import User from "@/models/User";
 import bcrypt from "bcryptjs";
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
+  if (req.method === "GET") {
+    // GET - Retrieve store configuration
+    try {
+      await mongooseConnect();
+      const store = await Store.findOne({});
+      const user = await User.findOne({ role: "admin" });
+
+      const storeData = store ? store.toObject() : null;
+      const userData = user ? user.toObject() : null;
+
+      console.log("Setup GET:", {
+        storeFound: !!store,
+        locationsCount: store?.locations?.length || 0,
+      });
+
+      return res.status(200).json({ 
+        success: true,
+        store: storeData, 
+        user: userData 
+      });
+    } catch (error) {
+      console.error("Setup GET error:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to fetch setup",
+      });
+    }
+  } else if (req.method === "POST") {
+    // POST - Save store configuration
+    return handlePost(req, res);
+  } else {
     return res.status(405).json({ message: "Method not allowed" });
   }
+}
 
+async function handlePost(req, res) {
   const {
     storeName,
     storePhone,
@@ -41,12 +73,18 @@ export default async function handler(req, res) {
     }));
 
     if (!store) {
-      // Create new store with properly formatted locations
+      // Create new store with properly formatted locations and default arrays
       store = new Store({
         storeName,
         storePhone,
         country,
         locations: preparedLocations,
+        // Initialize default empty arrays for these fields
+        devices: [],
+        openingHours: [],
+        tenderTypes: [],
+        taxRates: [],
+        pettyCashReasons: [],
       });
     } else {
       // Update existing store
@@ -54,6 +92,13 @@ export default async function handler(req, res) {
       store.storePhone = storePhone;
       store.country = country;
       store.locations = preparedLocations;
+      
+      // Ensure arrays exist even if undefined
+      if (!store.devices) store.devices = [];
+      if (!store.openingHours) store.openingHours = [];
+      if (!store.tenderTypes) store.tenderTypes = [];
+      if (!store.taxRates) store.taxRates = [];
+      if (!store.pettyCashReasons) store.pettyCashReasons = [];
     }
 
     // Save store with locations
@@ -80,13 +125,14 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
-      data: { store, user },
+      data: { store: savedStore, user },
     });
   } catch (error) {
-    console.error("Setup error:", error);
+    console.error("Setup POST error:", error);
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 }

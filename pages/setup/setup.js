@@ -42,7 +42,8 @@ export default function Setup() {
       const res = await fetch("/api/setup/setup");
       if (!res.ok) return;
 
-      const { store, user } = await res.json();
+      const data = await res.json();
+      const { store, user } = data;
 
       if (store) {
         setStoreName(store.storeName || "");

@@ -97,7 +97,7 @@ export default async function handler(req, res) {
 
     const movement = await StockMovement.create({
       transRef,
-      fromLocationId: isFromLocationVendor ? null : fromLocationId  ? null : "Vendor",
+      fromLocationId: isFromLocationVendor ? null : fromLocationId,
       toLocationId: isToLocationVendor ? null : toLocationId,
       staffId: staffId || null,
       reason,

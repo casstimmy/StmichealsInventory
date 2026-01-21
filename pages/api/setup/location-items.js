@@ -26,9 +26,16 @@ export default async function handler(req, res) {
       const store = await Store.findOne(
         { "locations._id": locationId },
         { "locations.$": 1 }
-      ).populate("locations.tenders").populate("locations.categories");
+      ).populate({
+        path: "locations.tenders",
+        select: "_id name"
+      }).populate({
+        path: "locations.categories",
+        select: "_id name"
+      });
 
       if (!store || !store.locations || store.locations.length === 0) {
+        console.error(`❌ Location not found: ${locationId}`);
         return res.status(404).json({
           success: false,
           message: "Location not found",
@@ -36,6 +43,7 @@ export default async function handler(req, res) {
       }
 
       const location = store.locations[0];
+      console.log(`✅ GET: Retrieved location ${location.name}. Tenders: ${location.tenders?.length || 0}, Categories: ${location.categories?.length || 0}`);
 
       return res.status(200).json({
         success: true,
@@ -102,7 +110,13 @@ export default async function handler(req, res) {
         { "locations._id": new mongoose.Types.ObjectId(locationId) },
         { $set: updateData },
         { new: true }
-      ).populate("locations.tenders").populate("locations.categories");
+      ).populate({
+        path: "locations.tenders",
+        select: "_id name"
+      }).populate({
+        path: "locations.categories",
+        select: "_id name"
+      });
 
       if (!store) {
         return res.status(404).json({

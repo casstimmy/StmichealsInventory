@@ -26,6 +26,8 @@ export default async function handler(req, res) {
 
     // Transform stock movements into batch entries with expiry information
     const batches = [];
+    let productsProcessed = 0;
+    let productsWithExpiryDates = 0;
 
     for (const movement of stockMovements) {
       if (!movement.products || movement.products.length === 0) {
@@ -35,22 +37,40 @@ export default async function handler(req, res) {
       // Get location name from toLocationId
       let locationName = "Unknown";
       if (movement.toLocationId) {
-        const store = await Store.findOne(
-          { "locations._id": movement.toLocationId },
-          { "locations.$": 1 }
-        ).lean();
-        
-        if (store && store.locations && store.locations.length > 0) {
-          locationName = store.locations[0].name || "Unknown";
+        try {
+          const store = await Store.findOne(
+            { "locations._id": movement.toLocationId },
+            { "locations.$": 1 }
+          ).lean();
+          
+          if (store && store.locations && store.locations.length > 0) {
+            locationName = store.locations[0].name || "Unknown";
+          }
+        } catch (err) {
+          console.error(`Error fetching location ${movement.toLocationId}:`, err);
         }
+      } else if (movement.reason === "Restock") {
+        locationName = "Vendor";
       }
 
       // Process each product in the batch
       for (const productItem of movement.products) {
         const product = productItem.productId;
+        productsProcessed++;
         
-        // Only include if product has an expiry date
-        if (product && product.expiryDate) {
+        if (!product) {
+          console.warn(`Null product in batch ${movement.transRef}, item:`, productItem);
+          continue;
+        }
+
+        // Check if product has expiry date
+        const hasExpiryDate = product.expiryDate && product.expiryDate !== null;
+        if (hasExpiryDate) {
+          productsWithExpiryDates++;
+        }
+
+        // Only include products with expiry dates in batch report
+        if (hasExpiryDate && productItem.quantity > 0) {
           batches.push({
             batchId: movement.transRef || movement._id.toString(),
             transRef: movement.transRef,
@@ -68,7 +88,11 @@ export default async function handler(req, res) {
           });
 
           console.log(
-            `Batch: ${movement.transRef}, Product: ${product.name}, Location: ${locationName}, Expiry: ${product.expiryDate}, Qty: ${productItem.quantity}`
+            `✅ Batch: ${movement.transRef}, Product: ${product.name}, Location: ${locationName}, Expiry: ${product.expiryDate}, Qty: ${productItem.quantity}`
+          );
+        } else if (!hasExpiryDate) {
+          console.log(
+            `ℹ️ Product ${product.name} (Batch: ${movement.transRef}) has no expiry date`
           );
         }
       }
@@ -81,7 +105,7 @@ export default async function handler(req, res) {
       return dateA - dateB;
     });
 
-    console.log(`Found ${batches.length} batches with expiry dates`);
+    console.log(`Found ${batches.length} batches with expiry dates (${productsWithExpiryDates}/${productsProcessed} products have expiry dates)`);
 
     return res.status(200).json({
       success: true,

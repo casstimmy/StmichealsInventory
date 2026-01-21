@@ -58,7 +58,7 @@ export default async function handler(req, res) {
     const productsToCreate = [];
 
     for (const item of products) {
-      const { id, quantity } = item;
+      const { id, quantity, expiryDate } = item;
 
       if (!id || typeof quantity !== "number" || quantity < 1) {
         return res.status(400).json({
@@ -86,6 +86,7 @@ export default async function handler(req, res) {
       productsToCreate.push({
         productId: id,
         quantity,
+        expiryDate: expiryDate || null,
       });
     }
 

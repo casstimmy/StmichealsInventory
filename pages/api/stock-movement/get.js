@@ -52,19 +52,25 @@ export default async function handler(req, res) {
         }
 
         // Map location IDs to names - handle both string and ObjectId
-        const fromLocationId = m.fromLocationId?.toString?.() || m.fromLocationId || m.fromLocation || "";
-        const toLocationId = m.toLocationId?.toString?.() || m.toLocationId || m.toLocation || "";
+        let fromLocationId = m.fromLocationId?.toString?.() || m.fromLocationId || m.fromLocation || "";
+        let toLocationId = m.toLocationId?.toString?.() || m.toLocationId || m.toLocation || "";
         
-        // Try multiple lookup strategies for location names
-        let fromLocationName = locationMap[fromLocationId];
-        if (!fromLocationName && fromLocationId) {
-          // Try as integer index
-          const idx = parseInt(fromLocationId);
-          if (!isNaN(idx)) {
-            fromLocationName = locationMap[idx.toString()] || locationMap[idx];
+        // Handle null fromLocationId (indicates vendor/external source)
+        let fromLocationName = "Unknown";
+        if (fromLocationId === null || fromLocationId === "" || fromLocationId === undefined) {
+          fromLocationName = "Vendor";
+        } else {
+          // Try multiple lookup strategies for location names
+          fromLocationName = locationMap[fromLocationId];
+          if (!fromLocationName && fromLocationId) {
+            // Try as integer index
+            const idx = parseInt(fromLocationId);
+            if (!isNaN(idx)) {
+              fromLocationName = locationMap[idx.toString()] || locationMap[idx];
+            }
           }
+          fromLocationName = fromLocationName || fromLocationId || "Unknown";
         }
-        fromLocationName = fromLocationName || fromLocationId || "Unknown";
         
         let toLocationName = locationMap[toLocationId];
         if (!toLocationName && toLocationId) {

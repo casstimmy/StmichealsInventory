@@ -63,8 +63,16 @@ export default async function handler(req, res) {
           continue;
         }
 
-        // Check if product has expiry date
-        const hasExpiryDate = product.expiryDate && product.expiryDate !== null;
+        // Check for expiry date - first from batch item, then from product document
+        // Priority: batch expiryDate > product expiryDate
+        let expiryDate = null;
+        if (productItem.expiryDate) {
+          expiryDate = productItem.expiryDate;
+        } else if (product.expiryDate) {
+          expiryDate = product.expiryDate;
+        }
+
+        const hasExpiryDate = expiryDate && expiryDate !== null;
         if (hasExpiryDate) {
           productsWithExpiryDates++;
         }
@@ -79,7 +87,7 @@ export default async function handler(req, res) {
             category: product.category || "Top Level",
             locationId: movement.toLocationId,
             locationName: locationName,
-            expiryDate: product.expiryDate,
+            expiryDate: expiryDate,
             quantity: productItem.quantity || 0,
             costPrice: productItem.costPrice || 0,
             dateReceived: movement.dateReceived || movement.dateSent,
@@ -88,7 +96,7 @@ export default async function handler(req, res) {
           });
 
           console.log(
-            `✅ Batch: ${movement.transRef}, Product: ${product.name}, Location: ${locationName}, Expiry: ${product.expiryDate}, Qty: ${productItem.quantity}`
+            `✅ Batch: ${movement.transRef}, Product: ${product.name}, Location: ${locationName}, Expiry: ${expiryDate}, Qty: ${productItem.quantity}`
           );
         } else if (!hasExpiryDate) {
           console.log(

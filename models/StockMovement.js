@@ -67,6 +67,10 @@ const StockMovementSchema = new Schema(
           required: true,
           min: 1
         },
+        expiryDate: {
+          type: Date,
+          default: null
+        },
         costPrice: Number,
         notes: String,
       },

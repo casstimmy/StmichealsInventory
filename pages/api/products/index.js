@@ -77,7 +77,12 @@ export default async function handler(req, res) {
       if (expired === "true") filter.isExpired = true;
       if (expired === "false") filter.isExpired = false;
 
-      const products = await Product.find(filter).sort({ createdAt: -1 });
+      // Always include expiryDate in the response
+      const products = await Product.find(filter)
+        .select('+expiryDate') // Explicitly select expiryDate field
+        .sort({ createdAt: -1 })
+        .lean(); // Use lean() for better performance when not modifying documents
+      
       return res.json({ success: true, data: products });
     }
 

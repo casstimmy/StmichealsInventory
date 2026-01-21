@@ -49,6 +49,7 @@ async function handlePost(req, res) {
     storeName,
     storePhone,
     country,
+    logo,
     locations = [],
     adminName,
     adminEmail,
@@ -83,6 +84,7 @@ async function handlePost(req, res) {
         storeName,
         storePhone,
         country,
+        logo: logo || "",
         locations: preparedLocations,
         // Initialize default empty arrays for these fields
         devices: [],
@@ -97,6 +99,7 @@ async function handlePost(req, res) {
       store.storePhone = storePhone;
       store.country = country;
       store.locations = preparedLocations;
+      if (logo) store.logo = logo; // Update logo if provided
       
       // Ensure arrays exist even if undefined
       if (!store.devices) store.devices = [];

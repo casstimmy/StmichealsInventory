@@ -44,23 +44,33 @@ export default function ExpirationReport() {
         
         // Get all products, not just those with expiryDate
         const allProducts = productList.map(p => {
-          // Ensure expiryDate is properly formatted
-          let expiryDate = p.expiryDate;
-          if (expiryDate && typeof expiryDate === 'string') {
-            expiryDate = new Date(expiryDate).toISOString().split('T')[0];
-          } else if (expiryDate instanceof Date) {
-            expiryDate = expiryDate.toISOString().split('T')[0];
+          // Ensure expiryDate is properly formatted - handle both Date objects and strings
+          let expiryDate = null;
+          
+          if (p.expiryDate) {
+            if (typeof p.expiryDate === 'string') {
+              // If it's a string like "2025-12-31" or ISO date, use it directly
+              expiryDate = p.expiryDate.split('T')[0]; // Remove time portion if present
+            } else if (p.expiryDate instanceof Date) {
+              // If it's a Date object, convert to YYYY-MM-DD
+              expiryDate = p.expiryDate.toISOString().split('T')[0];
+            } else if (typeof p.expiryDate === 'object' && p.expiryDate.$date) {
+              // If it's a MongoDB Date object { $date: ... }, handle it
+              expiryDate = new Date(p.expiryDate.$date).toISOString().split('T')[0];
+            }
           }
+          
+          console.log(`Product: ${p.name}, Raw expiryDate: ${p.expiryDate}, Formatted: ${expiryDate}`);
           
           return {
             ...p,
-            expiryDate: expiryDate || null,
+            expiryDate: expiryDate,
           };
         });
         
         // Filter to only include products with expiry dates
         const expiringProducts = allProducts.filter(p => p.expiryDate);
-        console.log('Products with expiry dates:', expiringProducts.length);
+        console.log(`Found ${expiringProducts.length} products with expiry dates out of ${allProducts.length} total`);
         
         setProducts(expiringProducts);
       } catch (err) {

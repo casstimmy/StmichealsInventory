@@ -31,6 +31,9 @@ export default function Setup() {
   const [adminEmail, setAdminEmail] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
 
+  const [logo, setLogo] = useState("");
+  const [logoLoading, setLogoLoading] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -49,6 +52,7 @@ export default function Setup() {
         setStoreName(store.storeName || "");
         setStorePhone(store.storePhone || "");
         setCountry(store.country || "");
+        setLogo(store.logo || "");
         
         // If DB has locations, use them; otherwise check localStorage
         if (store.locations && store.locations.length > 0) {
@@ -88,6 +92,39 @@ export default function Setup() {
       localStorage.setItem("setupLocations", JSON.stringify(locations));
     }
   }, [locations]);
+
+  /* =====================
+     LOGO UPLOAD HANDLER
+  ===================== */
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setLogoLoading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (data.links && data.links.length > 0) {
+        setLogo(data.links[0].full);
+        setMessage("✅ Logo uploaded successfully");
+        setTimeout(() => setMessage(""), 3000);
+      } else {
+        setMessage("❌ Logo upload failed");
+      }
+    } catch (error) {
+      console.error("Logo upload error:", error);
+      setMessage("❌ Error uploading logo");
+    } finally {
+      setLogoLoading(false);
+    }
+  };
 
   /* =====================
      LOCATION HANDLERS
@@ -149,6 +186,7 @@ export default function Setup() {
           storePhone,
           country,
           locations,
+          logo,
           adminName,
           adminEmail,
           adminPassword,
@@ -217,6 +255,13 @@ export default function Setup() {
                   <p className="text-lg font-semibold text-gray-900">{country || "Not set"}</p>
                 </div>
 
+                {logo && (
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600 mb-2">Company Logo</p>
+                    <img src={logo} alt="Company Logo" className="w-32 h-auto rounded-lg border border-gray-200" />
+                  </div>
+                )}
+
                 <div className="mt-6 pt-6 border-t border-gray-200">
                   <h3 className="font-bold text-gray-900 mb-4">Locations ({locations.length})</h3>
                   <div className="space-y-3">
@@ -243,6 +288,33 @@ export default function Setup() {
                   <Field label="Store Name" value={storeName} onChange={(e) => setStoreName(e.target.value)} />
                   <Field label="Store Phone" value={storePhone} onChange={(e) => setStorePhone(e.target.value)} />
                   <Field label="Country" value={country} onChange={(e) => setCountry(e.target.value)} />
+                </div>
+
+                {/* LOGO UPLOAD SECTION */}
+                <div className="pt-4 border-t border-gray-200">
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">Company Logo</label>
+                  <div className="flex gap-3 items-start">
+                    <div className="flex-1">
+                      <label className="block border-2 border-dashed border-gray-300 rounded-lg p-4 cursor-pointer hover:border-cyan-500 hover:bg-cyan-50 transition">
+                        <div className="text-center">
+                          <div className="text-2xl mb-2">📸</div>
+                          <p className="text-sm text-gray-600">{logoLoading ? "Uploading..." : "Click to upload logo"}</p>
+                        </div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                          disabled={logoLoading}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                    {logo && (
+                      <div className="w-20 h-20 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
+                        <img src={logo} alt="Company Logo" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* LOCATION SECTION */}

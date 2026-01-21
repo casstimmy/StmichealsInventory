@@ -1,6 +1,6 @@
 // SalesReport.js
 import Layout from "@/components/Layout";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { saveAs } from "file-saver";
 
 export default function SalesReport() {
@@ -13,11 +13,7 @@ export default function SalesReport() {
   const [showBarcode, setShowBarcode] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
 
-  useEffect(() => {
-    fetchTransactions();
-  }, [locationFilter, statusFilter, selectedDate]);
-
-async function fetchTransactions() {
+  const fetchTransactions = useCallback(async () => {
   try {
     const res = await fetch("/api/transactions/transactions");
     if (!res.ok) throw new Error("Failed to fetch transactions");
@@ -72,8 +68,11 @@ async function fetchTransactions() {
   } catch (err) {
     console.error(err);
   }
-}
+  }, [locationFilter, statusFilter, selectedDate]);
 
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
 
   const toggleDetails = (id) => {
     setExpandedTxId(expandedTxId === id ? null : id);
@@ -365,8 +364,8 @@ async function fetchTransactions() {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {transactions.map((tx, idx) => (
-                    <>
-                      <tr key={tx._id} className={`transition-colors ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-gray-100">
+                    <React.Fragment key={tx._id}>
+                      <tr className={`transition-colors ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-gray-100`}>
                         <td className="px-4 py-3 font-medium text-gray-800">{tx.staff?.name || tx.staff || "N/A"}</td>
                         <td className="px-4 py-3">
                           <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-medium">
@@ -427,7 +426,7 @@ async function fetchTransactions() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>

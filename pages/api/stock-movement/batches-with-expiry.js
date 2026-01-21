@@ -4,6 +4,7 @@ import { mongooseConnect } from "@/lib/mongodb";
 import StockMovement from "@/models/StockMovement";
 import Product from "@/models/Product";
 import Store from "@/models/Store";
+import { Category } from "@/models/Category";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
@@ -63,6 +64,28 @@ export default async function handler(req, res) {
           continue;
         }
 
+        // Fetch category name if category is stored as ID
+        let categoryName = "Top Level";
+        if (product.category && product.category !== "Top Level") {
+          try {
+            // Check if category is a valid ObjectId
+            if (mongoose.Types.ObjectId.isValid(product.category)) {
+              const categoryDoc = await Category.findById(product.category).lean();
+              if (categoryDoc) {
+                categoryName = categoryDoc.name;
+              } else {
+                categoryName = product.category; // Fallback to ID if not found
+              }
+            } else {
+              // If not an ID, assume it's already a name
+              categoryName = product.category;
+            }
+          } catch (err) {
+            console.error(`Error fetching category ${product.category}:`, err);
+            categoryName = product.category || "Top Level";
+          }
+        }
+
         // Check for expiry date - first from batch item, then from product document
         // Priority: batch expiryDate > product expiryDate
         let expiryDate = null;
@@ -84,7 +107,7 @@ export default async function handler(req, res) {
             transRef: movement.transRef,
             productId: product._id,
             productName: product.name || "Unknown Product",
-            category: product.category || "Top Level",
+            category: categoryName,
             locationId: movement.toLocationId,
             locationName: locationName,
             expiryDate: expiryDate,

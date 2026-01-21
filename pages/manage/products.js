@@ -232,16 +232,16 @@ export default function Products() {
 
   return (
     <Layout>
-      <div className="p-6 bg-gradient-to-b from-gray-50 to-white min-h-screen rounded-2xl">
+      <div className="p-3 md:p-6 bg-gradient-to-b from-gray-50 to-white min-h-screen rounded-2xl">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Products</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900">Products</h1>
 
           {/* When linking to product creation, set highlight to newly created product if you want.
               For edit page navigation, we store highlight in sessionStorage below via onClick handler. */}
           <Link
             href="../products/new"
-            className="mt-2 sm:mt-0 inline-block py-2 px-5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm transition text-center"
+            className="mt-2 sm:mt-0 w-full sm:w-auto inline-block py-2 px-5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm transition text-center"
           >
             + Add Product
           </Link>
@@ -262,24 +262,24 @@ export default function Products() {
           </div>
         </div>
 
-        {/* Table */}
+        {/* Table - Responsive wrapper */}
         <div className="overflow-x-auto rounded-2xl shadow border border-gray-200 bg-white">
-          <table className="min-w-full text-sm divide-y divide-blue-100">
-            <thead className="bg-cyan-600 text-white text-left">
+          <table className="min-w-full text-xs md:text-sm divide-y divide-blue-100">
+            <thead className="bg-cyan-600 text-white text-left text-xs md:text-sm">
               <tr>
-                <th className="p-3"></th>
-                <th className="p-3">Advanced</th>
-                <th className="p-3">Name</th>
-                <th className="p-3">Description</th>
-                <th className="p-3">Cost</th>
-                <th className="p-3">Tax %</th>
-                <th className="p-3">Sale</th>
-                <th className="p-3">Margin</th>
-                <th className="p-3">Barcode</th>
-                <th className="p-3">Properties</th>
-                <th className="p-3">Category</th>
-                <th className="p-3">Promo</th>
-                <th className="p-3">Delete</th>
+                <th className="p-2 md:p-3"></th>
+                <th className="p-2 md:p-3">Advanced</th>
+                <th className="p-2 md:p-3">Name</th>
+                <th className="p-2 md:p-3 hidden sm:table-cell">Description</th>
+                <th className="p-2 md:p-3">Cost</th>
+                <th className="p-2 md:p-3">Tax %</th>
+                <th className="p-2 md:p-3">Sale</th>
+                <th className="p-2 md:p-3 hidden sm:table-cell">Margin</th>
+                <th className="p-2 md:p-3 hidden lg:table-cell">Barcode</th>
+                <th className="p-2 md:p-3 hidden lg:table-cell">Properties</th>
+                <th className="p-2 md:p-3">Category</th>
+                <th className="p-2 md:p-3 hidden sm:table-cell">Promo</th>
+                <th className="p-2 md:p-3">Delete</th>
               </tr>
             </thead>
 
@@ -325,7 +325,7 @@ export default function Products() {
                               e.stopPropagation();
                               handleEditClick(realIndex, p);
                             }}
-                            className="py-1 px-3 border border-cyan-600 text-cyan-700 hover:bg-gray-500 hover:text-white rounded text-xs"
+                            className="py-1 px-2 md:px-3 border border-cyan-600 text-cyan-700 hover:bg-gray-500 hover:text-white rounded text-xs"
                           >
                             Edit
                           </button>
@@ -342,82 +342,82 @@ export default function Products() {
                         >
                           <button
                             onClick={(e) => e.stopPropagation()}
-                            className="py-1 px-3 border border-gray-300 text-cyan-600 hover:bg-cyan-600 hover:text-white rounded text-xs transition"
+                            className="py-1 px-2 md:px-3 border border-gray-300 text-cyan-600 hover:bg-cyan-600 hover:text-white rounded text-xs transition"
                           >
-                            Advanced
+                            Adv
                           </button>
                         </Link>
                       </td>
 
-                      <td className="p-2 font-semibold">
+                      <td className="p-2 font-semibold text-xs md:text-sm">
                         {editIndex === realIndex ? (
                           <input
                             name="name"
                             value={editableProduct.name || ""}
                             onChange={handleChange}
-                            className="w-36 border p-1 rounded text-xs"
+                            className="w-32 md:w-36 border p-1 rounded text-xs"
                           />
                         ) : (
                           p.name
                         )}
                       </td>
 
-                      <td className="p-2 max-w-[150px] truncate">{p.description}</td>
+                      <td className="p-2 hidden sm:table-cell max-w-[150px] truncate text-xs">{p.description}</td>
 
-                      <td className="p-2">
+                      <td className="p-2 text-xs md:text-sm">
                         {editIndex === realIndex ? (
                           <input
                             name="costPrice"
                             value={editableProduct.costPrice || ""}
                             onChange={handleChange}
                             type="number"
-                            className="w-20 border p-1 rounded text-xs"
+                            className="w-16 md:w-20 border p-1 rounded text-xs"
                           />
                         ) : (
                           formatCurrency(p.costPrice)
                         )}
                       </td>
 
-                      <td className="p-2">
+                      <td className="p-2 text-xs md:text-sm">
                         {editIndex === realIndex ? (
                           <input
                             name="taxRate"
                             value={editableProduct.taxRate || ""}
                             onChange={handleChange}
                             type="number"
-                            className="w-16 border p-1 rounded text-xs"
+                            className="w-14 md:w-16 border p-1 rounded text-xs"
                           />
                         ) : (
                           p.taxRate
                         )}
                       </td>
 
-                      <td className="p-2 text-gray-900 font-semibold">
+                      <td className="p-2 text-gray-900 font-semibold text-xs md:text-sm">
                         {editIndex === realIndex ? (
                           <input
                             name="salePriceIncTax"
                             value={editableProduct.salePriceIncTax || ""}
                             onChange={handleChange}
                             type="number"
-                            className="w-20 border p-1 rounded text-xs"
+                            className="w-16 md:w-20 border p-1 rounded text-xs"
                           />
                         ) : (
                           formatCurrency(p.salePriceIncTax)
                         )}
                       </td>
 
-                      <td className="p-2">{p.margin}</td>
-                      <td className="p-2">{p.barcode}</td>
+                      <td className="p-2 hidden sm:table-cell text-xs">{p.margin}</td>
+                      <td className="p-2 hidden lg:table-cell text-xs">{p.barcode}</td>
 
-                      <td className="p-2 text-gray-600">
+                      <td className="p-2 hidden lg:table-cell text-gray-600 text-xs">
                         {p.properties?.length > 0
                           ? p.properties.map((pr) => `${pr.propName}: ${pr.propValue}`).join(", ")
                           : "—"}
                       </td>
 
-                      <td className="p-2">{categoryMap[p.category] || "—"}</td>
+                      <td className="p-2 text-xs md:text-sm">{categoryMap[p.category] || "—"}</td>
 
-                      <td className="p-2">
+                      <td className="p-2 hidden sm:table-cell text-xs">
                         {p.isPromotion ? (
                           <span className="text-green-600 font-semibold">Yes</span>
                         ) : (
@@ -431,7 +431,7 @@ export default function Products() {
                             e.stopPropagation();
                             handleDeleteClick(p._id);
                           }}
-                          className="py-1 px-3 bg-red-50 text-red-700 border border-red-300 hover:bg-red-600 hover:text-white rounded text-xs"
+                          className="py-1 px-2 md:px-3 bg-red-50 text-red-700 border border-red-300 hover:bg-red-600 hover:text-white rounded text-xs"
                         >
                           X
                         </button>

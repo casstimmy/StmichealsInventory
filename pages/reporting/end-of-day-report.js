@@ -59,21 +59,16 @@ export default function EndOfDayReporting() {
         const reportsList = data.reports || [];
         setReports(reportsList);
 
-        // Extract unique locations with their IDs
-        if (reportsList.length > 0) {
-          const locationSet = new Map();
-          reportsList.forEach((r) => {
-            const locName = r.locationName || "Unknown";
-            if (!locationSet.has(locName)) {
-              locationSet.set(locName, r.locationId);
-            }
-          });
-          setLocations(Array.from(locationSet.keys()));
+        // Extract unique locations from summary.byLocation (already aggregated and enriched)
+        if (data.summary && data.summary.byLocation && data.summary.byLocation.length > 0) {
+          const locNames = data.summary.byLocation.map((loc) => loc.location).filter(Boolean);
+          setLocations(locNames);
           
-          // Build map of location names to IDs
+          // Build map of location names to names for filtering
+          // (We'll filter by location name in the frontend since byLocation uses names)
           const map = {};
-          locationSet.forEach((id, name) => {
-            map[name] = id;
+          locNames.forEach((name) => {
+            map[name] = name;
           });
           setLocationMap(map);
         }

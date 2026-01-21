@@ -29,15 +29,21 @@ export default function Layout({ children, title = "Dashboard" }) {
 
   // 🧠 APP SHELL
   return (
-    <div className="bg-slate-50 min-h-screen flex">
-      <Nav className="fixed top-24 left-0 h-full w-[5rem] z-10" />
+    <div className="bg-slate-50 min-h-screen flex flex-col md:flex-row">
+      {/* Desktop Navigation */}
+      <Nav className="fixed top-24 left-0 h-full w-[5rem] z-10 hidden md:block" />
 
-      <div className="ml-[5rem] w-full flex justify-center overflow-hidden">
-        <div className="w-full max-w-[calc(100%-42px)] p-6 mt-20 bg-slate-100 overflow-y-auto">
+      {/* Mobile spacing for hamburger menu */}
+      <div className="md:hidden h-12 bg-gradient-to-r from-sky-600 to-sky-700" />
+
+      {/* Main Content */}
+      <div className="w-full md:ml-[5rem] flex justify-center overflow-hidden">
+        <div className="w-full md:max-w-[calc(100%-42px)] p-3 md:p-6 md:mt-20 bg-slate-100 overflow-y-auto">
           {children}
         </div>
       </div>
 
+      {/* Top Navigation Bar */}
       <NavBar user={user} logout={logout} />
     </div>
   );

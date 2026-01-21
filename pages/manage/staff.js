@@ -354,14 +354,14 @@ export default function StaffPage() {
 
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto bg-gray-100 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto bg-gray-100 py-6 md:py-8 px-3 md:px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <h1 className="text-3xl font-bold text-blue-800 mb-6">Manage Staff Logins</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-blue-800 mb-6">Manage Staff Logins</h1>
 
         {/* Add New Staff Form */}
-        <div className="bg-white p-6 shadow rounded-lg mb-6">
-          <h2 className="text-lg font-semibold mb-4 text-blue-700">Add New Staff</h2>
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
+        <div className="bg-white p-4 md:p-6 shadow rounded-lg mb-6">
+          <h2 className="text-base md:text-lg font-semibold mb-4 text-blue-700">Add New Staff</h2>
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4 mb-4">
             <input
               type="text"
               name="name"

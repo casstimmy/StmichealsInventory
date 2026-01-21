@@ -41,6 +41,7 @@ export default function ProductForm(props) {
     toDateInputValue(props.promoStart)
   );
   const [promoEnd, setPromoEnd] = useState(toDateInputValue(props.promoEnd));
+  const [expiryDate, setExpiryDate] = useState(toDateInputValue(props.expiryDate || ""));
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -64,6 +65,7 @@ export default function ProductForm(props) {
     setPromoPrice(props.promoPrice ?? "");
     setPromoStart(toDateInputValue(props.promoStart));
     setPromoEnd(toDateInputValue(props.promoEnd));
+    setExpiryDate(toDateInputValue(props.expiryDate || ""));
   }, [props]);
 
   // Load categories
@@ -154,6 +156,7 @@ export default function ProductForm(props) {
       category,
       images,
       properties,
+      expiryDate,
       isPromotion,
       promoPrice: isPromotion ? promoPrice : "",
       promoStart: isPromotion ? promoStart : "",
@@ -183,9 +186,9 @@ export default function ProductForm(props) {
   return (
     <form
       onSubmit={saveProduct}
-      className="bg-white p-8 border border-gray-200 space-y-6"
+      className="bg-white p-4 md:p-8 border border-gray-200 space-y-6"
     >
-      <h2 className="text-3xl font-bold mb-4 text-gray-800">
+      <h2 className="text-2xl md:text-3xl font-bold mb-4 text-gray-800">
         {props._id ? "Edit Product" : "Add New Product"}
       </h2>
 
@@ -224,7 +227,7 @@ export default function ProductForm(props) {
 
       {/* Pricing */}
       <Section title="Pricing">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
           <InputField
             label="Cost Price (₦)"
             name="costPrice"
@@ -273,6 +276,12 @@ export default function ProductForm(props) {
           value={salePriceIncTax}
           setValue={setSalePriceIncTax}
         />
+        <InputField
+          label="Expiry Date (optional)"
+          type="date"
+          value={expiryDate}
+          setValue={setExpiryDate}
+        />
         <div className="mt-4 p-4 bg-gray-50 border rounded-lg">
           <p className="text-sm text-gray-700">
             <span className="font-semibold">Profit:</span> ₦{profit}
@@ -294,7 +303,7 @@ export default function ProductForm(props) {
           <span className="text-gray-700">Enable Promotion</span>
         </label>
         {isPromotion && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
             <div>
               <InputField
                 label="Promo Price (₦)"
@@ -377,8 +386,8 @@ export default function ProductForm(props) {
 
       {/* Images */}
       <Section title="Images">
-        <div className="flex gap-3 flex-wrap">
-          <label className="w-28 h-28 flex items-center justify-center border-2 border-dashed rounded-md cursor-pointer bg-gray-50 text-gray-400 hover:bg-gray-100">
+        <div className="flex gap-2 md:gap-3 flex-wrap">
+          <label className="w-24 h-24 md:w-28 md:h-28 flex items-center justify-center border-2 border-dashed rounded-md cursor-pointer bg-gray-50 text-gray-400 hover:bg-gray-100 text-xs md:text-sm text-center p-1">
             + Upload
             <input
               type="file"
@@ -415,7 +424,7 @@ export default function ProductForm(props) {
           {images.map((img, i) => (
             <div
               key={i}
-              className="relative w-28 h-28 rounded-md overflow-hidden border"
+              className="relative w-24 h-24 md:w-28 md:h-28 rounded-md overflow-hidden border"
             >
               <img
                 src={img.thumb || img.full}
@@ -433,7 +442,7 @@ export default function ProductForm(props) {
           ))}
 
           {loading && (
-            <div className="w-28 h-28 flex items-center justify-center">
+            <div className="w-24 h-24 md:w-28 md:h-28 flex items-center justify-center">
               <Loader />
             </div>
           )}
@@ -441,17 +450,17 @@ export default function ProductForm(props) {
       </Section>
 
       {/* Actions */}
-      <div className="flex justify-end gap-3 mt-6">
+      <div className="flex flex-col sm:flex-row justify-end gap-2 md:gap-3 mt-6">
         <button
           type="button"
           onClick={() => router.push("/manage/products")}
-          className="px-5 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+          className="w-full sm:w-auto px-4 md:px-5 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm md:text-base"
         >
           Cancel
         </button>
         <button
           type="submit"
-          className={`px-5 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 shadow-md ${
+          className={`w-full sm:w-auto px-4 md:px-5 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 shadow-md text-sm md:text-base ${
             loading ? "opacity-50 cursor-not-allowed" : ""
           }`}
           disabled={loading}

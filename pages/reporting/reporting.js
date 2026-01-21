@@ -84,80 +84,85 @@ export default function Reporting() {
 
   return (
     <Layout title="Reporting">
-      <div className="min-h-screen bg-gray-50 p-8">
+      <div className="min-h-screen bg-gray-50 p-3 md:p-8">
         <div className="max-w-7xl mx-auto">
           {/* HEADER */}
-          <div className="mb-8 flex justify-between items-start">
+          <div className="mb-6 md:mb-8 flex flex-col sm:flex-row justify-between items-start gap-3">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900">Sales Report</h1>
-              <p className="text-gray-600 mt-2">Track your business performance and metrics in real-time</p>
+              <h1 className="text-2xl md:text-4xl font-bold text-gray-900">Sales Report</h1>
+              <p className="text-xs md:text-base text-gray-600 mt-2">Track your business performance and metrics in real-time</p>
             </div>
             <a
               href="/reporting/end-of-day-report"
-              className="px-6 py-3 bg-cyan-600 hover:bg-cyan-700 text-white font-bold rounded-lg shadow-md transition"
+              className="px-4 md:px-6 py-2 md:py-3 bg-cyan-600 hover:bg-cyan-700 text-white font-bold rounded-lg shadow-md transition text-sm md:text-base whitespace-nowrap"
             >
-              📊 End of Day Reports
+              📊 EOD Reports
             </a>
           </div>
 
           {/* FILTER BAR */}
-          <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-            <div className="flex flex-col sm:flex-row sm:items-end gap-4">
-              {/* Location Dropdown */}
-              <div className="min-w-[200px]">
-                <label className="block text-sm font-bold text-gray-700 mb-2">Location</label>
-                <select 
-                  value={location} 
-                  onChange={(e) => setLocation(e.target.value)} 
-                  className="w-full border border-gray-300 px-3 py-2.5 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none transition text-sm font-medium text-gray-700 bg-white"
-                >
-                  <option value="All">All Locations</option>
-                  <option value="online">Online</option>
-                  {locationNames.map((l) => (
-                    l !== "online" && <option key={l} value={l}>{l || "Unknown"}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Time Range Dropdown */}
-              <div className="min-w-[200px]">
-                <label className="block text-sm font-bold text-gray-700 mb-2">Time Range</label>
-                <select 
-                  value={timeRange} 
-                  onChange={(e) => setTimeRange(e.target.value)} 
-                  className="w-full border border-gray-300 px-3 py-2.5 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none transition text-sm font-medium text-gray-700 bg-white"
-                >
-                  <option value="Last 7 days">Last 7 days</option>
-                  <option value="Last 14 days">Last 14 days</option>
-                  <option value="Last 30 days">Last 30 days</option>
-                  <option value="Last 90 days">Last 90 days</option>
-                  <option value="This month">This month</option>
-                  <option value="Last month">Last month</option>
-                </select>
-              </div>
-
-              {/* Period Buttons */}
-              <div className="flex gap-2 ml-auto">
-                <label className="text-sm font-bold text-gray-700 mr-2 self-end">Period:</label>
-                {["MONTH", "WEEK", "DAY", "HOURLY"].map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setPeriod(p)}
-                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                      period === p 
-                        ? "bg-cyan-600 text-white shadow-md" 
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                    }`}
+          <div className="bg-white rounded-lg shadow-lg p-3 md:p-6 mb-6 md:mb-8">
+            <div className="flex flex-col gap-3 md:gap-4">
+              {/* First row: Location and Time Range */}
+              <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
+                {/* Location Dropdown */}
+                <div className="flex-1 min-w-0">
+                  <label className="block text-xs md:text-sm font-bold text-gray-700 mb-1 md:mb-2">Location</label>
+                  <select 
+                    value={location} 
+                    onChange={(e) => setLocation(e.target.value)} 
+                    className="w-full border border-gray-300 px-2 md:px-3 py-2 md:py-2.5 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none transition text-xs md:text-sm font-medium text-gray-700 bg-white"
                   >
-                    {p}
-                  </button>
-                ))}
+                    <option value="All">All Locations</option>
+                    <option value="online">Online</option>
+                    {locationNames.map((l) => (
+                      l !== "online" && <option key={l} value={l}>{l || "Unknown"}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Time Range Dropdown */}
+                <div className="flex-1 min-w-0">
+                  <label className="block text-xs md:text-sm font-bold text-gray-700 mb-1 md:mb-2">Time Range</label>
+                  <select 
+                    value={timeRange} 
+                    onChange={(e) => setTimeRange(e.target.value)} 
+                    className="w-full border border-gray-300 px-2 md:px-3 py-2 md:py-2.5 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none transition text-xs md:text-sm font-medium text-gray-700 bg-white"
+                  >
+                    <option value="Last 7 days">Last 7 days</option>
+                    <option value="Last 14 days">Last 14 days</option>
+                    <option value="Last 30 days">Last 30 days</option>
+                    <option value="Last 90 days">Last 90 days</option>
+                    <option value="This month">This month</option>
+                    <option value="Last month">Last month</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Second row: Period Buttons */}
+              <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+                <label className="text-xs md:text-sm font-bold text-gray-700">Period:</label>
+                <div className="flex gap-1 md:gap-2 flex-wrap">
+                  {["MONTH", "WEEK", "DAY", "HOURLY"].map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setPeriod(p)}
+                      className={`px-2 md:px-4 py-1 md:py-2 rounded-lg text-xs font-bold transition-all ${
+                        period === p 
+                          ? "bg-cyan-600 text-white shadow-md" 
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
 
           {/* SUMMARY CARDS */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
           <Card 
             title="Total Sales" 
             value={`₦${((summary?.totalSales || 0)).toLocaleString()}`}
@@ -303,13 +308,13 @@ function Card({ title, value, icon, color }) {
   }[color] || "bg-gray-50 border-l-4 border-gray-600";
 
   return (
-    <div className={`${colorClass} bg-white rounded-lg shadow-lg p-6 transition hover:shadow-xl`}>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-semibold text-gray-600">{title}</p>
-          <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
+    <div className={`${colorClass} bg-white rounded-lg shadow-lg p-3 md:p-6 transition hover:shadow-xl`}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-xs md:text-sm font-semibold text-gray-600">{title}</p>
+          <p className="text-xl md:text-3xl font-bold text-gray-900 mt-1 md:mt-2 break-words">{value}</p>
         </div>
-        <div className="text-4xl opacity-30">{icon}</div>
+        <div className="text-2xl md:text-4xl opacity-30 flex-shrink-0">{icon}</div>
       </div>
     </div>
   );

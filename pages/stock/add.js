@@ -26,7 +26,7 @@ export default function StockMovementAdd() {
   const [loadingSearch, setLoadingSearch] = useState(false);
 
   useEffect(() => {
-    fetch("/api/setup/get")
+    fetch("/api/setup/setup")
       .then((res) => res.json())
       .then((data) => {
         if (data?.store?.locations) {
@@ -209,22 +209,22 @@ export default function StockMovementAdd() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 md:p-8">
         {/* Header */}
-        <div className="mb-10">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Create Stock Movement</h1>
-          <p className="text-gray-600">Transfer inventory between locations with full tracking and approval workflow</p>
+        <div className="mb-6 md:mb-10">
+          <h1 className="text-2xl md:text-4xl font-bold text-gray-900 mb-2">Create Stock Movement</h1>
+          <p className="text-sm md:text-base text-gray-600">Transfer inventory between locations with full tracking and approval workflow</p>
         </div>
 
         {/* Form Container */}
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
           {/* Section 1: Movement Details */}
-          <div className="p-8 border-b border-gray-200">
-            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+          <div className="p-4 md:p-8 border-b border-gray-200">
+            <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
               <div className="w-1.5 h-6 bg-cyan-600 rounded-full"></div>
               Movement Details
             </h2>
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               <Dropdown
                 label="From Location"
                 value={fromLocation}
@@ -260,8 +260,8 @@ export default function StockMovementAdd() {
           </div>
 
           {/* Section 2: Product Selection */}
-          <div className="p-8 border-b border-gray-200">
-            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+          <div className="p-4 md:p-8 border-b border-gray-200">
+            <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
               <div className="w-1.5 h-6 bg-emerald-600 rounded-full"></div>
               Add Products
             </h2>
@@ -305,8 +305,32 @@ export default function StockMovementAdd() {
                 )}
               </div>
 
+              {/* Selected Product Display */}
+              {selectedProduct && (
+                <div className="bg-gradient-to-r from-cyan-50 to-blue-50 p-4 rounded-lg border-2 border-cyan-200">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm text-gray-600 font-semibold">Selected Product:</p>
+                      <p className="text-lg font-bold text-gray-900">{selectedProduct.name}</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Available Stock: <span className="font-semibold text-gray-900">{selectedProduct.quantity || 0} units</span>
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Cost Price: <span className="font-semibold text-cyan-700">₦{(selectedProduct.costPrice || 0).toLocaleString()}</span>
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setSelectedProduct(null)}
+                      className="text-red-500 hover:text-red-700 font-semibold text-sm"
+                    >
+                      Clear Selection
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Quantity and Expiry Date Input */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3 items-end">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Quantity
@@ -359,24 +383,24 @@ export default function StockMovementAdd() {
           </div>
 
           {/* Section 3: Added Products */}
-          <div className="p-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+          <div className="p-4 md:p-8">
+            <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
               <div className="w-1.5 h-6 bg-purple-600 rounded-full"></div>
               Products to Transfer ({addedProducts.length})
             </h2>
 
             {addedProducts.length > 0 ? (
-              <div className="space-y-3 mb-6">
+              <div className="space-y-2 md:space-y-3 mb-6">
                 {addedProducts.map((product, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center justify-between bg-gradient-to-r from-gray-50 to-gray-100 p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition"
+                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-gradient-to-r from-gray-50 to-gray-100 p-3 md:p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition gap-2"
                   >
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900">{product.name}</p>
-                      <p className="text-sm text-gray-600">Cost: ₦{(product.costPrice || 0).toLocaleString()}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-900 text-sm md:text-base">{product.name}</p>
+                      <p className="text-xs md:text-sm text-gray-600">Cost: ₦{(product.costPrice || 0).toLocaleString()}</p>
                       {product.expiryDate && (
-                        <p className="text-sm text-amber-600 font-medium">Expires: {new Date(product.expiryDate).toLocaleDateString()}</p>
+                        <p className="text-xs md:text-sm text-amber-600 font-medium">Expires: {new Date(product.expiryDate).toLocaleDateString()}</p>
                       )}
                     </div>
                     <div className="flex items-center gap-4">
@@ -416,25 +440,25 @@ export default function StockMovementAdd() {
 
             {/* Summary Card */}
             {addedProducts.length > 0 && (
-              <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-6 mb-6">
-                <div className="flex justify-between items-center">
+              <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-4 md:p-6 mb-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Total Cost Price</p>
-                    <p className="text-3xl font-bold text-gray-900">₦{totalCost.toLocaleString()}</p>
+                    <p className="text-xs md:text-sm text-gray-600 mb-1">Total Cost Price</p>
+                    <p className="text-2xl md:text-3xl font-bold text-gray-900\">₦{totalCost.toLocaleString()}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-600 mb-1">Total Items</p>
-                    <p className="text-3xl font-bold text-cyan-600">{addedProducts.reduce((sum, p) => sum + p.quantity, 0)}</p>
+                  <div className="text-left sm:text-right">
+                    <p className="text-xs md:text-sm text-gray-600 mb-1\">Total Items</p>
+                    <p className="text-2xl md:text-3xl font-bold text-cyan-600\">{addedProducts.reduce((sum, p) => sum + p.quantity, 0)}</p>
                   </div>
                 </div>
               </div>
             )}
 
             {/* Action Buttons */}
-            <div className="flex gap-4 justify-end">
+            <div className="flex flex-col sm:flex-row gap-2 md:gap-4 justify-end">
               <button
                 onClick={() => router.push("/stock/movement")}
-                className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:border-gray-400 hover:bg-gray-50 transition"
+                className="w-full sm:w-auto px-4 md:px-6 py-2 md:py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:border-gray-400 hover:bg-gray-50 transition text-sm md:text-base"
               >
                 Cancel
               </button>

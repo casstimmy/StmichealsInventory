@@ -323,9 +323,9 @@ export default function Categories() {
             <table className="min-w-full text-sm text-left">
               <thead className="bg-gradient-to-r from-cyan-600 to-cyan-700 text-white font-medium">
                 <tr>
+                  <th className="p-3">Image</th>
                   <th className="p-3">Name</th>
                   <th className="p-3">Parent</th>
-                  <th className="p-3">Images</th>
                   <th className="p-3">Properties</th>
                   <th className="p-3 text-center">Actions</th>
                 </tr>
@@ -333,17 +333,21 @@ export default function Categories() {
               <tbody>
                 {filteredCategories.map((cat, i) => (
                   <tr key={cat._id} className="border-b hover:bg-gray-50">
-                    <td className="p-3">{cat.name}</td>
-                    <td className="p-3">{cat.parent?.name || "-"}</td>
-                    <td className="p-3 flex gap-2">
-                      {cat.images?.map((img, j) => (
+                    <td className="p-3">
+                      {cat.images && cat.images.length > 0 ? (
                         <img
-                          key={j}
-                          src={img.thumb || img.full}
-                          className="w-10 h-10 object-cover rounded-md border"
+                          src={cat.images[0].thumb || cat.images[0].full}
+                          alt={cat.name}
+                          className="w-12 h-12 object-cover rounded-md border border-gray-200"
                         />
-                      ))}
+                      ) : (
+                        <div className="w-12 h-12 bg-gray-100 rounded-md border border-gray-200 flex items-center justify-center text-gray-400">
+                          <FontAwesomeIcon icon={faImages} />
+                        </div>
+                      )}
                     </td>
+                    <td className="p-3 font-medium text-gray-900">{cat.name}</td>
+                    <td className="p-3">{cat.parent?.name || "-"}</td>
                     <td className="p-3">
                       {(cat.properties || []).map((p, k) => (
                         <span
@@ -383,6 +387,186 @@ export default function Categories() {
               </tbody>
             </table>
           </div>
+
+          {/* Edit Modal */}
+          {editIndex !== null && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="p-6 space-y-6">
+                  {/* Header */}
+                  <div className="flex items-center justify-between border-b pb-4">
+                    <h2 className="text-2xl font-bold text-gray-900">Edit Category</h2>
+                    <button
+                      onClick={() => setEditIndex(null)}
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      <FontAwesomeIcon icon={faTimes} size="lg" />
+                    </button>
+                  </div>
+
+                  {/* Form */}
+                  <div className="space-y-6">
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-cyan-700 mb-2">
+                          Category Name
+                        </label>
+                        <input
+                          type="text"
+                          value={editedCategory.name}
+                          onChange={(e) =>
+                            setEditedCategory((prev) => ({
+                              ...prev,
+                              name: e.target.value,
+                            }))
+                          }
+                          placeholder="Enter category name"
+                          className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-cyan-600 focus:border-transparent"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-cyan-700 mb-2">
+                          Parent Category
+                        </label>
+                        <select
+                          value={editedCategory.parentCategory}
+                          onChange={(e) =>
+                            setEditedCategory((prev) => ({
+                              ...prev,
+                              parentCategory: e.target.value,
+                            }))
+                          }
+                          className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-cyan-600 focus:border-transparent"
+                        >
+                          <option value="">No Parent</option>
+                          {categories
+                            .filter((c) => c._id !== editedCategory._id)
+                            .map((cat) => (
+                              <option key={cat._id} value={cat._id}>
+                                {cat.name}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Image Upload */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Images
+                      </label>
+                      <div className="flex flex-wrap gap-3 mb-3">
+                        <label className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg cursor-pointer hover:bg-cyan-700 transition">
+                          <FontAwesomeIcon icon={faImages} />
+                          Upload
+                          <input
+                            type="file"
+                            multiple
+                            className="hidden"
+                            onChange={(e) => uploadImage(e, true)}
+                          />
+                        </label>
+                        {loading && <Loader />}
+                      </div>
+                      <div className="flex flex-wrap gap-3">
+                        {editedCategory.images?.map((img, i) => (
+                          <div key={i} className="relative group">
+                            <img
+                              src={img.thumb || img.full}
+                              alt={`Category ${i}`}
+                              className="w-16 h-16 object-cover rounded-md border border-gray-200"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeImage(i, true)}
+                              className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Properties */}
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <label className="text-sm font-medium text-gray-700">
+                          Properties
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => addProperty(true)}
+                          className="text-cyan-600 hover:text-cyan-700 text-sm font-medium"
+                        >
+                          + Add Property
+                        </button>
+                      </div>
+                      <div className="space-y-3">
+                        {editedCategory.properties?.map((prop, i) => (
+                          <div key={i} className="flex gap-2">
+                            <input
+                              type="text"
+                              placeholder="Property name"
+                              value={prop.propName || ""}
+                              onChange={(e) =>
+                                handlePropertyChange(
+                                  i,
+                                  "propName",
+                                  e.target.value,
+                                  true
+                                )
+                              }
+                              className="flex-1 border rounded-lg px-3 py-2 focus:ring-2 focus:ring-cyan-600 focus:border-transparent"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Property value"
+                              value={prop.propValue || ""}
+                              onChange={(e) =>
+                                handlePropertyChange(
+                                  i,
+                                  "propValue",
+                                  e.target.value,
+                                  true
+                                )
+                              }
+                              className="flex-1 border rounded-lg px-3 py-2 focus:ring-2 focus:ring-cyan-600 focus:border-transparent"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeProperty(i, true)}
+                              className="text-red-500 hover:text-red-700 px-3 py-2"
+                            >
+                              <FontAwesomeIcon icon={faTrash} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="flex gap-3 border-t pt-4">
+                    <button
+                      onClick={() => setEditIndex(null)}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => handleUpdateClick(editedCategory._id)}
+                      className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition flex items-center justify-center gap-2"
+                    >
+                      <FontAwesomeIcon icon={faSave} />
+                      Save Changes
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </Layout>

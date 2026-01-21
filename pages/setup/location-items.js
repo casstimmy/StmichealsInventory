@@ -34,8 +34,8 @@ export default function LocationItemsManager() {
       setLoading(true);
       setError("");
 
-      // Fetch locations
-      const storeRes = await fetch("/api/setup/get");
+      // Fetch store data with locations
+      const storeRes = await fetch("/api/setup/setup");
       const storeData = await storeRes.json();
 
       let firstLocationId = null;
@@ -86,23 +86,9 @@ export default function LocationItemsManager() {
         console.log(`Successfully loaded ${categoriesArray.length} categories`);
       }
 
-      // Fetch location items for the first location
+      // Fetch location items for the first location only if it exists
       if (firstLocationId) {
-        const locationRes = await fetch(`/api/setup/location-items?locationId=${firstLocationId}`);
-        const locationData = await locationRes.json();
-        if (locationData.success) {
-          const tenderIds = Array.isArray(locationData.location.tenders)
-            ? locationData.location.tenders.map((t) => (typeof t === 'string' ? t : t._id || t))
-            : [];
-          const categoryIds = Array.isArray(locationData.location.categories)
-            ? locationData.location.categories.map((c) => (typeof c === 'string' ? c : c._id || c))
-            : [];
-          
-          setLocationTenders(tenderIds);
-          setLocationCategories(categoryIds);
-          const location = storeData.store.locations.find((loc) => loc._id === firstLocationId);
-          setCurrentLocationData(location);
-        }
+        await fetchLocationItemsForInit(firstLocationId, storeData.store.locations);
       }
     } catch (err) {
       console.error("Error fetching data:", err);
@@ -113,8 +99,15 @@ export default function LocationItemsManager() {
   };
 
   const fetchLocationItems = async (locationId) => {
+    if (!locationId) {
+      console.warn("fetchLocationItems called with invalid locationId:", locationId);
+      setError("Location ID is required");
+      return;
+    }
+
     try {
       setLoading(true);
+      setError("");
       const res = await fetch(`/api/setup/location-items?locationId=${locationId}`);
       const data = await res.json();
 
@@ -128,6 +121,8 @@ export default function LocationItemsManager() {
         
         setLocationTenders(tenderIds);
         setLocationCategories(categoryIds);
+      } else {
+        setError(data.message || "Failed to load location items");
       }
     } catch (err) {
       console.error("Error fetching location items:", err);
@@ -137,7 +132,42 @@ export default function LocationItemsManager() {
     }
   };
 
+  const fetchLocationItemsForInit = async (locationId, allLocations) => {
+    if (!locationId) {
+      console.warn("fetchLocationItemsForInit called with invalid locationId:", locationId);
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/setup/location-items?locationId=${locationId}`);
+      const data = await res.json();
+      
+      if (data.success) {
+        const tenderIds = Array.isArray(data.location.tenders)
+          ? data.location.tenders.map((t) => (typeof t === 'string' ? t : t._id || t))
+          : [];
+        const categoryIds = Array.isArray(data.location.categories)
+          ? data.location.categories.map((c) => (typeof c === 'string' ? c : c._id || c))
+          : [];
+        
+        setLocationTenders(tenderIds);
+        setLocationCategories(categoryIds);
+        const location = allLocations.find((loc) => loc._id === locationId);
+        setCurrentLocationData(location);
+      } else {
+        console.warn("Failed to fetch location items:", data.message);
+      }
+    } catch (err) {
+      console.error("Error fetching location items during init:", err);
+    }
+  };
+
   const handleLocationChange = (locationId) => {
+    if (!locationId) {
+      console.warn("handleLocationChange called with empty locationId");
+      return;
+    }
+
     setSelectedLocation(locationId);
     const location = locations.find((loc) => loc._id === locationId);
     setCurrentLocationData(location);
@@ -200,6 +230,11 @@ export default function LocationItemsManager() {
   };
 
   const handleToggleTender = async (tenderId) => {
+    if (!selectedLocation) {
+      setError("Please select a location first");
+      return;
+    }
+
     try {
       setSaving(true);
       setError("");
@@ -240,6 +275,11 @@ export default function LocationItemsManager() {
   };
 
   const handleToggleCategory = async (categoryId) => {
+    if (!selectedLocation) {
+      setError("Please select a location first");
+      return;
+    }
+
     try {
       setSaving(true);
       setError("");
@@ -325,14 +365,24 @@ export default function LocationItemsManager() {
             <div className="flex gap-3">
               <select
                 value={selectedLocation || ""}
-                onChange={(e) => handleLocationChange(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value) {
+                    handleLocationChange(value);
+                  }
+                }}
                 className="flex-1 max-w-md border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
               >
-                {locations.map((loc) => (
-                  <option key={loc._id} value={loc._id}>
-                    {loc.name}
-                  </option>
-                ))}
+                <option value="">-- Select a Location --</option>
+                {locations && locations.length > 0 ? (
+                  locations.map((loc) => (
+                    <option key={loc._id} value={loc._id}>
+                      {loc.name}
+                    </option>
+                  ))
+                ) : (
+                  <option disabled>No locations available</option>
+                )}
               </select>
               <button
                 onClick={handleEditLocation}

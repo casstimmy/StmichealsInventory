@@ -39,7 +39,7 @@ export default function Setup() {
   ===================== */
   useEffect(() => {
     async function fetchData() {
-      const res = await fetch("/api/setup/get");
+      const res = await fetch("/api/setup/setup");
       if (!res.ok) return;
 
       const { store, user } = await res.json();
@@ -175,29 +175,29 @@ export default function Setup() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen bg-gray-50 p-3 md:p-6">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Store Setup & Configuration</h1>
-            <p className="text-gray-600 mt-2">Manage your store information, locations, and admin settings</p>
+          <div className="mb-6 md:mb-8">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Store Setup & Configuration</h1>
+            <p className="text-sm md:text-base text-gray-600 mt-2">Manage your store information, locations, and admin settings</p>
           </div>
 
           {/* Warning for unsaved locations */}
           {locations && locations.length > 0 && showLocationForm && (
-            <div className="mb-6 bg-blue-50 border-l-4 border-blue-600 p-4 rounded">
-              <p className="text-sm text-blue-800">
+            <div className="mb-6 bg-blue-50 border-l-4 border-blue-600 p-3 md:p-4 rounded text-sm">
+              <p className="text-blue-800">
                 <strong>💾 Note:</strong> Added locations are saved to your browser. Click "Save Setup Configuration" to permanently save them to the database.
               </p>
             </div>
           )}
 
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
 
             {/* SUMMARY - Left Column */}
-            <div className="bg-white rounded-lg shadow-lg p-6">
+            <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
               <div className="border-b border-gray-200 pb-4 mb-6">
-                <h2 className="text-xl font-bold text-gray-900">Store Summary</h2>
+                <h2 className="text-lg md:text-xl font-bold text-gray-900">Store Summary</h2>
               </div>
 
               <div className="space-y-4">

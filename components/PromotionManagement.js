@@ -159,13 +159,13 @@ export default function PromotionManagement() {
   };
 
   return (
-    <div className="min-h-full bg-gradient-to-b from-white to-blue-50 p-6">
+    <div className="min-h-full bg-gradient-to-b from-white to-blue-50 p-3 md:p-6">
       {/* Header */}
-      <div className="flex justify-between mb-6">
-        <h2 className="text-3xl font-bold text-blue-900">Promotions</h2>
+      <div className="flex flex-col sm:flex-row justify-between gap-3 mb-6">
+        <h2 className="text-2xl md:text-3xl font-bold text-blue-900">Promotions</h2>
         <button
           onClick={openModal}
-          className="bg-blue-600 text-white px-6 py-2 rounded-lg"
+          className="w-full sm:w-auto bg-blue-600 text-white px-4 md:px-6 py-2 rounded-lg text-sm md:text-base"
         >
           + Add Promotion
         </button>
@@ -173,43 +173,43 @@ export default function PromotionManagement() {
 
       {/* Table */}
       <div className="overflow-x-auto bg-white rounded-lg shadow">
-        <table className="min-w-full text-sm">
+        <table className="min-w-full text-xs md:text-sm">
           <thead className="bg-blue-600 text-white">
             <tr>
-              <th className="p-3 text-left">Product</th>
-              <th className="p-3">Promo Price</th>
-              <th className="p-3">Start</th>
-              <th className="p-3">End</th>
-              <th className="p-3">Actions</th>
+              <th className="p-2 md:p-3 text-left">Product</th>
+              <th className="p-2 md:p-3">Promo Price</th>
+              <th className="p-2 md:p-3 hidden sm:table-cell">Start</th>
+              <th className="p-2 md:p-3 hidden sm:table-cell">End</th>
+              <th className="p-2 md:p-3">Actions</th>
             </tr>
           </thead>
           <tbody>
             {promotions.map((promo, index) => (
               <tr key={promo._id} className="border-b">
-                <td className="p-3 font-semibold">{promo.name}</td>
+                <td className="p-2 md:p-3 font-semibold text-xs md:text-sm">{promo.name}</td>
 
-                <td className="p-3">
+                <td className="p-2 md:p-3 text-xs md:text-sm">
                   {editIndex === index ? (
                     <input
                       name="promoPrice"
                       type="number"
                       value={editablePromotion.promoPrice || ""}
                       onChange={handleChange}
-                      className="border p-1 rounded w-24"
+                      className="border p-1 rounded w-20"
                     />
                   ) : (
                     `₦${promo.promoPrice}`
                   )}
                 </td>
 
-                <td className="p-3">
+                <td className="p-2 md:p-3 hidden sm:table-cell text-xs md:text-sm">
                   {editIndex === index ? (
                     <input
                       type="date"
                       name="promoStart"
                       value={editablePromotion.promoStart || ""}
                       onChange={handleChange}
-                      className="border p-1 rounded"
+                      className="border p-1 rounded text-xs"
                     />
                   ) : (
                     promo.promoStart
@@ -218,14 +218,14 @@ export default function PromotionManagement() {
                   )}
                 </td>
 
-                <td className="p-3">
+                <td className="p-2 md:p-3 hidden sm:table-cell text-xs md:text-sm">
                   {editIndex === index ? (
                     <input
                       type="datetime-local"
                       name="promoEnd"
                       value={editablePromotion.promoEnd || ""}
                       onChange={handleChange}
-                      className="border p-1 rounded"
+                      className="border p-1 rounded text-xs"
                     />
                   ) : (
                     promo.promoEnd
@@ -234,18 +234,18 @@ export default function PromotionManagement() {
                   )}
                 </td>
 
-                <td className="p-3 flex gap-2">
+                <td className="p-2 md:p-3 flex flex-col sm:flex-row gap-1 md:gap-2">
                   {editIndex === index ? (
                     <>
                       <button
                         onClick={() => handleUpdateClick(promo._id)}
-                        className="bg-green-600 text-white px-3 py-1 rounded"
+                        className="bg-green-600 text-white px-2 md:px-3 py-1 rounded text-xs md:text-sm"
                       >
                         Save
                       </button>
                       <button
                         onClick={handleCancelClick}
-                        className="bg-gray-400 text-white px-3 py-1 rounded"
+                        className="bg-gray-400 text-white px-2 md:px-3 py-1 rounded text-xs md:text-sm"
                       >
                         Cancel
                       </button>
@@ -254,13 +254,13 @@ export default function PromotionManagement() {
                     <>
                       <button
                         onClick={() => handleEditClick(index, promo)}
-                        className="border px-3 py-1 rounded"
+                        className="border px-2 md:px-3 py-1 rounded text-xs md:text-sm"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => handleDeleteClick(promo._id)}
-                        className="bg-red-500 text-white px-3 py-1 rounded"
+                        className="bg-red-500 text-white px-2 md:px-3 py-1 rounded text-xs md:text-sm"
                       >
                         Remove
                       </button>
@@ -275,12 +275,12 @@ export default function PromotionManagement() {
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-full max-w-md">
-            <h3 className="text-xl font-bold mb-4">Add Promotion</h3>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-4 md:p-6 rounded-lg w-full max-w-md">
+            <h3 className="text-lg md:text-xl font-bold mb-4">Add Promotion</h3>
 
             <select
-              className="border p-2 w-full mb-3"
+              className="border p-2 w-full mb-3 text-sm"
               onChange={(e) =>
                 setSelectedProduct(
                   allProducts.find((p) => p._id === e.target.value)
@@ -298,30 +298,30 @@ export default function PromotionManagement() {
             <input
               type="number"
               placeholder="Promo Price"
-              className="border p-2 w-full mb-3"
+              className="border p-2 w-full mb-3 text-sm"
               value={promoPrice}
               onChange={(e) => setPromoPrice(e.target.value)}
             />
 
             <input
               type="date"
-              className="border p-2 w-full mb-3"
+              className="border p-2 w-full mb-3 text-sm"
               value={promoStart}
               onChange={(e) => setPromoStart(e.target.value)}
             />
 
             <input
               type="datetime-local"
-              className="border p-2 w-full mb-4"
+              className="border p-2 w-full mb-4 text-sm"
               value={promoEnd}
               onChange={(e) => setPromoEnd(e.target.value)}
             />
 
-            <div className="flex justify-end gap-2">
-              <button onClick={closeModal} className="px-4 py-2 bg-gray-400 text-white rounded">
+            <div className="flex flex-col sm:flex-row justify-end gap-2">
+              <button onClick={closeModal} className="px-4 py-2 bg-gray-400 text-white rounded text-sm sm:text-base w-full sm:w-auto">
                 Cancel
               </button>
-              <button onClick={handleSavePromotion} className="px-4 py-2 bg-blue-600 text-white rounded">
+              <button onClick={handleSavePromotion} className="px-4 py-2 bg-blue-600 text-white rounded text-sm sm:text-base w-full sm:w-auto">
                 Save
               </button>
             </div>

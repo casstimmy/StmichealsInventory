@@ -17,6 +17,7 @@ const statuses = ["All Statuses", "Pending", "Sent", "Received"];
 export default function StockMovement() {
   const [movements, setMovements] = useState([]);
   const [locations, setLocations] = useState([]);
+  const [locationMap, setLocationMap] = useState({});
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [locationFilter, setLocationFilter] = useState("* All Locations");
@@ -30,11 +31,19 @@ export default function StockMovement() {
   useEffect(() => {
     async function fetchLocations() {
       try {
-        const res = await fetch("/api/setup/get");
+        const res = await fetch("/api/setup/setup");
         const data = await res.json();
         if (data?.store?.locations) {
-          const locArray = data.store.locations.map(loc => loc.name);
-          setLocations(["* All Locations", ...locArray]);
+          const locArray = data.store.locations;
+          setLocations(["* All Locations", ...locArray.map(loc => loc.name)]);
+          
+          // Create a map of location ID to name
+          const map = {};
+          locArray.forEach(loc => {
+            map[loc._id] = loc.name;
+            map[loc.name] = loc.name; // Also map name to name for filter compatibility
+          });
+          setLocationMap(map);
         }
       } catch (err) {
         console.error("Error fetching locations:", err);
@@ -268,8 +277,8 @@ export default function StockMovement() {
                       {filteredMovements.map((item, index) => (
                         <tr key={index} className={`transition-colors ${index % 2 === 0 ? 'bg-gray-50 hover:bg-gray-100' : 'bg-white hover:bg-gray-50'}`}>
                           <td className="px-6 py-4 text-sm font-mono font-medium text-gray-900">{item.transRef}</td>
-                          <td className="px-6 py-4 text-sm text-gray-700">{item.fromLocationId}</td>
-                          <td className="px-6 py-4 text-sm text-gray-700">{item.toLocationId}</td>
+                          <td className="px-6 py-4 text-sm text-gray-700">{locationMap[item.fromLocationId] || item.fromLocationId || "Unknown"}</td>
+                          <td className="px-6 py-4 text-sm text-gray-700">{locationMap[item.toLocationId] || item.toLocationId || "Unknown"}</td>
                           <td className="px-6 py-4 text-sm">
                             <span className="inline-block bg-cyan-100 text-gray-900 px-3 py-1 rounded-full text-xs font-semibold">
                               {item.reason}

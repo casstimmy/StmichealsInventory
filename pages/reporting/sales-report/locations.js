@@ -26,16 +26,32 @@ ChartJS.register(
 export default function LocationsSales() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState("day");
+  const [days, setDays] = useState("30");
+  const [selectedLocation, setSelectedLocation] = useState("All");
+  const [allLocations, setAllLocations] = useState([]);
 
   useEffect(() => {
     fetchLocationData();
-  }, []);
+  }, [period, days, selectedLocation]);
 
   async function fetchLocationData() {
     try {
       setLoading(true);
-      const res = await fetch("/api/reporting/reporting-data?location=All&period=day&days=30");
-      setData(await res.json());
+      const params = new URLSearchParams({
+        location: selectedLocation,
+        period,
+        days,
+      });
+      const res = await fetch(`/api/reporting/reporting-data?${params}`);
+      const data = await res.json();
+      setData(data);
+
+      // Extract all unique locations from the response for the filter dropdown
+      if (data?.salesByLocation) {
+        const locs = Object.keys(data.salesByLocation).filter(loc => loc && loc !== "online");
+        setAllLocations(locs.sort());
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -77,6 +93,68 @@ export default function LocationsSales() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-800 mb-2">🏪 Sales by Location</h1>
           <p className="text-gray-600">Branch and store performance analysis</p>
+        </div>
+
+        {/* FILTERS */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 bg-white p-4 rounded-lg shadow-md border border-gray-200">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Period</label>
+            <select
+              value={period}
+              onChange={(e) => setPeriod(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cyan-600 focus:border-transparent"
+            >
+              <option value="day">Daily</option>
+              <option value="week">Weekly</option>
+              <option value="month">Monthly</option>
+              <option value="hourly">Hourly</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Number of Days</label>
+            <select
+              value={days}
+              onChange={(e) => setDays(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cyan-600 focus:border-transparent"
+            >
+              <option value="7">Last 7 Days</option>
+              <option value="14">Last 14 Days</option>
+              <option value="30">Last 30 Days</option>
+              <option value="60">Last 60 Days</option>
+              <option value="90">Last 90 Days</option>
+              <option value="365">Last Year</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+            <select
+              value={selectedLocation}
+              onChange={(e) => setSelectedLocation(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cyan-600 focus:border-transparent"
+            >
+              <option value="All">All Locations</option>
+              {allLocations.map((loc) => (
+                <option key={loc} value={loc}>
+                  {loc}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-end">
+            <button
+              onClick={() => {
+                setPeriod("day");
+                setDays("30");
+                setSelectedLocation("All");
+              }}
+              className="w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition"
+            >
+              Reset Filters
+            </button>
+          </div>
         </div>
 
         {/* SUMMARY */}

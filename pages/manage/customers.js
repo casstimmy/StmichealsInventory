@@ -106,41 +106,41 @@ export default function CustomersPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen bg-gray-50 p-3 md:p-6">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-4xl font-bold text-gray-900">Customers</h1>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+            <h1 className="text-2xl md:text-4xl font-bold text-gray-900">Customers</h1>
             <button
               onClick={() => {
                 setShowForm(!showForm);
                 setEditing(null);
                 setFormData({ name: "", email: "", phone: "", address: "", type: "REGULAR" });
               }}
-              className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg font-semibold"
+              className="w-full sm:w-auto px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg font-semibold text-sm md:text-base"
             >
               + Add Customer
             </button>
           </div>
 
           {/* Navigation Links */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mb-6">
             <Link href="/manage/customers">
-              <div className="bg-white p-4 rounded-lg shadow hover:shadow-lg cursor-pointer border-l-4 border-cyan-600">
-                <p className="font-bold text-gray-900">📋 Customers</p>
-                <p className="text-sm text-gray-600">Manage all customers</p>
+              <div className="bg-white p-3 md:p-4 rounded-lg shadow hover:shadow-lg cursor-pointer border-l-4 border-cyan-600">
+                <p className="font-bold text-gray-900 text-sm md:text-base">📋 Customers</p>
+                <p className="text-xs md:text-sm text-gray-600">Manage all customers</p>
               </div>
             </Link>
             <Link href="/manage/customer-search">
-              <div className="bg-white p-4 rounded-lg shadow hover:shadow-lg cursor-pointer border-l-4 border-blue-600">
-                <p className="font-bold text-gray-900">🔍 Customer Search</p>
-                <p className="text-sm text-gray-600">Find customers quickly</p>
+              <div className="bg-white p-3 md:p-4 rounded-lg shadow hover:shadow-lg cursor-pointer border-l-4 border-blue-600">
+                <p className="font-bold text-gray-900 text-sm md:text-base">🔍 Customer Search</p>
+                <p className="text-xs md:text-sm text-gray-600">Find customers quickly</p>
               </div>
             </Link>
             <Link href="/manage/campaigns">
-              <div className="bg-white p-4 rounded-lg shadow hover:shadow-lg cursor-pointer border-l-4 border-purple-600">
-                <p className="font-bold text-gray-900">📢 Campaigns</p>
-                <p className="text-sm text-gray-600">Create marketing campaigns</p>
+              <div className="bg-white p-3 md:p-4 rounded-lg shadow hover:shadow-lg cursor-pointer border-l-4 border-purple-600">
+                <p className="font-bold text-gray-900 text-sm md:text-base">📢 Campaigns</p>
+                <p className="text-xs md:text-sm text-gray-600">Create marketing campaigns</p>
               </div>
             </Link>
           </div>
@@ -230,32 +230,32 @@ export default function CustomersPage() {
           )}
 
           {/* Customers Table */}
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          <div className="bg-white rounded-lg shadow-lg overflow-x-auto">
             {customers.length === 0 ? (
-              <div className="p-6 text-center text-gray-600">
-                <p className="text-lg">No customers found. Create one to get started!</p>
+              <div className="p-4 md:p-6 text-center text-gray-600">
+                <p className="text-base md:text-lg">No customers found. Create one to get started!</p>
               </div>
             ) : (
-              <table className="w-full">
+              <table className="w-full text-xs md:text-sm">
                 <thead className="bg-gray-100 border-b-2 border-gray-300">
                   <tr>
-                    <th className="px-6 py-3 text-left font-bold text-gray-900">Name</th>
-                    <th className="px-6 py-3 text-left font-bold text-gray-900">Email</th>
-                    <th className="px-6 py-3 text-left font-bold text-gray-900">Phone</th>
-                    <th className="px-6 py-3 text-left font-bold text-gray-900">Address</th>
-                    <th className="px-6 py-3 text-left font-bold text-gray-900">Type</th>
-                    <th className="px-6 py-3 text-center font-bold text-gray-900">Actions</th>
+                    <th className="px-2 md:px-6 py-2 md:py-3 text-left font-bold text-gray-900">Name</th>
+                    <th className="px-2 md:px-6 py-2 md:py-3 text-left font-bold text-gray-900 hidden sm:table-cell">Email</th>
+                    <th className="px-2 md:px-6 py-2 md:py-3 text-left font-bold text-gray-900 hidden lg:table-cell">Phone</th>
+                    <th className="px-2 md:px-6 py-2 md:py-3 text-left font-bold text-gray-900 hidden xl:table-cell">Address</th>
+                    <th className="px-2 md:px-6 py-2 md:py-3 text-left font-bold text-gray-900">Type</th>
+                    <th className="px-2 md:px-6 py-2 md:py-3 text-center font-bold text-gray-900">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {customers.map((customer) => (
                     <tr key={customer._id} className="border-b border-gray-200 hover:bg-gray-50">
-                      <td className="px-6 py-4 font-semibold text-gray-900">{customer.name}</td>
-                      <td className="px-6 py-4 text-gray-700">{customer.email}</td>
-                      <td className="px-6 py-4 text-gray-700">{customer.phone}</td>
-                      <td className="px-6 py-4 text-gray-700">{customer.address || "N/A"}</td>
-                      <td className="px-6 py-4 text-center">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      <td className="px-2 md:px-6 py-2 md:py-4 font-semibold text-gray-900 text-xs md:text-sm">{customer.name}</td>
+                      <td className="px-2 md:px-6 py-2 md:py-4 text-gray-700 hidden sm:table-cell text-xs md:text-sm">{customer.email}</td>
+                      <td className="px-2 md:px-6 py-2 md:py-4 text-gray-700 hidden lg:table-cell text-xs md:text-sm">{customer.phone}</td>
+                      <td className="px-2 md:px-6 py-2 md:py-4 text-gray-700 hidden xl:table-cell text-xs md:text-sm">{customer.address || "N/A"}</td>
+                      <td className="px-2 md:px-6 py-2 md:py-4 text-center">
+                        <span className={`px-2 md:px-3 py-1 rounded-full text-xs font-semibold ${
                           customer.type === "VIP" ? "bg-purple-100 text-purple-800" :
                           customer.type === "NEW" ? "bg-blue-100 text-blue-800" :
                           customer.type === "BULK_BUYER" ? "bg-orange-100 text-orange-800" :
@@ -265,16 +265,16 @@ export default function CustomersPage() {
                           {customer.type || "REGULAR"}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-2 md:px-6 py-2 md:py-4 text-center">
                         <button
                           onClick={() => handleEdit(customer)}
-                          className="text-blue-600 hover:text-blue-900 font-semibold mr-3"
+                          className="text-blue-600 hover:text-blue-900 font-semibold mr-1 md:mr-3 text-xs md:text-sm"
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => handleDelete(customer._id)}
-                          className="text-red-600 hover:text-red-900 font-semibold"
+                          className="text-red-600 hover:text-red-900 font-semibold text-xs md:text-sm"
                         >
                           Delete
                         </button>

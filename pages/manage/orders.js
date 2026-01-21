@@ -127,17 +127,17 @@ export default function OrderInventoryPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 px-6 py-8">
+      <div className="min-h-screen bg-gray-50 px-3 md:px-6 py-6 md:py-8\">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Order Management</h1>
-            <p className="text-gray-600 mt-2">Manage customer orders and track shipments</p>
+          <div className="mb-6 md:mb-8">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Order Management</h1>
+            <p className="text-sm md:text-base text-gray-600 mt-2">Manage customer orders and track shipments</p>
           </div>
 
           {/* Search Box */}
           <div className="mb-6 relative max-w-md">
-            <Search className="absolute left-3 top-3.5 text-cyan-600 w-5 h-5" />
+            <Search className="absolute left-3 top-3.5 text-cyan-600 w-4 md:w-5 h-4 md:h-5" />
             <input
               type="search"
               placeholder="Search by customer or order ID"
@@ -146,42 +146,42 @@ export default function OrderInventoryPage() {
                 setSearch(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-700"
+              className="w-full pl-10 pr-4 py-2 md:py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-700 text-sm md:text-base"
             />
           </div>
 
           {/* Orders Table */}
-          <div className="bg-white shadow-lg rounded-lg overflow-hidden">
-            <table className="min-w-full">
-              <thead className="bg-gradient-to-r from-cyan-600 to-cyan-700 text-white">
+          <div className="bg-white shadow-lg rounded-lg overflow-x-auto">
+            <table className="min-w-full text-xs md:text-sm">
+              <thead className="bg-gradient-to-r from-cyan-600 to-cyan-700 text-white\">
                 <tr>
                   {["Order ID", "Customer", "Total", "Status", "Date"].map((h) => (
-                    <th key={h} className="text-left font-bold py-4 px-6">{h}</th>
+                    <th key={h} className="text-left font-bold py-3 md:py-4 px-2 md:px-6\">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={5} className="text-center py-8 text-gray-500 italic">Loading orders...</td>
+                    <td colSpan={5} className="text-center py-6 md:py-8 text-gray-500 italic text-sm\">Loading orders...</td>
                   </tr>
                 ) : orders.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="text-center py-8 italic text-gray-400">No orders found.</td>
+                    <td colSpan={5} className="text-center py-6 md:py-8 italic text-gray-400 text-sm">No orders found.</td>
                   </tr>
                 ) : (
                   orders.map((order, idx) => (
                     <tr key={order._id} className={`border-b border-gray-200 hover:bg-gray-50 transition cursor-pointer ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                      <td className="font-mono text-cyan-700 px-6 py-4 font-semibold">{order._id}</td>
-                      <td className="px-6 py-4 text-gray-900">{order.customer?.name || "N/A"}</td>
-                      <td className="font-bold text-gray-900 px-6 py-4">{currency.format(order.total ?? 0)}</td>
-                      <td className="px-6 py-4">
+                      <td className="font-mono text-cyan-700 px-2 md:px-6 py-3 md:py-4 font-semibold text-xs md:text-sm">{order._id.slice(-8)}</td>
+                      <td className="px-2 md:px-6 py-3 md:py-4 text-gray-900 text-xs md:text-sm">{order.customer?.name || "N/A"}</td>
+                      <td className="font-bold text-gray-900 px-2 md:px-6 py-3 md:py-4 text-xs md:text-sm">{currency.format(order.total ?? 0)}</td>
+                      <td className="px-2 md:px-6 py-3 md:py-4">
                         <select
                           value={order.status}
                           disabled={updatingStatus || order.status === "Delivered"}
                           onChange={(e) => handleStatusChange(order._id, e.target.value)}
                           className={clsx(
-                            "px-3 py-1.5 rounded-full text-xs font-bold transition",
+                            "px-2 md:px-3 py-1 md:py-1.5 rounded-full text-xs md:text-xs font-bold transition",
                             statusClass[order.status] || "bg-gray-100 text-gray-600",
                             order.status === "Delivered" && "opacity-60 cursor-not-allowed"
                           )}
@@ -191,7 +191,7 @@ export default function OrderInventoryPage() {
                           ))}
                         </select>
                       </td>
-                      <td className="px-6 py-4 text-gray-700">{new Date(order.createdAt).toLocaleDateString("en-NG")}</td>
+                      <td className="px-2 md:px-6 py-3 md:py-4 text-gray-700 text-xs md:text-sm">{new Date(order.createdAt).toLocaleDateString("en-NG")}</td>
                     </tr>
                   ))
                 )}

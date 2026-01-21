@@ -222,11 +222,11 @@ export default function Home() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-6">
-        <header className="flex justify-between mb-6">
-          <h1 className="text-3xl font-bold">Welcome {selectedUser}</h1>
+      <div className="min-h-screen bg-gray-50 p-3 md:p-6">
+        <header className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0 mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold">Welcome {selectedUser}</h1>
           <button
-            className="bg-cyan-600 hover:bg-cyan-700 text-white px-5 py-2 rounded-lg transition"
+            className="w-full sm:w-auto bg-cyan-600 hover:bg-cyan-700 text-white px-5 py-2 rounded-lg transition text-sm md:text-base"
             onClick={() => router.push("/products/new")}
           >
             + Add Product
@@ -234,9 +234,9 @@ export default function Home() {
         </header>
 
         {/* Filters */}
-        <div className="flex gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-2 md:gap-4 mb-6">
           <select
-            className="border px-3 py-2 rounded"
+            className="border px-3 py-2 rounded text-sm md:text-base flex-1 sm:flex-none"
             value={selectedLocation}
             onChange={(e) => setSelectedLocation(e.target.value)}
           >
@@ -249,7 +249,7 @@ export default function Home() {
           </select>
 
           <select
-            className="border px-3 py-2 rounded"
+            className="border px-3 py-2 rounded text-sm md:text-base flex-1 sm:flex-none"
             value={selectedPeriod}
             onChange={(e) => setSelectedPeriod(e.target.value)}
           >
@@ -264,7 +264,7 @@ export default function Home() {
         ) : (
           <>
             {/* KPIs */}
-            <section className="grid grid-cols-3 gap-6 mb-8">
+            <section className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 mb-8">
               <KpiCard label="Sales" value={formatMoney(kpis.sales)} />
               <KpiCard
                 label="Transactions"
@@ -277,7 +277,7 @@ export default function Home() {
             </section>
 
             {/* Charts */}
-            <section className="grid grid-cols-2 gap-6">
+            <section className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-6">
               <ChartCard title="Sales by Product">
                 <Bar data={salesByProductData} />
               </ChartCard>
@@ -288,7 +288,7 @@ export default function Home() {
             </section>
 
             {/* Lists */}
-            <section className="grid grid-cols-4 gap-6 mt-8">
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mt-8">
               <ListCard
                 title="Recent Orders"
                 items={filteredOrders.slice(0, 10).map((o) => ({
@@ -326,17 +326,17 @@ export default function Home() {
 ======================= */
 function KpiCard({ label, value }) {
   return (
-    <div className="bg-white p-5 rounded shadow text-center">
-      <div className="text-2xl font-bold">{value}</div>
-      <div className="text-gray-600">{label}</div>
+    <div className="bg-white p-4 md:p-5 rounded shadow text-center">
+      <div className="text-xl md:text-2xl font-bold">{value}</div>
+      <div className="text-xs md:text-sm text-gray-600">{label}</div>
     </div>
   );
 }
 
 function ChartCard({ title, children }) {
   return (
-    <div className="bg-white p-4 rounded shadow h-[40vh]">
-      <h2 className="font-semibold mb-2">{title}</h2>
+    <div className="bg-white p-3 md:p-4 rounded shadow h-[35vh] md:h-[40vh]">
+      <h2 className="font-semibold mb-2 text-sm md:text-base">{title}</h2>
       {children}
     </div>
   );
@@ -344,18 +344,18 @@ function ChartCard({ title, children }) {
 
 function ListCard({ title, items }) {
   return (
-    <motion.div className="bg-white p-5 rounded shadow h-[40vh] overflow-y-auto">
-      <h2 className="font-semibold mb-3">{title}</h2>
+    <motion.div className="bg-white p-4 md:p-5 rounded shadow h-[35vh] md:h-[40vh] overflow-y-auto">
+      <h2 className="font-semibold mb-3 text-sm md:text-base">{title}</h2>
       <ul className="space-y-2">
         {items.length ? (
           items.map((i, idx) => (
-            <li key={idx} className="bg-gray-50 p-2 rounded border border-gray-200">
+            <li key={idx} className="bg-gray-50 p-2 rounded border border-gray-200 text-xs md:text-sm">
               <div className="font-medium">{i.label}</div>
-              <div className="text-sm text-gray-600">{i.meta}</div>
+              <div className="text-xs text-gray-600">{i.meta}</div>
             </li>
           ))
         ) : (
-          <li className="text-gray-400 italic">No data</li>
+          <li className="text-gray-400 italic text-xs md:text-sm">No data</li>
         )}
       </ul>
     </motion.div>

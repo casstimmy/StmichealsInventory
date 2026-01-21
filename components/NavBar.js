@@ -57,17 +57,17 @@ const TopBar = ({ user, logout }) => {
       .toUpperCase();
 
   return (
-    <div className="fixed top-0 w-full z-20 flex justify-between items-center py-4 px-8 bg-gradient-to-r from-white to-gray-50 shadow-lg border-b border-gray-200">
+    <div className="fixed top-0 w-full z-20 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 md:gap-0 py-2 md:py-4 px-3 md:px-8 bg-gradient-to-r from-white to-gray-50 shadow-lg border-b border-gray-200">
       {/* Left Section: Back Office Text */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-md">
-          <FontAwesomeIcon icon={faStore} className="w-6 h-6 text-white" />
+      <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto">
+        <div className="w-8 md:w-10 h-8 md:h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-md flex-shrink-0">
+          <FontAwesomeIcon icon={faStore} className="w-4 md:w-6 h-4 md:h-6 text-white" />
         </div>
-        <h2 className="text-gray-900 text-2xl font-bold tracking-tight">Back Office</h2>
+        <h2 className="text-gray-900 text-lg md:text-2xl font-bold tracking-tight">Back Office</h2>
       </div>
 
       {/* Right Section: Profile and Icons */}
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-2 md:gap-6 w-full md:w-auto">
         {/* Notification Icon with Low Stock Alert */}
         <div className="relative group">
           <button 
@@ -75,32 +75,32 @@ const TopBar = ({ user, logout }) => {
             onClick={() => setShowAlert(!showAlert)}
             title="Low stock alerts"
           >
-            <FontAwesomeIcon icon={faBell} className="w-6 h-6 text-gray-600 hover:text-blue-600 transition-colors" />
+            <FontAwesomeIcon icon={faBell} className="w-4 md:w-6 h-4 md:h-6 text-gray-600 hover:text-blue-600 transition-colors" />
             {lowStockCount > 0 && (
-              <span className="w-6 h-6 bg-red-500 rounded-full absolute top-0 right-0 shadow-sm flex items-center justify-center text-white text-xs font-bold">
+              <span className="w-5 h-5 md:w-6 md:h-6 bg-red-500 rounded-full absolute -top-1 -right-1 shadow-sm flex items-center justify-center text-white text-xs font-bold">
                 {lowStockCount > 9 ? '9+' : lowStockCount}
               </span>
             )}
           </button>
 
-          {/* Alert Dropdown */}
+          {/* Alert Dropdown - Mobile responsive */}
           {showAlert && lowStockCount > 0 && (
-            <div className="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-xl border border-gray-200 p-4 z-50">
+            <div className="absolute right-0 mt-2 w-72 md:w-72 bg-white rounded-lg shadow-xl border border-gray-200 p-4 z-50 text-sm">
               <div className="flex items-center gap-2 mb-3 pb-3 border-b border-gray-200">
-                <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
-                  <span className="text-yellow-600 font-bold">⚠️</span>
+                <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <span className="text-yellow-600 font-bold text-sm">⚠️</span>
                 </div>
-                <div>
-                  <p className="font-semibold text-gray-900 text-sm">Low Stock Alert</p>
+                <div className="min-w-0">
+                  <p className="font-semibold text-gray-900 text-xs md:text-sm">Low Stock Alert</p>
                   <p className="text-xs text-gray-600">{lowStockCount} product(s) below minimum</p>
                 </div>
               </div>
               <div className="text-xs text-gray-600 mb-3">
-                <p>Products are running low on stock. Please review inventory management.</p>
+                <p>Products are running low on stock. Please review inventory.</p>
               </div>
               <a 
                 href="/stock/management"
-                className="inline-block w-full text-center bg-yellow-50 hover:bg-yellow-100 text-yellow-700 py-2 rounded font-medium transition-colors text-sm border border-yellow-200"
+                className="inline-block w-full text-center bg-yellow-50 hover:bg-yellow-100 text-yellow-700 py-2 rounded font-medium transition-colors text-xs border border-yellow-200"
               >
                 View Stock Details
               </a>
@@ -116,32 +116,32 @@ const TopBar = ({ user, logout }) => {
               onClick={() => setShowAlert(!showAlert)}
               title="Products expiring soon"
             >
-              <FontAwesomeIcon icon={faExclamationTriangle} className="w-6 h-6 text-orange-600 hover:text-orange-700 transition-colors" />
+              <FontAwesomeIcon icon={faExclamationTriangle} className="w-4 md:w-6 h-4 md:h-6 text-orange-600 hover:text-orange-700 transition-colors" />
               {expiringCount > 0 && (
-                <span className="w-6 h-6 bg-orange-500 rounded-full absolute top-0 right-0 shadow-sm flex items-center justify-center text-white text-xs font-bold">
+                <span className="w-5 h-5 md:w-6 md:h-6 bg-orange-500 rounded-full absolute -top-1 -right-1 shadow-sm flex items-center justify-center text-white text-xs font-bold">
                   {expiringCount > 9 ? '9+' : expiringCount}
                 </span>
               )}
             </button>
 
-            {/* Expiration Alert Dropdown */}
+            {/* Expiration Alert Dropdown - Mobile responsive */}
             {showAlert && expiringCount > 0 && (
-              <div className="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-xl border border-gray-200 p-4 z-50">
+              <div className="absolute right-0 mt-2 w-72 md:w-72 bg-white rounded-lg shadow-xl border border-gray-200 p-4 z-50 text-sm">
                 <div className="flex items-center gap-2 mb-3 pb-3 border-b border-gray-200">
-                  <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-                    <span className="text-orange-600 font-bold">⏰</span>
+                  <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-orange-600 font-bold text-sm">⏰</span>
                   </div>
-                  <div>
-                    <p className="font-semibold text-gray-900 text-sm">Expiration Alert</p>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-gray-900 text-xs md:text-sm">Expiration Alert</p>
                     <p className="text-xs text-gray-600">{expiringCount} product(s) expiring soon</p>
                   </div>
                 </div>
                 <div className="text-xs text-gray-600 mb-3">
-                  <p>Products are expiring within the next 30 days. Please review expiry dates.</p>
+                  <p>Products expiring within the next 30 days. Please review expiry dates.</p>
                 </div>
                 <a 
                   href="/stock/management"
-                  className="inline-block w-full text-center bg-orange-50 hover:bg-orange-100 text-orange-700 py-2 rounded font-medium transition-colors text-sm border border-orange-200"
+                  className="inline-block w-full text-center bg-orange-50 hover:bg-orange-100 text-orange-700 py-2 rounded font-medium transition-colors text-xs border border-orange-200"
                 >
                   View Expiry Details
                 </a>
@@ -150,30 +150,30 @@ const TopBar = ({ user, logout }) => {
           </div>
         )}
 
-        {/* Profile Section */}
-        <div className="flex items-center gap-4 pl-6 border-l border-gray-200">
+        {/* Profile Section - Compact on mobile */}
+        <div className="flex items-center gap-2 md:gap-4 pl-2 md:pl-6 border-l border-gray-200">
           {/* Profile Image or Placeholder */}
           <div className="relative group">
-            <div className="w-10 h-10 flex items-center justify-center bg-gradient-to-br from-cyan-500 to-cyan-600 text-white rounded-full shadow-md group-hover:shadow-lg transition-all text-lg font-bold">
+            <div className="w-8 md:w-10 h-8 md:h-10 flex items-center justify-center bg-gradient-to-br from-cyan-500 to-cyan-600 text-white rounded-full shadow-md group-hover:shadow-lg transition-all text-xs md:text-lg font-bold flex-shrink-0">
               {getInitials(user?.name) || 'U'}
             </div>
           </div>
 
-          {/* User Info */}
-          <div className="flex flex-col hidden sm:flex">
-            <span className="text-gray-900 font-semibold text-sm">
+          {/* User Info - Hidden on mobile, shown on sm+ */}
+          <div className="flex-col hidden sm:flex md:flex">
+            <span className="text-gray-900 font-semibold text-xs md:text-sm">
               {user?.name || 'User'}
             </span>
             <span className="text-xs text-gray-500 capitalize">{user?.role || 'staff'}</span>
           </div>
 
-          {/* Logout Button */}
+          {/* Logout Button - Icon on mobile, icon+text on md+ */}
           <button
             onClick={logout}
-            className="flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 text-sm px-4 py-2 rounded-lg shadow-sm transition duration-200 font-medium border border-red-200 hover:border-red-300"
+            className="flex items-center gap-1 md:gap-2 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 text-xs md:text-sm px-2 md:px-4 py-2 rounded-lg shadow-sm transition duration-200 font-medium border border-red-200 hover:border-red-300 flex-shrink-0"
           >
-            <FontAwesomeIcon icon={faRightFromBracket} className="w-4 h-4" />
-            <span className="hidden sm:inline">Log Out</span>
+            <FontAwesomeIcon icon={faRightFromBracket} className="w-3 md:w-4 h-3 md:h-4" />
+            <span className="hidden sm:inline md:inline">Log Out</span>
           </button>
         </div>
       </div>

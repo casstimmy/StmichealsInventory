@@ -20,7 +20,7 @@ const StoreSchema = new mongoose.Schema(
   {
     companyName: String,
     email: String,
-    logo: String,
+    logo: { type: String, default: "" }, // Company logo URL for receipts
     currency: String,
     timezone: String,
 

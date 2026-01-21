@@ -11,13 +11,18 @@ export default async function handler(req, res) {
       const store = await Store.findOne({});
       const user = await User.findOne({ role: "admin" });
 
+      if (store) {
+        console.log("✅ Store found:", {
+          storeName: store.storeName,
+          locationsCount: store.locations?.length || 0,
+          locations: store.locations?.map((loc) => ({ id: loc._id, name: loc.name })) || [],
+        });
+      } else {
+        console.log("⚠️ Store not found in database");
+      }
+
       const storeData = store ? store.toObject() : null;
       const userData = user ? user.toObject() : null;
-
-      console.log("Setup GET:", {
-        storeFound: !!store,
-        locationsCount: store?.locations?.length || 0,
-      });
 
       return res.status(200).json({ 
         success: true,

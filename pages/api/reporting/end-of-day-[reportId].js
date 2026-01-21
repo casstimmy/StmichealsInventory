@@ -1,5 +1,5 @@
-import mongooseConnect from '../../lib/mongodb';
-import EndOfDayReport from '../../models/EndOfDayReport';
+import mongooseConnect from '../../../lib/mongodb';
+import EndOfDayReport from '../../../models/EndOfDayReport';
 
 
 export default async function handler(req, res) {

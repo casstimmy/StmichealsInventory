@@ -1,14 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/router';
-import Image from 'next/image';
 import axios from 'axios';
 import Link from 'next/link';
-import { getStoreLogo, getStoreName } from '@/lib/logoCache';
 
-export default function Register({ storeLogo, storeName }) {
+export default function Register() {
   const router = useRouter();
-  const [logo, setLogo] = useState(storeLogo);
-  const [company, setCompany] = useState(storeName);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -17,26 +13,6 @@ export default function Register({ storeLogo, storeName }) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  // Load logo and store name if not provided from server
-  useEffect(() => {
-    async function loadStoreData() {
-      try {
-        if (!logo) {
-          const cachedLogo = await getStoreLogo();
-          setLogo(cachedLogo);
-        }
-        if (!company) {
-          const name = await getStoreName();
-          setCompany(name);
-        }
-      } catch (err) {
-        console.error('Error loading store data:', err);
-      }
-    }
-
-    loadStoreData();
-  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -94,25 +70,8 @@ export default function Register({ storeLogo, storeName }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyan-50 to-blue-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-2xl p-8 w-full max-w-md border border-gray-200">
-        {/* Logo and Company Name */}
-        {logo && (
-          <div className="mb-6 flex justify-center">
-            <div className="relative w-24 h-24">
-              <Image
-                src={logo}
-                alt={company || "Company Logo"}
-                fill
-                className="object-contain"
-                priority
-              />
-            </div>
-          </div>
-        )}
-        
-        <h1 className="text-3xl font-bold text-gray-800 mb-2 text-center">
-          {company ? `Join ${company}` : "Create Account"}
-        </h1>
-        <p className="text-gray-600 mb-6 text-center">Join our inventory system</p>
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">Create Account</h1>
+        <p className="text-gray-600 mb-6">Join our inventory system</p>
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
@@ -201,34 +160,4 @@ export default function Register({ storeLogo, storeName }) {
       </div>
     </div>
   );
-}
-
-export async function getServerSideProps() {
-  try {
-    const { mongooseConnect } = await import("@/lib/mongodb");
-    const Store = (await import("@/models/Store")).default;
-
-    await mongooseConnect();
-
-    // Get store data including logo and name
-    const store = await Store.findOne({}).lean();
-
-    const storeLogo = store?.logo || null;
-    const storeName = store?.storeName || null;
-
-    return {
-      props: {
-        storeLogo,
-        storeName,
-      },
-    };
-  } catch (err) {
-    console.error("Error fetching store data:", err);
-    return {
-      props: {
-        storeLogo: null,
-        storeName: null,
-      },
-    };
-  }
 }

@@ -1,11 +1,9 @@
 import Link from "next/link";
 import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import Image from "next/image";
 import { apiClient } from "@/lib/api-client";
-import { getStoreLogo, getStoreName } from "@/lib/logoCache";
 
-export default function Login({ staffList, locations, storeLogo, storeName }) {
+export default function Login({ staffList, locations }) {
   const [name, setName] = useState("");
   const [selectedRole, setSelectedRole] = useState("");
   const [location, setLocation] = useState(locations?.[0] || "");
@@ -14,24 +12,12 @@ export default function Login({ staffList, locations, storeLogo, storeName }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [logo, setLogo] = useState(storeLogo);
-  const [company, setCompany] = useState(storeName);
   const router = useRouter();
 
   // Initialize store with default location if needed
   useEffect(() => {
     async function initializeStore() {
       try {
-        // Load logo and store name if not already provided
-        if (!logo) {
-          const cachedLogo = await getStoreLogo();
-          setLogo(cachedLogo);
-        }
-        if (!company) {
-          const name = await getStoreName();
-          setCompany(name);
-        }
-
         if (!availableLocations || availableLocations.length === 0) {
           console.log("Initializing store with default location...");
           const res = await fetch("/api/setup/init", { method: "POST" });
@@ -139,21 +125,8 @@ export default function Login({ staffList, locations, storeLogo, storeName }) {
       <div className="w-full flex flex-col lg:flex-row items-center justify-between max-w-5xl gap-8">
         {/* Hero Section */}
         <div className="w-full lg:w-1/2 text-center lg:text-left">
-          {logo && (
-            <div className="mb-8 flex justify-center lg:justify-start">
-              <div className="relative w-32 h-32">
-                <Image
-                  src={logo}
-                  alt={company || "Company Logo"}
-                  fill
-                  className="object-contain"
-                  priority
-                />
-              </div>
-            </div>
-          )}
-          <h1 className="text-4xl lg:text-5xl font-extrabold text-blue-800 mb-2">
-            {company || "Inventory Admin"}
+          <h1 className="text-4xl lg:text-5xl font-extrabold text-blue-800 mb-4">
+            Inventory Admin
           </h1>
           <p className="text-lg text-gray-700 mb-6">
             Efficient inventory management system for your business.
@@ -315,12 +288,11 @@ export default function Login({ staffList, locations, storeLogo, storeName }) {
 
 export async function getServerSideProps() {
   try {
-    const { mongooseConnect } = await import("@/lib/mongodb");
+    const { connectToDatabase } = await import("@/lib/mongodb");
     const Staff = (await import("@/models/Staff")).default;
     const User = (await import("@/models/User")).default;
-    const Store = (await import("@/models/Store")).default;
 
-    await mongooseConnect();
+    await connectToDatabase();
 
     // Get all staff
     const staffDocs = await Staff.find({}, "name role").lean();
@@ -355,7 +327,8 @@ export async function getServerSideProps() {
 
     const allUsers = Array.from(allUsersMap.values());
 
-    // Get locations and logo from Store model
+    // Get locations from Store model
+    const Store = (await import("@/models/Store")).default;
     const store = await Store.findOne({}).lean();
     
     console.log("Store found:", !!store);
@@ -372,16 +345,10 @@ export async function getServerSideProps() {
       locations = ["Default Location"];
     }
 
-    // Get logo and store name
-    const storeLogo = store?.logo || null;
-    const storeName = store?.storeName || null;
-
     return {
       props: {
         staffList: allUsers,
         locations,
-        storeLogo,
-        storeName,
       },
     };
   } catch (err) {
@@ -390,8 +357,6 @@ export async function getServerSideProps() {
       props: {
         staffList: [],
         locations: ["Default Location"],
-        storeLogo: null,
-        storeName: null,
       },
     };
   }

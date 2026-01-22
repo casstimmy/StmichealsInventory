@@ -57,17 +57,24 @@ const TopBar = ({ user, logout }) => {
       .toUpperCase();
 
   return (
-    <div className="fixed top-0 w-full z-20 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 md:gap-0 py-2 md:py-4 px-3 md:px-8 bg-gradient-to-r from-white to-gray-50 shadow-lg border-b border-gray-200">
-      {/* Left Section: Back Office Text */}
-      <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto">
+    <div className="fixed top-0 w-full z-20 flex flex-col md:flex-row justify-between items-center gap-3 md:gap-0 py-2 md:py-4 px-3 md:px-8 bg-gradient-to-r from-white to-gray-50 shadow-lg border-b border-gray-200">
+      {/* Left Section: Back Office Text - Hidden on mobile */}
+      <div className="hidden md:flex items-center gap-3 w-full md:w-auto">
         <div className="w-8 md:w-10 h-8 md:h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-md flex-shrink-0">
           <FontAwesomeIcon icon={faStore} className="w-4 md:w-6 h-4 md:h-6 text-white" />
         </div>
         <h2 className="text-gray-900 text-lg md:text-2xl font-bold tracking-tight">Back Office</h2>
       </div>
 
+      {/* Mobile Logo Icon - Shown only on mobile */}
+      <div className="md:hidden flex-shrink-0">
+        <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-md">
+          <FontAwesomeIcon icon={faStore} className="w-4 h-4 text-white" />
+        </div>
+      </div>
+
       {/* Right Section: Profile and Icons */}
-      <div className="flex items-center gap-2 md:gap-6 w-full md:w-auto">
+      <div className="flex items-center gap-2 sm:gap-3 md:gap-6 w-full md:w-auto justify-end">
         {/* Notification Icon with Low Stock Alert */}
         <div className="relative group">
           <button 

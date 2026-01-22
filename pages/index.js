@@ -1,6 +1,5 @@
 "use client";
 
-import Layout from "@/components/Layout";
 import { Bar } from "react-chartjs-2";
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/router";
@@ -221,7 +220,6 @@ export default function Home() {
   };
 
   return (
-    <Layout>
       <div className="w-full min-h-screen bg-gray-50 p-2 sm:p-3 md:p-6">
         {/* Header */}
         <header className="flex flex-col gap-3 sm:gap-4 mb-6">
@@ -323,7 +321,7 @@ export default function Home() {
           </>
         )}
       </div>
-    </Layout>
+
   );
 }
 

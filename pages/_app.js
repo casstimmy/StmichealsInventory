@@ -1,10 +1,17 @@
 import Head from 'next/head';
 import '../styles/globals.css';
+import { useRouter } from 'next/router';
+import Layout from '@/components/Layout';
 
 export default function App({
   Component,
   pageProps,
 }) {
+  const router = useRouter();
+  
+  // Don't show layout on login page
+  const showLayout = !router.pathname.includes('/login');
+
   return (
     <>
       <Head>
@@ -24,7 +31,14 @@ export default function App({
         <meta name="description" content="Best products at the best prices!" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <Component {...pageProps} />
+      
+      {showLayout ? (
+        <Layout>
+          <Component {...pageProps} />
+        </Layout>
+      ) : (
+        <Component {...pageProps} />
+      )}
     </>
   );
 }

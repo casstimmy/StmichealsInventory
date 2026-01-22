@@ -55,8 +55,18 @@ export default function Sidebar() {
     }
   };
 
-  // Auto-open menu based on active pathname
+  const closeMenuOnNavigation = () => {
+    setOpenMenu(null);
+    setOpenSubMenu(null);
+    if (isMobile) {
+      setIsMobileMenuOpen(false);
+    }
+  };
+
+  // Auto-open menu based on active pathname ONLY if desktop and menu was not just closed
   useEffect(() => {
+    if (isMobile) return; // Don't auto-open on mobile
+    
     if (pathname.startsWith("/setup")) {
       setOpenMenu("setup");
       setOpenSubMenu(null);
@@ -84,7 +94,7 @@ export default function Sidebar() {
       setOpenMenu("support");
       setOpenSubMenu(null);
     }
-  }, [pathname]);
+  }, [pathname, isMobile]);
 
   useEffect(() => {
     const handleStart = () => setLoading(true);
@@ -126,7 +136,7 @@ export default function Sidebar() {
         <li
           key={href}
           className={`border-b border-gray-100 last:border-b-0 transition-all duration-300 group`}
-          onClick={closeMenu}
+          onClick={closeMenuOnNavigation}
         >
           <Link 
             href={href} 

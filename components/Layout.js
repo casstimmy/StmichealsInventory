@@ -21,8 +21,8 @@ export default function Layout({ children, title = "Dashboard" }) {
 
   // 🔐 REDIRECT TO LOGIN IF NOT AUTHENTICATED
   if (!isAuthenticated) {
-    if (typeof window !== 'undefined') {
-      router.push('/login');
+    if (typeof window !== "undefined") {
+      router.push("/login");
     }
     return null;
   }
@@ -42,7 +42,9 @@ export default function Layout({ children, title = "Dashboard" }) {
 
         {/* Main Content Area */}
         <div className="w-full flex-1 overflow-hidden">
-          <div className="w-full min-h-[calc(100vh-48px)] md:min-h-[calc(100vh-64px)] px-2 sm:px-3 md:px-4 lg:px-6 py-3 md:py-6 bg-slate-100 overflow-y-auto">
+          <div
+            className="w-full min-h-[calc(100vh-48px)] md:min-h-[calc(100vh-64px)]  sm:px-3 bg-slate-100 overflow-y-auto"
+          >
             {children}
           </div>
         </div>

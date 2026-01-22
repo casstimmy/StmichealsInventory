@@ -84,7 +84,7 @@ export default function Reporting() {
 
   return (
     <Layout title="Reporting">
-      <div className="min-h-screen bg-gray-50 p-3 md:p-8">
+      <div className="min-h-screen bg-gray-50 p-3 md:p-6">
         <div className="max-w-7xl mx-auto">
           {/* HEADER */}
           <div className="mb-6 md:mb-8 flex flex-col sm:flex-row justify-between items-start gap-3">

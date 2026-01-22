@@ -24,7 +24,7 @@ export default function ManageExpenses() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen bg-gray-50 p-3 md:p-6">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="mb-8">

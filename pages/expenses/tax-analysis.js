@@ -56,7 +56,7 @@ export default function TaxAnalysisPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4">
+      <div className="min-h-screen bg-gray-50 p-3 md:p-6">
         <div className="max-w-7xl mx-auto">
           {/* Header Section */}
           <div className="mb-10">

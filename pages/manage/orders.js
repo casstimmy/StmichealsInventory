@@ -127,7 +127,7 @@ export default function OrderInventoryPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 px-3 md:px-6 py-6 md:py-8\">
+    <div className="min-h-screen bg-gray-50 p-3 md:p-6">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="mb-6 md:mb-8">

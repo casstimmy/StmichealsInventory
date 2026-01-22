@@ -67,7 +67,7 @@ export default function Reporting() {
 
   return (
     <Layout title="Reporting">
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 p-8">
+      <div className="min-h-screen bg-gray-50 p-3 md:p-6">
         <div className="mb-6 text-sm">
           <Link href="/" className="text-cyan-600 hover:text-cyan-700">Home</Link>
           <span className="mx-2 text-gray-400">›</span>

@@ -232,7 +232,7 @@ export default function Products() {
 
   return (
     <Layout>
-      <div className="p-3 md:p-6 bg-gradient-to-b from-gray-50 to-white min-h-screen rounded-2xl">
+      <div className="min-h-screen bg-gray-50 p-3 md:p-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
           <h1 className="text-xl md:text-2xl font-bold text-gray-900">Products</h1>

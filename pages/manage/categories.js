@@ -217,7 +217,7 @@ export default function Categories() {
 
   return (
     <Layout>
-      <div className="px-6 py-8 bg-gradient-to-b from-gray-50 to-white min-h-screen">
+      <div className="min-h-screen bg-gray-50 p-3 md:p-6">
         <div className="max-w-6xl mx-auto space-y-8">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between">

@@ -102,10 +102,10 @@ export default function NotFound() {
                     Reach out to our support team for assistance
                   </p>
                   <a
-                    href="mailto:support@stmichaelshub.com"
+                    href="mailto:hello.ayoola@gmail.com.com"
                     className="text-blue-600 hover:text-blue-700 font-semibold text-sm flex items-center justify-center transition"
                   >
-                    support@stmichaelshub.com
+                    support@hetchtech.com
                     <FontAwesomeIcon icon={faArrowRight} className="ml-2 text-xs" />
                   </a>
                 </div>
@@ -123,10 +123,10 @@ export default function NotFound() {
                     Call us during business hours for immediate assistance
                   </p>
                   <a
-                    href="tel:+234XXXXXXXXXX"
+                    href="tel:+2349166843265"
                     className="text-cyan-600 hover:text-cyan-700 font-semibold text-sm flex items-center justify-center transition"
                   >
-                    +234 (XXX) XXX-XXXX
+                    +234 (916) 684-3265
                     <FontAwesomeIcon icon={faArrowRight} className="ml-2 text-xs" />
                   </a>
                 </div>
@@ -159,7 +159,7 @@ export default function NotFound() {
           {/* Footer */}
           <div className="bg-gray-50 px-6 sm:px-8 py-6 border-t border-gray-200">
             <p className="text-center text-gray-500 text-xs sm:text-sm">
-              © 2024 St. Michael's Hub. All rights reserved. | Error Code: 404
+              © 2025 Hetch Tech All rights reserved. | Error Code: 404
             </p>
           </div>
         </div>

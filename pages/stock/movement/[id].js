@@ -78,7 +78,7 @@ if (!movement)
 
   return (
     <Layout>
-      <div className="min-h-screen bg-[#f8fbfc] p-8">
+      <div className="min-h-screen bg-gray-50 p-3 md:p-6">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold text-gray-800">
             Stock Movement Details{" "}

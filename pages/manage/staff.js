@@ -354,7 +354,7 @@ export default function StaffPage() {
 
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto bg-gray-100 py-6 md:py-8 px-3 md:px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-gray-50 p-3 md:p-6">
         {/* Header */}
         <h1 className="text-2xl md:text-3xl font-bold text-blue-800 mb-6">Manage Staff Logins</h1>
 

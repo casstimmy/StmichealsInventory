@@ -152,7 +152,7 @@ export default function Promotions() {
 
   return (
     <Layout>
-      <div className="p-6 bg-gradient-to-b from-white to-blue-50 min-h-screen">
+      <div className="min-h-screen bg-gray-50 p-3 md:p-6">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-2">

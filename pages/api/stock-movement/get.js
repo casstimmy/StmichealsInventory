@@ -13,7 +13,8 @@ export default async function handler(req, res) {
       const data = await StockMovement.find({})
         .sort({ createdAt: -1 })
         .populate("products.productId")
-        .populate("staffId");
+        .populate("staffId")
+        .lean();
 
       // Fetch store to get location names
       const store = await Store.findOne({}).lean();
@@ -28,24 +29,31 @@ export default async function handler(req, res) {
           locationMap[idx] = loc.name;
           
           // Map by ObjectId
-          const locId = loc._id?.toString();
+          const locId = loc._id?.toString?.();
           if (locId) {
             locationMap[locId] = loc.name;
           }
           
           // Map by name
-          locationMap[loc.name] = loc.name;
+          if (loc.name) {
+            locationMap[loc.name] = loc.name;
+          }
         });
       }
       locationMap["vendor"] = "Vendor";
       locationMap["Vendor"] = "Vendor";
 
-      const movements = data.map((m) => {
+      console.log("Total stock movements found:", data.length);
+
+      const movements = [];
+      
+      for (let i = 0; i < data.length; i++) {
+        const m = data[i];
         try {
           // Validate that document exists and has required fields
           if (!m || typeof m !== 'object') {
-            console.warn("Invalid movement document:", m);
-            return null;
+            console.warn(`[${i}] Invalid movement document (not an object):`, m);
+            continue;
           }
 
           // Use stored totalCostPrice if available, otherwise calculate
@@ -59,7 +67,7 @@ export default async function handler(req, res) {
                 return sum + (cost * qty);
               }, 0);
             } catch (calcErr) {
-              console.warn("Error calculating totalCostPrice:", calcErr);
+              console.warn(`[${i}] Error calculating totalCostPrice:`, calcErr.message);
               totalCostPrice = 0;
             }
           }
@@ -70,11 +78,11 @@ export default async function handler(req, res) {
           let toLocationId = m.toLocationId;
           
           // Convert ObjectId to string if needed
-          if (fromLocationId && typeof fromLocationId === 'object' && fromLocationId.toString) {
-            fromLocationId = fromLocationId.toString();
+          if (fromLocationId && typeof fromLocationId === 'object') {
+            fromLocationId = fromLocationId.toString ? fromLocationId.toString() : String(fromLocationId);
           }
-          if (toLocationId && typeof toLocationId === 'object' && toLocationId.toString) {
-            toLocationId = toLocationId.toString();
+          if (toLocationId && typeof toLocationId === 'object') {
+            toLocationId = toLocationId.toString ? toLocationId.toString() : String(toLocationId);
           }
           
           // Default handling for null/undefined values
@@ -113,36 +121,69 @@ export default async function handler(req, res) {
             toLocationName = toLocationName || toLocationId || "Unknown";
           }
 
-          return {
-            _id: m._id,
-            transRef: m.transRef, 
+          // Map products safely
+          let mappedProducts = [];
+          if (m.products && Array.isArray(m.products)) {
+            mappedProducts = m.products.map(p => ({
+              productId: p.productId?._id ? p.productId._id.toString() : (p.productId || p.id || "Unknown"),
+              productName: p.productId?.name || "Unknown",
+              quantity: p.quantity || 0,
+              costPrice: p.productId?.costPrice || 0,
+              expiryDate: p.expiryDate || null,
+            }));
+          }
+
+          const movement = {
+            _id: m._id ? m._id.toString() : m._id,
+            transRef: m.transRef || "Unknown", 
             fromLocationId: fromLocationName,
             toLocationId: toLocationName,
-            sender: fromLocationName, // Keep for backward compatibility
-            receiver: toLocationName, // Keep for backward compatibility
+            sender: fromLocationName,
+            receiver: toLocationName,
             reason: m.reason || "Unknown",
-            staff: m.staffId || m.staff,
+            staff: m.staffId || m.staff || null,
             staffName: m.staffId?.name || "N/A",
             dateSent: m.dateSent || m.createdAt,
             dateReceived: m.dateReceived || m.updatedAt,
             totalCostPrice,
             status: m.status || "Received",
             barcode: m.barcode || m.transRef || "",
-            productCount: m.products?.length || 0,
-            totalQuantity: m.products && Array.isArray(m.products) ? m.products.reduce((sum, p) => sum + (p.quantity || 0), 0) : 0,
-            products: m.products && Array.isArray(m.products) && m.products.length > 0 ? m.products.map(p => ({
-              productId: p.productId?._id || p.id,
-              productName: p.productId?.name || "Unknown",
-              quantity: p.quantity || 0,
-              costPrice: p.productId?.costPrice || 0,
-            })) : [],
+            productCount: mappedProducts.length,
+            totalQuantity: mappedProducts.reduce((sum, p) => sum + (p.quantity || 0), 0),
+            products: mappedProducts,
           };
+          
+          movements.push(movement);
         } catch (err) {
-          console.error("Error mapping movement document:", m, err);
-          return null;
+          console.error(`[${i}] Error mapping movement document:`, err.message, "Document:", m);
+          // Still add a basic movement object to prevent data loss
+          try {
+            movements.push({
+              _id: m._id ? m._id.toString() : "Unknown",
+              transRef: m.transRef || "Unknown",
+              fromLocationId: "Vendor",
+              toLocationId: "Unknown",
+              sender: "Vendor",
+              receiver: "Unknown",
+              reason: m.reason || "Unknown",
+              staff: null,
+              staffName: "N/A",
+              dateSent: m.dateSent || m.createdAt,
+              dateReceived: m.dateReceived || m.updatedAt,
+              totalCostPrice: m.totalCostPrice || 0,
+              status: m.status || "Received",
+              barcode: m.barcode || m.transRef || "",
+              productCount: 0,
+              totalQuantity: 0,
+              products: [],
+            });
+          } catch (fallbackErr) {
+            console.error(`[${i}] Failed to create fallback movement:`, fallbackErr.message);
+          }
         }
-      }).filter(m => m !== null); // Filter out any null/failed mappings
+      }
 
+      console.log("Mapped movements count:", movements.length);
       return res.status(200).json(movements);
     } catch (error) {
       console.error("Fetch stock movement failed:", error);

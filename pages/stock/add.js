@@ -362,6 +362,7 @@ export default function StockMovementAdd() {
                           setQuantityInput(1);
                         }
                       }}
+                      onWheel={(e) => e.preventDefault()}
                     />
                     <button
                       onClick={() => setQuantityInput((q) => q + 1)}

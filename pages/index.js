@@ -222,11 +222,12 @@ export default function Home() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6">
-        <header className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0 mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold">Welcome {selectedUser}</h1>
+      <div className="w-full min-h-screen bg-gray-50 p-2 sm:p-3 md:p-6">
+        {/* Header */}
+        <header className="flex flex-col gap-3 sm:gap-4 mb-6">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">Welcome {selectedUser}</h1>
           <button
-            className="w-full sm:w-auto bg-cyan-600 hover:bg-cyan-700 text-white px-5 py-2 rounded-lg transition text-sm md:text-base"
+            className="w-full sm:w-auto bg-cyan-600 hover:bg-cyan-700 text-white px-4 sm:px-5 py-2 rounded-lg transition text-sm md:text-base font-medium"
             onClick={() => router.push("/products/new")}
           >
             + Add Product
@@ -234,29 +235,35 @@ export default function Home() {
         </header>
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-2 md:gap-4 mb-6">
-          <select
-            className="border px-3 py-2 rounded text-sm md:text-base flex-1 sm:flex-none"
-            value={selectedLocation}
-            onChange={(e) => setSelectedLocation(e.target.value)}
-          >
-            <option value="All">All Locations</option>
-            {storeInfo.locations?.map((l) => (
-              <option key={l._id} value={l.name}>
-                {l.name}
-              </option>
-            ))}
-          </select>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mb-6">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs sm:text-sm font-medium text-gray-700">Location</label>
+            <select
+              className="border border-gray-300 px-3 py-2 rounded text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white"
+              value={selectedLocation}
+              onChange={(e) => setSelectedLocation(e.target.value)}
+            >
+              <option value="All">All Locations</option>
+              {storeInfo.locations?.map((l) => (
+                <option key={l._id} value={l.name}>
+                  {l.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          <select
-            className="border px-3 py-2 rounded text-sm md:text-base flex-1 sm:flex-none"
-            value={selectedPeriod}
-            onChange={(e) => setSelectedPeriod(e.target.value)}
-          >
-            <option value="today">Today</option>
-            <option value="week">This Week</option>
-            <option value="month">This Month</option>
-          </select>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs sm:text-sm font-medium text-gray-700">Period</label>
+            <select
+              className="border border-gray-300 px-3 py-2 rounded text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white"
+              value={selectedPeriod}
+              onChange={(e) => setSelectedPeriod(e.target.value)}
+            >
+              <option value="today">Today</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+            </select>
+          </div>
         </div>
 
         {loading ? (
@@ -264,7 +271,7 @@ export default function Home() {
         ) : (
           <>
             {/* KPIs */}
-            <section className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 mb-8">
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 md:gap-4 mb-6 md:mb-8">
               <KpiCard label="Sales" value={formatMoney(kpis.sales)} />
               <KpiCard
                 label="Transactions"
@@ -277,7 +284,7 @@ export default function Home() {
             </section>
 
             {/* Charts */}
-            <section className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-6">
+            <section className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-3 md:gap-4 mb-6 md:mb-8">
               <ChartCard title="Sales by Product">
                 <Bar data={salesByProductData} />
               </ChartCard>
@@ -288,7 +295,7 @@ export default function Home() {
             </section>
 
             {/* Lists */}
-            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mt-8">
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
               <ListCard
                 title="Recent Orders"
                 items={filteredOrders.slice(0, 10).map((o) => ({
@@ -303,7 +310,6 @@ export default function Home() {
                   label: s.staff,
                   meta: formatMoney(s.total),
                 }))}
-                
               />
 
               <ListCard
@@ -326,36 +332,38 @@ export default function Home() {
 ======================= */
 function KpiCard({ label, value }) {
   return (
-    <div className="bg-white p-4 md:p-5 rounded shadow text-center">
-      <div className="text-xl md:text-2xl font-bold">{value}</div>
-      <div className="text-xs md:text-sm text-gray-600">{label}</div>
+    <div className="bg-white p-3 sm:p-4 md:p-5 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+      <div className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">{value}</div>
+      <div className="text-xs sm:text-sm text-gray-600 mt-1">{label}</div>
     </div>
   );
 }
 
 function ChartCard({ title, children }) {
   return (
-    <div className="bg-white p-3 md:p-4 rounded shadow h-[35vh] md:h-[40vh]">
-      <h2 className="font-semibold mb-2 text-sm md:text-base">{title}</h2>
-      {children}
+    <div className="bg-white p-3 sm:p-4 rounded-lg shadow-sm">
+      <h2 className="font-semibold mb-3 text-sm md:text-base text-gray-900">{title}</h2>
+      <div className="h-[25vh] sm:h-[30vh] md:h-[35vh] overflow-hidden">
+        {children}
+      </div>
     </div>
   );
 }
 
 function ListCard({ title, items }) {
   return (
-    <motion.div className="bg-white p-4 md:p-5 rounded shadow h-[35vh] md:h-[40vh] overflow-y-auto">
-      <h2 className="font-semibold mb-3 text-sm md:text-base">{title}</h2>
-      <ul className="space-y-2">
+    <motion.div className="bg-white p-3 sm:p-4 rounded-lg shadow-sm flex flex-col h-[28vh] sm:h-[32vh] md:h-[35vh]">
+      <h2 className="font-semibold mb-2 sm:mb-3 text-sm md:text-base text-gray-900 flex-shrink-0">{title}</h2>
+      <ul className="space-y-1.5 sm:space-y-2 overflow-y-auto flex-1">
         {items.length ? (
           items.map((i, idx) => (
-            <li key={idx} className="bg-gray-50 p-2 rounded border border-gray-200 text-xs md:text-sm">
-              <div className="font-medium">{i.label}</div>
-              <div className="text-xs text-gray-600">{i.meta}</div>
+            <li key={idx} className="bg-gray-50 p-2 sm:p-2.5 rounded border border-gray-200 text-xs sm:text-sm hover:bg-cyan-50 transition-colors">
+              <div className="font-medium text-gray-900 truncate">{i.label}</div>
+              <div className="text-xs text-gray-600 mt-0.5">{i.meta}</div>
             </li>
           ))
         ) : (
-          <li className="text-gray-400 italic text-xs md:text-sm">No data</li>
+          <li className="text-gray-400 italic text-xs sm:text-sm py-4 text-center">No data</li>
         )}
       </ul>
     </motion.div>

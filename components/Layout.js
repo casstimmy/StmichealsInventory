@@ -29,22 +29,26 @@ export default function Layout({ children, title = "Dashboard" }) {
 
   // 🧠 APP SHELL
   return (
-    <div className="bg-slate-50 min-h-screen flex flex-col md:flex-row">
-      {/* Desktop Navigation */}
-      <Nav className="fixed top-24 left-0 h-full w-[5rem] z-10 hidden md:block" />
+    <div className="bg-slate-50 min-h-screen w-full flex flex-col">
+      {/* Top Navigation Bar - Fixed */}
+      <div className="fixed top-0 left-0 right-0 z-50">
+        <NavBar user={user} logout={logout} />
+      </div>
 
-      {/* Mobile spacing for hamburger menu */}
-      <div className="md:hidden h-12 bg-gradient-to-r from-sky-600 to-sky-700" />
+      {/* Main Layout Container */}
+      <div className="w-full flex flex-col md:flex-row pt-12 md:pt-20">
+        {/* Desktop Navigation - Fixed Sidebar */}
+        <Nav className="hidden md:block fixed md:relative top-12 left-0 h-screen md:h-auto w-20 md:w-[5rem] bg-inherit z-40 md:z-10" />
 
-      {/* Main Content */}
-      <div className="w-full md:ml-[5rem] flex justify-center overflow-hidden">
-        <div className="w-full md:max-w-[calc(100%-42px)] p-3 md:p-6 md:mt-20 bg-slate-100 overflow-y-auto">
-          {children}
+        {/* Main Content Area */}
+        <div className="w-full flex-1 overflow-hidden">
+          <div className="w-full h-full min-h-[calc(100vh-48px)] md:min-h-[calc(100vh-80px)] px-2 sm:px-3 md:px-4 lg:px-6 py-3 md:py-6 bg-slate-100 overflow-y-auto">
+            {children}
+          </div>
         </div>
       </div>
 
-      {/* Top Navigation Bar */}
-      <NavBar user={user} logout={logout} />
+      {/* Mobile Menu Button - Handled by Nav component */}
     </div>
   );
 }

@@ -201,7 +201,7 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`absolute top-0 left-20 w-56 h-screen bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-50 ${
+                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-40 ${
                   openMenu === "setup"
                     ? "translate-x-0 opacity-100 visible"
                     : "translate-x-4 opacity-0 invisible"
@@ -239,7 +239,7 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`absolute top-0 left-20 w-56 h-screen bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-50 ${
+                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-40 ${
                   openMenu === "manage"
                     ? "translate-x-0 opacity-100 visible"
                     : "translate-x-4 opacity-0 invisible"
@@ -282,7 +282,7 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`absolute top-0 left-20 w-56 h-screen bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-50 ${
+                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-40 ${
                   openMenu === "stock"
                     ? "translate-x-0 opacity-100 visible"
                     : "translate-x-4 opacity-0 invisible"
@@ -319,7 +319,7 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`absolute top-0 left-20 w-56 h-screen bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-50 ${
+                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-40 ${
                   openMenu === "reporting"
                     ? "translate-x-0 opacity-100 visible"
                     : "translate-x-4 opacity-0 invisible"
@@ -386,7 +386,7 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`absolute top-0 left-20 w-56 h-screen bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-50 ${
+                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-40 ${
                   openMenu === "expenses"
                     ? "translate-x-0 opacity-100 visible"
                     : "translate-x-4 opacity-0 invisible"

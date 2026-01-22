@@ -29,7 +29,7 @@ export default function Layout({ children, title = "Dashboard" }) {
 
   // 🧠 APP SHELL
   return (
-    <div className="bg-slate-50 min-h-screen w-full flex flex-col">
+    <div className="bg-gray-50 min-h-screen w-full flex flex-col">
       {/* Top Navigation Bar - Fixed */}
       <div className="fixed top-0 left-0 right-0 z-50 w-full">
         <NavBar user={user} logout={logout} />
@@ -43,7 +43,7 @@ export default function Layout({ children, title = "Dashboard" }) {
         {/* Main Content Area */}
         <div className="w-full flex-1 overflow-hidden">
           <div
-            className="w-full min-h-[calc(100vh-48px)] md:min-h-[calc(100vh-64px)]  sm:px-3 bg-slate-100 overflow-y-auto"
+            className="w-full min-h-[calc(100vh-48px)] md:min-h-[calc(100vh-64px)] px-3 md:px-6 bg-gray-50 overflow-y-auto"
           >
             {children}
           </div>

@@ -189,7 +189,7 @@ export default function Sidebar() {
       )}
 
       {/* DESKTOP SIDEBAR */}
-      <aside className="fixed top-12 md:top-16 left-0 w-20 h-screen bg-gradient-to-b from-gray-50 to-gray-100 border-r border-gray-200 z-10 shadow-lg hidden md:block overflow-visible">
+      <aside className="hidden md:flex md:w-20 md:h-[calc(100vh-64px)] md:bg-gradient-to-b md:from-gray-50 md:to-gray-100 md:border-r md:border-gray-200 md:shadow-lg md:flex-col md:overflow-y-auto">
         <nav className="mt-6 h-full overflow-visible">
           <ul className="space-y-1">
             {renderMenuItem("/", faHome, "Home")}

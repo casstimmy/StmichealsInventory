@@ -1,4 +1,4 @@
-import mongooseConnect from "../../../lib/mongodb";
+import { mongooseConnect } from "../../../lib/mongodb";
 import EndOfDayReport from "../../../models/EndOfDayReport";
 
 export default async function handler(req, res) {

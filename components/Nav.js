@@ -185,7 +185,7 @@ export default function Sidebar() {
             {renderMenuItem("/", faHome, "Home")}
             {/* Setup Menu with Submenu */}
             <li
-              className={pathname.startsWith("/setup") ? activeLink : baseLink}
+              className={`${pathname.startsWith("/setup") ? activeLink : baseLink} relative`}
             >
               <div
                 className="flex flex-col items-center justify-center cursor-pointer"
@@ -223,7 +223,7 @@ export default function Sidebar() {
 
             {/* Manage */}
             <li
-              className={pathname.startsWith("/manage") ? activeLink : baseLink}
+              className={`${pathname.startsWith("/manage") ? activeLink : baseLink} relative`}
             >
               <div
                 className="flex flex-col items-center justify-center cursor-pointer"
@@ -266,7 +266,7 @@ export default function Sidebar() {
 
             {/* Stock */}
             <li
-              className={pathname.startsWith("/stock") ? activeLink : baseLink}
+              className={`${pathname.startsWith("/stock") ? activeLink : baseLink} relative`}
             >
               <div
                 className="flex flex-col items-center justify-center cursor-pointer"
@@ -301,9 +301,9 @@ export default function Sidebar() {
             </li>
 
             <li
-              className={
+              className={`${
                 pathname.startsWith("/reporting") ? activeLink : baseLink
-              }
+              } relative`}
             >
               <div
                 className="flex flex-col items-center justify-center cursor-pointer"
@@ -368,9 +368,9 @@ export default function Sidebar() {
               </ul>
             </li>
             <li
-              className={
+              className={`${
                 pathname.startsWith("/expenses") ? activeLink : baseLink
-              }
+              } relative`}
             >
               <div
                 className="flex flex-col items-center justify-center cursor-pointer"

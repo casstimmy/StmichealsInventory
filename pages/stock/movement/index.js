@@ -61,13 +61,38 @@ export default function StockMovement() {
         const res = await fetch("/api/stock-movement/get");
         const data = await res.json();
 
+        // Handle different response formats - data can be:
+        // 1. An array (direct array response)
+        // 2. An object with a data property containing an array
+        // 3. An object with a movements property
+        let movementsArray = [];
+        
         if (Array.isArray(data)) {
-          setMovements(data);
+          movementsArray = data;
+        } else if (data?.data && Array.isArray(data.data)) {
+          movementsArray = data.data;
+        } else if (data?.movements && Array.isArray(data.movements)) {
+          movementsArray = data.movements;
         } else {
-          console.warn("Expected array but got:", data);
+          console.warn("Unexpected data format from API:", data);
+          console.warn("Data type:", typeof data);
+          console.warn("Data keys:", data ? Object.keys(data) : "null");
+          setError("Invalid data format received from server");
           setMovements([]);
-          setError("Invalid data format received");
+          setLoading(false);
+          return;
         }
+
+        // Additional validation - ensure all items are objects
+        if (!Array.isArray(movementsArray) || !movementsArray.every(item => typeof item === 'object' && item !== null)) {
+          console.error("Data validation failed - not all items are valid objects");
+          setError("Invalid data format received");
+          setMovements([]);
+          setLoading(false);
+          return;
+        }
+
+        setMovements(movementsArray);
       } catch (err) {
         console.error("Error fetching stock movements:", err);
         setError(err.message || "Failed to fetch stock movements");

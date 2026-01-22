@@ -41,72 +41,89 @@ export default async function handler(req, res) {
       locationMap["Vendor"] = "Vendor";
 
       const movements = data.map((m) => {
-        // Use stored totalCostPrice if available, otherwise calculate
-        let totalCostPrice = m.totalCostPrice || 0;
-        
-        if (totalCostPrice === 0 && m.products && m.products.length > 0) {
-          totalCostPrice = m.products.reduce((sum, p) => {
-            const cost = p.productId?.costPrice || 0;
-            return sum + cost * p.quantity;
-          }, 0);
-        }
+        try {
+          // Validate that document exists and has required fields
+          if (!m || typeof m !== 'object') {
+            console.warn("Invalid movement document:", m);
+            return null;
+          }
 
-        // Map location IDs to names - handle both string and ObjectId
-        let fromLocationId = m.fromLocationId?.toString?.() || m.fromLocationId || m.fromLocation || "";
-        let toLocationId = m.toLocationId?.toString?.() || m.toLocationId || m.toLocation || "";
-        
-        // Handle null fromLocationId (indicates vendor/external source)
-        let fromLocationName = "Unknown";
-        if (fromLocationId === null || fromLocationId === "" || fromLocationId === undefined) {
-          fromLocationName = "Vendor";
-        } else {
-          // Try multiple lookup strategies for location names
-          fromLocationName = locationMap[fromLocationId];
-          if (!fromLocationName && fromLocationId) {
-            // Try as integer index
-            const idx = parseInt(fromLocationId);
-            if (!isNaN(idx)) {
-              fromLocationName = locationMap[idx.toString()] || locationMap[idx];
+          // Use stored totalCostPrice if available, otherwise calculate
+          let totalCostPrice = m.totalCostPrice || 0;
+          
+          if (totalCostPrice === 0 && m.products && Array.isArray(m.products) && m.products.length > 0) {
+            try {
+              totalCostPrice = m.products.reduce((sum, p) => {
+                const cost = p.productId?.costPrice || 0;
+                const qty = p.quantity || 0;
+                return sum + (cost * qty);
+              }, 0);
+            } catch (calcErr) {
+              console.warn("Error calculating totalCostPrice:", calcErr);
+              totalCostPrice = 0;
             }
           }
-          fromLocationName = fromLocationName || fromLocationId || "Unknown";
-        }
-        
-        let toLocationName = locationMap[toLocationId];
-        if (!toLocationName && toLocationId) {
-          // Try as integer index
-          const idx = parseInt(toLocationId);
-          if (!isNaN(idx)) {
-            toLocationName = locationMap[idx.toString()] || locationMap[idx];
-          }
-        }
-        toLocationName = toLocationName || toLocationId || "Unknown";
 
-        return {
-          _id: m._id,
-          transRef: m.transRef, 
-          fromLocationId: fromLocationName,
-          toLocationId: toLocationName,
-          sender: fromLocationName, // Keep for backward compatibility
-          receiver: toLocationName, // Keep for backward compatibility
-          reason: m.reason,
-          staff: m.staffId || m.staff,
-          staffName: m.staffId?.name || "N/A",
-          dateSent: m.dateSent || m.createdAt,
-          dateReceived: m.dateReceived || m.updatedAt,
-          totalCostPrice,
-          status: m.status || "Received",
-          barcode: m.barcode || m.transRef || "",
-          productCount: m.products?.length || 0,
-          totalQuantity: m.products?.reduce((sum, p) => sum + (p.quantity || 0), 0) || 0,
-          products: m.products && m.products.length > 0 ? m.products.map(p => ({
-            productId: p.productId?._id || p.id,
-            productName: p.productId?.name,
-            quantity: p.quantity,
-            costPrice: p.productId?.costPrice || 0,
-          })) : [],
-        };
-      });
+          // Map location IDs to names - handle both string and ObjectId
+          let fromLocationId = m.fromLocationId?.toString?.() || m.fromLocationId || m.fromLocation || "";
+          let toLocationId = m.toLocationId?.toString?.() || m.toLocationId || m.toLocation || "";
+          
+          // Handle null fromLocationId (indicates vendor/external source)
+          let fromLocationName = "Unknown";
+          if (fromLocationId === null || fromLocationId === "" || fromLocationId === undefined) {
+            fromLocationName = "Vendor";
+          } else {
+            // Try multiple lookup strategies for location names
+            fromLocationName = locationMap[fromLocationId];
+            if (!fromLocationName && fromLocationId) {
+              // Try as integer index
+              const idx = parseInt(fromLocationId);
+              if (!isNaN(idx)) {
+                fromLocationName = locationMap[idx.toString()] || locationMap[idx];
+              }
+            }
+            fromLocationName = fromLocationName || fromLocationId || "Unknown";
+          }
+          
+          let toLocationName = locationMap[toLocationId];
+          if (!toLocationName && toLocationId) {
+            // Try as integer index
+            const idx = parseInt(toLocationId);
+            if (!isNaN(idx)) {
+              toLocationName = locationMap[idx.toString()] || locationMap[idx];
+            }
+          }
+          toLocationName = toLocationName || toLocationId || "Unknown";
+
+          return {
+            _id: m._id,
+            transRef: m.transRef, 
+            fromLocationId: fromLocationName,
+            toLocationId: toLocationName,
+            sender: fromLocationName, // Keep for backward compatibility
+            receiver: toLocationName, // Keep for backward compatibility
+            reason: m.reason || "Unknown",
+            staff: m.staffId || m.staff,
+            staffName: m.staffId?.name || "N/A",
+            dateSent: m.dateSent || m.createdAt,
+            dateReceived: m.dateReceived || m.updatedAt,
+            totalCostPrice,
+            status: m.status || "Received",
+            barcode: m.barcode || m.transRef || "",
+            productCount: m.products?.length || 0,
+            totalQuantity: m.products && Array.isArray(m.products) ? m.products.reduce((sum, p) => sum + (p.quantity || 0), 0) : 0,
+            products: m.products && Array.isArray(m.products) && m.products.length > 0 ? m.products.map(p => ({
+              productId: p.productId?._id || p.id,
+              productName: p.productId?.name || "Unknown",
+              quantity: p.quantity || 0,
+              costPrice: p.productId?.costPrice || 0,
+            })) : [],
+          };
+        } catch (err) {
+          console.error("Error mapping movement document:", m, err);
+          return null;
+        }
+      }).filter(m => m !== null); // Filter out any null/failed mappings
 
       return res.status(200).json(movements);
     } catch (error) {

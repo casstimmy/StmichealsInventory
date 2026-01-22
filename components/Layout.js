@@ -29,20 +29,20 @@ export default function Layout({ children, title = "Dashboard" }) {
 
   // 🧠 APP SHELL
   return (
-    <div className="bg-gray-50 min-h-screen w-full flex flex-row">
-      {/* Sidebar Navigation */}
-      <Nav />
+    <div className="bg-gray-50 min-h-screen w-full flex flex-col">
+      {/* Top Navigation Bar - Fixed, 100% width */}
+      <div className="fixed top-0 left-0 right-0 z-50 w-full">
+        <NavBar user={user} logout={logout} />
+      </div>
 
-      {/* Main Content Area - Navbar + Page Content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Navigation Bar */}
-        <div className="sticky top-0 z-40 w-full">
-          <NavBar user={user} logout={logout} />
-        </div>
+      {/* Main Content Area - Below Navbar */}
+      <div className="w-full flex flex-row pt-12 md:pt-16">
+        {/* Sidebar Navigation (only on desktop) */}
+        <Nav />
 
         {/* Page Content */}
         <div className="flex-1 overflow-hidden">
-          <div className="w-full h-full px-3 md:px-6 bg-gray-50 overflow-y-auto">
+          <div className="w-full h-[calc(100vh-48px)] md:h-[calc(100vh-64px)] px-3 md:px-6 bg-gray-50 overflow-y-auto">
             {children}
           </div>
         </div>

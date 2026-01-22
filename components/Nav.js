@@ -188,8 +188,8 @@ export default function Sidebar() {
         />
       )}
 
-      {/* DESKTOP SIDEBAR */}
-      <aside className="fixed top-12 md:top-16 left-0 w-20 h-screen bg-gradient-to-b from-gray-50 to-gray-100 border-r border-gray-200 z-10 shadow-lg hidden md:block overflow-visible">
+      {/* DESKTOP SIDEBAR - Part of flex layout, not fixed */}
+      <aside className="hidden md:flex md:w-20 md:h-[calc(100vh-48px)] md:flex-col bg-gradient-to-b from-gray-50 to-gray-100 border-r border-gray-200 z-10 shadow-lg overflow-visible">
         <nav className="mt-6 h-full overflow-visible">
           <ul className="space-y-1">
             {renderMenuItem("/", faHome, "Home")}
@@ -211,10 +211,10 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-40 ${
+                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-40 hidden md:flex md:flex-col ${
                   openMenu === "setup"
-                    ? "translate-x-0 opacity-100 visible"
-                    : "translate-x-4 opacity-0 invisible"
+                    ? "translate-x-0 opacity-100 md:visible"
+                    : "translate-x-4 opacity-0 md:invisible"
                 }`}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -249,10 +249,10 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-40 ${
+                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-40 hidden md:flex md:flex-col ${
                   openMenu === "manage"
-                    ? "translate-x-0 opacity-100 visible"
-                    : "translate-x-4 opacity-0 invisible"
+                    ? "translate-x-0 opacity-100 md:visible"
+                    : "translate-x-4 opacity-0 md:invisible"
                 }`}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -292,10 +292,10 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-40 ${
+                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-40 hidden md:flex md:flex-col ${
                   openMenu === "stock"
-                    ? "translate-x-0 opacity-100 visible"
-                    : "translate-x-4 opacity-0 invisible"
+                    ? "translate-x-0 opacity-100 md:visible"
+                    : "translate-x-4 opacity-0 md:invisible"
                 }`}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -329,10 +329,10 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-40 ${
+                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-40 hidden md:flex md:flex-col ${
                   openMenu === "reporting"
-                    ? "translate-x-0 opacity-100 visible"
-                    : "translate-x-4 opacity-0 invisible"
+                    ? "translate-x-0 opacity-100 md:visible"
+                    : "translate-x-4 opacity-0 md:invisible"
                 }`}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -396,10 +396,10 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-40 ${
+                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-40 hidden md:flex md:flex-col ${
                   openMenu === "expenses"
-                    ? "translate-x-0 opacity-100 visible"
-                    : "translate-x-4 opacity-0 invisible"
+                    ? "translate-x-0 opacity-100 md:visible"
+                    : "translate-x-4 opacity-0 md:invisible"
                 }`}
                 onClick={(e) => e.stopPropagation()}
               >

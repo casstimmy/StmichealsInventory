@@ -65,15 +65,26 @@ export default async function handler(req, res) {
           }
 
           // Map location IDs to names - handle both string and ObjectId
-          let fromLocationId = m.fromLocationId?.toString?.() || m.fromLocationId || m.fromLocation || "";
-          let toLocationId = m.toLocationId?.toString?.() || m.toLocationId || m.toLocation || "";
-          
           // Handle null fromLocationId (indicates vendor/external source)
+          let fromLocationId = m.fromLocationId;
+          let toLocationId = m.toLocationId;
+          
+          // Convert ObjectId to string if needed
+          if (fromLocationId && typeof fromLocationId === 'object' && fromLocationId.toString) {
+            fromLocationId = fromLocationId.toString();
+          }
+          if (toLocationId && typeof toLocationId === 'object' && toLocationId.toString) {
+            toLocationId = toLocationId.toString();
+          }
+          
+          // Default handling for null/undefined values
           let fromLocationName = "Unknown";
-          if (fromLocationId === null || fromLocationId === "" || fromLocationId === undefined) {
+          if (fromLocationId === null || fromLocationId === undefined) {
+            fromLocationName = "Vendor";
+          } else if (fromLocationId === "") {
             fromLocationName = "Vendor";
           } else {
-            // Try multiple lookup strategies for location names
+            // Try to find in location map
             fromLocationName = locationMap[fromLocationId];
             if (!fromLocationName && fromLocationId) {
               // Try as integer index
@@ -85,15 +96,22 @@ export default async function handler(req, res) {
             fromLocationName = fromLocationName || fromLocationId || "Unknown";
           }
           
-          let toLocationName = locationMap[toLocationId];
-          if (!toLocationName && toLocationId) {
-            // Try as integer index
-            const idx = parseInt(toLocationId);
-            if (!isNaN(idx)) {
-              toLocationName = locationMap[idx.toString()] || locationMap[idx];
+          let toLocationName = "Unknown";
+          if (toLocationId === null || toLocationId === undefined) {
+            toLocationName = "Unknown";
+          } else if (toLocationId === "") {
+            toLocationName = "Unknown";
+          } else {
+            toLocationName = locationMap[toLocationId];
+            if (!toLocationName && toLocationId) {
+              // Try as integer index
+              const idx = parseInt(toLocationId);
+              if (!isNaN(idx)) {
+                toLocationName = locationMap[idx.toString()] || locationMap[idx];
+              }
             }
+            toLocationName = toLocationName || toLocationId || "Unknown";
           }
-          toLocationName = toLocationName || toLocationId || "Unknown";
 
           return {
             _id: m._id,

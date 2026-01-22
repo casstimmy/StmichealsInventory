@@ -346,9 +346,22 @@ export default function StockMovementAdd() {
                       type="number"
                       className="flex-1 text-center text-lg font-semibold border-0 focus:outline-none"
                       value={quantityInput}
-                      onChange={(e) =>
-                        setQuantityInput(parseInt(e.target.value) || 1)
-                      }
+                      onChange={(e) => {
+                        const val = e.target.value.trim();
+                        if (val === "") {
+                          setQuantityInput("");
+                        } else {
+                          const num = parseInt(val);
+                          if (!isNaN(num) && num > 0) {
+                            setQuantityInput(num);
+                          }
+                        }
+                      }}
+                      onBlur={(e) => {
+                        if (quantityInput === "" || isNaN(quantityInput)) {
+                          setQuantityInput(1);
+                        }
+                      }}
                     />
                     <button
                       onClick={() => setQuantityInput((q) => q + 1)}

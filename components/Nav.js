@@ -55,6 +55,37 @@ export default function Sidebar() {
     }
   };
 
+  // Auto-open menu based on active pathname
+  useEffect(() => {
+    if (pathname.startsWith("/setup")) {
+      setOpenMenu("setup");
+      setOpenSubMenu(null);
+    } else if (pathname.startsWith("/manage")) {
+      setOpenMenu("manage");
+      setOpenSubMenu(null);
+    } else if (pathname.startsWith("/stock")) {
+      setOpenMenu("stock");
+      setOpenSubMenu(null);
+    } else if (pathname.startsWith("/reporting")) {
+      setOpenMenu("reporting");
+      // Auto-open sub-menus based on specific reporting paths
+      if (pathname.startsWith("/reporting/sales-report")) {
+        setOpenSubMenu("sales-report");
+      } else {
+        setOpenSubMenu(null);
+      }
+    } else if (pathname.startsWith("/expenses")) {
+      setOpenMenu("expenses");
+      setOpenSubMenu(null);
+    } else if (pathname === "/till") {
+      setOpenMenu("till");
+      setOpenSubMenu(null);
+    } else if (pathname.startsWith("/support")) {
+      setOpenMenu("support");
+      setOpenSubMenu(null);
+    }
+  }, [pathname]);
+
   useEffect(() => {
     const handleStart = () => setLoading(true);
     const handleStop = () => setLoading(false);

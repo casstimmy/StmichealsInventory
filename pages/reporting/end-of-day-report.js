@@ -86,12 +86,7 @@ export default function EndOfDayReporting() {
   if (loading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <div className="animate-spin inline-block w-12 h-12 border-4 border-cyan-200 border-t-cyan-600 rounded-full"></div>
-            <p className="mt-4 text-gray-600">Loading End of Day Reports...</p>
-          </div>
-        </div>
+        <Loader size="lg" text="Loading end of day report..." />
       </Layout>
     );
   }

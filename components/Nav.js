@@ -23,7 +23,6 @@ export default function Sidebar() {
   const [loading, setLoading] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const router = useRouter();
   const { pathname } = router;
 
@@ -189,228 +188,239 @@ export default function Sidebar() {
         />
       )}
 
-      {/* DESKTOP SIDEBAR - Responsive width */}
-      <aside className={`hidden md:flex md:flex-row md:h-screen md:bg-gray-50 md:border-r md:border-gray-200 md:shadow-lg md:overflow-hidden md:transition-all md:duration-300 ${
-        isSidebarExpanded ? "md:w-72" : "md:w-20"
-      }`}>
-        {/* Main Sidebar (Icon buttons) */}
-        <div className="md:flex md:flex-col md:w-20 md:bg-gradient-to-b md:from-gray-50 md:to-gray-100 md:border-r md:border-gray-200">
-          {/* Sidebar Toggle Button */}
-          <button
-            onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
-            className="md:flex md:items-center md:justify-center md:h-16 md:w-full md:border-b md:border-gray-200 hover:bg-gray-100 transition-colors flex-shrink-0"
-            aria-label="Toggle sidebar"
-          >
-            <FontAwesomeIcon 
-              icon={isSidebarExpanded ? faTimes : faBars} 
-              className="w-5 h-5 text-gray-700"
-            />
-          </button>
-
-          {/* Icon Menu Items */}
-          <nav className="flex-1 overflow-y-auto">
-            <ul className="space-y-1 p-2">
-              {/* Home */}
-              <li>
-                <Link 
-                  href="/" 
-                  onClick={closeMenuOnNavigation}
-                  className={`flex items-center justify-center w-full h-14 rounded-lg transition-all ${
-                    pathname === "/" 
-                      ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md" 
-                      : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+      {/* DESKTOP SIDEBAR */}
+      <aside className="fixed top-12 md:top-16 left-0 w-20 h-screen bg-gradient-to-b from-gray-50 to-gray-100 border-r border-gray-200 z-10 shadow-lg hidden md:block overflow-visible">
+        <nav className="mt-6 h-full overflow-visible">
+          <ul className="space-y-1">
+            {renderMenuItem("/", faHome, "Home")}
+            {/* Setup Menu with Submenu */}
+            <li
+              className={`${pathname.startsWith("/setup") ? activeLink : baseLink} relative`}
+            >
+              <div
+                className="flex flex-col items-center justify-center cursor-pointer"
+                onClick={() => toggleMenu("setup")}
+              >
+                <FontAwesomeIcon icon={faCog} className="w-6 h-6" />
+                <span className="text-xs">Setup</span>
+                <FontAwesomeIcon
+                  icon={faChevronRight}
+                  className={`w-3 h-3 mt-1 transition-transform duration-300 ${
+                    openMenu === "setup" ? "rotate-90" : ""
                   }`}
-                  title="Home"
-                >
-                  <FontAwesomeIcon icon={faHome} className="w-5 h-5" />
-                </Link>
-              </li>
-
-              {/* Setup */}
-              <li>
-                <button
-                  onClick={() => setOpenMenu(openMenu === "setup" ? null : "setup")}
-                  className={`flex items-center justify-center w-full h-14 rounded-lg transition-all ${
-                    pathname.startsWith("/setup")
-                      ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md"
-                      : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
-                  }`}
-                  title="Setup"
-                >
-                  <FontAwesomeIcon icon={faCog} className="w-5 h-5" />
-                </button>
-              </li>
-
-              {/* Manage */}
-              <li>
-                <button
-                  onClick={() => setOpenMenu(openMenu === "manage" ? null : "manage")}
-                  className={`flex items-center justify-center w-full h-14 rounded-lg transition-all ${
-                    pathname.startsWith("/manage")
-                      ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md"
-                      : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
-                  }`}
-                  title="Manage"
-                >
-                  <FontAwesomeIcon icon={faList} className="w-5 h-5" />
-                </button>
-              </li>
-
-              {/* Stock */}
-              <li>
-                <button
-                  onClick={() => setOpenMenu(openMenu === "stock" ? null : "stock")}
-                  className={`flex items-center justify-center w-full h-14 rounded-lg transition-all ${
-                    pathname.startsWith("/stock")
-                      ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md"
-                      : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
-                  }`}
-                  title="Stock"
-                >
-                  <FontAwesomeIcon icon={faBoxes} className="w-5 h-5" />
-                </button>
-              </li>
-
-              {/* Reporting */}
-              <li>
-                <button
-                  onClick={() => setOpenMenu(openMenu === "reporting" ? null : "reporting")}
-                  className={`flex items-center justify-center w-full h-14 rounded-lg transition-all ${
-                    pathname.startsWith("/reporting")
-                      ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md"
-                      : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
-                  }`}
-                  title="Reporting"
-                >
-                  <FontAwesomeIcon icon={faChartLine} className="w-5 h-5" />
-                </button>
-              </li>
-
-              {/* Expenses */}
-              <li>
-                <button
-                  onClick={() => setOpenMenu(openMenu === "expenses" ? null : "expenses")}
-                  className={`flex items-center justify-center w-full h-14 rounded-lg transition-all ${
-                    pathname.startsWith("/expenses")
-                      ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md"
-                      : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
-                  }`}
-                  title="Expenses"
-                >
-                  <FontAwesomeIcon icon={faCoins} className="w-5 h-5" />
-                </button>
-              </li>
-
-              {/* Till */}
-              <li>
-                <Link 
-                  href="/till" 
-                  onClick={closeMenuOnNavigation}
-                  className={`flex items-center justify-center w-full h-14 rounded-lg transition-all ${
-                    pathname === "/till" 
-                      ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md" 
-                      : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
-                  }`}
-                  title="Till"
-                >
-                  <FontAwesomeIcon icon={faCashRegister} className="w-5 h-5" />
-                </Link>
-              </li>
-
-              {/* Support */}
-              <li>
-                <Link 
-                  href="/support" 
-                  onClick={closeMenuOnNavigation}
-                  className={`flex items-center justify-center w-full h-14 rounded-lg transition-all ${
-                    pathname === "/support" 
-                      ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md" 
-                      : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
-                  }`}
-                  title="Support"
-                >
-                  <FontAwesomeIcon icon={faHeadset} className="w-5 h-5" />
-                </Link>
-              </li>
-            </ul>
-          </nav>
-        </div>
-
-        {/* Extended Submenu Panel */}
-        {isSidebarExpanded && openMenu && (
-          <div className="flex-1 md:bg-white md:border-r md:border-gray-200 md:overflow-y-auto">
-            <nav className="p-4">
-              {/* Setup Submenu */}
-              {openMenu === "setup" && (
-                <div>
-                  <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Setup</h3>
-                  <ul className="space-y-1">
-                    <li><Link href="/setup/setup" onClick={closeMenuOnNavigation} className={`block px-3 py-2 rounded-lg text-sm transition-all ${pathname === "/setup/setup" ? "bg-blue-100 text-blue-700 font-semibold" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"}`}>Company Details</Link></li>
-                    <li><Link href="/setup/Hero-Promo-setup" onClick={closeMenuOnNavigation} className={`block px-3 py-2 rounded-lg text-sm transition-all ${pathname === "/setup/Hero-Promo-setup" ? "bg-blue-100 text-blue-700 font-semibold" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"}`}>Hero-Promo Setup</Link></li>
-                    <li><Link href="/setup/receipts" onClick={closeMenuOnNavigation} className={`block px-3 py-2 rounded-lg text-sm transition-all ${pathname === "/setup/receipts" ? "bg-blue-100 text-blue-700 font-semibold" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"}`}>Receipts</Link></li>
-                    <li><Link href="/setup/pos-tenders" onClick={closeMenuOnNavigation} className={`block px-3 py-2 rounded-lg text-sm transition-all ${pathname === "/setup/pos-tenders" ? "bg-blue-100 text-blue-700 font-semibold" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"}`}>POS Tenders</Link></li>
-                    <li><Link href="/setup/location-items" onClick={closeMenuOnNavigation} className={`block px-3 py-2 rounded-lg text-sm transition-all ${pathname === "/setup/location-items" ? "bg-blue-100 text-blue-700 font-semibold" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"}`}>Location Tenders</Link></li>
-                  </ul>
+                />
+              </div>
+              <ul
+                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-40 ${
+                  openMenu === "setup"
+                    ? "translate-x-0 opacity-100 visible"
+                    : "translate-x-4 opacity-0 invisible"
+                }`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="px-4 py-3 border-b border-gray-200 sticky top-0 bg-white">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Setup</p>
                 </div>
-              )}
+                {renderSubMenu([
+                  { href: "/setup/setup", label: "Company Details" },
+                  { href: "/setup/Hero-Promo-setup", label: "Hero-Promo Setup " },
+                  { href: "/setup/receipts", label: "Receipts" },
+                  { href: "/setup/pos-tenders", label: "POS Tenders" },
+                  { href: "/setup/location-items", label: "Location Tenders" },
+                ])}
+              </ul>
+            </li>
 
-              {/* Manage Submenu */}
-              {openMenu === "manage" && (
-                <div>
-                  <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Manage</h3>
-                  <ul className="space-y-1">
-                    <li><Link href="/manage/products" onClick={closeMenuOnNavigation} className={`block px-3 py-2 rounded-lg text-sm transition-all ${pathname === "/manage/products" ? "bg-blue-100 text-blue-700 font-semibold" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"}`}>Product List</Link></li>
-                    <li><Link href="/manage/archived" onClick={closeMenuOnNavigation} className={`block px-3 py-2 rounded-lg text-sm transition-all ${pathname === "/manage/archived" ? "bg-blue-100 text-blue-700 font-semibold" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"}`}>Archived Products</Link></li>
-                    <li><Link href="/manage/categories" onClick={closeMenuOnNavigation} className={`block px-3 py-2 rounded-lg text-sm transition-all ${pathname === "/manage/categories" ? "bg-blue-100 text-blue-700 font-semibold" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"}`}>Categories</Link></li>
-                    <li><Link href="/manage/promotions" onClick={closeMenuOnNavigation} className={`block px-3 py-2 rounded-lg text-sm transition-all ${pathname === "/manage/promotions" ? "bg-blue-100 text-blue-700 font-semibold" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"}`}>Promotions</Link></li>
-                    <li><Link href="/manage/promotions-management" onClick={closeMenuOnNavigation} className={`block px-3 py-2 rounded-lg text-sm transition-all ${pathname === "/manage/promotions-management" ? "bg-blue-100 text-blue-700 font-semibold" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"}`}>Customer Promotions</Link></li>
-                    <li><Link href="/manage/orders" onClick={closeMenuOnNavigation} className={`block px-3 py-2 rounded-lg text-sm transition-all ${pathname === "/manage/orders" ? "bg-blue-100 text-blue-700 font-semibold" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"}`}>Orders</Link></li>
-                    <li><Link href="/manage/staff" onClick={closeMenuOnNavigation} className={`block px-3 py-2 rounded-lg text-sm transition-all ${pathname === "/manage/staff" ? "bg-blue-100 text-blue-700 font-semibold" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"}`}>Staff</Link></li>
-                    <li><Link href="/manage/customers" onClick={closeMenuOnNavigation} className={`block px-3 py-2 rounded-lg text-sm transition-all ${pathname === "/manage/customers" ? "bg-blue-100 text-blue-700 font-semibold" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"}`}>Customers</Link></li>
-                    <li><Link href="/manage/customer-search" onClick={closeMenuOnNavigation} className={`block px-3 py-2 rounded-lg text-sm transition-all ${pathname === "/manage/customer-search" ? "bg-blue-100 text-blue-700 font-semibold" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"}`}>Customer Search</Link></li>
-                    <li><Link href="/manage/campaigns" onClick={closeMenuOnNavigation} className={`block px-3 py-2 rounded-lg text-sm transition-all ${pathname === "/manage/campaigns" ? "bg-blue-100 text-blue-700 font-semibold" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"}`}>Campaigns</Link></li>
-                  </ul>
+            {/* Manage */}
+            <li
+              className={`${pathname.startsWith("/manage") ? activeLink : baseLink} relative`}
+            >
+              <div
+                className="flex flex-col items-center justify-center cursor-pointer"
+                onClick={() => toggleMenu("manage")}
+              >
+                <FontAwesomeIcon icon={faList} className="w-6 h-6" />
+                <span className="text-xs">Manage</span>
+                <FontAwesomeIcon
+                  icon={faChevronRight}
+                  className={`w-3 h-3 mt-1 transition-transform duration-300 ${
+                    openMenu === "manage" ? "rotate-90" : ""
+                  }`}
+                />
+              </div>
+              <ul
+                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-40 ${
+                  openMenu === "manage"
+                    ? "translate-x-0 opacity-100 visible"
+                    : "translate-x-4 opacity-0 invisible"
+                }`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="px-4 py-3 border-b border-gray-200 sticky top-0 bg-white">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Manage</p>
                 </div>
-              )}
+                {renderSubMenu([
+                  { href: "/manage/products", label: "Product List" },
+                  { href: "/manage/archived", label: "Archived Products" },
+                  { href: "/manage/categories", label: "Categories" },
+                  { href: "/manage/promotions", label: "Promotions" },
+                  { href: "/manage/promotions-management", label: "Customer Promotions", indent: false },
+                  { href: "/manage/orders", label: "Orders" },
+                  { href: "/manage/staff", label: "Staff" },
+                  { href: "/manage/customers", label: "Customers", indent: false },
+                  { href: "/manage/customer-search", label: "Customer Search", indent: true },
+                  { href: "/manage/campaigns", label: "Campaigns", indent: true },
+                ])}
+              </ul>
+            </li>
 
-              {/* Stock Submenu */}
-              {openMenu === "stock" && (
-                <div>
-                  <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Stock</h3>
-                  <ul className="space-y-1">
-                    <li><Link href="/stock/management" onClick={closeMenuOnNavigation} className={`block px-3 py-2 rounded-lg text-sm transition-all ${pathname === "/stock/management" ? "bg-blue-100 text-blue-700 font-semibold" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"}`}>Stock Management</Link></li>
-                    <li><Link href="/stock/movement" onClick={closeMenuOnNavigation} className={`block px-3 py-2 rounded-lg text-sm transition-all ${pathname === "/stock/movement" ? "bg-blue-100 text-blue-700 font-semibold" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"}`}>Stock Movement</Link></li>
-                    <li><Link href="/stock/expiration-report" onClick={closeMenuOnNavigation} className={`block px-3 py-2 rounded-lg text-sm transition-all ${pathname === "/stock/expiration-report" ? "bg-blue-100 text-blue-700 font-semibold" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"}`}>Expiration Report</Link></li>
-                  </ul>
+            {/* Stock */}
+            <li
+              className={`${pathname.startsWith("/stock") ? activeLink : baseLink} relative`}
+            >
+              <div
+                className="flex flex-col items-center justify-center cursor-pointer"
+                onClick={() => toggleMenu("stock")}
+              >
+                <FontAwesomeIcon icon={faBoxes} className="w-6 h-6" />
+                <span className="text-xs">Stock</span>
+                <FontAwesomeIcon
+                  icon={faChevronRight}
+                  className={`w-3 h-3 mt-1 transition-transform duration-300 ${
+                    openMenu === "stock" ? "rotate-90" : ""
+                  }`}
+                />
+              </div>
+              <ul
+                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-40 ${
+                  openMenu === "stock"
+                    ? "translate-x-0 opacity-100 visible"
+                    : "translate-x-4 opacity-0 invisible"
+                }`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="px-4 py-3 border-b border-gray-200 sticky top-0 bg-white">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Stock</p>
                 </div>
-              )}
+                {renderSubMenu([
+                  { href: "/stock/management", label: "Stock Management" },
+                  { href: "/stock/movement", label: "Stock Movement" },
+                  { href: "/stock/expiration-report", label: "Expiration Report" },
+                ])}
+              </ul>
+            </li>
 
-              {/* Reporting Submenu */}
-              {openMenu === "reporting" && (
-                <div>
-                  <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Reporting</h3>
-                  <ul className="space-y-1">
-                    <li><Link href="/reporting/reporting" onClick={closeMenuOnNavigation} className={`block px-3 py-2 rounded-lg text-sm transition-all ${pathname === "/reporting/reporting" ? "bg-blue-100 text-blue-700 font-semibold" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"}`}>Sales Report</Link></li>
-                    <li><Link href="/reporting/end-of-day-report" onClick={closeMenuOnNavigation} className={`block px-3 py-2 rounded-lg text-sm transition-all ${pathname === "/reporting/end-of-day-report" ? "bg-blue-100 text-blue-700 font-semibold" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"}`}>End of Day Reports</Link></li>
-                  </ul>
+            <li
+              className={`${
+                pathname.startsWith("/reporting") ? activeLink : baseLink
+              } relative`}
+            >
+              <div
+                className="flex flex-col items-center justify-center cursor-pointer"
+                onClick={() => toggleMenu("reporting")}
+              >
+                <FontAwesomeIcon icon={faChartLine} className="w-6 h-6" />
+                <span className="text-xs">Reporting</span>
+                <FontAwesomeIcon
+                  icon={faChevronRight}
+                  className={`w-3 h-3 mt-1 transition-transform duration-300 ${
+                    openMenu === "reporting" ? "rotate-90" : ""
+                  }`}
+                />
+              </div>
+              <ul
+                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-40 ${
+                  openMenu === "reporting"
+                    ? "translate-x-0 opacity-100 visible"
+                    : "translate-x-4 opacity-0 invisible"
+                }`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="px-4 py-3 border-b border-gray-200 sticky top-0 bg-white">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Reporting</p>
                 </div>
-              )}
+                {renderSubMenu([
+                  { href: "/reporting/reporting", label: "Sales Report" },
+                  { href: "/reporting/end-of-day-report", label: "End of Day Reports" },
+                ])}
+                
+                {/* Sales Report Dropdown */}
+                <li className="border-b border-gray-100 transition-all duration-300 group">
+                  <button
+                    onClick={() => toggleSubMenu("sales-report")}
+                    className="w-full h-14 px-4 py-3 flex items-center justify-between text-sm font-medium transition-all duration-300 text-gray-700 hover:bg-gray-50 hover:text-blue-600 border-l-4 border-transparent"
+                  >
+                    <span className="flex items-center gap-3">
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-blue-400 transition-all"></span>
+                      Sales Report
+                    </span>
+                    <span className={`text-lg transition-transform duration-300 ${openSubMenu === "sales-report" ? "rotate-90" : ""}`}>›</span>
+                  </button>
+                  {openSubMenu === "sales-report" && (
+                    <div className="bg-gray-50 border-t border-gray-100">
+                      {renderSubMenu([
+                        { href: "/reporting/sales-report/time-intervals", label: "Time Intervals", indent: true },
+                        { href: "/reporting/sales-report/time-comparisons", label: "Time Comparisons", indent: true },
+                        { href: "/reporting/sales-report/products", label: "Sales by Product", indent: true },
+                        { href: "/reporting/sales-report/employees", label: "Employees", indent: true },
+                        { href: "/reporting/sales-report/locations", label: "Locations", indent: true },
+                        { href: "/reporting/sales-report/categories", label: "Categories", indent: true },
+                      ])}
+                    </div>
+                  )}
+                </li>
 
-              {/* Expenses Submenu */}
-              {openMenu === "expenses" && (
-                <div>
-                  <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Expenses</h3>
-                  <ul className="space-y-1">
-                    <li><Link href="/expenses/expenses" onClick={closeMenuOnNavigation} className={`block px-3 py-2 rounded-lg text-sm transition-all ${pathname === "/expenses/expenses" ? "bg-blue-100 text-blue-700 font-semibold" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"}`}>Expenses Entry</Link></li>
-                    <li><Link href="/expenses/analysis" onClick={closeMenuOnNavigation} className={`block px-3 py-2 rounded-lg text-sm transition-all ${pathname === "/expenses/analysis" ? "bg-blue-100 text-blue-700 font-semibold" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"}`}>Expenses Analysis</Link></li>
-                    <li><Link href="/expenses/tax-analysis" onClick={closeMenuOnNavigation} className={`block px-3 py-2 rounded-lg text-sm transition-all ${pathname === "/expenses/tax-analysis" ? "bg-blue-100 text-blue-700 font-semibold" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"}`}>Tax Analysis</Link></li>
-                    <li><Link href="/expenses/tax-personal" onClick={closeMenuOnNavigation} className={`block px-3 py-2 rounded-lg text-sm transition-all ${pathname === "/expenses/tax-personal" ? "bg-blue-100 text-blue-700 font-semibold" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"}`}>Personal Tax Calculator</Link></li>
-                  </ul>
+                {/* Transaction Report */}
+                {renderSubMenu([
+                  { href: "/reporting/transaction-report/held-transactions", label: "Held Transactions", indent: true },
+                  { href: "/reporting/transaction-report/completed-transactions", label: "Completed Transactions", indent: true },
+                ])}
+              </ul>
+            </li>
+            <li
+              className={`${
+                pathname.startsWith("/expenses") ? activeLink : baseLink
+              } relative`}
+            >
+              <div
+                className="flex flex-col items-center justify-center cursor-pointer"
+                onClick={() => toggleMenu("expenses")}
+              >
+                <FontAwesomeIcon icon={faCoins} className="w-6 h-6" />
+                <span className="text-xs">Expenses</span>
+                <FontAwesomeIcon
+                  icon={faChevronRight}
+                  className={`w-3 h-3 mt-1 transition-transform duration-300 ${
+                    openMenu === "expenses" ? "rotate-90" : ""
+                  }`}
+                />
+              </div>
+              <ul
+                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-40 ${
+                  openMenu === "expenses"
+                    ? "translate-x-0 opacity-100 visible"
+                    : "translate-x-4 opacity-0 invisible"
+                }`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="px-4 py-3 border-b border-gray-200 sticky top-0 bg-white">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Expenses</p>
                 </div>
-              )}
-            </nav>
-          </div>
-        )}
+                {renderSubMenu([
+                  { href: "/expenses/expenses", label: "Expenses Entry" },
+                  { href: "/expenses/analysis", label: "Expenses Analysis" },
+                  { href: "/expenses/tax-analysis", label: "Tax Analysis" },
+                  {
+                    href: "/expenses/tax-personal",
+                    label: "Personal Tax Calculator",
+                  },
+                ])}
+              </ul>
+            </li>
+            {renderMenuItem("/till", faCashRegister, "Till")}
+            {renderMenuItem("/support", faHeadset, "Support")}
+          </ul>
+        </nav>
       </aside>
 
       {/* Loading Overlay */}

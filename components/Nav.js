@@ -180,7 +180,7 @@ export default function Sidebar() {
 
       {/* DESKTOP SIDEBAR */}
       <aside className="fixed top-12 left-0 w-20 h-screen bg-gradient-to-b from-gray-50 to-gray-100 border-r border-gray-200 z-10 shadow-lg hidden md:block overflow-visible">
-        <nav className="mt-6 h-full overflow-hidden">
+        <nav className="mt-6 h-full overflow-visible">
           <ul className="space-y-1">
             {renderMenuItem("/", faHome, "Home")}
             {/* Setup Menu with Submenu */}
@@ -201,10 +201,10 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`absolute left-full pt-12 top-0 w-56 bg-white border-r border-gray-200 max-h-[calc(100vh-3rem)] overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-50 ${
+                className={`absolute top-0 left-20 w-56 bg-white border-r border-gray-200 max-h-[calc(100vh-3rem)] overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-50 ${
                   openMenu === "setup"
-                    ? "translate-x-0 opacity-100 text-gray-700"
-                    : "translate-x-56 opacity-0 pointer-events-none"
+                    ? "translate-x-0 opacity-100 visible"
+                    : "translate-x-4 opacity-0 invisible"
                 }`}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -239,10 +239,10 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`absolute left-full pt-12 top-0 w-56 bg-white border-r border-gray-200 max-h-[calc(100vh-3rem)] overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-50 ${
+                className={`absolute top-0 left-20 w-56 bg-white border-r border-gray-200 max-h-[calc(100vh-3rem)] overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-50 ${
                   openMenu === "manage"
-                    ? "translate-x-0 opacity-100 text-gray-700"
-                    : "translate-x-56 opacity-0 pointer-events-none"
+                    ? "translate-x-0 opacity-100 visible"
+                    : "translate-x-4 opacity-0 invisible"
                 }`}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -282,10 +282,10 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`absolute left-full pt-12 top-0 w-56 bg-white border-r border-gray-200 max-h-[calc(100vh-3rem)] overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-50 ${
+                className={`absolute top-0 left-20 w-56 bg-white border-r border-gray-200 max-h-[calc(100vh-3rem)] overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-50 ${
                   openMenu === "stock"
-                    ? "translate-x-0 opacity-100 text-gray-700"
-                    : "translate-x-56 opacity-0 pointer-events-none"
+                    ? "translate-x-0 opacity-100 visible"
+                    : "translate-x-4 opacity-0 invisible"
                 }`}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -319,10 +319,10 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`absolute left-full pt-12 top-0 w-56 bg-white border-r border-gray-200 max-h-[calc(100vh-3rem)] overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-50 ${
+                className={`absolute top-0 left-20 w-56 bg-white border-r border-gray-200 max-h-[calc(100vh-3rem)] overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-50 ${
                   openMenu === "reporting"
-                    ? "translate-x-0 opacity-100 text-gray-700"
-                    : "translate-x-56 opacity-0 pointer-events-none"
+                    ? "translate-x-0 opacity-100 visible"
+                    : "translate-x-4 opacity-0 invisible"
                 }`}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -386,10 +386,10 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`absolute left-full pt-12 top-0 w-56 bg-white border-r border-gray-200 max-h-[calc(100vh-3rem)] overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-50 ${
+                className={`absolute top-0 left-20 w-56 bg-white border-r border-gray-200 max-h-[calc(100vh-3rem)] overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-50 ${
                   openMenu === "expenses"
-                    ? "translate-x-0 opacity-100 text-gray-700"
-                    : "translate-x-56 opacity-0 pointer-events-none"
+                    ? "translate-x-0 opacity-100 visible"
+                    : "translate-x-4 opacity-0 invisible"
                 }`}
                 onClick={(e) => e.stopPropagation()}
               >

@@ -179,7 +179,7 @@ export default function Sidebar() {
       )}
 
       {/* DESKTOP SIDEBAR */}
-      <aside className="fixed top-12 left-0 w-20 h-screen bg-gradient-to-b from-gray-50 to-gray-100 border-r border-gray-200 z-10 shadow-lg hidden md:block overflow-visible">
+      <aside className="fixed top-12 md:top-16 left-0 w-20 h-screen bg-gradient-to-b from-gray-50 to-gray-100 border-r border-gray-200 z-10 shadow-lg hidden md:block overflow-visible">
         <nav className="mt-6 h-full overflow-visible">
           <ul className="space-y-1">
             {renderMenuItem("/", faHome, "Home")}
@@ -201,7 +201,7 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`absolute top-16 left-20 w-56 h-screen bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-50 ${
+                className={`absolute top-0 left-20 w-56 h-screen bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-50 ${
                   openMenu === "setup"
                     ? "translate-x-0 opacity-100 visible"
                     : "translate-x-4 opacity-0 invisible"
@@ -239,7 +239,7 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`absolute top-16 left-20 w-56 h-screen bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-50 ${
+                className={`absolute top-0 left-20 w-56 h-screen bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-50 ${
                   openMenu === "manage"
                     ? "translate-x-0 opacity-100 visible"
                     : "translate-x-4 opacity-0 invisible"
@@ -282,7 +282,7 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`absolute top-16 left-20 w-56 h-screen bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-50 ${
+                className={`absolute top-0 left-20 w-56 h-screen bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-50 ${
                   openMenu === "stock"
                     ? "translate-x-0 opacity-100 visible"
                     : "translate-x-4 opacity-0 invisible"
@@ -319,7 +319,7 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`absolute top-16 left-20 w-56 h-screen bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-50 ${
+                className={`absolute top-0 left-20 w-56 h-screen bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-50 ${
                   openMenu === "reporting"
                     ? "translate-x-0 opacity-100 visible"
                     : "translate-x-4 opacity-0 invisible"
@@ -386,7 +386,7 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`absolute top-16 left-20 w-56 h-screen bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-50 ${
+                className={`absolute top-0 left-20 w-56 h-screen bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-50 ${
                   openMenu === "expenses"
                     ? "translate-x-0 opacity-100 visible"
                     : "translate-x-4 opacity-0 invisible"

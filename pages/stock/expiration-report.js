@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import Layout from '@/components/Layout';
+import { Loader } from '@/components/ui';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faCalendarAlt, 
@@ -216,6 +217,9 @@ export default function ExpirationReport() {
 
   return (
     <Layout>
+      {loading ? (
+        <Loader size="lg" text="Loading expiration report..." />
+      ) : (
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
@@ -452,7 +456,7 @@ export default function ExpirationReport() {
             </div>
           </div>
         </div>
-      </div>
+      )}
     </Layout>
   );
 }

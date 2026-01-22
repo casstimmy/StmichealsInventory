@@ -1,6 +1,7 @@
 "use client";
 
 import Layout from "@/components/Layout";
+import { Loader } from "@/components/ui";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 
@@ -94,12 +95,7 @@ export default function CustomersPage() {
   if (loading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <div className="animate-spin inline-block w-12 h-12 border-4 border-cyan-200 border-t-cyan-600 rounded-full"></div>
-            <p className="mt-4 text-gray-600">Loading customers...</p>
-          </div>
-        </div>
+        <Loader size="lg" text="Loading customers..." />
       </Layout>
     );
   }

@@ -1,6 +1,7 @@
 "use client";
 
 import Layout from "@/components/Layout";
+import { Loader } from "@/components/ui";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Line, Bar, Pie } from "react-chartjs-2";
@@ -168,6 +169,9 @@ export default function EndOfDayReporting() {
 
   return (
     <Layout>
+      {loading ? (
+        <Loader size="lg" text="Loading end of day report..." />
+      ) : (
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-7xl mx-auto">
           {/* Header */}

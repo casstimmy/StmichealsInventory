@@ -220,7 +220,7 @@ export default function ExpirationReport() {
       {loading ? (
         <Loader size="lg" text="Loading expiration report..." />
       ) : (
-      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
@@ -455,6 +455,7 @@ export default function ExpirationReport() {
               </div>
             </div>
           </div>
+        </div>
         </div>
       )}
     </Layout>

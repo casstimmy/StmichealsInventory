@@ -179,8 +179,8 @@ export default function Sidebar() {
       )}
 
       {/* DESKTOP SIDEBAR */}
-      <aside className="fixed top-12 left-0 w-20 h-screen bg-gradient-to-b from-gray-50 to-gray-100 border-r border-gray-200 z-10 shadow-lg hidden md:block overflow-y-auto">
-        <nav className="mt-6">
+      <aside className="fixed top-12 left-0 w-20 h-screen bg-gradient-to-b from-gray-50 to-gray-100 border-r border-gray-200 z-10 shadow-lg hidden md:block overflow-hidden">
+        <nav className="mt-6 h-full overflow-hidden">
           <ul className="space-y-1">
             {renderMenuItem("/", faHome, "Home")}
             {/* Setup Menu with Submenu */}
@@ -201,11 +201,12 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`absolute left-full pt-12 top-0 w-56 bg-white border-r border-gray-200 h-screen shadow-2xl transition-all duration-300 ease-in-out z-50 ${
+                className={`absolute left-full pt-12 top-0 w-56 bg-white border-r border-gray-200 max-h-[calc(100vh-3rem)] overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-50 ${
                   openMenu === "setup"
                     ? "translate-x-0 opacity-100 text-gray-700"
                     : "translate-x-56 opacity-0 pointer-events-none"
                 }`}
+                onClick={(e) => e.stopPropagation()}
               >
                 <div className="px-4 py-3 border-b border-gray-200 sticky top-0 bg-white">
                   <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Setup</p>
@@ -238,11 +239,12 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`absolute left-full pt-12 top-0 w-56 bg-white border-r border-gray-200 h-screen shadow-2xl transition-all duration-300 ease-in-out z-50 ${
+                className={`absolute left-full pt-12 top-0 w-56 bg-white border-r border-gray-200 max-h-[calc(100vh-3rem)] overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-50 ${
                   openMenu === "manage"
                     ? "translate-x-0 opacity-100 text-gray-700"
                     : "translate-x-56 opacity-0 pointer-events-none"
                 }`}
+                onClick={(e) => e.stopPropagation()}
               >
                 <div className="px-4 py-3 border-b border-gray-200 sticky top-0 bg-white">
                   <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Manage</p>
@@ -280,11 +282,12 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`absolute left-full pt-12 top-0 w-56 bg-white border-r border-gray-200 h-screen shadow-2xl transition-all duration-300 ease-in-out z-50 ${
+                className={`absolute left-full pt-12 top-0 w-56 bg-white border-r border-gray-200 max-h-[calc(100vh-3rem)] overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-50 ${
                   openMenu === "stock"
                     ? "translate-x-0 opacity-100 text-gray-700"
                     : "translate-x-56 opacity-0 pointer-events-none"
                 }`}
+                onClick={(e) => e.stopPropagation()}
               >
                 <div className="px-4 py-3 border-b border-gray-200 sticky top-0 bg-white">
                   <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Stock</p>
@@ -316,11 +319,12 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`absolute left-full pt-12 top-0 w-56 bg-white border-r border-gray-200 h-screen shadow-2xl transition-all duration-300 ease-in-out z-50 ${
+                className={`absolute left-full pt-12 top-0 w-56 bg-white border-r border-gray-200 max-h-[calc(100vh-3rem)] overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-50 ${
                   openMenu === "reporting"
                     ? "translate-x-0 opacity-100 text-gray-700"
                     : "translate-x-56 opacity-0 pointer-events-none"
                 }`}
+                onClick={(e) => e.stopPropagation()}
               >
                 <div className="px-4 py-3 border-b border-gray-200 sticky top-0 bg-white">
                   <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Reporting</p>
@@ -382,11 +386,12 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`absolute left-full pt-12 top-0 w-56 bg-white border-r border-gray-200 h-screen shadow-2xl transition-all duration-300 ease-in-out z-50 ${
+                className={`absolute left-full pt-12 top-0 w-56 bg-white border-r border-gray-200 max-h-[calc(100vh-3rem)] overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-50 ${
                   openMenu === "expenses"
                     ? "translate-x-0 opacity-100 text-gray-700"
                     : "translate-x-56 opacity-0 pointer-events-none"
                 }`}
+                onClick={(e) => e.stopPropagation()}
               >
                 <div className="px-4 py-3 border-b border-gray-200 sticky top-0 bg-white">
                   <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Expenses</p>

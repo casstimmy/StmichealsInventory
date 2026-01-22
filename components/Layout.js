@@ -30,13 +30,13 @@ export default function Layout({ children, title = "Dashboard" }) {
   // 🧠 APP SHELL
   return (
     <div className="bg-gray-50 min-h-screen w-full flex flex-row">
-      {/* Sidebar Navigation - Handles its own width transitions */}
+      {/* Sidebar Navigation */}
       <Nav />
 
       {/* Main Content Area - Navbar + Page Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Top Navigation Bar - Sticky to top of main area */}
-        <div className="sticky top-0 z-50 w-full">
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Top Navigation Bar */}
+        <div className="sticky top-0 z-40 w-full">
           <NavBar user={user} logout={logout} />
         </div>
 

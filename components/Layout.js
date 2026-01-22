@@ -36,12 +36,12 @@ export default function Layout({ children, title = "Dashboard" }) {
       </div>
 
       {/* Main Layout Container */}
-      <div className="w-full flex flex-col md:flex-row pt-12 md:pt-16 md:pl-20">
-        {/* Desktop Navigation - Relative positioned sidebar */}
-        <Nav className="hidden md:flex md:fixed md:top-16 md:left-0 md:w-20 md:h-screen md:z-40 md:flex-col" />
+      <div className="w-full flex flex-row pt-12 md:pt-16">
+        {/* Desktop Navigation - Full Height Sidebar */}
+        <Nav />
 
         {/* Main Content Area */}
-        <div className="w-full flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden">
           <div
             className="w-full min-h-[calc(100vh-48px)] md:min-h-[calc(100vh-64px)] px-3 md:px-6 bg-gray-50 overflow-y-auto"
           >

@@ -4,6 +4,7 @@ import { mongooseConnect } from "@/lib/mongodb";
 import StockMovement from "@/models/StockMovement";
 import Product from "@/models/Product";
 import Store from "@/models/Store";
+import Staff from "@/models/Staff";
 
 export default async function handler(req, res) {
   await mongooseConnect();

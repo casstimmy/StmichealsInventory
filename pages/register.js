@@ -61,8 +61,7 @@ export default function Register({ locations }) {
       setTimeout(() => router.push("/login"), 1500);
     } catch (err) {
       setError(
-        err.response?.data?.error ||
-          "Registration failed. Please try again."
+        err.response?.data?.error || "Registration failed. Please try again.",
       );
     } finally {
       setLoading(false);
@@ -72,21 +71,49 @@ export default function Register({ locations }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyan-50 to-blue-50 flex items-center justify-center px-4">
       <div className="w-full flex flex-col lg:flex-row items-center justify-between max-w-5xl gap-8">
-
-        {/* Hero Section */}
+        {/* ===== HERO ===== */}
         <div className="w-full lg:w-1/2 text-center lg:text-left">
-          <h1 className="text-4xl lg:text-5xl font-extrabold text-blue-800 mb-4">
-            Inventory Admin
+          {/* Brand */}
+          <div className="flex justify-center lg:justify-start mb-6">
+            <img
+              src="/images/st-micheals-logo.png"
+              alt="St Micheals Logo"
+              className="h-16 w-auto"
+            />
+          </div>
+
+          {/* Badge */}
+          <span className="inline-flex items-center px-4 py-1 mb-4 rounded-full bg-blue-100 text-blue-700 text-sm font-semibold">
+            Admin Account Setup
+          </span>
+
+          {/* Heading */}
+          <h1 className="text-4xl lg:text-5xl font-extrabold text-slate-900 leading-tight mb-5">
+            Inventory Admin <br className="hidden lg:block" />
+            Registration
           </h1>
-          <p className="text-lg text-gray-700 mb-6">
-            Create a secure admin account to manage inventory, staff, and stores.
+
+          {/* Description */}
+          <p className="text-lg text-slate-600 max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed">
+            Create a secure administrator account to manage products, staff
+            roles, store locations, and system settings with full control.
           </p>
-          <Link
-            href="/login"
-            className="inline-block bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg hover:bg-blue-700 transition"
-          >
-            ← Back to Login
-          </Link>
+
+          {/* CTA */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+            <Link
+              href="/login"
+              className="inline-flex items-center justify-center px-6 py-3 rounded-lg
+                 border border-slate-300 text-slate-700 font-semibold
+                 hover:bg-slate-100 active:scale-95 transition"
+            >
+              ← Back to Login
+            </Link>
+
+            <p className="text-sm text-slate-500 flex items-center justify-center">
+              Restricted to authorized administrators
+            </p>
+          </div>
         </div>
 
         {/* Register Box */}
@@ -96,7 +123,6 @@ export default function Register({ locations }) {
           </h2>
 
           <form onSubmit={handleRegister}>
-
             {/* Name */}
             <div className="mb-4">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -241,7 +267,7 @@ export async function getServerSideProps() {
 
     if (store?.locations?.length > 0) {
       locations = store.locations.map((l) =>
-        typeof l === "string" ? l : l.name
+        typeof l === "string" ? l : l.name,
       );
     }
 

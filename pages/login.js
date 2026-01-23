@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { useMemo, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { apiClient } from "@/lib/api-client";
 
@@ -47,19 +47,6 @@ export default function Login({ staffList, locations }) {
     init();
   }, []);
 
-  const staffByRole = useMemo(
-    () => ({
-      admin: staffList.filter((s) => s.role === "admin"),
-      manager: staffList.filter((s) => s.role === "manager"),
-      staff: staffList.filter((s) => s.role === "staff"),
-      viewer: staffList.filter((s) => s.role === "viewer"),
-    }),
-    [staffList],
-  );
-
-  const selectedUser = staffList.find((u) => u.name === name);
-  const isAdminSelected = selectedUser?.role === "admin";
-
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
@@ -104,26 +91,47 @@ export default function Login({ staffList, locations }) {
       <div className="w-full flex flex-col lg:flex-row items-center justify-between max-w-5xl gap-8">
         {/* ===== HERO ===== */}
         <div className="w-full lg:w-1/2 text-center lg:text-left">
-          {/* LOGO */}
-          <div className="flex justify-center mb-4">
+          {/* Brand */}
+          <div className="flex justify-center lg:justify-start mb-6">
             <img
               src="/images/st-micheals-logo.png"
-              alt="Logo"
-              className="h-20"
+              alt="St Micheals Logo"
+              className="h-16 w-auto"
             />
           </div>
-          <h1 className="text-4xl lg:text-5xl font-extrabold text-blue-800 mb-4">
-            St Micheals Inventory
+
+          {/* Badge */}
+          <span className="inline-flex items-center px-4 py-1 mb-4 rounded-full bg-blue-100 text-blue-700 text-sm font-semibold">
+            Inventory Management System
+          </span>
+
+          {/* Heading */}
+          <h1 className="text-4xl lg:text-5xl font-extrabold text-slate-900 leading-tight mb-5">
+            St Micheals <br className="hidden lg:block" />
+            Inventory Platform
           </h1>
-          <p className="text-lg text-gray-700 mb-6">
-            Efficient inventory management system for your business.
+
+          {/* Description */}
+          <p className="text-lg text-slate-600 max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed">
+            A secure and centralized system to manage products, staff access,
+            and store operations with accuracy and control.
           </p>
-          <Link
-            href="/register"
-            className="inline-block bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg hover:bg-blue-700 transition"
-          >
-            → Create Account
-          </Link>
+
+          {/* CTA */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+            <Link
+              href="/register"
+              className="inline-flex items-center justify-center px-6 py-3 rounded-lg
+                 bg-blue-600 text-white font-semibold
+                 hover:bg-blue-700 active:scale-95 transition"
+            >
+              Create Admin Account
+            </Link>
+
+            <p className="text-sm text-slate-500 flex items-center justify-center">
+              Authorized personnel only
+            </p>
+          </div>
         </div>
 
         {/* ===== LOGIN CARD ===== */}
@@ -176,7 +184,7 @@ export default function Login({ staffList, locations }) {
             </div>
 
             {/* KEYPAD */}
-            <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="grid grid-cols-3 border-2 border-gray-200 gap-3 mb-6">
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, "C", 0, "←"].map((key) => (
                 <button
                   key={key}
@@ -235,27 +243,26 @@ export default function Login({ staffList, locations }) {
 /* ===== SSR ===== */
 export async function getServerSideProps() {
   const { connectToDatabase } = await import("@/lib/mongodb");
-  const Staff = (await import("@/models/Staff")).default;
   const User = (await import("@/models/User")).default;
   const Store = (await import("@/models/Store")).default;
 
   await connectToDatabase();
 
-  const staff = await Staff.find({}, "name role").lean();
-  const users = await User.find({}, "name email role").lean();
-
-  const map = new Map();
-  staff.forEach((s) => map.set(s.name, { ...s, email: null }));
-  users.forEach((u) => map.set(u.name, u));
+  // ✅ Fetch ONLY admin users
+  const adminUsers = await User.find(
+    { role: "admin", isActive: true },
+    "name email role",
+  ).lean();
 
   const store = await Store.findOne({}).lean();
+
   const locations = store?.locations?.map((l) =>
     typeof l === "string" ? l : l.name,
   ) || ["Default Location"];
 
   return {
     props: {
-      staffList: Array.from(map.values()),
+      staffList: adminUsers,
       locations,
     },
   };

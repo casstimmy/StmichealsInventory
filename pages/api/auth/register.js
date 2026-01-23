@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await User.create({
-      email,
+      email: email.toLowerCase() || 'email@example.com',
       password: hashedPassword,
       name,
       role: role || 'staff',

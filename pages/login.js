@@ -184,7 +184,7 @@ export default function Login({ staffList, locations }) {
             </div>
 
             {/* KEYPAD */}
-            <div className="grid grid-cols-3 border-2 border-gray-200 gap-3 mb-6">
+            <div className="grid grid-cols-3 gap-3 mb-6">
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, "C", 0, "←"].map((key) => (
                 <button
                   key={key}
@@ -195,7 +195,7 @@ export default function Login({ staffList, locations }) {
                       key === "C" ? "clear" : key === "←" ? "back" : key,
                     );
                   }}
-                  className={`ripple h-16 rounded-xl text-lg font-bold shadow
+                  className={`ripple h-16 border-2 border-gray-200 rounded-xl text-lg font-bold shadow
                     active:scale-95 transition
                     ${
                       key === "C"
@@ -253,6 +253,8 @@ export async function getServerSideProps() {
     { role: "admin", isActive: true },
     "name email role",
   ).lean();
+
+  console.log("Admin Users:", adminUsers);
 
   const store = await Store.findOne({}).lean();
 

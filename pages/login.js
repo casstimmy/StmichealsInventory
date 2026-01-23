@@ -249,7 +249,7 @@ export async function getServerSideProps() {
   await connectToDatabase();
 
   // ✅ Fetch ONLY admin users
-  const adminUsers = await User.find("name email role").lean();
+  const adminUsers = await User.find({}, "name email role").lean();
 
   const store = await Store.findOne({}).lean();
 

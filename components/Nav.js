@@ -172,7 +172,7 @@ export default function Nav({ isExpanded = true, onToggle }) {
     <>
       {/* Desktop Collapsible Sidebar */}
       <aside
-        className={`hidden md:flex flex-col bg-white border-r border-gray-200 shadow-sm transition-all duration-300 ease-in-out z-30 flex-shrink-0 ${
+        className={`hidden md:flex flex-col bg-white border-r border-gray-200 shadow-sm transition-all duration-300 ease-in-out z-30 flex-shrink-0 fixed top-16 left-0 h-[calc(100vh-4rem)] ${
           isExpanded ? "w-64" : "w-20"
         }`}
       >
@@ -240,7 +240,7 @@ export default function Nav({ isExpanded = true, onToggle }) {
 
                 {/* Submenu - Overlay when expanded */}
                 {item.submenu && openMenu === item.key && isExpanded && (
-                  <div className="absolute left-full top-0 ml-1 w-56 bg-white border border-gray-200 rounded-lg shadow-xl z-40 max-h-[calc(100vh-10rem)] overflow-y-auto">
+                  <div className="absolute left-full top-0 ml-0 w-56 bg-white border border-gray-200 rounded-lg shadow-xl z-50 max-h-[calc(100vh-10rem)] overflow-y-auto">
                     {/* Submenu Header */}
                     <div className="sticky top-0 bg-gradient-to-r from-blue-50 to-blue-100 px-4 py-3 border-b border-gray-200">
                       <p className="text-xs font-bold text-gray-700 uppercase tracking-wider">

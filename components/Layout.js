@@ -28,8 +28,8 @@ export default function Layout({ children, title = "Dashboard" }) {
 
   return (
     <div className="bg-slate-50 min-h-screen h-screen flex flex-col font-sans overflow-hidden">
-      {/* Top Navbar - Fixed */}
-      <div className="fixed top-0 left-0 right-0 z-40 h-14 md:h-16">
+      {/* Top Navbar - Adjusts width based on sidebar */}
+      <div className={`fixed top-0 left-0 right-0 z-40 h-14 md:h-16 transition-all duration-300 ${navExpanded ? "md:left-64" : "md:left-20"}`}>
         <NavBar user={user} logout={logout} />
       </div>
 
@@ -41,8 +41,8 @@ export default function Layout({ children, title = "Dashboard" }) {
           onToggle={() => setNavExpanded(!navExpanded)}
         />
 
-        {/* Main Content Area - Flexible width */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 transition-all duration-300">
+        {/* Main Content Area - Adjusts width based on sidebar */}
+        <main className={`flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 transition-all duration-300 ${navExpanded ? "md:pl-0" : "md:pl-0"}`}>
           <div className="w-full h-full px-4 sm:px-6 md:px-8 py-6 md:py-8">
             {children}
           </div>

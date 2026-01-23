@@ -60,20 +60,7 @@ const TopBar = ({ user, logout }) => {
       .toUpperCase();
 
   return (
-    <div className="fixed top-0 left-0 right-0 md:left-20 z-50 flex items-center justify-between gap-2 sm:gap-3 md:gap-0 py-2 md:py-3 px-2 sm:px-3 md:px-8 bg-gradient-to-r from-white to-gray-50 shadow-lg border-b border-gray-200 h-12 md:h-16 transition-all duration-300">
-      {/* Desktop Menu Toggle Button - Top Left */}
-      <button
-        onClick={() => {
-          const sidebar = document.querySelector('aside');
-          if (sidebar) sidebar.classList.toggle('hidden');
-        }}
-        className="hidden md:flex items-center justify-center p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-        title="Toggle sidebar"
-        aria-label="Toggle sidebar"
-      >
-        <FontAwesomeIcon icon={faTimes} className="w-4 h-4 text-gray-600" />
-      </button>
-
+    <div className="fixed top-0 left-0 right-0 md:left-80 z-50 flex items-center justify-between gap-2 sm:gap-3 md:gap-0 py-2 md:py-3 px-2 sm:px-3 md:px-8 bg-gradient-to-r from-white to-gray-50 shadow-lg border-b border-gray-200 h-12 md:h-16 transition-all duration-300">
       {/* Left Section: Back Office Text - Hidden on mobile */}
       <div className="hidden md:flex items-center gap-3 w-full md:w-auto">
         <div className="w-8 md:w-10 h-8 md:h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-md flex-shrink-0">

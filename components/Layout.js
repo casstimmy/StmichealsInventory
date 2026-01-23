@@ -26,21 +26,21 @@ export default function Layout({ children, title = "Dashboard" }) {
   }
 
   return (
-    <div className="bg-slate-50 min-h-screen w-screen h-screen flex flex-col font-sans overflow-hidden">
+    <div className="bg-slate-50 min-h-screen h-screen flex flex-col font-sans overflow-hidden">
       {/* Top Navbar - Full width on mobile, with sidebar offset on desktop */}
-      <div className="fixed top-0 left-0 right-0 z-50 md:left-20 transition-all duration-300">
+      <div className="fixed top-0 left-0 right-0 z-50 md:left-80 transition-all duration-300">
         <NavBar user={user} logout={logout} />
       </div>
 
       {/* Main Layout */}
-      <div className="flex w-screen h-[calc(100vh-4rem)] pt-16 overflow-hidden">
+      <div className="flex w-full h-[calc(100vh-4rem)] pt-16 overflow-hidden">
         {/* Sidebar - Hidden on mobile, visible on md+ */}
-        <div className="hidden md:block">
+        <div className="hidden md:block w-80 flex-shrink-0">
           <Nav />
         </div>
 
-        {/* Main Content - Same width calculation as navbar */}
-        <main className="w-full md:flex-1 transition-all duration-300 overflow-x-hidden overflow-y-auto">
+        {/* Main Content - Takes remaining width */}
+        <main className="flex-1 transition-all duration-300 overflow-x-hidden overflow-y-auto">
           <div className="w-full min-h-full px-2 sm:px-3 md:px-4 bg-slate-100">
             {children}
           </div>

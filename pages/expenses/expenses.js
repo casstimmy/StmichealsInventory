@@ -71,7 +71,7 @@ export default function ManageExpenses() {
                     {/* Category Badge */}
                     <div className="mb-4">
                       <span className="inline-block bg-cyan-100 text-cyan-800 px-3 py-1.5 rounded-full text-xs font-bold uppercase">
-                        {exp?.category?.name || "Uncategorized"}
+                        {exp?.categoryName || "Uncategorized"}
                       </span>
                     </div>
 

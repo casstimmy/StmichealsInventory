@@ -152,36 +152,36 @@ export default function Promotions() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto">
+      <div className="page-container">
+        <div className="page-content">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div className="flex items-center gap-2">
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900">Promotions</h1>
-            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
+        <div className="page-header flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <h1 className="page-title">Promotions</h1>
+            <span className="text-xs bg-sky-100 text-sky-700 px-2 py-1 rounded-full font-medium">
               HELP
             </span>
           </div>
           <Link
             href="/manage/add-promotion"
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors"
+            className="btn-action-primary w-full sm:w-auto text-center"
           >
-            ADD PROMOTION
+            + Add Promotion
           </Link>
         </div>
 
         {/* Filters and Search */}
-        <div className="bg-white rounded-lg p-6 mb-6 shadow-sm border border-gray-200">
+        <div className="content-card mb-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             {/* Filter by Promotion Type */}
-            <div>
-              <label className="text-sm font-semibold text-gray-700 block mb-2">
+            <div className="form-group">
+              <label className="form-label">
                 Filter by Promotion Type
               </label>
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="form-select"
               >
                 <option>* Show All</option>
                 <option>Percentage Discount</option>

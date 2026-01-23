@@ -167,27 +167,27 @@ export default function EndOfDayReporting() {
       {loading ? (
         <Loader size="lg" text="Loading end of day report..." />
       ) : (
-        <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto">
+        <div className="page-container">
+        <div className="page-content">
           {/* Header */}
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-4xl font-bold text-gray-900">End of Day Reports</h1>
+          <div className="page-header">
+            <h1 className="page-title">End of Day Reports</h1>
             <Link
               href="/reporting"
-              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg"
+              className="btn-action-secondary"
             >
               ← Back to Reporting
             </Link>
           </div>
 
           {/* Filters */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Period</label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 md:mb-6">
+            <div className="form-group">
+              <label className="form-label">Period</label>
               <select
                 value={period}
                 onChange={(e) => setPeriod(e.target.value)}
-                className="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-cyan-600 focus:outline-none"
+                className="form-select"
               >
                 <option value="day">Last Day</option>
                 <option value="week">Last 7 Days</option>
@@ -196,12 +196,12 @@ export default function EndOfDayReporting() {
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+            <div className="form-group">
+              <label className="form-label">Location</label>
               <select
                 value={selectedLocation}
                 onChange={(e) => setSelectedLocation(e.target.value)}
-                className="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-cyan-600 focus:outline-none"
+                className="form-select"
               >
                 <option value="All">All Locations</option>
                 {locations.map((loc) => (
@@ -214,7 +214,7 @@ export default function EndOfDayReporting() {
           </div>
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
             <SummaryCard
               title="Total Reports"
               value={summary.totals.reports}
@@ -241,10 +241,10 @@ export default function EndOfDayReporting() {
           </div>
 
           {/* Charts Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-4 md:mb-6">
             {/* Daily Sales Trend */}
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Sales Trend</h2>
+            <div className="content-card">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Sales Trend</h2>
               <Line
                 data={lineChartData}
                 options={{
@@ -263,8 +263,8 @@ export default function EndOfDayReporting() {
             </div>
 
             {/* Tender Breakdown */}
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Tender Breakdown</h2>
+            <div className="content-card">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Tender Breakdown</h2>
               <Pie
                 data={tenderData}
                 options={{
@@ -278,10 +278,10 @@ export default function EndOfDayReporting() {
           </div>
 
           {/* By Location & Staff */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-4 md:mb-6">
             {/* Sales by Location */}
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Sales by Location</h2>
+            <div className="content-card">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Sales by Location</h2>
               <Bar
                 data={barChartData}
                 options={{
@@ -294,29 +294,29 @@ export default function EndOfDayReporting() {
             </div>
 
             {/* Top Staff */}
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Top Staff Performance</h2>
+            <div className="content-card">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Top Staff Performance</h2>
               <div className="space-y-3 max-h-96 overflow-y-auto">
                 {(summary.byStaff || [])
                   .sort((a, b) => b.sales - a.sales)
                   .slice(0, 10)
                   .map((staff, idx) => (
-                    <div key={idx} className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                    <div key={idx} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                       <div>
-                        <p className="font-semibold text-gray-900">{staff.staff}</p>
+                        <p className="font-medium text-gray-900">{staff.staff}</p>
                         <p className="text-sm text-gray-600">
                           {staff.reports} reports • {staff.transactions} transactions
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-cyan-600">
+                        <p className="font-semibold text-sky-600">
                           ₦{staff.totalSales.toLocaleString("en-NG", {
                             maximumFractionDigits: 0,
                           })}
                         </p>
                         <p
-                          className={`text-sm font-semibold ${
-                            staff.variance >= 0 ? "text-green-600" : "text-red-600"
+                          className={`text-sm font-medium ${
+                            staff.variance >= 0 ? "text-emerald-600" : "text-red-600"
                           }`}
                         >
                           Variance: ₦{staff.variance.toLocaleString()}
@@ -329,56 +329,56 @@ export default function EndOfDayReporting() {
           </div>
 
           {/* Recent Reports Table */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Reports</h2>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-100 border-b-2 border-gray-300">
+          <div className="content-card">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Reports</h2>
+            <div className="data-table-container">
+              <table className="data-table">
+                <thead>
                   <tr>
-                    <th className="px-4 py-3 text-left font-bold text-gray-900">Date</th>
-                    <th className="px-4 py-3 text-left font-bold text-gray-900">Location</th>
-                    <th className="px-4 py-3 text-left font-bold text-gray-900">Staff</th>
-                    <th className="px-4 py-3 text-right font-bold text-gray-900">Sales</th>
-                    <th className="px-4 py-3 text-right font-bold text-gray-900">Transactions</th>
-                    <th className="px-4 py-3 text-right font-bold text-gray-900">Variance</th>
-                    <th className="px-4 py-3 text-center font-bold text-gray-900">Status</th>
+                    <th>Date</th>
+                    <th>Location</th>
+                    <th>Staff</th>
+                    <th className="text-right">Sales</th>
+                    <th className="text-right">Transactions</th>
+                    <th className="text-right">Variance</th>
+                    <th className="text-center">Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {reports.slice(0, 20).map((report, idx) => (
                     <tr
                       key={idx}
-                      className={`border-b border-gray-200 hover:bg-gray-50 ${
+                      className={`${
                         report.status === "VARIANCE_NOTED" ? "bg-yellow-50" : ""
                       }`}
                     >
-                      <td className="px-4 py-3 text-gray-900">
+                      <td>
                         {new Date(report.closedAt).toLocaleDateString()}
                       </td>
-                      <td className="px-4 py-3 text-gray-700">
+                      <td>
                         {report.locationName || "Unknown"}
                       </td>
-                      <td className="px-4 py-3 text-gray-700">{report.staffName || "N/A"}</td>
-                      <td className="px-4 py-3 text-right text-gray-900 font-semibold">
+                      <td>{report.staffName || "N/A"}</td>
+                      <td className="text-right font-medium">
                         ₦{(report.totalSales || 0).toLocaleString("en-NG", {
                           maximumFractionDigits: 0,
                         })}
                       </td>
-                      <td className="px-4 py-3 text-right text-gray-700">
+                      <td className="text-right">
                         {report.transactionCount || 0}
                       </td>
                       <td
-                        className={`px-4 py-3 text-right font-semibold ${
-                          (report.variance || 0) >= 0 ? "text-green-600" : "text-red-600"
+                        className={`text-right font-medium ${
+                          (report.variance || 0) >= 0 ? "text-emerald-600" : "text-red-600"
                         }`}
                       >
                         ₦{(report.variance || 0).toLocaleString()}
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="text-center">
                         <span
-                          className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${
                             report.status === "RECONCILED"
-                              ? "bg-green-100 text-green-800"
+                              ? "bg-emerald-100 text-emerald-800"
                               : "bg-yellow-100 text-yellow-800"
                           }`}
                         >
@@ -400,14 +400,14 @@ export default function EndOfDayReporting() {
 
 function SummaryCard({ title, value, subtext, icon }) {
   return (
-    <div className="bg-white rounded-lg shadow p-6 border-l-4 border-cyan-600">
+    <div className="stat-card border-l-4 border-sky-600">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-gray-600 text-sm font-medium">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+          <p className="stat-card-label">{title}</p>
+          <p className="stat-card-value">{value}</p>
           {subtext && <p className="text-xs text-gray-500 mt-1">{subtext}</p>}
         </div>
-        <p className="text-4xl">{icon}</p>
+        <p className="text-3xl md:text-4xl opacity-40">{icon}</p>
       </div>
     </div>
   );

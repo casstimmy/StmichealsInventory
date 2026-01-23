@@ -259,34 +259,34 @@ export default function AddPromotion() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto">
+      <div className="page-container">
+        <div className="page-content">
         {/* Header */}
-        <div className="flex items-center gap-2 mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Add a Promotion</h1>
-          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
+        <div className="page-header">
+          <h1 className="page-title">Add a Promotion</h1>
+          <span className="text-xs bg-sky-100 text-sky-700 px-2 py-1 rounded-full font-medium">
             HELP
           </span>
         </div>
 
         {/* Promotion Section */}
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 mb-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-6">Promotion</h2>
+        <div className="content-card mb-4 md:mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-6">Promotion</h2>
 
           <div className="space-y-6">
             {/* Name Field */}
             <div className="grid grid-cols-12 gap-4 items-start">
-              <label className="col-span-3 text-sm font-semibold text-gray-700 pt-3">
+              <label className="col-span-12 md:col-span-3 text-sm font-medium text-gray-700 md:pt-3">
                 Name
               </label>
-              <div className="col-span-9">
+              <div className="col-span-12 md:col-span-9">
                 <input
                   type="text"
                   name="name"
                   value={promoData.name}
                   onChange={handlePromoChange}
                   placeholder="Appears on Till and Receipts"
-                  className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-input"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Appears on Till and Receipts
@@ -296,17 +296,17 @@ export default function AddPromotion() {
 
             {/* Description Field */}
             <div className="grid grid-cols-12 gap-4 items-start">
-              <label className="col-span-3 text-sm font-semibold text-gray-700 pt-3">
+              <label className="col-span-12 md:col-span-3 text-sm font-medium text-gray-700 md:pt-3">
                 Description
               </label>
-              <div className="col-span-9">
+              <div className="col-span-12 md:col-span-9">
                 <input
                   type="text"
                   name="description"
                   value={promoData.description}
                   onChange={handlePromoChange}
                   placeholder="Appears on reports"
-                  className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-input"
                 />
                 <p className="text-xs text-gray-500 mt-1">Appears on reports</p>
               </div>
@@ -314,10 +314,10 @@ export default function AddPromotion() {
 
             {/* Promotion Duration */}
             <div className="grid grid-cols-12 gap-4 items-start">
-              <label className="col-span-3 text-sm font-semibold text-gray-700 pt-3">
+              <label className="col-span-12 md:col-span-3 text-sm font-medium text-gray-700 md:pt-3">
                 Promotion Duration
               </label>
-              <div className="col-span-9 space-y-3">
+              <div className="col-span-12 md:col-span-9 space-y-3">
                 <div className="flex items-center gap-3">
                   <input
                     type="checkbox"
@@ -394,23 +394,23 @@ export default function AddPromotion() {
               promoData.promotionDuration === "both") && (
               <>
                 <div className="grid grid-cols-12 gap-4 items-center">
-                  <label className="col-span-3 text-sm font-semibold text-gray-700">
+                  <label className="col-span-12 md:col-span-3 text-sm font-medium text-gray-700">
                     From and To Dates
                   </label>
-                  <div className="col-span-9 flex gap-4">
+                  <div className="col-span-12 md:col-span-9 flex gap-4">
                     <input
                       type="date"
                       name="promoStart"
                       value={promoData.promoStart}
                       onChange={handlePromoChange}
-                      className="flex-1 border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="form-input flex-1"
                     />
                     <input
                       type="date"
                       name="promoEnd"
                       value={promoData.promoEnd}
                       onChange={handlePromoChange}
-                      className="flex-1 border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="form-input flex-1"
                     />
                   </div>
                 </div>
@@ -422,23 +422,23 @@ export default function AddPromotion() {
               promoData.promotionDuration === "both") && (
               <>
                 <div className="grid grid-cols-12 gap-4 items-center">
-                  <label className="col-span-3 text-sm font-semibold text-gray-700">
+                  <label className="col-span-12 md:col-span-3 text-sm font-medium text-gray-700">
                     From and To Times
                   </label>
-                  <div className="col-span-9 flex gap-4">
+                  <div className="col-span-12 md:col-span-9 flex gap-4">
                     <input
                       type="time"
                       name="promoStartTime"
                       value={promoData.promoStartTime}
                       onChange={handlePromoChange}
-                      className="flex-1 border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="form-input flex-1"
                     />
                     <input
                       type="time"
                       name="promoEndTime"
                       value={promoData.promoEndTime}
                       onChange={handlePromoChange}
-                      className="flex-1 border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="form-input flex-1"
                     />
                   </div>
                 </div>
@@ -447,16 +447,16 @@ export default function AddPromotion() {
 
             {/* Meal Deal */}
             <div className="grid grid-cols-12 gap-4 items-center">
-              <label className="col-span-3 text-sm font-semibold text-gray-700">
+              <label className="col-span-12 md:col-span-3 text-sm font-medium text-gray-700">
                 Meal Deal
               </label>
-              <div className="col-span-9">
+              <div className="col-span-12 md:col-span-9">
                 <input
                   type="checkbox"
                   name="mealDeal"
                   checked={promoData.mealDeal}
                   onChange={handlePromoChange}
-                  className="w-4 h-4"
+                  className="w-5 h-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500"
                 />
               </div>
             </div>
@@ -464,16 +464,16 @@ export default function AddPromotion() {
             {/* Number of Meal Deal Groups */}
             {promoData.mealDeal && (
               <div className="grid grid-cols-12 gap-4 items-center">
-                <label className="col-span-3 text-sm font-semibold text-gray-700">
+                <label className="col-span-12 md:col-span-3 text-sm font-medium text-gray-700">
                   Number of Meal Deal Groups
                 </label>
-                <div className="col-span-9">
+                <div className="col-span-12 md:col-span-9">
                   <input
                     type="number"
                     name="mealDealGroups"
                     value={promoData.mealDealGroups}
                     onChange={handlePromoChange}
-                    className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="form-input"
                   />
                 </div>
               </div>
@@ -481,15 +481,15 @@ export default function AddPromotion() {
 
             {/* Type Dropdown */}
             <div className="grid grid-cols-12 gap-4 items-center">
-              <label className="col-span-3 text-sm font-semibold text-gray-700">
+              <label className="col-span-12 md:col-span-3 text-sm font-medium text-gray-700">
                 Type
               </label>
-              <div className="col-span-9">
+              <div className="col-span-12 md:col-span-9">
                 <select
                   name="dealType"
                   value={promoData.dealType}
                   onChange={handlePromoChange}
-                  className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-select"
                 >
                   <option>X For Y</option>
                   <option>Percentage Discount</option>
@@ -501,17 +501,17 @@ export default function AddPromotion() {
 
             {/* Required Quantity and Amount */}
             <div className="grid grid-cols-12 gap-4 items-center">
-              <label className="col-span-3 text-sm font-semibold text-gray-700">
+              <label className="col-span-12 md:col-span-3 text-sm font-medium text-gray-700">
                 Required Quantity and Amount
               </label>
-              <div className="col-span-9 flex gap-3 items-center">
+              <div className="col-span-12 md:col-span-9 flex gap-3 items-center">
                 <span className="text-sm font-medium">Buy</span>
                 <input
                   type="number"
                   name="requiredQuantity"
                   value={promoData.requiredQuantity}
                   onChange={handlePromoChange}
-                  className="w-20 border border-gray-300 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-input w-20"
                 />
                 <span className="text-sm font-medium">For</span>
                 <input
@@ -519,40 +519,40 @@ export default function AddPromotion() {
                   name="discountAmount"
                   value={promoData.discountAmount}
                   onChange={handlePromoChange}
-                  className="w-20 border border-gray-300 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-input w-20"
                 />
               </div>
             </div>
 
             {/* Mix and Match */}
             <div className="grid grid-cols-12 gap-4 items-center">
-              <label className="col-span-3 text-sm font-semibold text-gray-700">
+              <label className="col-span-12 md:col-span-3 text-sm font-medium text-gray-700">
                 Mix and Match
               </label>
-              <div className="col-span-9">
+              <div className="col-span-12 md:col-span-9">
                 <input
                   type="checkbox"
                   name="mixAndMatch"
                   checked={promoData.mixAndMatch}
                   onChange={handlePromoChange}
-                  className="w-4 h-4"
+                  className="w-5 h-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500"
                 />
               </div>
             </div>
 
             {/* Not to be used in conjunction */}
             <div className="grid grid-cols-12 gap-4 items-start">
-              <label className="col-span-3 text-sm font-semibold text-gray-700 pt-3">
+              <label className="col-span-12 md:col-span-3 text-sm font-medium text-gray-700 md:pt-3">
                 Not to be used in conjunction with any other offers
               </label>
-              <div className="col-span-9">
+              <div className="col-span-12 md:col-span-9">
                 <div className="flex items-start gap-3">
                   <input
                     type="checkbox"
                     name="notUsedInConjunction"
                     checked={promoData.notUsedInConjunction}
                     onChange={handlePromoChange}
-                    className="w-4 h-4 mt-1"
+                    className="w-5 h-5 mt-1 rounded border-gray-300 text-sky-600 focus:ring-sky-500"
                   />
                   <p className="text-sm text-gray-600">
                     Customer type discounts are exempt and will further reduce the promotional offer.
@@ -563,26 +563,26 @@ export default function AddPromotion() {
 
             {/* Enabled */}
             <div className="grid grid-cols-12 gap-4 items-center">
-              <label className="col-span-3 text-sm font-semibold text-gray-700">
+              <label className="col-span-12 md:col-span-3 text-sm font-medium text-gray-700">
                 Enabled
               </label>
-              <div className="col-span-9">
+              <div className="col-span-12 md:col-span-9">
                 <input
                   type="checkbox"
                   name="enabled"
                   checked={promoData.enabled}
                   onChange={handlePromoChange}
-                  className="w-4 h-4"
+                  className="w-5 h-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500"
                 />
               </div>
             </div>
 
             {/* Days Enabled */}
             <div className="grid grid-cols-12 gap-4 items-start">
-              <label className="col-span-3 text-sm font-semibold text-gray-700 pt-3">
+              <label className="col-span-12 md:col-span-3 text-sm font-medium text-gray-700 md:pt-3">
                 Days Enabled
               </label>
-              <div className="col-span-9">
+              <div className="col-span-12 md:col-span-9">
                 <div className="flex flex-wrap gap-4">
                   {[
                     { key: "mon", label: "Mon" },
@@ -599,7 +599,7 @@ export default function AddPromotion() {
                         name={`days${day.label}`}
                         checked={promoData.daysEnabled[day.key]}
                         onChange={handlePromoChange}
-                        className="w-4 h-4"
+                        className="w-5 h-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500"
                       />
                       <label className="text-sm text-gray-700">
                         {day.label}
@@ -612,15 +612,15 @@ export default function AddPromotion() {
 
             {/* Customer Type */}
             <div className="grid grid-cols-12 gap-4 items-center">
-              <label className="col-span-3 text-sm font-semibold text-gray-700">
+              <label className="col-span-12 md:col-span-3 text-sm font-medium text-gray-700">
                 Customer Type
               </label>
-              <div className="col-span-9">
+              <div className="col-span-12 md:col-span-9">
                 <select
                   name="customerType"
                   value={promoData.customerType}
                   onChange={handlePromoChange}
-                  className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-select"
                 >
                   <option>None</option>
                   <option>Retail</option>
@@ -637,8 +637,8 @@ export default function AddPromotion() {
         </div>
 
         {/* Add Category or Product Section */}
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 mb-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-2">
+        <div className="content-card mb-4 md:mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">
             Add a Category or a Product to this Promotion
           </h2>
           <p className="text-sm text-gray-600 mb-4">
@@ -649,7 +649,7 @@ export default function AddPromotion() {
 
           {/* Filter Categories */}
           <div className="mb-6">
-            <label className="text-sm font-semibold text-gray-700 block mb-2">
+            <label className="form-label">
               Filter Categories
             </label>
             <div className="flex gap-2">
@@ -658,9 +658,9 @@ export default function AddPromotion() {
                 placeholder="Search categories..."
                 value={filterCategoryTerm}
                 onChange={handleCategoryFilter}
-                className="flex-1 border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="form-input flex-1"
               />
-              <button className="bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors">
+              <button className="btn-action-primary">
                 SEARCH
               </button>
             </div>
@@ -668,14 +668,14 @@ export default function AddPromotion() {
 
           {/* Category Selection */}
           <div className="mb-6">
-            <label className="text-sm font-semibold text-gray-700 block mb-2">
+            <label className="form-label">
               Category
             </label>
             <div className="flex gap-2">
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="flex-1 border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="form-select flex-1"
               >
                 <option value="">Select category...</option>
                 {filteredCategories.map((cat) => (
@@ -686,7 +686,7 @@ export default function AddPromotion() {
               </select>
               <button
                 onClick={handleAddCategory}
-                className="bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                className="btn-action-success"
               >
                 ADD
               </button>
@@ -700,7 +700,7 @@ export default function AddPromotion() {
 
           {/* Filter Products */}
           <div className="mb-6">
-            <label className="text-sm font-semibold text-gray-700 block mb-2">
+            <label className="form-label">
               Filter Products
             </label>
             <div className="flex gap-2">
@@ -709,9 +709,9 @@ export default function AddPromotion() {
                 placeholder="Search products..."
                 value={filterProductTerm}
                 onChange={handleProductFilter}
-                className="flex-1 border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="form-input flex-1"
               />
-              <button className="bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors">
+              <button className="btn-action-primary">
                 SEARCH
               </button>
             </div>
@@ -719,14 +719,14 @@ export default function AddPromotion() {
 
           {/* Product Selection */}
           <div className="mb-6">
-            <label className="text-sm font-semibold text-gray-700 block mb-2">
+            <label className="form-label">
               Product
             </label>
             <div className="flex gap-2">
               <select
                 value={selectedProduct}
                 onChange={(e) => setSelectedProduct(e.target.value)}
-                className="flex-1 border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="form-select flex-1"
               >
                 <option value="">Select product...</option>
                 {filteredProducts.map((prod) => (
@@ -737,7 +737,7 @@ export default function AddPromotion() {
               </select>
               <button
                 onClick={handleAddProduct}
-                className="bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                className="btn-action-success"
               >
                 ADD
               </button>
@@ -747,14 +747,14 @@ export default function AddPromotion() {
           {/* Added Items List */}
           {addedItems.length > 0 && (
             <div className="mb-6 bg-gray-50 rounded-lg p-4 border border-gray-200">
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">
+              <h3 className="text-sm font-medium text-gray-900 mb-3">
                 Promotion Items
               </h3>
               <div className="space-y-2">
                 {addedItems.map((item) => (
                   <div
                     key={item.tempId}
-                    className="flex items-center justify-between bg-white p-3 rounded border border-gray-200"
+                    className="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-200"
                   >
                     <div>
                       <span className="text-sm font-medium text-gray-900">
@@ -766,7 +766,7 @@ export default function AddPromotion() {
                     </div>
                     <button
                       onClick={() => handleRemoveItem(item.tempId)}
-                      className="text-red-600 hover:text-red-700 text-lg font-bold"
+                      className="text-red-600 hover:text-red-700 text-lg font-bold active:scale-95 transition-transform"
                     >
                       ×
                     </button>
@@ -781,13 +781,13 @@ export default function AddPromotion() {
         <div className="flex justify-end gap-3">
           <Link
             href="/manage/promotions"
-            className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+            className="btn-action-danger"
           >
             CANCEL
           </Link>
           <button
             onClick={handleSubmit}
-            className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+            className="btn-action-success"
           >
             ADD
           </button>

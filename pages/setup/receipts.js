@@ -170,275 +170,280 @@ export default function Receipts() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">Receipt Settings</h1>
-
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-6">
-            {error}
+      <div className="page-container">
+        <div className="page-content">
+          <div className="page-header">
+            <h1 className="page-title">Receipt Settings</h1>
           </div>
-        )}
 
-        {/* Success Message */}
-        {success && (
-          <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg mb-6">
-            {success}
-          </div>
-        )}
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-6 flex items-center gap-2">
+              <span>⚠️</span> {error}
+            </div>
+          )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* LEFT SIDE - FORM */}
-          <div className="lg:col-span-2">
-            <div className="bg-white p-6 rounded-xl shadow-lg space-y-6">
-              {/* Company Info */}
-              <div className="flex flex-col space-y-4">
-                <div>
-                  <label className="font-medium text-gray-700">Company Name (Display: St's Michael Hub)</label>
-                  <input
-                    type="text"
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    className="border border-gray-300 p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-cyan-600 bg-gray-100"
-                    disabled
-                  />
+          {/* Success Message */}
+          {success && (
+            <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg mb-6 flex items-center gap-2">
+              <span>✅</span> {success}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* LEFT SIDE - FORM */}
+            <div className="lg:col-span-2">
+              <div className="content-card space-y-6">
+                {/* Company Info */}
+                <div className="flex flex-col space-y-4">
+                  <div className="form-group">
+                    <label className="form-label">Company Name (Display: St's Michael Hub)</label>
+                    <input
+                      type="text"
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      className="form-input bg-gray-100 cursor-not-allowed"
+                      disabled
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Store Name (Note: Dynamically set from transaction location)</label>
+                    <input
+                      type="text"
+                      value={storeName}
+                      onChange={(e) => setStoreName(e.target.value)}
+                      className="form-input bg-gray-100 cursor-not-allowed text-gray-500"
+                      placeholder="Will be pulled from transaction location"
+                      disabled
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Staff Name (Note: Dynamically set from transaction staff)</label>
+                    <input
+                      type="text"
+                      value={staffName}
+                      onChange={(e) => setStaffName(e.target.value)}
+                      className="form-input bg-gray-100 cursor-not-allowed text-gray-500"
+                      placeholder="Will be pulled from transaction staff"
+                      disabled
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Store Phone</label>
+                    <input
+                      type="text"
+                      value={storePhone}
+                      onChange={(e) => setStorePhone(e.target.value)}
+                      className="form-input"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Country</label>
+                    <input
+                      type="text"
+                      value={country}
+                      onChange={(e) => setCountry(e.target.value)}
+                      className="form-input"
+                      placeholder="e.g., Kenya, USA, India"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Company Display Name</label>
+                    <input
+                      type="text"
+                      placeholder="Leave blank to use company name"
+                      value={companyDisplayName}
+                      onChange={(e) => setCompanyDisplayName(e.target.value)}
+                      className="form-input"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Tax Number</label>
+                    <input
+                      type="text"
+                      value={taxNumber}
+                      onChange={(e) => setTaxNumber(e.target.value)}
+                      className="form-input"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Email Address</label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="form-input"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Website Address</label>
+                    <input
+                      type="text"
+                      value={website}
+                      onChange={(e) => setWebsite(e.target.value)}
+                      className="form-input"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Refund Days</label>
+                    <input
+                      type="number"
+                      value={refundDays}
+                      onChange={(e) => setRefundDays(e.target.value)}
+                      className="form-input"
+                      min={0}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Receipt Message</label>
+                    <textarea
+                      value={receiptMessage}
+                      onChange={(e) => setReceiptMessage(e.target.value)}
+                      className="form-input"
+                      rows={3}
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="font-medium text-gray-700">Store Name (Note: Dynamically set from transaction location)</label>
-                  <input
-                    type="text"
-                    value={storeName}
-                    onChange={(e) => setStoreName(e.target.value)}
-                    className="border border-gray-300 p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-cyan-600 bg-gray-100 text-gray-500"
-                    placeholder="Will be pulled from transaction location"
-                    disabled
-                  />
-                </div>
-
-                <div>
-                  <label className="font-medium text-gray-700">Staff Name (Note: Dynamically set from transaction staff)</label>
-                  <input
-                    type="text"
-                    value={staffName}
-                    onChange={(e) => setStaffName(e.target.value)}
-                    className="border border-gray-300 p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-cyan-600 bg-gray-100 text-gray-500"
-                    placeholder="Will be pulled from transaction staff"
-                    disabled
-                  />
-                </div>
-
-                <div>
-                  <label className="font-medium text-gray-700">Store Phone</label>
-                  <input
-                    type="text"
-                    value={storePhone}
-                    onChange={(e) => setStorePhone(e.target.value)}
-                    className="border border-gray-300 p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-cyan-600"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-medium text-gray-700">Country</label>
-                  <input
-                    type="text"
-                    value={country}
-                    onChange={(e) => setCountry(e.target.value)}
-                    className="border border-gray-300 p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-cyan-600"
-                    placeholder="e.g., Kenya, USA, India"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-medium text-gray-700">Company Display Name</label>
-                  <input
-                    type="text"
-                    placeholder="Leave blank to use company name"
-                    value={companyDisplayName}
-                    onChange={(e) => setCompanyDisplayName(e.target.value)}
-                    className="border border-gray-300 p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-cyan-600"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-medium text-gray-700">Tax Number</label>
-                  <input
-                    type="text"
-                    value={taxNumber}
-                    onChange={(e) => setTaxNumber(e.target.value)}
-                    className="border border-gray-300 p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-cyan-600"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-medium text-gray-700">Email Address</label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="border border-gray-300 p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-cyan-600"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-medium text-gray-700">Website Address</label>
-                  <input
-                    type="text"
-                    value={website}
-                    onChange={(e) => setWebsite(e.target.value)}
-                    className="border border-gray-300 p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-cyan-600"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-medium text-gray-700">Refund Days</label>
-                  <input
-                    type="number"
-                    value={refundDays}
-                    onChange={(e) => setRefundDays(e.target.value)}
-                    className="border border-gray-300 p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-cyan-600"
-                    min={0}
-                  />
-                </div>
-
-                <div>
-                  <label className="font-medium text-gray-700">Receipt Message</label>
-                  <textarea
-                    value={receiptMessage}
-                    onChange={(e) => setReceiptMessage(e.target.value)}
-                    className="border border-gray-300 p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-cyan-600"
-                    rows={3}
-                  />
-                </div>
-              </div>
-
-              {/* Font Size */}
-              <div className="flex flex-col">
-                <label className="mb-1 font-medium text-gray-700">Set Custom Font Size</label>
-                <select
-                  value={fontSize}
-                  onChange={(e) => setFontSize(e.target.value)}
-                  className="border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-cyan-600"
-                >
-                  <option value="8.0">8.0</option>
-                  <option value="9.0">9.0</option>
-                  <option value="10.0">10.0</option>
-                </select>
-              </div>
-
-              {/* Barcode Type */}
-              <div className="flex flex-col">
-                <label className="mb-1 font-medium text-gray-700">Barcode Type</label>
-                <select
-                  value={barcodeType}
-                  onChange={(e) => setBarcodeType(e.target.value)}
-                  className="border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-cyan-600"
-                >
-                  <option value="Default - Code 39">Default - Code 39</option>
-                  <option value="Code 128">Code 128</option>
-                  <option value="EAN-13">EAN-13</option>
-                </select>
-              </div>
-
-              {/* Location Selection for Preview */}
-              {locations.length > 0 && (
-                <div className="flex flex-col">
-                  <label className="mb-1 font-medium text-gray-700">Select Location for Preview</label>
+                {/* Font Size */}
+                <div className="form-group">
+                  <label className="form-label">Set Custom Font Size</label>
                   <select
-                    value={selectedLocation}
-                    onChange={(e) => setSelectedLocation(e.target.value)}
-                    className="border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-cyan-600"
+                    value={fontSize}
+                    onChange={(e) => setFontSize(e.target.value)}
+                    className="form-select"
                   >
-                    {locations.map((loc) => (
-                      <option key={loc._id || loc.name} value={loc.name}>
-                        {loc.name}
-                      </option>
-                    ))}
+                    <option value="8.0">8.0</option>
+                    <option value="9.0">9.0</option>
+                    <option value="10.0">10.0</option>
                   </select>
                 </div>
-              )}
 
-              {/* Company Logo */}
-              <div className="flex flex-col">
-                <label className="mb-1 font-medium text-gray-700">Company Logo</label>
-                <div className="border-2 border-dashed border-gray-300 p-4 rounded text-center cursor-pointer relative">
-                  {companyLogo ? (
-                    <div className="relative">
-                      <img src={companyLogo} className="mx-auto h-32 object-contain" alt="Company Logo" />
-                      <button
-                        onClick={removeLogo}
-                        className="absolute top-2 right-2 bg-red-500 text-white rounded px-2 py-1 text-xs hover:bg-red-600"
-                      >
-                        REMOVE
-                      </button>
-                    </div>
-                  ) : (
-                    <p className="text-gray-400">Drop your file here or click to upload</p>
-                  )}
+                {/* Barcode Type */}
+                <div className="form-group">
+                  <label className="form-label">Barcode Type</label>
+                  <select
+                    value={barcodeType}
+                    onChange={(e) => setBarcodeType(e.target.value)}
+                    className="form-select"
+                  >
+                    <option value="Default - Code 39">Default - Code 39</option>
+                    <option value="Code 128">Code 128</option>
+                    <option value="EAN-13">EAN-13</option>
+                  </select>
+                </div>
+
+                {/* Location Selection for Preview */}
+                {locations.length > 0 && (
+                  <div className="form-group">
+                    <label className="form-label">Select Location for Preview</label>
+                    <select
+                      value={selectedLocation}
+                      onChange={(e) => setSelectedLocation(e.target.value)}
+                      className="form-select"
+                    >
+                      {locations.map((loc) => (
+                        <option key={loc._id || loc.name} value={loc.name}>
+                          {loc.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Company Logo */}
+                <div className="form-group">
+                  <label className="form-label">Company Logo</label>
+                  <div className="border-2 border-dashed border-gray-300 p-4 rounded-lg text-center cursor-pointer relative hover:border-sky-400 transition-colors">
+                    {companyLogo ? (
+                      <div className="relative">
+                        <img src={companyLogo} className="mx-auto h-32 object-contain" alt="Company Logo" />
+                        <button
+                          onClick={removeLogo}
+                          className="btn-action btn-action-danger text-xs absolute top-2 right-2"
+                        >
+                          REMOVE
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-gray-400">Drop your file here or click to upload</p>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/png, image/jpeg"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      onChange={handleLogoUpload}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Logo should be no larger than 256x256 pixels in JPG or PNG format.
+                  </p>
+                </div>
+
+                {/* QR Code */}
+                <div className="form-group space-y-3">
+                  <div>
+                    <label className="form-label">QR Code URL or Link</label>
+                    <input
+                      type="text"
+                      placeholder="Example: https://google.com"
+                      value={qrUrl}
+                      onChange={(e) => setQrUrl(e.target.value)}
+                      className="form-input"
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label">QR Code Description</label>
+                    <input
+                      type="text"
+                      placeholder="Please scan here and leave us a review"
+                      value={qrDescription}
+                      onChange={(e) => setQrDescription(e.target.value)}
+                      className="form-input"
+                    />
+                  </div>
+                </div>
+
+                {/* Payment Status */}
+                <div className="form-group">
+                  <label className="form-label">Default Payment Status</label>
+                  <select
+                    value={paymentStatus}
+                    onChange={(e) => setPaymentStatus(e.target.value)}
+                    className="form-select"
+                  >
+                    <option value="paid">PAID</option>
+                    <option value="unpaid">UNPAID</option>
+                  </select>
+                </div>
+
+                {/* GUID */}
+                <div className="form-group">
+                  <label className="form-label">GUID (Used by Support only)</label>
                   <input
-                    type="file"
-                    accept="image/png, image/jpeg"
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    onChange={handleLogoUpload}
+                    type="text"
+                    value={GUID}
+                    readOnly
+                    className="form-input bg-gray-100 cursor-not-allowed text-gray-600"
                   />
                 </div>
-                <p className="text-xs text-gray-400 mt-1">
-                  Logo should be no larger than 256x256 pixels in JPG or PNG format.
-                </p>
-              </div>
-
-              {/* QR Code */}
-              <div className="flex flex-col space-y-2">
-                <label className="font-medium text-gray-700">QR Code URL or Link</label>
-                <input
-                  type="text"
-                  placeholder="Example: https://google.com"
-                  value={qrUrl}
-                  onChange={(e) => setQrUrl(e.target.value)}
-                  className="border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-cyan-600"
-                />
-                <label className="font-medium text-gray-700">QR Code Description</label>
-                <input
-                  type="text"
-                  placeholder="Please scan here and leave us a review"
-                  value={qrDescription}
-                  onChange={(e) => setQrDescription(e.target.value)}
-                  className="border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-cyan-600"
-                />
-              </div>
-
-              {/* Payment Status */}
-              <div className="flex flex-col">
-                <label className="font-medium text-gray-700">Default Payment Status</label>
-                <select
-                  value={paymentStatus}
-                  onChange={(e) => setPaymentStatus(e.target.value)}
-                  className="border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-cyan-600"
-                >
-                  <option value="paid">PAID</option>
-                  <option value="unpaid">UNPAID</option>
-                </select>
-              </div>
-
-              {/* GUID */}
-              <div className="flex flex-col">
-                <label className="font-medium text-gray-700">GUID (Used by Support only)</label>
-                <input
-                  type="text"
-                  value={GUID}
-                  readOnly
-                  className="border border-gray-300 p-2 rounded bg-gray-100 text-gray-600"
-                />
               </div>
             </div>
-          </div>
-          </div>
 
-          {/* RIGHT SIDE - PREVIEW */}
-          <div className="lg:col-span-1">
-            <div className="bg-white p-6 rounded-xl shadow-lg sticky top-6">
-              <h2 className="text-lg font-bold mb-4 text-gray-800">Receipt Preview</h2>
+            {/* RIGHT SIDE - PREVIEW */}
+            <div className="lg:col-span-1">
+              <div className="content-card sticky top-6">
+                <h2 className="text-lg font-bold mb-4 text-gray-800">Receipt Preview</h2>
               <div 
                 className="bg-white p-4 rounded border border-gray-300 overflow-y-auto max-h-[700px] font-mono text-xs leading-tight"
                 style={{ fontSize: `${fontSize}pt` }}
@@ -616,7 +621,7 @@ export default function Receipts() {
         <div className="flex justify-end gap-4 mt-6">
           <button
             onClick={() => window.history.back()}
-            className="px-6 py-2 rounded bg-red-500 text-white hover:bg-red-600 transition disabled:opacity-50"
+            className="btn-action btn-action-danger"
             disabled={saving}
           >
             CANCEL
@@ -624,10 +629,11 @@ export default function Receipts() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-6 py-2 rounded bg-green-500 text-white hover:bg-green-600 transition disabled:opacity-50"
+            className="btn-action btn-action-success"
           >
             {saving ? "SAVING..." : "SAVE"}
           </button>
+        </div>
         </div>
       </div>
     </Layout>

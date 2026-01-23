@@ -89,11 +89,13 @@ export default function CampaignsPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto">
+      <div className="page-container">
+        <div className="page-content">
           {/* Header */}
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900">Marketing Campaigns</h1>
+          <div className="page-header">
+            <div>
+              <h1 className="page-title">Marketing Campaigns</h1>
+            </div>
             <button
               onClick={() => {
                 setShowForm(!showForm);
@@ -107,7 +109,7 @@ export default function CampaignsPage() {
                   endDate: "",
                 });
               }}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold"
+              className="btn-action-primary"
             >
               + Create Campaign
             </button>
@@ -127,8 +129,8 @@ export default function CampaignsPage() {
 
           {/* Form */}
           {showForm && (
-            <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            <div className="content-card mb-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
                 {editing ? "Edit Campaign" : "Create New Campaign"}
               </h2>
               <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -137,7 +139,7 @@ export default function CampaignsPage() {
                   placeholder="Campaign Name *"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-cyan-600 focus:outline-none"
+                  className="form-input"
                   required
                 />
                 <input
@@ -145,7 +147,7 @@ export default function CampaignsPage() {
                   placeholder="Discount (%)"
                   value={formData.discount}
                   onChange={(e) => setFormData({ ...formData, discount: parseFloat(e.target.value) })}
-                  className="border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-cyan-600 focus:outline-none"
+                  className="form-input"
                   min="0"
                   max="100"
                 />
@@ -153,13 +155,13 @@ export default function CampaignsPage() {
                   placeholder="Description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="md:col-span-2 border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-cyan-600 focus:outline-none"
+                  className="form-input md:col-span-2"
                   rows="3"
                 />
                 <select
                   value={formData.targetCustomers}
                   onChange={(e) => setFormData({ ...formData, targetCustomers: e.target.value })}
-                  className="border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-cyan-600 focus:outline-none"
+                  className="form-select"
                 >
                   <option value="all">All Customers</option>
                   <option value="vip">VIP Customers</option>
@@ -171,20 +173,20 @@ export default function CampaignsPage() {
                   type="date"
                   value={formData.startDate}
                   onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                  className="border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-cyan-600 focus:outline-none"
+                  className="form-input"
                   required
                 />
                 <input
                   type="date"
                   value={formData.endDate}
                   onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                  className="border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-cyan-600 focus:outline-none"
+                  className="form-input"
                   required
                 />
                 <div className="md:col-span-2 flex gap-2">
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg font-semibold"
+                    className="btn-action-primary flex-1"
                   >
                     {editing ? "Update" : "Create"} Campaign
                   </button>
@@ -202,7 +204,7 @@ export default function CampaignsPage() {
                         endDate: "",
                       });
                     }}
-                    className="flex-1 px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-900 rounded-lg font-semibold"
+                    className="btn-action-secondary flex-1"
                   >
                     Cancel
                   </button>
@@ -213,30 +215,30 @@ export default function CampaignsPage() {
 
           {/* Campaigns Grid */}
           {campaigns.length === 0 ? (
-            <div className="bg-white rounded-lg shadow-lg p-12 text-center">
-              <p className="text-lg text-gray-600">No campaigns yet. Create one to get started!</p>
+            <div className="content-card text-center py-12">
+              <p className="text-lg text-gray-500">No campaigns yet. Create one to get started!</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {campaigns.map((campaign) => (
-                <div key={campaign.id} className="bg-white rounded-lg shadow-lg p-6 border-l-4 border-purple-600">
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">{campaign.name}</h3>
+                <div key={campaign.id} className="content-card border-l-4 border-sky-600">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{campaign.name}</h3>
                   <p className="text-sm text-gray-600 mb-3">{campaign.description}</p>
                   <div className="space-y-2 mb-4 text-sm">
-                    <p><span className="font-semibold">Discount:</span> {campaign.discount}%</p>
-                    <p><span className="font-semibold">Target:</span> {campaign.targetCustomers}</p>
-                    <p><span className="font-semibold">Period:</span> {campaign.startDate} to {campaign.endDate}</p>
+                    <p><span className="font-medium">Discount:</span> {campaign.discount}%</p>
+                    <p><span className="font-medium">Target:</span> {campaign.targetCustomers}</p>
+                    <p><span className="font-medium">Period:</span> {campaign.startDate} to {campaign.endDate}</p>
                   </div>
-                  <div className="flex gap-2 pt-4 border-t">
+                  <div className="flex gap-2 pt-4 border-t border-gray-200">
                     <button
                       onClick={() => handleEdit(campaign)}
-                      className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-semibold"
+                      className="btn-action-primary flex-1 text-sm py-2"
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => handleDelete(campaign.id)}
-                      className="flex-1 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-semibold"
+                      className="btn-action-danger flex-1 text-sm py-2"
                     >
                       Delete
                     </button>

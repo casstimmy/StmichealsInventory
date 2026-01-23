@@ -209,23 +209,23 @@ export default function StockMovementAdd() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto">
+      <div className="page-container">
+        <div className="page-content">
         {/* Header */}
-        <div className="mb-6 md:mb-10">
-          <h1 className="text-2xl md:text-4xl font-bold text-gray-900 mb-2">Create Stock Movement</h1>
-          <p className="text-sm md:text-base text-gray-600">Transfer inventory between locations with full tracking and approval workflow</p>
+        <div className="page-header">
+          <h1 className="page-title">Create Stock Movement</h1>
+          <p className="page-subtitle">Transfer inventory between locations with full tracking and approval workflow</p>
         </div>
 
         {/* Form Container */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+        <div className="content-card !p-0 overflow-hidden">
           {/* Section 1: Movement Details */}
-          <div className="p-4 md:p-8 border-b border-gray-200">
+          <div className="p-4 md:p-6 border-b border-gray-200">
             <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-              <div className="w-1.5 h-6 bg-cyan-600 rounded-full"></div>
+              <div className="w-1.5 h-6 bg-sky-600 rounded-full"></div>
               Movement Details
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Dropdown
                 label="From Location"
                 value={fromLocation}
@@ -470,17 +470,17 @@ export default function StockMovementAdd() {
             )}
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-2 md:gap-4 justify-end">
+            <div className="flex flex-col sm:flex-row gap-3 justify-end">
               <button
                 onClick={() => router.push("/stock/movement")}
-                className="w-full sm:w-auto px-4 md:px-6 py-2 md:py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:border-gray-400 hover:bg-gray-50 transition text-sm md:text-base"
+                className="btn-action-secondary w-full sm:w-auto"
               >
                 Cancel
               </button>
               <button
                 onClick={handleAddToStock}
                 disabled={isSubmitting || addedProducts.length === 0 || !fromLocation || !toLocation || !reason}
-                className="px-8 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-gray-400 disabled:to-gray-400 text-white rounded-lg font-semibold transition shadow-md"
+                className="btn-action-success w-full sm:w-auto"
               >
                 {isSubmitting ? "Creating..." : "Create Stock Movement"}
               </button>
@@ -495,12 +495,12 @@ export default function StockMovementAdd() {
 
 function Dropdown({ label, value, onChange, options, required = false }) {
   return (
-    <div>
-      <label className="block text-sm font-semibold text-gray-700 mb-2">
+    <div className="form-group">
+      <label className="form-label">
         {label} {required && <span className="text-red-600">*</span>}
       </label>
       <select
-        className="w-full border-2 border-gray-300 px-4 py-2 rounded-lg focus:border-cyan-600 focus:ring-2 focus:ring-cyan-500 transition bg-white font-medium text-gray-800"
+        className="form-select"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required={required}

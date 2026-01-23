@@ -201,9 +201,10 @@ export default function HeroSetup() {
 
   return (
     <Layout>
-      <div className="min-h-[100vh] flex flex-col items-center pb-6 pt-6 px-4 space-y-12 bg-gradient-to-b from-gray-50 to-white">
+      <div className="page-container">
+        <div className="page-content space-y-8">
         {/* Hero Carousel */}
-        <div className="relative w-full max-w-6xl">
+        <div className="relative w-full">
           {heroPages.length === 0 ? (
             <p className="text-gray-500 italic text-center">No Hero Pages Yet</p>
           ) : (
@@ -315,74 +316,82 @@ export default function HeroSetup() {
         </div>
 
         {/* Add/Edit Form */}
-        <div className="w-full flex flex-col md:flex-row items-start justify-center gap-10">
-          <div className="space-y-5 w-full max-w-4xl bg-white shadow-xl border border-gray-200 rounded-2xl py-10 px-6">
-            <h2 className="text-2xl font-semibold text-gray-900">
+        <div className="w-full flex flex-col lg:flex-row items-start justify-center gap-6">
+          <div className="content-card space-y-5 w-full lg:w-1/2">
+            <h2 className="text-lg font-semibold text-gray-900">
               {editId ? "Edit Hero" : "Add New Hero"}
             </h2>
 
-            <input
-              type="text"
-              value={heroTitle}
-              onChange={(e) => setHeroTitle(e.target.value)}
-              placeholder="Hero Title"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-600 outline-none h-32"
-            />
+            <div className="form-group">
+              <input
+                type="text"
+                value={heroTitle}
+                onChange={(e) => setHeroTitle(e.target.value)}
+                placeholder="Hero Title"
+                className="form-input min-h-[80px]"
+              />
+            </div>
 
-            <input
-              type="text"
-              value={heroSubtitle}
-              onChange={(e) => setHeroSubtitle(e.target.value)}
-              placeholder="Hero Subtitle"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-600 outline-none"
-            />
+            <div className="form-group">
+              <input
+                type="text"
+                value={heroSubtitle}
+                onChange={(e) => setHeroSubtitle(e.target.value)}
+                placeholder="Hero Subtitle"
+                className="form-input"
+              />
+            </div>
 
-            <input
-              type="text"
-              value={ctaText}
-              onChange={(e) => setCtaText(e.target.value)}
-              placeholder="CTA Text"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-600 outline-none"
-            />
+            <div className="form-group">
+              <input
+                type="text"
+                value={ctaText}
+                onChange={(e) => setCtaText(e.target.value)}
+                placeholder="CTA Text"
+                className="form-input"
+              />
+            </div>
 
-            <input
-              type="text"
-              value={ctaLink}
-              onChange={(e) => setCtaLink(e.target.value)}
-              placeholder="CTA Link"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-600 outline-none"
-            />
+            <div className="form-group">
+              <input
+                type="text"
+                value={ctaLink}
+                onChange={(e) => setCtaLink(e.target.value)}
+                placeholder="CTA Link"
+                className="form-input"
+              />
+            </div>
 
-            <input
-              type="number"
-              value={order}
-              onChange={(e) => setOrder(Number(e.target.value))}
-              placeholder="Order"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-600 outline-none"
-            />
+            <div className="form-group">
+              <input
+                type="number"
+                value={order}
+                onChange={(e) => setOrder(Number(e.target.value))}
+                placeholder="Order"
+                className="form-input"
+              />
+            </div>
 
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-600 outline-none"
-            >
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
+            <div className="form-group">
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="form-select"
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
 
             {/* Upload Sections */}
             {renderUploader("Hero Image", heroImageRef, handleHeroImageChange, heroProgress, heroImage, setHeroImage)}
             {renderUploader("Background Image", heroBgImageRef, handleBgImageChange, heroBgProgress, heroBgImage, setHeroBgImage)}
 
-            <div className="flex space-x-3 mt-6">
+            <div className="flex gap-3 mt-6">
               <button
                 onClick={addOrUpdateHeroPage}
                 disabled={uploading}
-                className={`px-5 py-2.5 rounded-lg text-white font-semibold shadow-md transition-all ${
-                  uploading
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-gradient-to-r from-cyan-600 to-cyan-800 hover:from-cyan-700 hover:to-cyan-900"
-                }`}
+                className={`btn-action-primary ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {uploading ? "Saving..." : editId ? "Update Hero" : "Add Hero"}
               </button>
@@ -391,7 +400,7 @@ export default function HeroSetup() {
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="px-5 py-2.5 rounded-lg bg-gray-100 hover:bg-gray-50 text-cyan-700 font-semibold shadow-md transition-all"
+                  className="btn-action-secondary"
                 >
                   Cancel
                 </button>
@@ -399,9 +408,10 @@ export default function HeroSetup() {
             </div>
           </div>
 
-          <div className="w-full max-w-4xl bg-white shadow-xl border border-gray-200 rounded-2xl p-6">
+          <div className="content-card w-full lg:w-1/2">
             <PromotionManagement />
           </div>
+        </div>
         </div>
       </div>
     </Layout>
@@ -410,12 +420,12 @@ export default function HeroSetup() {
 
 function renderUploader(label, ref, handleChange, progress, images, setImages) {
   return (
-    <div className="flex flex-col space-y-2">
-      <span className="font-medium text-gray-900">{label}</span>
+    <div className="form-group">
+      <span className="form-label">{label}</span>
       <button
         type="button"
         onClick={() => ref.current?.click()}
-        className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg hover:bg-cyan-100 text-cyan-700 w-fit transition"
+        className="btn-action-secondary"
       >
         Upload {label}
       </button>
@@ -429,25 +439,25 @@ function renderUploader(label, ref, handleChange, progress, images, setImages) {
         className="hidden"
       />
       {progress > 0 && progress < 100 && (
-        <div className="w-full bg-cyan-100 rounded-full h-2">
+        <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
           <div
-            className="bg-gray-500 h-2 rounded-full"
+            className="bg-sky-600 h-2 rounded-full transition-all"
             style={{ width: `${progress}%` }}
           />
         </div>
       )}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 mt-2">
         {images.map((img, idx) => (
           <div key={idx} className="relative">
             <img
               src={img.full}
               alt={label}
-              className="w-20 h-20 object-cover rounded border border-gray-300 shadow"
+              className="w-20 h-20 object-cover rounded-lg border border-gray-200 shadow"
             />
             <button
               type="button"
               onClick={() => setImages((prev) => prev.filter((_, i) => i !== idx))}
-              className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full px-1"
+              className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center active:scale-95 transition-transform"
             >
               ✕
             </button>

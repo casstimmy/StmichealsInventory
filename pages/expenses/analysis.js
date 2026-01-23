@@ -109,125 +109,126 @@ export default function ExpenseAnalysis() {
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto px-6 py-10 space-y-10">
-        <div>
-          <h1 className="text-4xl font-extrabold text-gray-900">
-            Expense Dashboard
-          </h1>
-          <p className="text-gray-600 text-lg mt-1">
-            Visualize and monitor your business expenditures in one place.
-          </p>
-        </div>
-
-        {/* Filters */}
-        <div className="bg-white p-6 rounded-xl shadow border space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <Filter className="w-5 h-5" /> Filter Expenses
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            <select
-              value={filters.category}
-              onChange={(e) =>
-                setFilters({ ...filters, category: e.target.value })
-              }
-              className="p-2 border rounded text-gray-700"
-            >
-              <option value="">All Categories</option>
-              {allCategories.map((cat, idx) => (
-                <option key={idx} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
-
-            <input
-              type="text"
-              placeholder="Location"
-              value={filters.location}
-              onChange={(e) =>
-                setFilters({ ...filters, location: e.target.value })
-              }
-              className="p-2 border rounded"
-            />
-            <input
-              type="number"
-              placeholder="Min Amount"
-              value={filters.minAmount}
-              onChange={(e) =>
-                setFilters({ ...filters, minAmount: e.target.value })
-              }
-              className="p-2 border rounded"
-            />
-            <input
-              type="number"
-              placeholder="Max Amount"
-              value={filters.maxAmount}
-              onChange={(e) =>
-                setFilters({ ...filters, maxAmount: e.target.value })
-              }
-              className="p-2 border rounded"
-            />
-            <input
-              type="date"
-              value={filters.startDate}
-              onChange={(e) =>
-                setFilters({ ...filters, startDate: e.target.value })
-              }
-              className="p-2 border rounded"
-            />
-            <input
-              type="date"
-              value={filters.endDate}
-              onChange={(e) =>
-                setFilters({ ...filters, endDate: e.target.value })
-              }
-              className="p-2 border rounded"
-            />
+      <div className="page-container">
+        <div className="page-content">
+          <div className="page-header">
+            <h1 className="page-title">Expense Dashboard</h1>
+            <p className="page-subtitle">
+              Visualize and monitor your business expenditures in one place.
+            </p>
           </div>
-        </div>
 
-        {loading ? (
-          <div className="text-center text-gray-600 font-medium py-16">
-            Loading expenses...
-          </div>
-        ) : filteredExpenses.length === 0 ? (
-          <div className="text-center text-gray-500 font-medium py-16">
-            No expenses match the selected filters.
-          </div>
-        ) : (
-          <>
-            <div className="bg-gray-50 border border-gray-200 p-6 rounded-xl shadow">
-              <h2 className="text-xl font-semibold text-gray-900">
-                Total Amount Spent
-              </h2>
-              <p className="text-3xl font-bold text-red-600 mt-2">
-                ₦{totalSpent.toLocaleString()}
-              </p>
+          {/* Filters */}
+          <div className="content-card space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <Filter className="w-5 h-5 text-sky-600" /> Filter Expenses
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              <select
+                value={filters.category}
+                onChange={(e) =>
+                  setFilters({ ...filters, category: e.target.value })
+                }
+                className="form-select"
+              >
+                <option value="">All Categories</option>
+                {allCategories.map((cat, idx) => (
+                  <option key={idx} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+
+              <input
+                type="text"
+                placeholder="Location"
+                value={filters.location}
+                onChange={(e) =>
+                  setFilters({ ...filters, location: e.target.value })
+                }
+                className="form-input"
+              />
+              <input
+                type="number"
+                placeholder="Min Amount"
+                value={filters.minAmount}
+                onChange={(e) =>
+                  setFilters({ ...filters, minAmount: e.target.value })
+                }
+                className="form-input"
+              />
+              <input
+                type="number"
+                placeholder="Max Amount"
+                value={filters.maxAmount}
+                onChange={(e) =>
+                  setFilters({ ...filters, maxAmount: e.target.value })
+                }
+                className="form-input"
+              />
+              <input
+                type="date"
+                value={filters.startDate}
+                onChange={(e) =>
+                  setFilters({ ...filters, startDate: e.target.value })
+                }
+                className="form-input"
+              />
+              <input
+                type="date"
+                value={filters.endDate}
+                onChange={(e) =>
+                  setFilters({ ...filters, endDate: e.target.value })
+                }
+                className="form-input"
+              />
             </div>
+          </div>
 
-            {/* Chart + List */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white p-6 rounded-xl shadow border border-gray-200 relative">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-semibold text-cyan-700">
-                    Category Breakdown
-                  </h2>
-                  <button
-                    onClick={() => setShowBarChart(!showBarChart)}
-                    className="text-cyan-600 hover:text-gray-900"
-                    title={
-                      showBarChart
-                        ? "Switch to Pie Chart"
-                        : "Switch to Bar Chart"
-                    }
-                  >
-                    {showBarChart ? (
-                      <PieIcon className="w-5 h-5" />
-                    ) : (
-                      <BarChart2 className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
+          {loading ? (
+            <div className="content-card text-center py-16">
+              <div className="skeleton h-8 w-48 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading expenses...</p>
+            </div>
+          ) : filteredExpenses.length === 0 ? (
+            <div className="empty-state-container">
+              <div className="empty-state-icon">📊</div>
+              <p className="empty-state-text">No expenses match the selected filters.</p>
+            </div>
+          ) : (
+            <>
+              <div className="stat-card border-l-4 border-red-500">
+                <h2 className="text-lg font-semibold text-gray-700">
+                  Total Amount Spent
+                </h2>
+                <p className="stat-card-value text-red-600">
+                  ₦{totalSpent.toLocaleString()}
+                </p>
+              </div>
+
+              {/* Chart + List */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="content-card relative">
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-lg font-semibold text-sky-700">
+                      Category Breakdown
+                    </h2>
+                    <button
+                      onClick={() => setShowBarChart(!showBarChart)}
+                      className="btn-action p-2 text-sky-600 hover:text-sky-800 hover:bg-sky-50 rounded-lg transition-colors"
+                      title={
+                        showBarChart
+                          ? "Switch to Pie Chart"
+                          : "Switch to Bar Chart"
+                      }
+                    >
+                      {showBarChart ? (
+                        <PieIcon className="w-5 h-5" />
+                      ) : (
+                        <BarChart2 className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
 
                 <ResponsiveContainer width="100%" height={320}>
                   {showBarChart ? (
@@ -278,12 +279,12 @@ export default function ExpenseAnalysis() {
                 </ResponsiveContainer>
               </div>
 
-              {/* Expense List */}
-              <div className="bg-white p-6 rounded-xl shadow border border-gray-200 overflow-auto">
-                <h2 className="text-lg font-semibold text-cyan-700 mb-4">
-                  All Expenses
-                </h2>
-                <ul className="space-y-3 max-h-[320px] overflow-y-auto pr-2">
+                {/* Expense List */}
+                <div className="content-card overflow-auto">
+                  <h2 className="text-lg font-semibold text-sky-700 mb-4">
+                    All Expenses
+                  </h2>
+                  <ul className="space-y-3 max-h-[320px] overflow-y-auto pr-2">
                   {filteredExpenses
                     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
                     .map((exp) => (
@@ -309,40 +310,41 @@ export default function ExpenseAnalysis() {
 
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex flex-wrap gap-4 mt-6">
-              <button
-                onClick={downloadReport}
-                className="flex items-center gap-2 bg-cyan-600 text-white px-5 py-3 rounded-lg font-medium shadow hover:bg-cyan-700 transition"
-              >
-                <Download className="w-5 h-5" /> Download Report
-              </button>
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-4 mt-6">
+                <button
+                  onClick={downloadReport}
+                  className="btn-action btn-action-primary flex items-center gap-2"
+                >
+                  <Download className="w-5 h-5" /> Download Report
+                </button>
 
-              <button
-                onClick={() =>
-                  window.open(
-                    "mailto:?subject=Expense Report&body=Please find attached the expense report."
-                  )
-                }
-                className="flex items-center gap-2 bg-green-600 text-white px-5 py-3 rounded-lg font-medium shadow hover:bg-green-700 transition"
-              >
-                <Mail className="w-5 h-5" /> Send via Email
-              </button>
+                <button
+                  onClick={() =>
+                    window.open(
+                      "mailto:?subject=Expense Report&body=Please find attached the expense report."
+                    )
+                  }
+                  className="btn-action btn-action-success flex items-center gap-2"
+                >
+                  <Mail className="w-5 h-5" /> Send via Email
+                </button>
 
-              <button
-                onClick={() =>
-                  window.open(
-                    "https://wa.me/?text=Download%20your%20expense%20report%20here:%20https://yourdomain.com/reports/ExpenseReport.pdf",
-                    "_blank"
-                  )
-                }
-                className="flex items-center gap-2 bg-gray-800 text-white px-5 py-3 rounded-lg font-medium shadow hover:bg-gray-900 transition"
-              >
-                <Share2 className="w-5 h-5" /> Share on WhatsApp
-              </button>
-            </div>
-          </>
-        )}
+                <button
+                  onClick={() =>
+                    window.open(
+                      "https://wa.me/?text=Download%20your%20expense%20report%20here:%20https://yourdomain.com/reports/ExpenseReport.pdf",
+                      "_blank"
+                    )
+                  }
+                  className="btn-action bg-gray-800 text-white hover:bg-gray-900 flex items-center gap-2"
+                >
+                  <Share2 className="w-5 h-5" /> Share on WhatsApp
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </Layout>
   );

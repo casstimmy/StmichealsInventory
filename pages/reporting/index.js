@@ -67,29 +67,29 @@ export default function Reporting() {
 
   return (
     <Layout title="Reporting">
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto">
+      <div className="page-container">
+        <div className="page-content">
         <div className="mb-6 text-sm">
-          <Link href="/" className="text-cyan-600 hover:text-cyan-700">Home</Link>
+          <Link href="/" className="text-sky-600 hover:text-sky-700">Home</Link>
           <span className="mx-2 text-gray-400">›</span>
           <span className="text-gray-600">Reporting</span>
         </div>
 
-        <div className="mb-8 flex justify-between items-start">
+        <div className="page-header flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-4xl font-bold text-gray-800 mb-2">📅 Time Period Analysis</h1>
-            <p className="text-gray-600">Sales performance across different time periods</p>
+            <h1 className="page-title">📅 Time Period Analysis</h1>
+            <p className="page-subtitle">Sales performance across different time periods</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
             <Link 
               href="/reporting/reporting"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg"
+              className="btn-action-primary text-center"
             >
               📈 Sales Report
             </Link>
             <Link 
               href="/reporting/end-of-day-report"
-              className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white font-bold rounded-lg"
+              className="btn-action bg-cyan-600 text-white hover:bg-cyan-700 focus:ring-cyan-400 text-center"
             >
               📊 EOD Reports
             </Link>
@@ -97,15 +97,15 @@ export default function Reporting() {
         </div>
 
         {/* PERIOD SELECTOR */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8 border border-gray-200">
+        <div className="content-card mb-6">
           <div className="flex flex-wrap gap-3">
             {["day", "week", "month"].map(p => (
               <button
                 key={p}
                 onClick={() => setPeriod(p)}
-                className={`px-6 py-2 rounded-lg font-bold text-sm transition ${
+                className={`btn-action ${
                   period === p 
-                    ? "bg-purple-600 text-white shadow-md" 
+                    ? "bg-sky-600 text-white shadow-md" 
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
@@ -116,17 +116,17 @@ export default function Reporting() {
         </div>
 
         {/* SUMMARY CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <MetricCard title="Total Sales" value={`₦${(totalSales || 0).toLocaleString('en-NG', {maximumFractionDigits: 0})}`} icon="💰" color="purple" />
-          <MetricCard title="Transactions" value={data?.summary?.totalTransactions || 0} icon="💳" color="pink" />
-          <MetricCard title="Avg/Period" value={`₦${(avgDaily).toLocaleString('en-NG', {maximumFractionDigits: 0})}`} icon="📊" color="violet" />
-          <MetricCard title="Periods" value={data?.dates?.length || 0} icon="📅" color="rose" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <MetricCard title="Total Sales" value={`₦${(totalSales || 0).toLocaleString('en-NG', {maximumFractionDigits: 0})}`} icon="💰" color="sky" />
+          <MetricCard title="Transactions" value={data?.summary?.totalTransactions || 0} icon="💳" color="emerald" />
+          <MetricCard title="Avg/Period" value={`₦${(avgDaily).toLocaleString('en-NG', {maximumFractionDigits: 0})}`} icon="📊" color="amber" />
+          <MetricCard title="Periods" value={data?.dates?.length || 0} icon="📅" color="purple" />
         </div>
 
         {/* TREND CHART */}
-        <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Period Performance Trend</h2>
-          <div className="h-[400px]">
+        <div className="content-card">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">Period Performance Trend</h2>
+          <div className="h-[300px] sm:h-[400px]">
             <Line
               data={{
                 labels: data?.dates || [],
@@ -158,20 +158,20 @@ export default function Reporting() {
 
 function MetricCard({ title, value, icon, color }) {
   const colorMap = {
+    sky: "bg-sky-50 border-sky-200 text-sky-700",
+    emerald: "bg-emerald-50 border-emerald-200 text-emerald-700",
+    amber: "bg-amber-50 border-amber-200 text-amber-700",
     purple: "bg-purple-50 border-purple-200 text-purple-700",
-    pink: "bg-pink-50 border-pink-200 text-pink-700",
-    violet: "bg-violet-50 border-violet-200 text-violet-700",
-    rose: "bg-rose-50 border-rose-200 text-rose-700",
   }[color];
 
   return (
-    <div className={`${colorMap} border-2 rounded-lg p-6 shadow-md`}>
+    <div className={`${colorMap} border-2 rounded-xl p-4 sm:p-6 shadow-sm`}>
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-semibold opacity-75">{title}</p>
-          <p className="text-2xl font-bold mt-2">{value}</p>
+          <p className="text-xs sm:text-sm font-semibold opacity-75">{title}</p>
+          <p className="text-lg sm:text-2xl font-bold mt-1 sm:mt-2">{value}</p>
         </div>
-        <div className="text-4xl opacity-20">{icon}</div>
+        <div className="text-2xl sm:text-4xl opacity-30">{icon}</div>
       </div>
     </div>
   );

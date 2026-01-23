@@ -24,38 +24,38 @@ export default function ManageExpenses() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto">
+      <div className="page-container">
+        <div className="page-content">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Expense Management</h1>
-            <p className="text-gray-600 mt-2">Track and manage all business expenses</p>
+          <div className="page-header">
+            <h1 className="page-title">Expense Management</h1>
+            <p className="page-subtitle">Track and manage all business expenses</p>
           </div>
 
           {/* Add Expense Form */}
-          <div className="mb-8">
+          <div className="mb-6">
             <ExpenseForm onSaved={fetchExpenses} />
           </div>
 
           {/* Expenses List */}
           <div>
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Recent Expenses</h2>
+            <div className="mb-4">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Recent Expenses</h2>
               <p className="text-gray-600 text-sm mt-1">Total expenses: {expenses.length}</p>
             </div>
 
             {expenses.length === 0 ? (
-              <div className="bg-white rounded-lg shadow-lg p-12 text-center">
-                <CircleDollarSign className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 text-lg">No expenses recorded yet.</p>
-                <p className="text-gray-400 text-sm mt-2">Add your first expense to get started.</p>
+              <div className="content-card empty-state">
+                <CircleDollarSign className="empty-state-icon" />
+                <p className="empty-state-title">No expenses recorded yet.</p>
+                <p className="empty-state-description">Add your first expense to get started.</p>
               </div>
             ) : (
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {expenses.map((exp) => (
                   <div
                     key={exp._id}
-                    className="bg-white shadow-lg rounded-lg border border-gray-200 p-6 hover:shadow-xl transition"
+                    className="content-card hover:shadow-md transition-shadow"
                   >
                     {/* Header with Title and Amount */}
                     <div className="flex justify-between items-start mb-4 pb-4 border-b border-gray-200">

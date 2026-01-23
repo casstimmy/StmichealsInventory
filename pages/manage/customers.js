@@ -102,41 +102,41 @@ export default function CustomersPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto">
+      <div className="page-container">
+        <div className="page-content">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900">Customers</h1>
+          <div className="page-header flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <h1 className="page-title">Customers</h1>
             <button
               onClick={() => {
                 setShowForm(!showForm);
                 setEditing(null);
                 setFormData({ name: "", email: "", phone: "", address: "", type: "REGULAR" });
               }}
-              className="w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm md:text-base"
+              className="btn-action-primary w-full sm:w-auto"
             >
               + Add Customer
             </button>
           </div>
 
           {/* Navigation Links */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
             <Link href="/manage/customers">
-              <div className="bg-white p-4 md:p-6 rounded-lg shadow hover:shadow-lg cursor-pointer border-l-4 border-blue-600">
+              <div className="content-card hover:shadow-md cursor-pointer border-l-4 border-l-sky-600 transition-shadow">
                 <p className="font-bold text-gray-900 text-sm md:text-base">📋 Customers</p>
-                <p className="text-xs md:text-sm text-gray-600">Manage all customers</p>
+                <p className="text-xs md:text-sm text-gray-600 mt-1">Manage all customers</p>
               </div>
             </Link>
             <Link href="/manage/customer-search">
-              <div className="bg-white p-4 md:p-6 rounded-lg shadow hover:shadow-lg cursor-pointer border-l-4 border-blue-600">
+              <div className="content-card hover:shadow-md cursor-pointer border-l-4 border-l-sky-600 transition-shadow">
                 <p className="font-bold text-gray-900 text-sm md:text-base">🔍 Customer Search</p>
-                <p className="text-xs md:text-sm text-gray-600">Find customers quickly</p>
+                <p className="text-xs md:text-sm text-gray-600 mt-1">Find customers quickly</p>
               </div>
             </Link>
             <Link href="/manage/campaigns">
-              <div className="bg-white p-4 md:p-6 rounded-lg shadow hover:shadow-lg cursor-pointer border-l-4 border-blue-600">
+              <div className="content-card hover:shadow-md cursor-pointer border-l-4 border-l-sky-600 transition-shadow">
                 <p className="font-bold text-gray-900 text-sm md:text-base">📢 Campaigns</p>
-                <p className="text-xs md:text-sm text-gray-600">Create marketing campaigns</p>
+                <p className="text-xs md:text-sm text-gray-600 mt-1">Create marketing campaigns</p>
               </div>
             </Link>
           </div>
@@ -155,8 +155,8 @@ export default function CustomersPage() {
 
           {/* Form */}
           {showForm && (
-            <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            <div className="content-card mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">
                 {editing ? "Edit Customer" : "Add New Customer"}
               </h2>
               <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -165,7 +165,7 @@ export default function CustomersPage() {
                   placeholder="Customer Name *"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-cyan-600 focus:outline-none"
+                  className="form-input"
                   required
                 />
                 <input
@@ -173,7 +173,7 @@ export default function CustomersPage() {
                   placeholder="Email Address *"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-cyan-600 focus:outline-none"
+                  className="form-input"
                   required
                 />
                 <input
@@ -181,7 +181,7 @@ export default function CustomersPage() {
                   placeholder="Phone Number *"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-cyan-600 focus:outline-none"
+                  className="form-input"
                   required
                 />
                 <input
@@ -189,12 +189,12 @@ export default function CustomersPage() {
                   placeholder="Address"
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-cyan-600 focus:outline-none"
+                  className="form-input"
                 />
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                  className="border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-cyan-600 focus:outline-none"
+                  className="form-select"
                 >
                   <option value="REGULAR">Regular Customer</option>
                   <option value="VIP">VIP Customer</option>
@@ -202,10 +202,10 @@ export default function CustomersPage() {
                   <option value="INACTIVE">Inactive</option>
                   <option value="BULK_BUYER">Bulk Buyer</option>
                 </select>
-                <div className="md:col-span-2 flex gap-2">
+                <div className="md:col-span-2 flex flex-col sm:flex-row gap-3">
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg font-semibold"
+                    className="btn-action-primary flex-1"
                   >
                     {editing ? "Update" : "Create"} Customer
                   </button>
@@ -216,7 +216,7 @@ export default function CustomersPage() {
                       setEditing(null);
                       setFormData({ name: "", email: "", phone: "", address: "", type: "REGULAR" });
                     }}
-                    className="flex-1 px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-900 rounded-lg font-semibold"
+                    className="btn-action-secondary flex-1"
                   >
                     Cancel
                   </button>
@@ -226,32 +226,33 @@ export default function CustomersPage() {
           )}
 
           {/* Customers Table */}
-          <div className="bg-white rounded-lg shadow-lg overflow-x-auto">
+          <div className="data-table-container">
             {customers.length === 0 ? (
-              <div className="p-4 md:p-6 text-center text-gray-600">
-                <p className="text-base md:text-lg">No customers found. Create one to get started!</p>
+              <div className="empty-state">
+                <p className="empty-state-title">No customers found</p>
+                <p className="empty-state-description">Create one to get started!</p>
               </div>
             ) : (
-              <table className="w-full text-xs md:text-sm">
-                <thead className="bg-gray-100 border-b-2 border-gray-300">
+              <table className="data-table">
+                <thead>
                   <tr>
-                    <th className="px-2 md:px-6 py-2 md:py-3 text-left font-bold text-gray-900">Name</th>
-                    <th className="px-2 md:px-6 py-2 md:py-3 text-left font-bold text-gray-900 hidden sm:table-cell">Email</th>
-                    <th className="px-2 md:px-6 py-2 md:py-3 text-left font-bold text-gray-900 hidden lg:table-cell">Phone</th>
-                    <th className="px-2 md:px-6 py-2 md:py-3 text-left font-bold text-gray-900 hidden xl:table-cell">Address</th>
-                    <th className="px-2 md:px-6 py-2 md:py-3 text-left font-bold text-gray-900">Type</th>
-                    <th className="px-2 md:px-6 py-2 md:py-3 text-center font-bold text-gray-900">Actions</th>
+                    <th>Name</th>
+                    <th className="hidden sm:table-cell">Email</th>
+                    <th className="hidden lg:table-cell">Phone</th>
+                    <th className="hidden xl:table-cell">Address</th>
+                    <th>Type</th>
+                    <th className="text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {customers.map((customer) => (
-                    <tr key={customer._id} className="border-b border-gray-200 hover:bg-gray-50">
-                      <td className="px-2 md:px-6 py-2 md:py-4 font-semibold text-gray-900 text-xs md:text-sm">{customer.name}</td>
-                      <td className="px-2 md:px-6 py-2 md:py-4 text-gray-700 hidden sm:table-cell text-xs md:text-sm">{customer.email}</td>
-                      <td className="px-2 md:px-6 py-2 md:py-4 text-gray-700 hidden lg:table-cell text-xs md:text-sm">{customer.phone}</td>
-                      <td className="px-2 md:px-6 py-2 md:py-4 text-gray-700 hidden xl:table-cell text-xs md:text-sm">{customer.address || "N/A"}</td>
-                      <td className="px-2 md:px-6 py-2 md:py-4 text-center">
-                        <span className={`px-2 md:px-3 py-1 rounded-full text-xs font-semibold ${
+                    <tr key={customer._id}>
+                      <td className="font-semibold text-gray-900">{customer.name}</td>
+                      <td className="hidden sm:table-cell">{customer.email}</td>
+                      <td className="hidden lg:table-cell">{customer.phone}</td>
+                      <td className="hidden xl:table-cell">{customer.address || "N/A"}</td>
+                      <td className="text-center">
+                        <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold ${
                           customer.type === "VIP" ? "bg-purple-100 text-purple-800" :
                           customer.type === "NEW" ? "bg-blue-100 text-blue-800" :
                           customer.type === "BULK_BUYER" ? "bg-orange-100 text-orange-800" :

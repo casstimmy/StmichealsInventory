@@ -214,28 +214,28 @@ export default function Setup() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto">
+      <div className="page-container">
+        <div className="page-content">
           {/* Header */}
-          <div className="mb-6 md:mb-8">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Store Setup & Configuration</h1>
-            <p className="text-sm md:text-base text-gray-600 mt-2">Manage your store information, locations, and admin settings</p>
+          <div className="page-header">
+            <h1 className="page-title">Store Setup & Configuration</h1>
+            <p className="page-subtitle">Manage your store information, locations, and admin settings</p>
           </div>
 
           {/* Warning for unsaved locations */}
           {locations && locations.length > 0 && showLocationForm && (
-            <div className="mb-6 bg-blue-50 border-l-4 border-blue-600 p-3 md:p-4 rounded text-sm">
-              <p className="text-blue-800">
+            <div className="mb-6 bg-sky-50 border-l-4 border-sky-600 p-4 rounded-lg text-sm">
+              <p className="text-sky-800">
                 <strong>💾 Note:</strong> Added locations are saved to your browser. Click "Save Setup Configuration" to permanently save them to the database.
               </p>
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
             {/* SUMMARY - Left Column */}
-            <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
-              <div className="border-b border-gray-200 pb-4 mb-6">
+            <div className="content-card">
+              <div className="content-card-header">
                 <h2 className="text-lg md:text-xl font-bold text-gray-900">Store Summary</h2>
               </div>
 
@@ -278,8 +278,8 @@ export default function Setup() {
             </div>
 
             {/* FORM - Right Column */}
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <div className="border-b border-gray-200 pb-4 mb-6">
+            <div className="content-card">
+              <div className="content-card-header">
                 <h2 className="text-xl font-bold text-gray-900">Update Configuration</h2>
               </div>
 
@@ -325,7 +325,7 @@ export default function Setup() {
                       e.preventDefault();
                       setShowLocationForm(!showLocationForm);
                     }}
-                    className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2.5 px-4 rounded-lg transition w-full"
+                    className="btn-action-primary w-full"
                   >
                     {showLocationForm ? '− Cancel' : '+ Add Location'}
                   </button>
@@ -374,7 +374,7 @@ export default function Setup() {
                           e.preventDefault();
                           addLocation();
                         }} 
-                        className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-4 rounded-lg transition"
+                        className="btn-action-success w-full"
                       >
                         Save Location
                       </button>
@@ -390,7 +390,7 @@ export default function Setup() {
                   <Field label="New Password (Optional)" type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} />
                 </div>
 
-                <button className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 rounded-lg transition text-lg mt-6" disabled={loading}>
+                <button className="btn-action-primary w-full text-lg mt-6" disabled={loading}>
                   {loading ? "Saving..." : "Save Setup Configuration"}
                 </button>
 

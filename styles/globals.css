@@ -348,4 +348,208 @@ tbody td {
   }
 }
 
+/* ===== Mobile Touch Improvements ===== */
+/* All clickable elements get immediate touch feedback */
+button,
+a,
+[role="button"],
+.clickable,
+select,
+input[type="submit"],
+input[type="button"] {
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+/* Active states for mobile - immediate visual feedback */
+button:active,
+a:active,
+[role="button"]:active,
+.clickable:active {
+  transform: scale(0.97);
+  opacity: 0.9;
+}
+
+/* Ensure buttons have minimum touch target size on mobile */
+@media (max-width: 768px) {
+  button,
+  a.btn,
+  [role="button"],
+  .btn,
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Faster transitions on mobile */
+  button,
+  a,
+  .btn {
+    transition: transform 0.1s ease, opacity 0.1s ease, background-color 0.15s ease !important;
+  }
+}
+
+/* ===== Consistent Page Container ===== */
+.page-container {
+  @apply min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8;
+}
+
+.page-content {
+  @apply max-w-7xl mx-auto;
+}
+
+.page-header {
+  @apply mb-6 md:mb-8;
+}
+
+.page-title {
+  @apply text-2xl sm:text-3xl font-bold text-gray-900;
+}
+
+.page-subtitle {
+  @apply text-sm sm:text-base text-gray-600 mt-1 sm:mt-2;
+}
+
+/* ===== Consistent Card Styles ===== */
+.content-card {
+  @apply bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6;
+}
+
+.content-card-header {
+  @apply border-b border-gray-200 pb-4 mb-4;
+}
+
+/* ===== Form Group Styles ===== */
+.form-group {
+  @apply space-y-1.5;
+}
+
+.form-label {
+  @apply block text-sm font-medium text-gray-700;
+}
+
+.form-input {
+  @apply w-full px-3 py-2.5 border border-gray-300 rounded-lg 
+         focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent
+         transition-all duration-200;
+}
+
+.form-select {
+  @apply w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white
+         focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent
+         transition-all duration-200 cursor-pointer;
+}
+
+/* ===== Action Button Styles ===== */
+.btn-action {
+  @apply px-4 py-2.5 rounded-lg font-semibold text-sm 
+         transition-all duration-150 ease-out
+         focus:outline-none focus:ring-2 focus:ring-offset-2
+         active:scale-95 active:opacity-90;
+}
+
+.btn-action-primary {
+  @apply btn-action bg-sky-600 text-white hover:bg-sky-700 focus:ring-sky-400;
+}
+
+.btn-action-secondary {
+  @apply btn-action bg-gray-100 text-gray-700 hover:bg-gray-200 focus:ring-gray-400;
+}
+
+.btn-action-danger {
+  @apply btn-action bg-red-500 text-white hover:bg-red-600 focus:ring-red-400;
+}
+
+.btn-action-success {
+  @apply btn-action bg-emerald-500 text-white hover:bg-emerald-600 focus:ring-emerald-400;
+}
+
+/* ===== Consistent Table Styles ===== */
+.data-table-container {
+  @apply overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm;
+}
+
+.data-table {
+  @apply min-w-full divide-y divide-gray-200;
+}
+
+.data-table thead {
+  @apply bg-gradient-to-r from-sky-600 to-sky-700;
+}
+
+.data-table th {
+  @apply px-3 sm:px-4 py-3 text-left text-xs sm:text-sm font-semibold text-white;
+}
+
+.data-table tbody {
+  @apply bg-white divide-y divide-gray-100;
+}
+
+.data-table td {
+  @apply px-3 sm:px-4 py-3 text-xs sm:text-sm text-gray-700;
+}
+
+.data-table tr:hover {
+  @apply bg-sky-50;
+}
+
+/* ===== Stat Cards ===== */
+.stat-card {
+  @apply bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6;
+}
+
+.stat-card-value {
+  @apply text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900;
+}
+
+.stat-card-label {
+  @apply text-xs sm:text-sm text-gray-600 mt-1;
+}
+
+/* ===== Search Input ===== */
+.search-input-wrapper {
+  @apply relative;
+}
+
+.search-input {
+  @apply w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg
+         focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent
+         bg-white text-sm;
+}
+
+.search-input-icon {
+  @apply absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4;
+}
+
+/* ===== Skeleton Loading ===== */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  @apply bg-gray-200 rounded;
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* ===== Empty State ===== */
+.empty-state {
+  @apply text-center py-12 px-4;
+}
+
+.empty-state-icon {
+  @apply w-16 h-16 mx-auto text-gray-300 mb-4;
+}
+
+.empty-state-title {
+  @apply text-lg font-medium text-gray-600 mb-2;
+}
+
+.empty-state-description {
+  @apply text-sm text-gray-500;
+}
+
   

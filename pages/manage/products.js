@@ -232,31 +232,28 @@ export default function Products() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto">
+      <div className="page-container">
+        <div className="page-content">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900">Products</h1>
-
-          {/* When linking to product creation, set highlight to newly created product if you want.
-              For edit page navigation, we store highlight in sessionStorage below via onClick handler. */}
+        <div className="page-header flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <h1 className="page-title">Products</h1>
           <Link
             href="../products/new"
-            className="mt-2 sm:mt-0 w-full sm:w-auto inline-block py-2 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition text-center"
+            className="btn-action-primary w-full sm:w-auto text-center"
           >
             + Add Product
           </Link>
         </div>
 
         {/* Search */}
-        <div className="flex gap-2 mb-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-2.5 text-gray-400 w-4 h-4" />
+        <div className="mb-6">
+          <div className="search-input-wrapper max-w-md">
+            <Search className="search-input-icon" />
             <input
               ref={searchRef}
               type="text"
               placeholder="Search products..."
-              className="w-full border border-gray-300 bg-white py-2 pl-9 pr-4 rounded-lg text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              className="search-input"
               value={searchTerm}
               onChange={handleSearchChange}
             />
@@ -264,23 +261,23 @@ export default function Products() {
         </div>
 
         {/* Table - Responsive wrapper */}
-        <div className="overflow-x-auto rounded-lg shadow border border-gray-200 bg-white">
-          <table className="min-w-full text-xs md:text-sm divide-y divide-gray-100">
-            <thead className="bg-gradient-to-r from-blue-600 to-blue-700 text-white text-left text-xs md:text-sm">
+        <div className="data-table-container">
+          <table className="data-table">
+            <thead>
               <tr>
-                <th className="p-2 md:p-3"></th>
-                <th className="p-2 md:p-3">Advanced</th>
-                <th className="p-2 md:p-3">Name</th>
-                <th className="p-2 md:p-3 hidden sm:table-cell">Description</th>
-                <th className="p-2 md:p-3">Cost</th>
-                <th className="p-2 md:p-3">Tax %</th>
-                <th className="p-2 md:p-3">Sale</th>
-                <th className="p-2 md:p-3 hidden sm:table-cell">Margin</th>
-                <th className="p-2 md:p-3 hidden lg:table-cell">Barcode</th>
-                <th className="p-2 md:p-3 hidden lg:table-cell">Properties</th>
-                <th className="p-2 md:p-3">Category</th>
-                <th className="p-2 md:p-3 hidden sm:table-cell">Promo</th>
-                <th className="p-2 md:p-3">Delete</th>
+                <th className="!px-2"></th>
+                <th className="!px-2">Adv</th>
+                <th>Name</th>
+                <th className="hidden sm:table-cell">Description</th>
+                <th>Cost</th>
+                <th>Tax %</th>
+                <th>Sale</th>
+                <th className="hidden sm:table-cell">Margin</th>
+                <th className="hidden lg:table-cell">Barcode</th>
+                <th className="hidden lg:table-cell">Properties</th>
+                <th>Category</th>
+                <th className="hidden sm:table-cell">Promo</th>
+                <th className="!px-2">Del</th>
               </tr>
             </thead>
 
@@ -450,12 +447,12 @@ export default function Products() {
           {visibleCount < (filteredProducts?.length || 0) ? (
             <button
               onClick={loadMore}
-              className="px-4 py-2 bg-white border border-gray-400 rounded-md hover:bg-gray-50 text-sm"
+              className="btn-action-secondary"
             >
-              Load more
+              Load more ({(filteredProducts?.length || 0) - visibleCount} remaining)
             </button>
           ) : (
-            <div className="text-sm text-gray-500">End of list</div>
+            <div className="text-sm text-gray-500 py-2">— End of list —</div>
           )}
         </div>
         </div>

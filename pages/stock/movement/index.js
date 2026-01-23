@@ -154,16 +154,16 @@ export default function StockMovement() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto">
+      <div className="page-container">
+        <div className="page-content">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-10">
+        <div className="page-header flex-row items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Stock Movements</h1>
-            <p className="text-gray-600">Track and manage inventory transfers between locations</p>
+            <h1 className="page-title">Stock Movements</h1>
+            <p className="page-subtitle">Track and manage inventory transfers between locations</p>
           </div>
           <Link href="../stock/add">
-            <button className="flex items-center gap-2 bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800 text-white px-6 py-3 rounded-lg shadow-md hover:shadow-lg transition font-semibold">
+            <button className="btn-action btn-action-primary flex items-center gap-2">
               <FontAwesomeIcon icon={faPlus} />
               New Stock Movement
             </button>
@@ -171,53 +171,53 @@ export default function StockMovement() {
         </div>
 
         {error && (
-          <div className="mb-8 bg-red-50 border-l-4 border-red-500 p-6 rounded-r-lg shadow-sm">
+          <div className="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
             <p className="text-red-800 font-medium">{error}</p>
           </div>
         )}
 
         {loading ? (
-          <div className="bg-white rounded-2xl shadow-lg p-12 flex items-center justify-center min-h-96">
+          <div className="content-card flex items-center justify-center min-h-96">
             <Loader size="md" text="Loading stock movements..." />
           </div>
         ) : (
           <>
             {/* Filters Section */}
-            <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-8">
-              <div className="flex items-center gap-2 mb-6">
-                <FontAwesomeIcon icon={faFilter} className="text-cyan-600 text-lg" />
+            <div className="content-card mb-6">
+              <div className="flex items-center gap-2 mb-4">
+                <FontAwesomeIcon icon={faFilter} className="text-sky-600 text-lg" />
                 <h3 className="text-lg font-semibold text-gray-900">Filter Movements</h3>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 {/* Date Range */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">From Date</label>
+                <div className="form-group">
+                  <label className="form-label">From Date</label>
                   <input
                     type="date"
                     value={fromDate}
                     onChange={(e) => setFromDate(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-600 focus:border-cyan-600 transition"
+                    className="form-input"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">To Date</label>
+                <div className="form-group">
+                  <label className="form-label">To Date</label>
                   <input
                     type="date"
                     value={toDate}
                     onChange={(e) => setToDate(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-600 focus:border-cyan-600 transition"
+                    className="form-input"
                   />
                 </div>
 
                 {/* Location Filter */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Location</label>
+                <div className="form-group">
+                  <label className="form-label">Location</label>
                   <select
                     value={locationFilter}
                     onChange={(e) => setLocationFilter(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-600 focus:border-cyan-600 transition"
+                    className="form-select"
                   >
                     {locations.map((loc) => (
                       <option key={loc} value={loc}>
@@ -228,12 +228,12 @@ export default function StockMovement() {
                 </div>
 
                 {/* Reason Filter */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Reason</label>
+                <div className="form-group">
+                  <label className="form-label">Reason</label>
                   <select
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-600 focus:border-cyan-600 transition"
+                    className="form-select"
                   >
                     {reasons.map((r) => (
                       <option key={r} value={r}>
@@ -244,12 +244,12 @@ export default function StockMovement() {
                 </div>
 
                 {/* Status Filter */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+                <div className="form-group">
+                  <label className="form-label">Status</label>
                   <select
                     value={status}
                     onChange={(e) => setStatus(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-600 focus:border-cyan-600 transition"
+                    className="form-select"
                   >
                     {statuses.map((s) => (
                       <option key={s} value={s}>
@@ -262,8 +262,8 @@ export default function StockMovement() {
 
               {/* Barcode Search */}
               <div className="mt-4">
-                <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                  <FontAwesomeIcon icon={faSearch} className="text-cyan-600" />
+                <label className="form-label flex items-center gap-2">
+                  <FontAwesomeIcon icon={faSearch} className="text-sky-600" />
                   Search by Reference/Barcode
                 </label>
                 <input
@@ -271,7 +271,7 @@ export default function StockMovement() {
                   placeholder="Enter transaction reference or barcode..."
                   value={barcode}
                   onChange={(e) => setBarcode(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-600 focus:border-cyan-600 transition"
+                  className="form-input"
                 />
               </div>
             </div>
@@ -284,42 +284,42 @@ export default function StockMovement() {
             </div>
 
             {/* Table */}
-            <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+            <div className="data-table-container">
               {filteredMovements.length > 0 ? (
                 <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gradient-to-r from-gray-800 to-gray-700 text-white">
+                  <table className="data-table">
+                    <thead>
                       <tr>
-                        <th className="px-6 py-4 text-left text-sm font-semibold">Reference</th>
-                        <th className="px-6 py-4 text-left text-sm font-semibold">From Location</th>
-                        <th className="px-6 py-4 text-left text-sm font-semibold">To Location</th>
-                        <th className="px-6 py-4 text-left text-sm font-semibold">Reason</th>
-                        <th className="px-6 py-4 text-left text-sm font-semibold">Status</th>
-                        <th className="px-6 py-4 text-left text-sm font-semibold">Date Sent</th>
-                        <th className="px-6 py-4 text-left text-sm font-semibold">Total Items</th>
+                        <th>Reference</th>
+                        <th>From Location</th>
+                        <th>To Location</th>
+                        <th>Reason</th>
+                        <th>Status</th>
+                        <th>Date Sent</th>
+                        <th>Total Items</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200">
+                    <tbody>
                       {filteredMovements.map((item, index) => (
-                        <tr key={index} className={`transition-colors ${index % 2 === 0 ? 'bg-gray-50 hover:bg-gray-100' : 'bg-white hover:bg-gray-50'}`}>
-                          <td className="px-6 py-4 text-sm font-mono font-medium text-gray-900">{item.transRef}</td>
-                          <td className="px-6 py-4 text-sm text-gray-700">{locationMap[item.fromLocationId] || item.fromLocationId || "Unknown"}</td>
-                          <td className="px-6 py-4 text-sm text-gray-700">{locationMap[item.toLocationId] || item.toLocationId || "Unknown"}</td>
-                          <td className="px-6 py-4 text-sm">
-                            <span className="inline-block bg-cyan-100 text-gray-900 px-3 py-1 rounded-full text-xs font-semibold">
+                        <tr key={index}>
+                          <td className="font-mono font-medium text-gray-900">{item.transRef}</td>
+                          <td className="text-gray-700">{locationMap[item.fromLocationId] || item.fromLocationId || "Unknown"}</td>
+                          <td className="text-gray-700">{locationMap[item.toLocationId] || item.toLocationId || "Unknown"}</td>
+                          <td>
+                            <span className="inline-block bg-sky-100 text-gray-900 px-3 py-1 rounded-full text-xs font-semibold">
                               {item.reason}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-sm">
+                          <td>
                             <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(item.status)}`}>
                               {getStatusIcon(item.status)}
                               {item.status}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-700">
+                          <td className="text-gray-700">
                             {item.dateSent ? new Date(item.dateSent).toLocaleDateString() : "N/A"}
                           </td>
-                          <td className="px-6 py-4 text-sm font-semibold text-gray-900">
+                          <td className="font-semibold text-gray-900">
                             {item.products?.length || 0}
                           </td>
                         </tr>
@@ -328,8 +328,8 @@ export default function StockMovement() {
                   </table>
                 </div>
               ) : (
-                <div className="p-12 text-center">
-                  <p className="text-gray-500 text-lg">No stock movements found matching your filters</p>
+                <div className="empty-state-container">
+                  <p className="empty-state-text">No stock movements found matching your filters</p>
                 </div>
               )}
             </div>

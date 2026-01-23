@@ -62,7 +62,11 @@ export default function MovementDetails() {
 if (!movement)
   return (
     <Layout>
-      <div className="p-8 text-gray-600">Loading movement details...</div>
+      <div className="page-container">
+        <div className="page-content flex items-center justify-center min-h-[60vh]">
+          <div className="skeleton h-8 w-64"></div>
+        </div>
+      </div>
     </Layout>
   );
 
@@ -78,21 +82,18 @@ if (!movement)
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold text-gray-800">
-            Stock Movement Details{" "}
-            <span className="text-sm text-cyan-600 ml-2 cursor-pointer hover:underline">
-              HELP
-            </span>
+      <div className="page-container">
+        <div className="page-content">
+        <div className="page-header flex-row items-center justify-between">
+          <h1 className="page-title">
+            Stock Movement Details
           </h1>
-          <button className="bg-cyan-600 text-white px-4 py-2 rounded hover:bg-cyan-700 text-sm font-semibold transition">
+          <button className="btn-action btn-action-primary">
             PRINT LABELS
           </button>
         </div>
         <div id="print-section">
-          <div className="bg-white border border-gray-200 rounded shadow mb-6 overflow-hidden">
+          <div className="content-card mb-6 overflow-hidden p-0">
             <div className="p-4 bg-gray-50 border-b font-semibold text-sm text-gray-700">
               Stock Movement Info
             </div>
@@ -138,15 +139,15 @@ if (!movement)
           </div>
 
           {/* Products Table */}
-          <div className="bg-white rounded shadow p-4 mb-8 overflow-x-auto">
-            <table className="min-w-full text-sm text-left">
-              <thead className="bg-cyan-100 font-semibold">
+          <div className="data-table-container mb-6">
+            <table className="data-table">
+              <thead>
                 <tr>
-                  <th className="px-4 py-2">Product</th>
-                  <th className="px-4 py-2">Unit Cost Price</th>
-                  <th className="px-4 py-2">Sent</th>
-                  <th className="px-4 py-2">Received</th>
-                  <th className="px-4 py-2">Total Cost Price</th>
+                  <th>Product</th>
+                  <th>Unit Cost Price</th>
+                  <th>Sent</th>
+                  <th>Received</th>
+                  <th>Total Cost Price</th>
                 </tr>
               </thead>
               <tbody>
@@ -156,22 +157,22 @@ if (!movement)
                   const qty = p.quantity || 0;
                   const subtotal = cost * qty;
                   return (
-                    <tr key={idx} className="border-t">
-                      <td className="px-4 py-2">{name}</td>
-                      <td className="px-4 py-2">₦{cost.toLocaleString()}</td>
-                      <td className="px-4 py-2">{qty}</td>
-                      <td className="px-4 py-2">{qty}</td>
-                      <td className="px-4 py-2 font-medium">
+                    <tr key={idx}>
+                      <td>{name}</td>
+                      <td>₦{cost.toLocaleString()}</td>
+                      <td>{qty}</td>
+                      <td>{qty}</td>
+                      <td className="font-medium">
                         ₦{subtotal.toLocaleString()}
                       </td>
                     </tr>
                   );
                 })}
-                <tr className="bg-cyan-600 text-white font-bold">
-                  <td className="px-4 py-2" colSpan={4}>
+                <tr className="bg-sky-600 text-white font-bold">
+                  <td colSpan={4}>
                     Total:
                   </td>
-                  <td className="px-4 py-2">₦{totalCost}</td>
+                  <td>₦{totalCost}</td>
                 </tr>
               </tbody>
             </table>
@@ -182,31 +183,31 @@ if (!movement)
         <div className="flex flex-wrap gap-4">
           <button
             onClick={() => router.push("/stock/movement")}
-            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 text-sm"
+            className="btn-action btn-action-danger"
           >
             BACK
           </button>
           <button
             onClick={() => router.push(`/stock/movement/edit/${id}`)}
-            className="bg-cyan-600 text-white px-4 py-2 rounded hover:bg-cyan-700 text-sm transition font-semibold"
+            className="btn-action btn-action-primary"
           >
             EDIT / RECEIVE
           </button>
           <button
             onClick={exportToCSV}
-            className="bg-gray-100 border px-4 py-2 rounded text-sm hover:bg-gray-200"
+            className="btn-action btn-action-secondary"
           >
             EXPORT TO .CSV
           </button>
           <button
             onClick={exportToExcel}
-            className="bg-gray-100 border px-4 py-2 rounded text-sm hover:bg-gray-200"
+            className="btn-action btn-action-secondary"
           >
             EXPORT TO EXCEL
           </button>
           <button
             onClick={() => window.print()}
-            className="bg-gray-100 border px-4 py-2 rounded text-sm hover:bg-gray-200"
+            className="btn-action btn-action-secondary"
           >
             PRINT
           </button>

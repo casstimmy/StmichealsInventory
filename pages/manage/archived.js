@@ -4,13 +4,17 @@ import Layout from "@/components/Layout";
 export default function Archived() {
     return (
        <Layout>
-        <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-900">Archived Products</h1>
-        <p className="text-gray-600 max-w-2xl">
+        <div className="page-container">
+        <div className="page-content">
+        <div className="page-header">
+          <h1 className="page-title">Archived Products</h1>
+          <p className="page-subtitle">
             page under construction...
-        </p>
-        {/* Add your archived products management UI here */}
+          </p>
+        </div>
+        <div className="content-card text-center py-12">
+          <p className="text-gray-500">No archived products to display</p>
+        </div>
         </div>
       </div>
        </Layout>

@@ -72,11 +72,11 @@ console.log("Filtered Items:", filteredItems);
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto">
-        <header className="mb-10">
-          <h1 className="text-3xl text-gray-900 font-bold mb-2">Stock Management</h1>
-          <p className="text-gray-600">Monitor all stock levels and alerts in real-time.</p>
+      <div className="page-container">
+        <div className="page-content">
+        <header className="page-header">
+          <h1 className="page-title">Stock Management</h1>
+          <p className="page-subtitle">Monitor all stock levels and alerts in real-time.</p>
         </header>
 
         {error && (
@@ -91,32 +91,31 @@ console.log("Filtered Items:", filteredItems);
           </div>
         ) : (
           <>
-            <section className="grid grid-cols-1 sm:grid-cols-4 gap-6 mb-10">
+            <section className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
               <StatCard label="Total Stock" value={`${totalStock} units`} />
               <StatCard label="Incoming Stock" value={`${totalIncoming} orders`} />
               <StatCard label="Outgoing Stock" value={`${totalOutgoing} orders`} />
               <StatCard label="Low Stock Alerts" value={lowStockCount} highlight />
             </section>
 
-            <div className="mb-6 max-w-xl">
-              <input
-                type="text"
-                placeholder="Search by product or category..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-2 border rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-600"
-              />
+            <div className="mb-6">
+              <div className="search-input-wrapper max-w-xl">
+                <input
+                  type="text"
+                  placeholder="Search by product or category..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="search-input !pl-4"
+                />
+              </div>
             </div>
 
-            <section className="overflow-x-auto bg-white rounded-lg shadow">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-100">
+            <section className="data-table-container">
+              <table className="data-table">
+                <thead>
                   <tr>
                     {["Name", "Category", "Stock Qty", "Min Stock", "Unit Cost", "Status"].map((header) => (
-                      <th
-                        key={header}
-                        className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase"
-                      >
+                      <th key={header}>
                         {header}
                       </th>
                     ))}
@@ -181,12 +180,12 @@ console.log("Filtered Items:", filteredItems);
 function StatCard({ label, value, highlight = false }) {
   return (
     <div
-      className={`bg-white rounded-lg shadow p-6 flex flex-col items-center ${
-        highlight ? "border-2 border-yellow-400" : ""
+      className={`stat-card text-center ${
+        highlight ? "border-2 border-amber-400" : ""
       }`}
     >
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className="mt-2 text-3xl font-bold text-gray-900">{value}</p>
+      <p className="stat-card-label">{label}</p>
+      <p className="stat-card-value mt-2">{value}</p>
     </div>
   );
 }

@@ -99,11 +99,11 @@ export default function ExpenseForm({ onSaved }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-gradient-to-b from-white to-blue-50 p-4 md:p-6 rounded-2xl shadow-md border border-blue-100 space-y-4 md:space-y-5 transition-all duration-300 hover:shadow-lg"
+      className="content-card space-y-4"
     >
       {/* Header */}
-      <h2 className="text-lg md:text-xl font-semibold text-blue-800 flex items-center gap-2 mb-2">
-        <PlusCircle className="w-4 md:w-5 h-4 md:h-5 text-blue-500" />
+      <h2 className="text-lg md:text-xl font-semibold text-gray-900 flex items-center gap-2 mb-2">
+        <PlusCircle className="w-5 h-5 text-sky-600" />
         Add New Expense
       </h2>
       <p className="text-xs md:text-sm text-gray-500 mb-4">
@@ -111,42 +111,42 @@ export default function ExpenseForm({ onSaved }) {
       </p>
 
       {/* Title */}
-      <div className="space-y-2">
-        <label className="block text-xs md:text-sm font-medium text-blue-800">Title</label>
+      <div className="form-group">
+        <label className="form-label">Title</label>
         <input
           type="text"
           name="title"
           value={formData.title}
           onChange={handleChange}
           required
-          className="w-full p-2 md:p-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none text-sm"
+          className="form-input"
           placeholder="e.g., Fabric purchase"
         />
       </div>
 
       {/* Amount */}
-      <div className="space-y-2">
-        <label className="block text-xs md:text-sm font-medium text-blue-800">Amount (₦)</label>
+      <div className="form-group">
+        <label className="form-label">Amount (₦)</label>
         <input
           type="number"
           name="amount"
           value={formData.amount}
           onChange={handleChange}
           required
-          className="w-full p-2 md:p-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none text-sm"
+          className="form-input"
           placeholder="e.g., 15000"
         />
       </div>
 
       {/* Category */}
-      <div className="space-y-2">
-        <label className="block text-xs md:text-sm font-medium text-blue-800">Category</label>
+      <div className="form-group">
+        <label className="form-label">Category</label>
         <select
           name="category"
           value={formData.category}
           onChange={handleChange}
           required
-          className="w-full p-2 md:p-3 border border-blue-200 rounded-lg bg-white focus:ring-2 focus:ring-blue-400 focus:outline-none text-sm"
+          className="form-select"
         >
           <option value="" disabled>
             Select Category
@@ -162,8 +162,8 @@ export default function ExpenseForm({ onSaved }) {
 
       {/* Custom Category Input */}
       {isOtherCategory && (
-        <div className="space-y-2">
-          <label className="block text-xs md:text-sm font-medium text-blue-800">
+        <div className="form-group">
+          <label className="form-label">
             Enter Custom Category
           </label>
           <input
@@ -171,15 +171,15 @@ export default function ExpenseForm({ onSaved }) {
             value={customCategory}
             onChange={(e) => setCustomCategory(e.target.value)}
             required
-            className="w-full p-2 md:p-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none text-sm"
+            className="form-input"
             placeholder="e.g., Tailor Supplies"
           />
         </div>
       )}
 
       {/* Description */}
-      <div className="space-y-2">
-        <label className="block text-xs md:text-sm font-medium text-blue-800">
+      <div className="form-group">
+        <label className="form-label">
           Description (Optional)
         </label>
         <textarea
@@ -187,7 +187,7 @@ export default function ExpenseForm({ onSaved }) {
           value={formData.description}
           onChange={handleChange}
           rows={3}
-          className="w-full p-2 md:p-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none text-sm"
+          className="form-input min-h-[80px]"
           placeholder="Add notes about this expense..."
         />
       </div>
@@ -196,15 +196,9 @@ export default function ExpenseForm({ onSaved }) {
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2 md:py-3 rounded-lg flex items-center justify-center transition duration-300 disabled:opacity-50 text-sm md:text-base"
+        className="btn-action-primary w-full"
       >
-        {loading ? (
-          <div className="flex items-center justify-center">
-            <Loader size="sm" text="Saving..." />
-          </div>
-        ) : (
-          "Add Expense"
-        )}
+        {loading ? "Saving..." : "Add Expense"}
       </button>
     </form>
   );

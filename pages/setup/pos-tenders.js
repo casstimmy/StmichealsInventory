@@ -203,14 +203,14 @@ export default function PosTenders() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto">
+      <div className="page-container">
+        <div className="page-content">
           {/* Header */}
-          <div className="flex justify-between items-center mb-4">
-            <h1 className="text-3xl font-bold text-gray-900">Tender Types</h1>
+          <div className="page-header">
+            <h1 className="page-title">Tender Types</h1>
             <button
               onClick={handleAddTender}
-              className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-6 rounded-lg transition"
+              className="btn-action-primary"
             >
               ADD TENDER TYPE
             </button>
@@ -218,67 +218,67 @@ export default function PosTenders() {
 
           {/* Error Message */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-6">
+            <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-4">
               {error}
             </div>
           )}
 
           {/* Success Message */}
           {success && (
-            <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg mb-6">
+            <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-lg mb-4">
               {success}
             </div>
           )}
 
           {/* Active Tender Types Section */}
-          <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Active Tender Types</h2>
+          <div className="content-card">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Active Tender Types</h2>
             <p className="text-gray-600 text-sm mb-4">View, edit and delete your tender types.</p>
 
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gradient-to-r from-cyan-600 to-cyan-700 text-white">
+            <div className="data-table-container">
+              <table className="data-table">
+                <thead>
                   <tr>
-                    <th className="px-6 py-3 text-left font-bold">EDIT</th>
-                    <th className="px-6 py-3 text-left font-bold">NAME</th>
-                    <th className="px-6 py-3 text-left font-bold">DESCRIPTION</th>
-                    <th className="px-6 py-3 text-left font-bold">BUTTON COLOUR</th>
-                    <th className="px-6 py-3 text-left font-bold">TILL ORDER</th>
-                    <th className="px-6 py-3 text-left font-bold">CLASSIFICATION</th>
-                    <th className="px-6 py-3 text-left font-bold">STATUS</th>
-                    <th className="px-6 py-3 text-center font-bold">DELETE</th>
+                    <th>EDIT</th>
+                    <th>NAME</th>
+                    <th>DESCRIPTION</th>
+                    <th>BUTTON COLOUR</th>
+                    <th>TILL ORDER</th>
+                    <th>CLASSIFICATION</th>
+                    <th>STATUS</th>
+                    <th className="text-center">DELETE</th>
                   </tr>
                 </thead>
                 <tbody>
                   {tenders.map((tender, idx) => (
-                    <tr key={tender._id} className={`border-b border-gray-200 hover:bg-gray-50 transition ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                      <td className="px-6 py-3">
+                    <tr key={tender._id}>
+                      <td>
                         <button
                           onClick={() => handleEditTender(tender)}
-                          className="text-cyan-600 hover:text-cyan-700 font-bold text-sm"
+                          className="text-sky-600 hover:text-sky-700 font-medium text-sm active:scale-95 transition-transform"
                         >
                           EDIT
                         </button>
                       </td>
-                      <td className="px-6 py-3 font-bold text-gray-900">{tender.name}</td>
-                      <td className="px-6 py-3 text-gray-700">{tender.description}</td>
-                      <td className="px-6 py-3 text-center">
+                      <td className="font-medium">{tender.name}</td>
+                      <td>{tender.description}</td>
+                      <td className="text-center">
                         <div
                           className="w-6 h-6 rounded-full mx-auto border border-gray-300"
                           style={{ backgroundColor: tender.buttonColor }}
                         ></div>
                       </td>
-                      <td className="px-6 py-3 text-gray-700">{tender.tillOrder}</td>
-                      <td className="px-6 py-3 text-gray-700">{tender.classification}</td>
-                      <td className="px-6 py-3 text-center">
-                        <span className="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">
+                      <td>{tender.tillOrder}</td>
+                      <td>{tender.classification}</td>
+                      <td className="text-center">
+                        <span className="inline-block bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full text-xs font-medium">
                           Active
                         </span>
                       </td>
-                      <td className="px-6 py-3 text-center">
+                      <td className="text-center">
                         <button
                           onClick={() => handleDeleteTender(tender._id)}
-                          className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded text-sm transition"
+                          className="btn-action-danger text-sm py-1 px-3"
                         >
                           DELETE
                         </button>
@@ -295,41 +295,41 @@ export default function PosTenders() {
 
       {/* Add/Edit Tender Modal */}
       {(showAddModal || showEditModal) && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-xl">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
               {editingTender ? "Edit Tender" : "Add New Tender"}
             </h2>
 
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+              <div className="form-group">
+                <label className="form-label">
                   Tender Name *
                 </label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="form-input"
                   placeholder="Enter tender name"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+              <div className="form-group">
+                <label className="form-label">
                   Description
                 </label>
                 <input
                   type="text"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="form-input"
                   placeholder="Enter description"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+              <div className="form-group">
+                <label className="form-label">
                   Button Color
                 </label>
                 <div className="flex gap-2">
@@ -337,38 +337,38 @@ export default function PosTenders() {
                     type="color"
                     value={formData.buttonColor}
                     onChange={(e) => setFormData({ ...formData, buttonColor: e.target.value })}
-                    className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
+                    className="w-12 h-10 border border-gray-300 rounded-lg cursor-pointer"
                   />
                   <input
                     type="text"
                     value={formData.buttonColor}
                     onChange={(e) => setFormData({ ...formData, buttonColor: e.target.value })}
-                    className="flex-1 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    className="form-input flex-1"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+              <div className="form-group">
+                <label className="form-label">
                   Till Order
                 </label>
                 <input
                   type="number"
                   value={formData.tillOrder}
                   onChange={(e) => setFormData({ ...formData, tillOrder: parseInt(e.target.value) })}
-                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="form-input"
                   min={1}
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+              <div className="form-group">
+                <label className="form-label">
                   Classification
                 </label>
                 <select
                   value={formData.classification}
                   onChange={(e) => setFormData({ ...formData, classification: e.target.value })}
-                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="form-select"
                 >
                   <option value="Cash">Cash</option>
                   <option value="Card">Card</option>
@@ -379,20 +379,20 @@ export default function PosTenders() {
               </div>
             </div>
 
-            <div className="flex gap-4 mt-6">
+            <div className="flex gap-3 mt-6">
               <button
                 onClick={() => {
                   setShowAddModal(false);
                   setShowEditModal(false);
                 }}
-                className="flex-1 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 font-bold py-2 rounded-lg transition"
+                className="btn-action-secondary flex-1"
               >
                 CANCEL
               </button>
               <button
                 onClick={handleSaveTender}
                 disabled={saving}
-                className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 rounded-lg transition disabled:opacity-50"
+                className="btn-action-primary flex-1"
               >
                 {saving ? "SAVING..." : "SAVE"}
               </button>

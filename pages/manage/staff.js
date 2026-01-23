@@ -354,22 +354,24 @@ export default function StaffPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto">
+      <div className="page-container">
+        <div className="page-content">
         {/* Header */}
-        <h1 className="text-3xl md:text-4xl font-bold text-blue-800 mb-6">Manage Staff Logins</h1>
+        <div className="page-header">
+          <h1 className="page-title">Manage Staff Logins</h1>
+        </div>
 
         {/* Add New Staff Form */}
-        <div className="bg-white p-4 md:p-6 shadow rounded-lg mb-6">
-          <h2 className="text-base md:text-lg font-semibold mb-4 text-blue-700">Add New Staff</h2>
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4 mb-4">
+        <div className="content-card mb-6">
+          <h2 className="text-base md:text-lg font-semibold mb-4 text-sky-700">Add New Staff</h2>
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4">
             <input
               type="text"
               name="name"
               placeholder="Staff Name"
               value={formData.name}
               onChange={handleInputChange}
-              className="border border-gray-300 p-3 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="form-input"
               required
             />
             <input
@@ -380,14 +382,14 @@ export default function StaffPage() {
               maxLength={4}
               inputMode="numeric"
               onChange={handleInputChange}
-              className="border border-gray-300 p-3 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="form-input"
               required
             />
             <select
               name="location"
               value={formData.location}
               onChange={handleInputChange}
-              className="border border-gray-300 p-3 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="form-select"
             >
               <option value="">Select Location</option>
               {locations.map((loc) => (
@@ -442,11 +444,11 @@ export default function StaffPage() {
             />
           </form>
 
-          {message && <p className="text-sm text-blue-700 mb-3">{message}</p>}
+          {message && <p className="text-sm text-sky-700 mb-3">{message}</p>}
 
           <button
             onClick={handleSubmit}
-            className="bg-blue-600 text-white py-3 px-6 rounded hover:bg-blue-700 w-full font-semibold transition"
+            className="btn-action-primary w-full"
           >
             Add Staff
           </button>
@@ -455,8 +457,8 @@ export default function StaffPage() {
         {/* Main Content */}
         <div className="flex flex-col lg:flex-row justify-between gap-6">
           {/* All Staff List */}
-          <div className="bg-white p-6 shadow rounded-lg w-full lg:w-2/3">
-            <h2 className="text-xl font-semibold mb-6 text-blue-700">All Staff</h2>
+          <div className="content-card w-full lg:w-2/3">
+            <h2 className="text-xl font-semibold mb-6 text-sky-700">All Staff</h2>
 
             {loadingStaffList ? (
               <div className="flex justify-center items-center py-10">

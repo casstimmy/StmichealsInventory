@@ -217,33 +217,35 @@ export default function Categories() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto space-y-8">
+      <div className="page-container">
+        <div className="page-content space-y-6">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between">
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900">Categories</h1>
-            <input
-              type="text"
-              placeholder="Search categories..."
-              className="border border-gray-300 rounded-lg px-4 py-2 w-full sm:w-64 mt-4 sm:mt-0 focus:outline-none focus:ring-2 focus:ring-cyan-600"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="page-header flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <h1 className="page-title">Categories</h1>
+            <div className="search-input-wrapper w-full sm:w-64">
+              <input
+                type="text"
+                placeholder="Search categories..."
+                className="search-input !pl-4"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
           </div>
 
           {/* Add Category */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <div className="content-card">
             <form onSubmit={saveCategory} className="space-y-6">
-              <div className="flex items-center gap-2 border-b pb-3">
-                <FontAwesomeIcon icon={faPlus} className="text-cyan-600" />
+              <div className="content-card-header flex items-center gap-2">
+                <FontAwesomeIcon icon={faPlus} className="text-sky-600" />
                 <h2 className="text-lg font-semibold text-gray-900">
                   Add New Category
                 </h2>
               </div>
 
               <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-cyan-700 mb-1">
+                <div className="form-group">
+                  <label className="form-label">
                     Category Name
                   </label>
                   <input
@@ -251,18 +253,18 @@ export default function Categories() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Enter category name"
-                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-cyan-600 focus:border-transparent"
+                    className="form-input"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-cyan-700 mb-1">
+                <div className="form-group">
+                  <label className="form-label">
                     Parent Category
                   </label>
                   <select
                     value={parentCategory}
                     onChange={(e) => setParentCategory(e.target.value)}
-                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-cyan-600 focus:border-transparent"
+                    className="form-select"
                   >
                     <option value="">No Parent</option>
                     {categories.map((cat) => (
@@ -275,12 +277,12 @@ export default function Categories() {
               </div>
 
               {/* Image Upload */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div className="form-group">
+                <label className="form-label mb-2">
                   Images
                 </label>
                 <div className="flex flex-wrap gap-3">
-                  <label className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg cursor-pointer hover:bg-cyan-700 transition">
+                  <label className="btn-action-primary cursor-pointer inline-flex items-center gap-2">
                     <FontAwesomeIcon icon={faImages} />
                     Upload
                     <input
@@ -311,7 +313,7 @@ export default function Categories() {
 
               <button
                 type="submit"
-                className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:opacity-90 transition"
+                className="btn-action-primary"
               >
                 Save Category
               </button>
@@ -319,15 +321,15 @@ export default function Categories() {
           </div>
 
           {/* Table Section */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 overflow-x-auto">
-            <table className="min-w-full text-sm text-left">
-              <thead className="bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium">
+          <div className="data-table-container p-0">
+            <table className="data-table">
+              <thead>
                 <tr>
-                  <th className="p-3">Image</th>
-                  <th className="p-3">Name</th>
-                  <th className="p-3">Parent</th>
-                  <th className="p-3">Properties</th>
-                  <th className="p-3 text-center">Actions</th>
+                  <th>Image</th>
+                  <th>Name</th>
+                  <th>Parent</th>
+                  <th>Properties</th>
+                  <th className="text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>

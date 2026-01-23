@@ -337,32 +337,32 @@ export default function LocationItemsManager() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto">
+      <div className="page-container">
+        <div className="page-content">
           {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Location Tenders & Categories</h1>
-            <p className="text-gray-600">Manage which tenders and categories are available at each store location</p>
+          <div className="page-header flex-col items-start">
+            <h1 className="page-title">Location Tenders & Categories</h1>
+            <p className="page-subtitle">Manage which tenders and categories are available at each store location</p>
           </div>
 
           {/* Messages */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-6">
+            <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-4">
               {error}
             </div>
           )}
           {success && (
-            <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg mb-6">
+            <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-lg mb-4">
               {success}
             </div>
           )}
 
           {/* Location Selector */}
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="content-card mb-4 md:mb-6">
+            <label className="form-label">
               Select Location
             </label>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <select
                 value={selectedLocation || ""}
                 onChange={(e) => {
@@ -371,7 +371,7 @@ export default function LocationItemsManager() {
                     handleLocationChange(value);
                   }
                 }}
-                className="flex-1 max-w-md border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="form-select flex-1 max-w-md"
               >
                 <option value="">-- Select a Location --</option>
                 {locations && locations.length > 0 ? (
@@ -387,17 +387,17 @@ export default function LocationItemsManager() {
               <button
                 onClick={handleEditLocation}
                 disabled={!currentLocationData}
-                className="bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-400 text-white font-medium py-2 px-6 rounded transition"
+                className="btn-action-primary disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Edit Location
               </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
             {/* Tenders Section */}
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Available Tenders</h2>
+            <div className="content-card">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Available Tenders</h2>
               <div className="space-y-3">
                 {allTenders.length === 0 ? (
                   <p className="text-gray-500">No tenders available</p>
@@ -409,13 +409,13 @@ export default function LocationItemsManager() {
                     );
                     
                     return (
-                      <label key={tenderId} className="flex items-center p-3 border border-gray-200 rounded hover:bg-gray-50 cursor-pointer">
+                      <label key={tenderId} className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition active:scale-[0.99]">
                         <input
                           type="checkbox"
                           checked={isChecked}
                           onChange={() => handleToggleTender(tenderId)}
                           disabled={saving}
-                          className="w-4 h-4 text-cyan-600 border-gray-300 rounded"
+                          className="w-5 h-5 text-sky-600 border-gray-300 rounded"
                         />
                         <div className="ml-3 flex-1">
                           <p className="font-medium text-gray-900">{tender.name}</p>
@@ -433,8 +433,8 @@ export default function LocationItemsManager() {
             </div>
 
             {/* Categories Section */}
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Available Categories</h2>
+            <div className="content-card">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Available Categories</h2>
               <div className="space-y-3">
                 {allCategories.length === 0 ? (
                   <p className="text-gray-500">No categories available</p>
@@ -446,13 +446,13 @@ export default function LocationItemsManager() {
                     );
                     
                     return (
-                      <label key={categoryId} className="flex items-center p-3 border border-gray-200 rounded hover:bg-gray-50 cursor-pointer">
+                      <label key={categoryId} className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition active:scale-[0.99]">
                         <input
                           type="checkbox"
                           checked={isChecked}
                           onChange={() => handleToggleCategory(categoryId)}
                           disabled={saving}
-                          className="w-4 h-4 text-cyan-600 border-gray-300 rounded"
+                          className="w-5 h-5 text-sky-600 border-gray-300 rounded"
                         />
                         <div className="ml-3 flex-1">
                           <p className="font-medium text-gray-900">{category.name}</p>
@@ -467,10 +467,10 @@ export default function LocationItemsManager() {
 
           {/* Assign Tenders to Devices */}
           {selectedLocation && (
-            <div className="bg-white rounded-lg shadow-lg p-6 mt-8">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Assign Tenders to Devices</h2>
-              <p className="text-gray-600 text-sm mb-6">
-                Tenders assigned to <span className="font-semibold text-gray-900">{currentLocationData?.name}</span>
+            <div className="content-card mt-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Assign Tenders to Devices</h2>
+              <p className="text-gray-600 text-sm mb-4">
+                Tenders assigned to <span className="font-medium text-gray-900">{currentLocationData?.name}</span>
               </p>
 
               {locationTenders.length === 0 ? (
@@ -478,15 +478,15 @@ export default function LocationItemsManager() {
                   <p>No tenders assigned to this location yet. Select tenders above to get started.</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gradient-to-r from-cyan-600 to-cyan-700 text-white">
+                <div className="data-table-container">
+                  <table className="data-table">
+                    <thead>
                       <tr>
-                        <th className="px-6 py-3 text-left font-bold">TENDER NAME</th>
-                        <th className="px-6 py-3 text-left font-bold">CLASSIFICATION</th>
-                        <th className="px-6 py-3 text-center font-bold">BUTTON COLOUR</th>
-                        <th className="px-6 py-3 text-left font-bold">TILL ORDER</th>
-                        <th className="px-6 py-3 text-center font-bold">STATUS</th>
+                        <th>TENDER NAME</th>
+                        <th>CLASSIFICATION</th>
+                        <th className="text-center">BUTTON COLOUR</th>
+                        <th>TILL ORDER</th>
+                        <th className="text-center">STATUS</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -497,18 +497,18 @@ export default function LocationItemsManager() {
                           )
                         )
                         .map((tender, idx) => (
-                          <tr key={tender._id} className={`border-b border-gray-200 hover:bg-gray-50 transition ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                            <td className="px-6 py-3 font-bold text-gray-900">{tender.name}</td>
-                            <td className="px-6 py-3 text-gray-700">{tender.classification}</td>
-                            <td className="px-6 py-3 text-center">
+                          <tr key={tender._id}>
+                            <td className="font-medium">{tender.name}</td>
+                            <td>{tender.classification}</td>
+                            <td className="text-center">
                               <div
                                 className="w-6 h-6 rounded-full mx-auto border border-gray-300"
                                 style={{ backgroundColor: tender.buttonColor }}
                               ></div>
                             </td>
-                            <td className="px-6 py-3 text-gray-700">{tender.tillOrder}</td>
-                            <td className="px-6 py-3 text-center">
-                              <span className="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">
+                            <td>{tender.tillOrder}</td>
+                            <td className="text-center">
+                              <span className="inline-block bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full text-xs font-medium">
                                 Assigned
                               </span>
                             </td>
@@ -523,16 +523,16 @@ export default function LocationItemsManager() {
 
           {/* Summary */}
           {selectedLocation && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mt-8">
-              <h3 className="font-bold text-blue-900 mb-2">Current Selection Summary</h3>
+            <div className="bg-sky-50 border border-sky-200 rounded-lg p-6 mt-6">
+              <h3 className="font-semibold text-sky-900 mb-2">Current Selection Summary</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm font-medium text-blue-900">Tenders Enabled</p>
-                  <p className="text-2xl font-bold text-blue-600">{locationTenders.length}</p>
+                  <p className="text-sm font-medium text-sky-900">Tenders Enabled</p>
+                  <p className="text-2xl font-bold text-sky-600">{locationTenders.length}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-blue-900">Categories Enabled</p>
-                  <p className="text-2xl font-bold text-blue-600">{locationCategories.length}</p>
+                  <p className="text-sm font-medium text-sky-900">Categories Enabled</p>
+                  <p className="text-2xl font-bold text-sky-600">{locationCategories.length}</p>
                 </div>
               </div>
             </div>
@@ -540,72 +540,72 @@ export default function LocationItemsManager() {
 
           {/* Edit Location Modal */}
           {showEditModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Edit Location</h2>
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-xl shadow-lg max-w-md w-full p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">Edit Location</h2>
                 
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <div className="form-group">
+                    <label className="form-label">
                       Location Name *
                     </label>
                     <input
                       type="text"
                       value={editFormData.name}
                       onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                      className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                      className="form-input"
                       placeholder="e.g., Main Store"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <div className="form-group">
+                    <label className="form-label">
                       Address
                     </label>
                     <input
                       type="text"
                       value={editFormData.address}
                       onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
-                      className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                      className="form-input"
                       placeholder="e.g., 123 Main Street"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <div className="form-group">
+                    <label className="form-label">
                       Phone
                     </label>
                     <input
                       type="text"
                       value={editFormData.phone}
                       onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
-                      className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                      className="form-input"
                       placeholder="e.g., +234 123 456 7890"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <div className="form-group">
+                    <label className="form-label">
                       Email
                     </label>
                     <input
                       type="email"
                       value={editFormData.email}
                       onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
-                      className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                      className="form-input"
                       placeholder="e.g., store@example.com"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <div className="form-group">
+                    <label className="form-label">
                       Location Code
                     </label>
                     <input
                       type="text"
                       value={editFormData.code}
                       onChange={(e) => setEditFormData({ ...editFormData, code: e.target.value })}
-                      className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                      className="form-input"
                       placeholder="e.g., LOC001"
                     />
                   </div>
@@ -614,14 +614,14 @@ export default function LocationItemsManager() {
                 <div className="flex gap-3 mt-6">
                   <button
                     onClick={() => setShowEditModal(false)}
-                    className="flex-1 border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded hover:bg-gray-50 transition"
+                    className="btn-action-secondary flex-1"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSaveLocationEdit}
                     disabled={saving || !editFormData.name.trim()}
-                    className="flex-1 bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded transition"
+                    className="btn-action-primary flex-1"
                   >
                     {saving ? "Saving..." : "Save Changes"}
                   </button>

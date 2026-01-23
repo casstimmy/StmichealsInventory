@@ -220,114 +220,112 @@ export default function ExpirationReport() {
       {loading ? (
         <Loader size="lg" text="Loading expiration report..." />
       ) : (
-        <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto">
+        <div className="page-container">
+          <div className="page-content">
           {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <h1 className="text-4xl font-bold text-gray-900 flex items-center gap-3">
-                  <FontAwesomeIcon icon={faCalendarAlt} className="text-cyan-600" />
-                  Batch Expiration Report
-                </h1>
-                <p className="text-gray-600 mt-2">Monitor and manage product batches approaching their expiration dates</p>
-              </div>
-              <button
-                onClick={handleExport}
-                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-4 rounded-lg transition shadow-md"
-              >
-                <FontAwesomeIcon icon={faDownload} className="w-5 h-5" />
-                Export CSV
-              </button>
+          <div className="page-header flex-row items-center justify-between">
+            <div>
+              <h1 className="page-title flex items-center gap-3">
+                <FontAwesomeIcon icon={faCalendarAlt} className="text-sky-600" />
+                Batch Expiration Report
+              </h1>
+              <p className="page-subtitle">Monitor and manage product batches approaching their expiration dates</p>
             </div>
+            <button
+              onClick={handleExport}
+              className="btn-action btn-action-success flex items-center gap-2"
+            >
+              <FontAwesomeIcon icon={faDownload} className="w-5 h-5" />
+              Export CSV
+            </button>
           </div>
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
             {/* Total Card */}
-            <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-cyan-600">
+            <div className="stat-card border-t-4 border-sky-600">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Total Batches</p>
-                  <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
+                  <p className="stat-card-label">Total Batches</p>
+                  <p className="stat-card-value text-gray-900">{stats.total}</p>
                 </div>
-                <FontAwesomeIcon icon={faBox} className="text-4xl text-cyan-200" />
+                <FontAwesomeIcon icon={faBox} className="text-3xl text-sky-200" />
               </div>
             </div>
 
             {/* Expired Card */}
-            <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-red-600">
+            <div className="stat-card border-t-4 border-red-600">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Expired</p>
-                  <p className="text-3xl font-bold text-red-600">{stats.expired}</p>
+                  <p className="stat-card-label">Expired</p>
+                  <p className="stat-card-value text-red-600">{stats.expired}</p>
                 </div>
-                <FontAwesomeIcon icon={faExclamationTriangle} className="text-4xl text-red-200" />
+                <FontAwesomeIcon icon={faExclamationTriangle} className="text-3xl text-red-200" />
               </div>
             </div>
 
             {/* Critical Card */}
-            <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-orange-600">
+            <div className="stat-card border-t-4 border-orange-600">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Critical (≤7 days)</p>
-                  <p className="text-3xl font-bold text-orange-600">{stats.critical}</p>
+                  <p className="stat-card-label">Critical (≤7 days)</p>
+                  <p className="stat-card-value text-orange-600">{stats.critical}</p>
                 </div>
-                <FontAwesomeIcon icon={faClock} className="text-4xl text-orange-200" />
+                <FontAwesomeIcon icon={faClock} className="text-3xl text-orange-200" />
               </div>
             </div>
 
             {/* Warning Card */}
-            <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-yellow-600">
+            <div className="stat-card border-t-4 border-yellow-600">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Warning (8-30 days)</p>
-                  <p className="text-3xl font-bold text-yellow-600">{stats.warning}</p>
+                  <p className="stat-card-label">Warning (8-30 days)</p>
+                  <p className="stat-card-value text-yellow-600">{stats.warning}</p>
                 </div>
-                <FontAwesomeIcon icon={faExclamationTriangle} className="text-4xl text-yellow-200" />
+                <FontAwesomeIcon icon={faExclamationTriangle} className="text-3xl text-yellow-200" />
               </div>
             </div>
 
             {/* OK Card */}
-            <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-green-600">
+            <div className="stat-card border-t-4 border-green-600">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">OK (&gt;30 days)</p>
-                  <p className="text-3xl font-bold text-green-600">{stats.ok}</p>
+                  <p className="stat-card-label">OK (&gt;30 days)</p>
+                  <p className="stat-card-value text-green-600">{stats.ok}</p>
                 </div>
-                <FontAwesomeIcon icon={faCheckCircle} className="text-4xl text-green-200" />
+                <FontAwesomeIcon icon={faCheckCircle} className="text-3xl text-green-200" />
               </div>
             </div>
           </div>
 
           {/* Filters and Search */}
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <div className="content-card mb-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Search */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Search Batches</label>
-                <div className="relative">
+              <div className="form-group">
+                <label className="form-label">Search Batches</label>
+                <div className="search-input-wrapper">
                   <FontAwesomeIcon 
                     icon={faSearch} 
-                    className="absolute left-3 top-3 text-gray-400 w-5 h-5"
+                    className="search-input-icon"
                   />
                   <input
                     type="text"
                     placeholder="Search by product, batch ID, category, or location..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    className="search-input"
                   />
                 </div>
               </div>
 
               {/* Status Filter */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Filter by Status</label>
+              <div className="form-group">
+                <label className="form-label">Filter by Status</label>
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="form-select"
                 >
                   <option value="all">All Products</option>
                   <option value="expired">Expired</option>
@@ -338,12 +336,12 @@ export default function ExpirationReport() {
               </div>
 
               {/* Sort By */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Sort By</label>
+              <div className="form-group">
+                <label className="form-label">Sort By</label>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="form-select"
                 >
                   <option value="daysRemaining">Days Remaining (Urgent First)</option>
                   <option value="expiryDate">Expiry Date</option>
@@ -354,51 +352,51 @@ export default function ExpirationReport() {
           </div>
 
           {/* Results */}
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="data-table-container">
             {loading ? (
               <div className="p-12 text-center">
-                <p className="text-gray-600 text-lg">Loading batches...</p>
+                <div className="skeleton h-8 w-48 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading batches...</p>
               </div>
             ) : filteredBatches.length === 0 ? (
-              <div className="p-12 text-center">
+              <div className="empty-state-container">
                 <FontAwesomeIcon icon={faCheckCircle} className="text-6xl text-green-400 mb-4" />
-                <p className="text-gray-600 text-lg">No batches found matching your criteria</p>
+                <p className="empty-state-text">No batches found matching your criteria</p>
                 {searchTerm && <p className="text-gray-500 text-sm mt-2">Try adjusting your search terms</p>}
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-100 border-b border-gray-200">
+                <table className="data-table">
+                  <thead>
                     <tr>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Batch ID</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Product Name</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Category</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Location</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Expiry Date</th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">Days Remaining</th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">Batch Qty</th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">Status</th>
+                      <th>Batch ID</th>
+                      <th>Product Name</th>
+                      <th>Category</th>
+                      <th>Location</th>
+                      <th>Expiry Date</th>
+                      <th className="text-center">Days Remaining</th>
+                      <th className="text-center">Batch Qty</th>
+                      <th className="text-center">Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredBatches.map((batch, idx) => (
                       <tr 
                         key={idx} 
-                        className={`border-b border-gray-200 hover:bg-gray-50 transition ${
-                          batch.status === 'expired' ? 'bg-red-50' :
+                        className={`
+                          ${batch.status === 'expired' ? 'bg-red-50' :
                           batch.status === 'critical' ? 'bg-orange-50' :
-                          batch.status === 'warning' ? 'bg-yellow-50' :
-                          ''
-                        }`}
+                          batch.status === 'warning' ? 'bg-yellow-50' : ''}
+                        `}
                       >
-                        <td className="px-6 py-4 text-sm font-mono text-gray-900">{batch.batchId || batch.transRef || 'N/A'}</td>
-                        <td className="px-6 py-4">
+                        <td className="font-mono text-gray-900">{batch.batchId || batch.transRef || 'N/A'}</td>
+                        <td>
                           <p className="font-semibold text-gray-900">{batch.productName || 'N/A'}</p>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{batch.category || 'N/A'}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{batch.locationName || 'N/A'}</td>
-                        <td className="px-6 py-4 text-sm text-gray-900 font-medium">{batch.expiryDate}</td>
-                        <td className="px-6 py-4 text-center">
+                        <td className="text-gray-600">{batch.category || 'N/A'}</td>
+                        <td className="text-gray-600">{batch.locationName || 'N/A'}</td>
+                        <td className="font-medium text-gray-900">{batch.expiryDate}</td>
+                        <td className="text-center">
                           <span className={`font-bold ${
                             batch.daysRemaining <= 0 ? 'text-red-600' :
                             batch.daysRemaining <= 7 ? 'text-orange-600' :
@@ -408,10 +406,10 @@ export default function ExpirationReport() {
                             {batch.daysRemaining} {batch.daysRemaining === 1 ? 'day' : 'days'}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-center text-sm font-medium text-gray-900">
+                        <td className="text-center font-medium text-gray-900">
                           {batch.quantity || 0}
                         </td>
-                        <td className="px-6 py-4 text-center">
+                        <td className="text-center">
                           <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusStyles(batch.status)}`}>
                             {getStatusLabel(batch.status)}
                           </span>
@@ -434,7 +432,7 @@ export default function ExpirationReport() {
           </div>
 
           {/* Legend */}
-          <div className="mt-6 bg-white rounded-lg shadow-md p-6">
+          <div className="content-card mt-6">
             <h3 className="font-semibold text-gray-900 mb-4">Status Legend</h3>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="flex items-center gap-3">

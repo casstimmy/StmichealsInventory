@@ -56,42 +56,39 @@ export default function TaxAnalysisPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto">
-        <div className="max-w-7xl mx-auto">
+      <div className="page-container">
+        <div className="page-content">
           {/* Header Section */}
-          <div className="mb-10">
-            <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-6">
-              <div>
-                <h1 className="text-5xl font-bold text-gray-900 mb-3">Tax Analysis Dashboard</h1>
-                <p className="text-lg text-gray-600 max-w-2xl">
-                  Comprehensive tax performance summary and compliance tracking according to Nigeria Finance Act 2023.
-                </p>
-              </div>
-              
-              {/* Period Selector - Enhanced */}
-              <div className="bg-white rounded-lg shadow-md p-5 min-w-max border border-gray-200">
-                <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                  <FontAwesomeIcon icon={faChartLine} className="text-cyan-600" />
-                  Reporting Period
-                </label>
-                <select
-                  value={period}
-                  onChange={(e) => setPeriod(e.target.value)}
-                  className="w-full md:w-48 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-600 focus:border-cyan-600 transition bg-white font-medium text-gray-800"
-                >
-                  <optgroup label="Last Period" className="font-semibold">
-                    <option value="last-month">Last 30 Days</option>
-                    <option value="last-quarter">Last 3 Months</option>
-                    <option value="last-year">Last Year</option>
-                  </optgroup>
-                  <optgroup label="This Period">
-                    <option value="this-month">This Month (MTD)</option>
-                    <option value="this-quarter">This Quarter (QTD)</option>
-                    <option value="this-year">This Year (YTD)</option>
-                  </optgroup>
-                </select>
-              </div>
+          <div className="page-header flex-col md:flex-row md:justify-between md:items-start gap-6">
+            <div>
+              <h1 className="page-title">Tax Analysis Dashboard</h1>
+              <p className="page-subtitle max-w-2xl">
+                Comprehensive tax performance summary and compliance tracking according to Nigeria Finance Act 2023.
+              </p>
+            </div>
+            
+            {/* Period Selector - Enhanced */}
+            <div className="content-card min-w-max">
+              <label className="form-label flex items-center gap-2">
+                <FontAwesomeIcon icon={faChartLine} className="text-sky-600" />
+                Reporting Period
+              </label>
+              <select
+                value={period}
+                onChange={(e) => setPeriod(e.target.value)}
+                className="form-select md:w-48"
+              >
+                <optgroup label="Last Period" className="font-semibold">
+                  <option value="last-month">Last 30 Days</option>
+                  <option value="last-quarter">Last 3 Months</option>
+                  <option value="last-year">Last Year</option>
+                </optgroup>
+                <optgroup label="This Period">
+                  <option value="this-month">This Month (MTD)</option>
+                  <option value="this-quarter">This Quarter (QTD)</option>
+                  <option value="this-year">This Year (YTD)</option>
+                </optgroup>
+              </select>
             </div>
           </div>
 
@@ -110,13 +107,13 @@ export default function TaxAnalysisPage() {
 
           {/* Loading State */}
           {loading ? (
-            <div className="bg-white rounded-2xl shadow-lg p-12 flex items-center justify-center min-h-96">
+            <div className="content-card flex items-center justify-center min-h-96">
               <Loader size="md" text="Calculating tax analysis..." />
             </div>
           ) : !taxData ? (
-            <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
+            <div className="empty-state-container">
               <FontAwesomeIcon icon={faExclamationTriangle} className="text-gray-400 text-5xl mb-4" />
-              <p className="text-xl text-gray-600">No tax data available for the selected period</p>
+              <p className="empty-state-text">No tax data available for the selected period</p>
             </div>
           ) : (
             <>
@@ -275,7 +272,7 @@ export default function TaxAnalysisPage() {
                 </div>
                 <button
                   onClick={() => alert("Tax Report downloaded")}
-                  className="flex items-center gap-2 bg-gradient-to-r from-cyan-600 to-cyan-700 text-white px-6 py-3 rounded-lg shadow-md hover:shadow-lg hover:from-cyan-700 hover:to-cyan-800 transition-all font-semibold"
+                  className="btn-action btn-action-primary flex items-center gap-2"
                 >
                   <FontAwesomeIcon icon={faFileDownload} />
                   Download Tax Report
@@ -283,7 +280,6 @@ export default function TaxAnalysisPage() {
               </div>
             </>
           )}
-        </div>
         </div>
       </div>
     </Layout>

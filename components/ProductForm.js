@@ -186,9 +186,10 @@ export default function ProductForm(props) {
   return (
     <form
       onSubmit={saveProduct}
-      className="bg-white p-4 md:p-8 border border-gray-200 space-y-6"
+      className="page-container !p-0"
     >
-      <h2 className="text-2xl md:text-3xl font-bold mb-4 text-gray-800">
+      <div className="content-card">
+      <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-6 text-gray-800">
         {props._id ? "Edit Product" : "Add New Product"}
       </h2>
 
@@ -206,12 +207,12 @@ export default function ProductForm(props) {
         />
 
         {/* Category Select */}
-        <div className="mb-4">
-          <label className="block text-gray-700 font-medium mb-1">
+        <div className="form-group">
+          <label className="form-label">
             Category
           </label>
           <select
-            className="w-full border rounded-md px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
+            className="form-select"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
           >
@@ -236,14 +237,14 @@ export default function ProductForm(props) {
             setValue={setCostPrice}
             required
           />
-          <div className="mb-4">
-            <label className="block text-gray-700 font-medium mb-1">
+          <div className="form-group">
+            <label className="form-label">
               Tax Rate
             </label>
             <div className="flex items-center gap-2">
               <select
                 name="taxRate"
-                className="flex-1 border rounded-md px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
+                className="form-select flex-1"
                 value={taxRate}
                 onChange={(e) => setTaxRate(e.target.value)}
                 disabled={!applyTax}
@@ -378,7 +379,7 @@ export default function ProductForm(props) {
           onClick={() =>
             setProperties([...properties, { propName: "", propValue: "" }])
           }
-          className="px-3 py-2 bg-amber-500 text-white rounded-md hover:bg-amber-600"
+          className="btn-action-primary"
         >
           + Add Property
         </button>
@@ -450,22 +451,22 @@ export default function ProductForm(props) {
       </Section>
 
       {/* Actions */}
-      <div className="flex flex-col sm:flex-row justify-end gap-2 md:gap-3 mt-6">
+      <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
         <button
           type="button"
           onClick={() => router.push("/manage/products")}
-          className="w-full sm:w-auto px-4 md:px-5 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm md:text-base"
+          className="btn-action-secondary w-full sm:w-auto"
         >
           Cancel
         </button>
         <button
           type="submit"
-          className={`w-full sm:w-auto px-4 md:px-5 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 shadow-md text-sm md:text-base ${
+          className={`btn-action-primary w-full sm:w-auto ${
             loading ? "opacity-50 cursor-not-allowed" : ""
           }`}
           disabled={loading}
         >
-          Save Product
+          {loading ? "Saving..." : "Save Product"}
         </button>
       </div>
 
@@ -488,12 +489,12 @@ function InputField({
   required,
 }) {
   return (
-    <div className="mb-4">
-      <label className="block text-gray-700 font-medium mb-1">{label}</label>
+    <div className="form-group">
+      <label className="form-label">{label}</label>
       {textarea ? (
         <textarea
           name={name}
-          className="w-full border rounded-md px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
+          className="form-input min-h-[80px]"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           required={required}
@@ -502,7 +503,7 @@ function InputField({
         <input
           name={name}
           type={type}
-          className="w-full border rounded-md px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
+          className="form-input"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           required={required}
@@ -514,11 +515,12 @@ function InputField({
 
 function Section({ title, children }) {
   return (
-    <div className="mb-8">
-      <h3 className="text-xl font-semibold text-gray-800 mb-4 border-b pb-2">
+    <div className="mb-6 pb-6 border-b border-gray-100 last:border-b-0">
+      <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4">
         {title}
       </h3>
       {children}
     </div>
   );
+}
 }

@@ -84,34 +84,34 @@ export default function Reporting() {
 
   return (
     <Layout title="Reporting">
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto">
+      <div className="page-container">
+        <div className="page-content">
           {/* HEADER */}
-          <div className="mb-6 md:mb-8 flex flex-col sm:flex-row justify-between items-start gap-3">
+          <div className="page-header">
             <div>
-              <h1 className="text-2xl md:text-4xl font-bold text-gray-900">Sales Report</h1>
-              <p className="text-xs md:text-base text-gray-600 mt-2">Track your business performance and metrics in real-time</p>
+              <h1 className="page-title">Sales Report</h1>
+              <p className="page-subtitle">Track your business performance and metrics in real-time</p>
             </div>
             <a
               href="/reporting/end-of-day-report"
-              className="px-4 md:px-6 py-2 md:py-3 bg-cyan-600 hover:bg-cyan-700 text-white font-bold rounded-lg shadow-md transition text-sm md:text-base whitespace-nowrap"
+              className="btn-action-primary whitespace-nowrap"
             >
               📊 EOD Reports
             </a>
           </div>
 
           {/* FILTER BAR */}
-          <div className="bg-white rounded-lg shadow-lg p-3 md:p-6 mb-6 md:mb-8">
+          <div className="content-card mb-4 md:mb-6">
             <div className="flex flex-col gap-3 md:gap-4">
               {/* First row: Location and Time Range */}
               <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
                 {/* Location Dropdown */}
                 <div className="flex-1 min-w-0">
-                  <label className="block text-xs md:text-sm font-bold text-gray-700 mb-1 md:mb-2">Location</label>
+                  <label className="form-label">Location</label>
                   <select 
                     value={location} 
                     onChange={(e) => setLocation(e.target.value)} 
-                    className="w-full border border-gray-300 px-2 md:px-3 py-2 md:py-2.5 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none transition text-xs md:text-sm font-medium text-gray-700 bg-white"
+                    className="form-select"
                   >
                     <option value="All">All Locations</option>
                     <option value="online">Online</option>
@@ -123,11 +123,11 @@ export default function Reporting() {
 
                 {/* Time Range Dropdown */}
                 <div className="flex-1 min-w-0">
-                  <label className="block text-xs md:text-sm font-bold text-gray-700 mb-1 md:mb-2">Time Range</label>
+                  <label className="form-label">Time Range</label>
                   <select 
                     value={timeRange} 
                     onChange={(e) => setTimeRange(e.target.value)} 
-                    className="w-full border border-gray-300 px-2 md:px-3 py-2 md:py-2.5 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none transition text-xs md:text-sm font-medium text-gray-700 bg-white"
+                    className="form-select"
                   >
                     <option value="Last 7 days">Last 7 days</option>
                     <option value="Last 14 days">Last 14 days</option>
@@ -141,13 +141,13 @@ export default function Reporting() {
 
               {/* Second row: Period Buttons */}
               <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
-                <label className="text-xs md:text-sm font-bold text-gray-700">Period:</label>
+                <label className="form-label mb-0">Period:</label>
                 <div className="flex gap-1 md:gap-2 flex-wrap">
                   {["MONTH", "WEEK", "DAY", "HOURLY"].map((p) => (
                     <button
                       key={p}
                       onClick={() => setPeriod(p)}
-                      className={`px-2 md:px-4 py-1 md:py-2 rounded-lg text-xs font-bold transition-all ${
+                      className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-xs font-medium transition-all active:scale-95 ${
                         period === p 
                           ? "bg-cyan-600 text-white shadow-md" 
                           : "bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -253,12 +253,12 @@ export default function Reporting() {
         </div>
 
         {/* LOWER CHARTS */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
           <PieChart title="Tender Split" data={salesByTender || {}} />
           <BarChart title="Sales by Location" data={salesByLocation || {}} />
-          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-100">
-            <h3 className="text-xl font-bold text-gray-800 mb-4">Top Products</h3>
-            <div className="h-[300px]">
+          <div className="content-card">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Products</h3>
+            <div className="h-[250px] md:h-[300px]">
               <Bar
                 data={{
                   labels: (bestSellingProducts || []).map((p) => p[0] || "Unknown"),
@@ -301,20 +301,20 @@ export default function Reporting() {
 
 function Card({ title, value, icon, color }) {
   const colorClass = {
-    blue: "bg-cyan-50 border-l-4 border-cyan-600",
-    green: "bg-green-50 border-l-4 border-green-600",
-    purple: "bg-purple-50 border-l-4 border-purple-600",
-    orange: "bg-orange-50 border-l-4 border-orange-600",
-  }[color] || "bg-gray-50 border-l-4 border-gray-600";
+    blue: "border-l-4 border-sky-600",
+    green: "border-l-4 border-emerald-600",
+    purple: "border-l-4 border-purple-600",
+    orange: "border-l-4 border-orange-600",
+  }[color] || "border-l-4 border-gray-600";
 
   return (
-    <div className={`${colorClass} bg-white rounded-lg shadow-lg p-3 md:p-6 transition hover:shadow-xl`}>
+    <div className={`stat-card ${colorClass}`}>
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-xs md:text-sm font-semibold text-gray-600">{title}</p>
-          <p className="text-xl md:text-3xl font-bold text-gray-900 mt-1 md:mt-2 break-words">{value}</p>
+          <p className="stat-card-label">{title}</p>
+          <p className="stat-card-value break-words">{value}</p>
         </div>
-        <div className="text-2xl md:text-4xl opacity-30 flex-shrink-0">{icon}</div>
+        <div className="text-2xl md:text-3xl opacity-40 flex-shrink-0">{icon}</div>
       </div>
     </div>
   );
@@ -334,9 +334,9 @@ function PieChart({ title, data }) {
   });
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
-      <h3 className="text-xl font-bold text-gray-900 mb-4">{title}</h3>
-      <div className="h-[300px]">
+    <div className="content-card">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
+      <div className="h-[250px] md:h-[300px]">
         <Pie 
           data={{ 
             labels: displayLabels.length > 0 ? displayLabels : ["No Data"], 
@@ -391,9 +391,9 @@ function BarChart({ title, data }) {
   const sortedValues = labels.map(l => data[l] || 0);
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
-      <h3 className="text-xl font-bold text-gray-900 mb-4">{title}</h3>
-      <div className="h-[300px]">
+    <div className="content-card">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
+      <div className="h-[250px] md:h-[300px]">
         <Bar 
           data={{ 
             labels: displayLabels.length > 0 ? displayLabels : ["No Data"], 

@@ -60,37 +60,37 @@ const TopBar = ({ user, logout }) => {
       .toUpperCase();
 
   return (
-    <div className="fixed top-0 left-0 right-0 md:left-80 z-50 flex items-center justify-between gap-2 sm:gap-3 md:gap-0 py-2 md:py-3 px-2 sm:px-3 md:px-8 bg-gradient-to-r from-white to-gray-50 shadow-lg border-b border-gray-200 h-12 md:h-16 transition-all duration-300">
-      {/* Left Section: Back Office Text - Hidden on mobile */}
-      <div className="hidden md:flex items-center gap-3 w-full md:w-auto">
-        <div className="w-8 md:w-10 h-8 md:h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-md flex-shrink-0">
-          <FontAwesomeIcon icon={faStore} className="w-4 md:w-6 h-4 md:h-6 text-white" />
+    <div className="w-full h-14 md:h-16 flex items-center justify-between gap-4 px-4 sm:px-6 md:px-8 bg-white shadow-sm border-b border-gray-200 transition-all duration-300">
+      {/* Left Section: Logo and Title - Hidden on mobile */}
+      <div className="hidden md:flex items-center gap-3 flex-shrink-0">
+        <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-md flex-shrink-0">
+          <FontAwesomeIcon icon={faStore} className="w-6 h-6 text-white" />
         </div>
-        <h2 className="text-gray-900 text-lg md:text-2xl font-bold tracking-tight">Back Office</h2>
+        <h2 className="text-gray-900 text-xl font-bold tracking-tight">Back Office</h2>
       </div>
 
-      {/* Mobile Logo Icon - Shown only on mobile */}
+      {/* Mobile Logo - Shown only on mobile */}
       <div className="md:hidden flex-shrink-0">
         <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-md">
           <FontAwesomeIcon icon={faStore} className="w-4 h-4 text-white" />
         </div>
       </div>
 
-      {/* Mobile Menu Toggle Button - Top Right */}
+      {/* Mobile Menu Toggle - Shown only on mobile */}
       <button
         onClick={() => {
-          const mobileNav = document.querySelector('nav.md\\:hidden');
-          if (mobileNav) mobileNav.classList.toggle('hidden');
+          const sidebar = document.querySelector('aside.md\\:hidden');
+          if (sidebar) sidebar.classList.toggle('hidden');
         }}
-        className="md:hidden flex items-center justify-center p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+        className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
         title="Toggle mobile menu"
         aria-label="Toggle mobile menu"
       >
         <FontAwesomeIcon icon={faBars} className="w-5 h-5 text-gray-600" />
       </button>
 
-      {/* Right Section: Profile and Icons */}
-      <div className="flex items-center gap-1 sm:gap-2 md:gap-6 w-auto justify-end flex-shrink-0">
+      {/* Right Section: Alerts and Profile */}
+      <div className="flex items-center gap-1 sm:gap-2 md:gap-6 flex-shrink-0">
         {/* Notification Icon with Low Stock Alert */}
         <div className="relative group">
           <button 

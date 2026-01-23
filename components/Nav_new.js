@@ -11,13 +11,14 @@ import {
   faCoins,
   faTimes,
 } from "@fortawesome/free-solid-svg-icons";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import Loader from "@/components/Loader";
 
 export default function Sidebar() {
   const [openMenu, setOpenMenu] = useState(null);
+  const [openSubMenu, setOpenSubMenu] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -59,6 +60,7 @@ export default function Sidebar() {
 
   const closeMenu = () => {
     setOpenMenu(null);
+    setOpenSubMenu(null);
     if (isMobile) {
       setIsMobileMenuOpen(false);
     }
@@ -191,7 +193,7 @@ export default function Sidebar() {
                 {/* Desktop Submenu Panel */}
                 {item.submenu && openMenu === item.key && (
                   <div className="absolute left-20 top-0 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-40 max-h-[calc(100vh-8rem)] overflow-y-auto">
-                    <div className="sticky top-0 bg-gray-50 px-4 py-3 border-b border-gray-200">
+                    <div className="sticky top-0 bg-gradient-to-r from-blue-50 to-blue-25 px-4 py-3 border-b border-gray-200">
                       <p className="text-xs font-bold text-gray-600 uppercase tracking-wider">
                         {item.label}
                       </p>

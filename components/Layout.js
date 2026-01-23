@@ -26,22 +26,22 @@ export default function Layout({ children, title = "Dashboard" }) {
   }
 
   return (
-    <div className="bg-slate-50 min-h-screen h-screen flex flex-col font-sans overflow-hidden">
-      {/* Top Navbar - Full width on mobile, with sidebar offset on desktop */}
-      <div className="fixed top-0 left-0 right-0 z-50 md:left-80 transition-all duration-300">
+    <div className="bg-white min-h-screen h-screen flex flex-col font-sans overflow-hidden">
+      {/* Top Navbar - Fixed width on desktop */}
+      <div className="fixed top-0 left-0 right-0 z-40 md:left-20 h-14 md:h-16">
         <NavBar user={user} logout={logout} />
       </div>
 
-      {/* Main Layout */}
-      <div className="flex w-full h-[calc(100vh-4rem)] pt-16 overflow-hidden">
-        {/* Sidebar - Hidden on mobile, visible on md+ */}
-        <div className="hidden md:block w-80 flex-shrink-0">
+      {/* Main Layout Container */}
+      <div className="flex w-full h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)] pt-14 md:pt-16 overflow-hidden">
+        {/* Sidebar - Fixed width, hidden on mobile */}
+        <aside className="hidden md:flex w-20 flex-shrink-0 z-30">
           <Nav />
-        </div>
+        </aside>
 
-        {/* Main Content - Takes remaining width */}
-        <main className="flex-1 transition-all duration-300 overflow-x-hidden overflow-y-auto">
-          <div className="w-full min-h-full px-2 sm:px-3 md:px-4 bg-slate-100">
+        {/* Main Content Area - Fills remaining space */}
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 transition-all duration-300">
+          <div className="w-full h-full px-4 sm:px-6 md:px-8 py-6 md:py-8">
             {children}
           </div>
         </main>

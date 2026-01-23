@@ -474,6 +474,7 @@ export default function ProductForm(props) {
       {successMessage && (
         <p className="text-green-600 mt-4">{successMessage}</p>
       )}
+      </div>
     </form>
   );
 }
@@ -522,5 +523,4 @@ function Section({ title, children }) {
       {children}
     </div>
   );
-}
 }

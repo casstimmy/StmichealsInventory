@@ -109,106 +109,105 @@ export default function PersonalTaxCalculator() {
             />
             Yearly
           </label>
+        </div>
+
+        {/* Input Fields */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div className="form-group">
+            <label className="form-label">
+              Gross {mode === "monthly" ? "Monthly" : "Annual"} Income (₦)
+            </label>
+            <input
+              type="number"
+              placeholder="e.g. 500000"
+              value={grossIncome}
+              onChange={(e) => setGrossIncome(e.target.value)}
+              className="form-input"
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">
+              Pension Contribution ({mode})
+            </label>
+            <input
+              type="number"
+              placeholder="e.g. 40000"
+              value={pension}
+              onChange={(e) => setPension(e.target.value)}
+              className="form-input"
+            />
+          </div>
+        </div>
+
+        {/* Deduction Inputs */}
+        <div className="content-card mb-6">
+          <label className="form-label mb-3">Add Other Deductions</label>
+          <div className="flex flex-wrap gap-4">
+            <select
+              value={selectedDeduction}
+              onChange={(e) => setSelectedDeduction(e.target.value)}
+              className="form-select flex-1 min-w-[200px]"
+            >
+              <option value="">Select Deduction</option>
+              {DEDUCTION_OPTIONS.map((opt, i) => (
+                <option key={i} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+            <input
+              type="number"
+              placeholder="Amount"
+              value={deductionAmount}
+              onChange={(e) => setDeductionAmount(e.target.value)}
+              className="form-input w-40"
+            />
+            <button
+              onClick={addDeduction}
+              className="btn-action btn-action-success"
+            >
+              Add
+            </button>
           </div>
 
-          {/* Input Fields */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div className="form-group">
-              <label className="form-label">
-                Gross {mode === "monthly" ? "Monthly" : "Annual"} Income (₦)
-              </label>
-              <input
-                type="number"
-                placeholder="e.g. 500000"
-                value={grossIncome}
-                onChange={(e) => setGrossIncome(e.target.value)}
-                className="form-input"
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">
-                Pension Contribution ({mode})
-              </label>
-              <input
-                type="number"
-                placeholder="e.g. 40000"
-                value={pension}
-                onChange={(e) => setPension(e.target.value)}
-                className="form-input"
-              />
-            </div>
-          </div>
-
-          {/* Deduction Inputs */}
-          <div className="content-card mb-6">
-            <label className="form-label mb-3">Add Other Deductions</label>
-            <div className="flex flex-wrap gap-4">
-              <select
-                value={selectedDeduction}
-                onChange={(e) => setSelectedDeduction(e.target.value)}
-                className="form-select flex-1 min-w-[200px]"
-              >
-                <option value="">Select Deduction</option>
-                {DEDUCTION_OPTIONS.map((opt, i) => (
-                  <option key={i} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="number"
-                placeholder="Amount"
-                value={deductionAmount}
-                onChange={(e) => setDeductionAmount(e.target.value)}
-                className="form-input w-40"
-              />
-              <button
-                onClick={addDeduction}
-                className="btn-action btn-action-success"
-              >
-                Add
-              </button>
-            </div>
-
-            {deductions.length > 0 && (
-              <ul className="mt-4 space-y-1 text-sm text-gray-700 list-disc list-inside">
-                {deductions.map((d, i) => (
-                  <li key={i}>
-                    {d.name}: {formatCurrency(d.amount * (mode === "monthly" ? 12 : 1))}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          {/* Calculate Button */}
-          <button
-            onClick={calculateTax}
-            className="btn-action btn-action-primary"
-          >
-            Calculate My Tax
-          </button>
-
-          {/* Result */}
-          {result && (
-            <div className="content-card mt-6">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                Tax Summary ({mode === "monthly" ? "Monthly" : "Yearly"} Input)
-              </h2>
-              <ul className="space-y-3 text-gray-700">
-                <li><strong>Total Gross Income:</strong> {formatCurrency(result.gross)}</li>
-                <li><strong>Less: Pension Contribution:</strong> {formatCurrency(result.pension)}</li>
-                <li><strong>Less: Other Deductions:</strong> {formatCurrency(result.other)}</li>
-                <li><strong>Less: Consolidated Relief Allowance (CRA):</strong> {formatCurrency(result.cra)}</li>
-                <li className="border-t pt-2"><strong>Taxable Income:</strong> {formatCurrency(result.taxableIncome)}</li>
-                <li><strong>Estimated Yearly Tax:</strong> {formatCurrency(result.yearlyTax)}</li>
-                {mode === "monthly" && (
-                  <li><strong>Estimated Monthly Tax:</strong> {formatCurrency(result.monthlyTax)}</li>
-                )}
-              </ul>
-            </div>
+          {deductions.length > 0 && (
+            <ul className="mt-4 space-y-1 text-sm text-gray-700 list-disc list-inside">
+              {deductions.map((d, i) => (
+                <li key={i}>
+                  {d.name}: {formatCurrency(d.amount * (mode === "monthly" ? 12 : 1))}
+                </li>
+              ))}
+            </ul>
           )}
         </div>
+
+        {/* Calculate Button */}
+        <button
+          onClick={calculateTax}
+          className="btn-action btn-action-primary"
+        >
+          Calculate My Tax
+        </button>
+
+        {/* Result */}
+        {result && (
+          <div className="content-card mt-6">
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              Tax Summary ({mode === "monthly" ? "Monthly" : "Yearly"} Input)
+            </h2>
+            <ul className="space-y-3 text-gray-700">
+              <li><strong>Total Gross Income:</strong> {formatCurrency(result.gross)}</li>
+              <li><strong>Less: Pension Contribution:</strong> {formatCurrency(result.pension)}</li>
+              <li><strong>Less: Other Deductions:</strong> {formatCurrency(result.other)}</li>
+              <li><strong>Less: Consolidated Relief Allowance (CRA):</strong> {formatCurrency(result.cra)}</li>
+              <li className="border-t pt-2"><strong>Taxable Income:</strong> {formatCurrency(result.taxableIncome)}</li>
+              <li><strong>Estimated Yearly Tax:</strong> {formatCurrency(result.yearlyTax)}</li>
+              {mode === "monthly" && (
+                <li><strong>Estimated Monthly Tax:</strong> {formatCurrency(result.monthlyTax)}</li>
+              )}
+            </ul>
+          </div>
+        )}
       </div>
     </Layout>
   );

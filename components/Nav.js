@@ -135,11 +135,11 @@ export default function Sidebar() {
         <li
           key={href}
           className="border-b border-gray-100 last:border-b-0 transition-all duration-300 group"
-          onClick={closeMenuOnNavigation}
         >
           <Link
             href={href}
-            className={`w-full h-14 flex items-center justify-between text-sm font-medium transition-all duration-300 ${
+            onClick={closeMenuOnNavigation}
+            className={`block w-full h-14 flex items-center justify-between text-sm font-medium transition-all duration-300 ${
               indent ? "px-8 py-3" : "px-4 py-3"
             } ${
               isActive
@@ -190,9 +190,24 @@ export default function Sidebar() {
       )}
 
       {/* DESKTOP SIDEBAR */}
-      <aside className="fixed top-12 md:top-16 left-0 w-20 h-screen bg-gradient-to-b from-gray-50 to-gray-100 border-r border-gray-200 z-10 shadow-lg hidden md:block overflow-visible">
-        <nav className="mt-6 h-full overflow-visible">
-          <ul className="space-y-1">
+      <aside className="fixed top-16 left-0 w-20 h-screen bg-gradient-to-b from-gray-50 to-gray-100 border-r border-gray-200 z-10 shadow-lg hidden md:block overflow-visible">
+        <nav className="h-full overflow-visible flex flex-col">
+          {/* Toggle Button at top */}
+          <div className="flex justify-center items-center p-2 border-b border-gray-200 bg-white">
+            <button
+              onClick={() => {
+                setOpenMenu(null);
+                setOpenSubMenu(null);
+              }}
+              className="p-2 rounded hover:bg-gray-100 transition flex items-center justify-center w-full"
+              title="Close menu"
+              aria-label="Close menu"
+            >
+              <FontAwesomeIcon icon={faTimes} className="w-4 h-4 text-gray-600" />
+            </button>
+          </div>
+
+          <ul className="space-y-1 mt-2 flex-1">
             {renderMenuItem("/", faHome, "Home")}
 
             {/* Setup Menu with Submenu */}

@@ -78,9 +78,11 @@ export default function ExpenseForm({ onSaved }) {
       body: JSON.stringify({
         title: formData.title,
         amount: formData.amount,
-        category: categoryToSave,
+        categoryId: categoryToSave,
+        categoryName: isOtherCategory ? customCategory : formData.category,
         description: formData.description,
-        location: formData.location || null,
+        locationId: null,
+        locationName: formData.location || "",
       }),
     });
 

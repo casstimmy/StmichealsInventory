@@ -10,8 +10,8 @@ export default function ManageExpenses() {
     const res = await fetch("/api/expenses");
     if (res.ok) {
       const data = await res.json();
-      // Ensure it's an array
-      setExpenses(Array.isArray(data) ? data : []);
+      // Handle the response object with expenses array
+      setExpenses(Array.isArray(data.expenses) ? data.expenses : []);
     } else {
       console.error("Failed to fetch expenses");
       setExpenses([]);

@@ -1,4 +1,4 @@
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+﻿import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faHome,
   faCog,
@@ -312,3 +312,4 @@ export default function Sidebar() {
     </>
   );
 }
+

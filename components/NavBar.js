@@ -1,15 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faStore, faRightFromBracket, faBell, faExclamationTriangle, faBars, faTimes } from '@fortawesome/free-solid-svg-icons';
-import { useRouter } from 'next/router';
+import { faStore, faRightFromBracket, faBell, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
 
 const TopBar = ({ user, logout }) => {
-  const router = useRouter();
   const [lowStockCount, setLowStockCount] = useState(0);
   const [expiringCount, setExpiringCount] = useState(0);
   const [showAlert, setShowAlert] = useState(false);
   const [alertType, setAlertType] = useState('stock'); // 'stock' or 'expiring'
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     // Fetch low stock count periodically
@@ -60,47 +57,27 @@ const TopBar = ({ user, logout }) => {
       .toUpperCase();
 
   return (
-    <div className="w-full h-14 md:h-16 flex items-center justify-between gap-4 px-4 sm:px-6 md:px-8 bg-white shadow-sm border-b border-gray-200 transition-all duration-300">
-      {/* Left Section: Logo and Title - Hidden on mobile */}
-      <div className="hidden md:flex items-center gap-3 flex-shrink-0">
-        <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-md flex-shrink-0">
-          <FontAwesomeIcon icon={faStore} className="w-6 h-6 text-white" />
+    <div className="fixed top-0 w-full z-20 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 md:gap-0 py-2 md:py-4 px-3 md:px-8 bg-gradient-to-r from-white to-gray-50 shadow-lg border-b border-gray-200">
+      {/* Left Section: Back Office Text */}
+      <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto">
+        <div className="w-8 md:w-10 h-8 md:h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-md flex-shrink-0">
+          <FontAwesomeIcon icon={faStore} className="w-4 md:w-6 h-4 md:h-6 text-white" />
         </div>
-        <h2 className="text-gray-900 text-xl font-bold tracking-tight">Back Office</h2>
+        <h2 className="text-gray-900 text-lg md:text-2xl font-bold tracking-tight">Back Office</h2>
       </div>
 
-      {/* Mobile Logo - Shown only on mobile */}
-      <div className="md:hidden flex-shrink-0">
-        <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-md">
-          <FontAwesomeIcon icon={faStore} className="w-4 h-4 text-white" />
-        </div>
-      </div>
-
-      {/* Mobile Menu Toggle - Shown only on mobile */}
-      <button
-        onClick={() => {
-          const sidebar = document.querySelector('aside.md\\:hidden');
-          if (sidebar) sidebar.classList.toggle('hidden');
-        }}
-        className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        title="Toggle mobile menu"
-        aria-label="Toggle mobile menu"
-      >
-        <FontAwesomeIcon icon={faBars} className="w-5 h-5 text-gray-600" />
-      </button>
-
-      {/* Right Section: Alerts and Profile */}
-      <div className="flex items-center gap-1 sm:gap-2 md:gap-6 flex-shrink-0">
+      {/* Right Section: Profile and Icons */}
+      <div className="flex items-center gap-2 md:gap-6 w-full md:w-auto">
         {/* Notification Icon with Low Stock Alert */}
         <div className="relative group">
           <button 
-            className="relative p-1 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors duration-300"
+            className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors duration-300"
             onClick={() => setShowAlert(!showAlert)}
             title="Low stock alerts"
           >
-            <FontAwesomeIcon icon={faBell} className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-gray-600 hover:text-blue-600 transition-colors" />
+            <FontAwesomeIcon icon={faBell} className="w-4 md:w-6 h-4 md:h-6 text-gray-600 hover:text-blue-600 transition-colors" />
             {lowStockCount > 0 && (
-              <span className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 bg-red-500 rounded-full absolute -top-1 -right-1 shadow-sm flex items-center justify-center text-white text-xs font-bold">
+              <span className="w-5 h-5 md:w-6 md:h-6 bg-red-500 rounded-full absolute -top-1 -right-1 shadow-sm flex items-center justify-center text-white text-xs font-bold">
                 {lowStockCount > 9 ? '9+' : lowStockCount}
               </span>
             )}
@@ -135,13 +112,13 @@ const TopBar = ({ user, logout }) => {
         {expiringCount > 0 && (
           <div className="relative group">
             <button 
-              className="relative p-1 sm:p-2 hover:bg-orange-50 rounded-lg transition-colors duration-300"
+              className="relative p-2 hover:bg-orange-50 rounded-lg transition-colors duration-300"
               onClick={() => setShowAlert(!showAlert)}
               title="Products expiring soon"
             >
-              <FontAwesomeIcon icon={faExclamationTriangle} className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-orange-600 hover:text-orange-700 transition-colors" />
+              <FontAwesomeIcon icon={faExclamationTriangle} className="w-4 md:w-6 h-4 md:h-6 text-orange-600 hover:text-orange-700 transition-colors" />
               {expiringCount > 0 && (
-                <span className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 bg-orange-500 rounded-full absolute -top-1 -right-1 shadow-sm flex items-center justify-center text-white text-xs font-bold">
+                <span className="w-5 h-5 md:w-6 md:h-6 bg-orange-500 rounded-full absolute -top-1 -right-1 shadow-sm flex items-center justify-center text-white text-xs font-bold">
                   {expiringCount > 9 ? '9+' : expiringCount}
                 </span>
               )}
@@ -174,10 +151,10 @@ const TopBar = ({ user, logout }) => {
         )}
 
         {/* Profile Section - Compact on mobile */}
-        <div className="flex items-center gap-1 sm:gap-2 md:gap-4 pl-1 sm:pl-2 md:pl-6 border-l border-gray-200">
+        <div className="flex items-center gap-2 md:gap-4 pl-2 md:pl-6 border-l border-gray-200">
           {/* Profile Image or Placeholder */}
           <div className="relative group">
-            <div className="w-7 sm:w-8 md:w-10 h-7 sm:h-8 md:h-10 flex items-center justify-center bg-gradient-to-br from-cyan-500 to-cyan-600 text-white rounded-full shadow-md group-hover:shadow-lg transition-all text-xs sm:text-sm md:text-lg font-bold flex-shrink-0">
+            <div className="w-8 md:w-10 h-8 md:h-10 flex items-center justify-center bg-gradient-to-br from-cyan-500 to-cyan-600 text-white rounded-full shadow-md group-hover:shadow-lg transition-all text-xs md:text-lg font-bold flex-shrink-0">
               {getInitials(user?.name) || 'U'}
             </div>
           </div>
@@ -193,9 +170,9 @@ const TopBar = ({ user, logout }) => {
           {/* Logout Button - Icon on mobile, icon+text on md+ */}
           <button
             onClick={logout}
-            className="flex items-center gap-0.5 sm:gap-1 md:gap-2 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 text-xs md:text-sm px-1.5 sm:px-2 md:px-4 py-1.5 sm:py-2 rounded-lg shadow-sm transition duration-200 font-medium border border-red-200 hover:border-red-300 flex-shrink-0 whitespace-nowrap"
+            className="flex items-center gap-1 md:gap-2 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 text-xs md:text-sm px-2 md:px-4 py-2 rounded-lg shadow-sm transition duration-200 font-medium border border-red-200 hover:border-red-300 flex-shrink-0"
           >
-            <FontAwesomeIcon icon={faRightFromBracket} className="w-3 h-3 md:w-4 md:h-4" />
+            <FontAwesomeIcon icon={faRightFromBracket} className="w-3 md:w-4 h-3 md:h-4" />
             <span className="hidden sm:inline md:inline">Log Out</span>
           </button>
         </div>

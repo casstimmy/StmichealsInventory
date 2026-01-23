@@ -4,14 +4,12 @@ import { useAuth } from "@/lib/useAuth";
 import Nav from "@/components/Nav";
 import NavBar from "@/components/NavBar";
 import Loader from "@/components/Loader";
-import { useState } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export default function Layout({ children, title = "Dashboard" }) {
   const router = useRouter();
-  const { user, loading, isAuthenticated, logout } = useAuth();
-  const [navExpanded, setNavExpanded] = useState(true);
+  const { user, token, loading, isAuthenticated, logout } = useAuth();
 
   if (loading) {
     return (
@@ -21,33 +19,32 @@ export default function Layout({ children, title = "Dashboard" }) {
     );
   }
 
+  //  REDIRECT TO LOGIN IF NOT AUTHENTICATED
   if (!isAuthenticated) {
-    if (typeof window !== "undefined") router.push("/login");
+    if (typeof window !== 'undefined') {
+      router.push('/login');
+    }
     return null;
   }
 
+  //  APP SHELL
   return (
-    <div className="bg-slate-50 min-h-screen h-screen flex flex-col font-sans overflow-hidden">
-      {/* Top Navbar - Adjusts width based on sidebar */}
-      <div className={`fixed top-0 left-0 right-0 z-40 h-14 md:h-16 transition-all duration-300 ${navExpanded ? "md:left-64" : "md:left-20"}`}>
-        <NavBar user={user} logout={logout} />
+    <div className="bg-slate-50 min-h-screen flex flex-col md:flex-row">
+      {/* Desktop Navigation */}
+      <Nav className="fixed top-24 left-0 h-full w-[5rem] z-10 hidden md:block" />
+
+      {/* Mobile spacing for hamburger menu */}
+      <div className="md:hidden h-12 bg-gradient-to-r from-sky-600 to-sky-700" />
+
+      {/* Main Content */}
+      <div className="w-full md:ml-[5rem] flex justify-center overflow-hidden">
+        <div className="w-full md:max-w-[calc(100%-42px)] p-3 md:p-6 md:mt-20 bg-slate-100 overflow-y-auto">
+          {children}
+        </div>
       </div>
 
-      {/* Main Layout Container */}
-      <div className="flex w-full h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)] pt-14 md:pt-16 overflow-hidden">
-        {/* Collapsible Sidebar - Desktop only */}
-        <Nav 
-          isExpanded={navExpanded} 
-          onToggle={() => setNavExpanded(!navExpanded)}
-        />
-
-        {/* Main Content Area - Adjusts width based on sidebar */}
-        <main className={`flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 transition-all duration-300 ${navExpanded ? "md:pl-0" : "md:pl-0"}`}>
-          <div className="w-full h-full px-4 sm:px-6 md:px-8 py-6 md:py-8">
-            {children}
-          </div>
-        </main>
-      </div>
+      {/* Top Navigation Bar */}
+      <NavBar user={user} logout={logout} />
     </div>
   );
 }

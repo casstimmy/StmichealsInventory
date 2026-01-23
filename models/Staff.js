@@ -52,6 +52,10 @@ const StaffSchema = new Schema(
       },
     ],
 
+       locationId: { type: Schema.Types.ObjectId },
+    locationName: String,
+
+
     isActive: {
       type: Boolean,
       default: true,

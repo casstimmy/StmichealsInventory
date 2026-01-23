@@ -36,8 +36,8 @@ export default function Login({ staffList, locations }) {
         const res = await fetch("/api/setup/init", { method: "POST" });
         const data = await res.json();
         if (data.success) {
-          const locs = data.store.locations.map(l =>
-            typeof l === "string" ? l : l.name
+          const locs = data.store.locations.map((l) =>
+            typeof l === "string" ? l : l.name,
           );
           setAvailableLocations(locs);
           setLocation(locs[0]);
@@ -47,14 +47,17 @@ export default function Login({ staffList, locations }) {
     init();
   }, []);
 
-  const staffByRole = useMemo(() => ({
-    admin: staffList.filter(s => s.role === "admin"),
-    manager: staffList.filter(s => s.role === "manager"),
-    staff: staffList.filter(s => s.role === "staff"),
-    viewer: staffList.filter(s => s.role === "viewer"),
-  }), [staffList]);
+  const staffByRole = useMemo(
+    () => ({
+      admin: staffList.filter((s) => s.role === "admin"),
+      manager: staffList.filter((s) => s.role === "manager"),
+      staff: staffList.filter((s) => s.role === "staff"),
+      viewer: staffList.filter((s) => s.role === "viewer"),
+    }),
+    [staffList],
+  );
 
-  const selectedUser = staffList.find(u => u.name === name);
+  const selectedUser = staffList.find((u) => u.name === name);
   const isAdminSelected = selectedUser?.role === "admin";
 
   const handleLogin = async (e) => {
@@ -67,7 +70,7 @@ export default function Login({ staffList, locations }) {
 
     setLoading(true);
     try {
-      const user = staffList.find(u => u.name === name);
+      const user = staffList.find((u) => u.name === name);
       if (!user?.email) throw new Error("User email not found");
 
       const res = await apiClient.post("/api/auth/login", {
@@ -78,7 +81,7 @@ export default function Login({ staffList, locations }) {
       localStorage.setItem("auth_token", res.data.token);
       localStorage.setItem(
         "user",
-        JSON.stringify({ ...res.data.user, location })
+        JSON.stringify({ ...res.data.user, location }),
       );
 
       router.push("/");
@@ -92,18 +95,25 @@ export default function Login({ staffList, locations }) {
 
   const handleKeypad = (value) => {
     if (value === "clear") setPassword("");
-    else if (value === "back") setPassword(p => p.slice(0, -1));
-    else if (password.length < 4) setPassword(p => p + value);
+    else if (value === "back") setPassword((p) => p.slice(0, -1));
+    else if (password.length < 4) setPassword((p) => p + value);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyan-50 to-blue-50 flex items-center justify-center px-4">
       <div className="w-full flex flex-col lg:flex-row items-center justify-between max-w-5xl gap-8">
-
         {/* ===== HERO ===== */}
         <div className="w-full lg:w-1/2 text-center lg:text-left">
+          {/* LOGO */}
+          <div className="flex justify-center mb-4">
+            <img
+              src="/images/st-micheals-logo.png"
+              alt="Logo"
+              className="h-20"
+            />
+          </div>
           <h1 className="text-4xl lg:text-5xl font-extrabold text-blue-800 mb-4">
-            Inventory Admin
+            St Micheals Inventory
           </h1>
           <p className="text-lg text-gray-700 mb-6">
             Efficient inventory management system for your business.
@@ -118,53 +128,47 @@ export default function Login({ staffList, locations }) {
 
         {/* ===== LOGIN CARD ===== */}
         <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-8 border border-gray-200">
-
-          {/* LOGO */}
-          <div className="flex justify-center mb-4">
-            <img src="/logo.png" alt="Logo" className="h-12" />
-          </div>
-
           <h2 className="text-3xl font-bold text-center text-blue-700 mb-6">
             Staff Login
           </h2>
 
           <form onSubmit={handleLogin}>
-
             {/* USER */}
             <select
               value={name}
-              onChange={e => setName(e.target.value)}
+              onChange={(e) => setName(e.target.value)}
               className="w-full mb-4 px-4 py-3 border-2 rounded-lg"
             >
-              <option value="" disabled>Select User</option>
-              {Object.entries(staffByRole).map(([role, users]) =>
-                users.length > 0 && (
-                  <optgroup key={role} label={role.toUpperCase()}>
-                    {users.map((u, i) => (
-                      <option key={i} value={u.name}>{u.name}</option>
-                    ))}
-                  </optgroup>
-                )
-              )}
+              <option value="" disabled>
+                Select User
+              </option>
+
+              {staffList.map((user, index) => (
+                <option key={index} value={user.name}>
+                  {user.name}
+                </option>
+              ))}
             </select>
 
             {/* LOCATION */}
             <select
               value={location}
-              onChange={e => setLocation(e.target.value)}
+              onChange={(e) => setLocation(e.target.value)}
               className="w-full mb-4 px-4 py-3 border-2 rounded-lg"
             >
-              {availableLocations.map(loc => (
-                <option key={loc} value={loc}>{loc}</option>
+              {availableLocations.map((loc) => (
+                <option key={loc} value={loc}>
+                  {loc}
+                </option>
               ))}
             </select>
 
             {/* PIN */}
             <div className="flex justify-center gap-3 mb-5">
-              {[0,1,2,3].map(i => (
+              {[0, 1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className={`w-4 h-4 rounded-full ${
+                  className={`w-4 h-4 rounded-full border-2 border-gray-400 ${
                     password.length > i ? "bg-blue-600" : "bg-gray-300"
                   }`}
                 />
@@ -173,14 +177,14 @@ export default function Login({ staffList, locations }) {
 
             {/* KEYPAD */}
             <div className="grid grid-cols-3 gap-3 mb-6">
-              {[1,2,3,4,5,6,7,8,9,"C",0,"←"].map(key => (
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, "C", 0, "←"].map((key) => (
                 <button
                   key={key}
                   type="button"
                   onClick={(e) => {
                     createRipple(e);
                     handleKeypad(
-                      key === "C" ? "clear" : key === "←" ? "back" : key
+                      key === "C" ? "clear" : key === "←" ? "back" : key,
                     );
                   }}
                   className={`ripple h-16 rounded-xl text-lg font-bold shadow
@@ -189,8 +193,8 @@ export default function Login({ staffList, locations }) {
                       key === "C"
                         ? "bg-red-500 text-white"
                         : key === "←"
-                        ? "bg-gray-400 text-white"
-                        : "bg-blue-100 text-blue-800"
+                          ? "bg-gray-400 text-white"
+                          : "bg-blue-100 text-blue-800"
                     }`}
                 >
                   {key}
@@ -241,13 +245,13 @@ export async function getServerSideProps() {
   const users = await User.find({}, "name email role").lean();
 
   const map = new Map();
-  staff.forEach(s => map.set(s.name, { ...s, email: null }));
-  users.forEach(u => map.set(u.name, u));
+  staff.forEach((s) => map.set(s.name, { ...s, email: null }));
+  users.forEach((u) => map.set(u.name, u));
 
   const store = await Store.findOne({}).lean();
-  const locations =
-    store?.locations?.map(l => typeof l === "string" ? l : l.name) ||
-    ["Default Location"];
+  const locations = store?.locations?.map((l) =>
+    typeof l === "string" ? l : l.name,
+  ) || ["Default Location"];
 
   return {
     props: {

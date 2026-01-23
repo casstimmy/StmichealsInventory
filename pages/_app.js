@@ -9,8 +9,8 @@ export default function App({
 }) {
   const router = useRouter();
   
-  // Don't show layout on login page
-  const showLayout = !router.pathname.includes('/login');
+  // Don't show layout on login and register pages
+  const showLayout = !router.pathname.includes('/login') && !router.pathname.includes('/register');
 
   return (
     <>

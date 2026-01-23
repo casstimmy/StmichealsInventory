@@ -102,18 +102,18 @@ export default function CustomersPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6">
-        <div className="max-w-6xl mx-auto">
+      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-            <h1 className="text-2xl md:text-4xl font-bold text-gray-900">Customers</h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900">Customers</h1>
             <button
               onClick={() => {
                 setShowForm(!showForm);
                 setEditing(null);
                 setFormData({ name: "", email: "", phone: "", address: "", type: "REGULAR" });
               }}
-              className="w-full sm:w-auto px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg font-semibold text-sm md:text-base"
+              className="w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm md:text-base"
             >
               + Add Customer
             </button>
@@ -122,19 +122,19 @@ export default function CustomersPage() {
           {/* Navigation Links */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mb-6">
             <Link href="/manage/customers">
-              <div className="bg-white p-3 md:p-4 rounded-lg shadow hover:shadow-lg cursor-pointer border-l-4 border-cyan-600">
+              <div className="bg-white p-4 md:p-6 rounded-lg shadow hover:shadow-lg cursor-pointer border-l-4 border-blue-600">
                 <p className="font-bold text-gray-900 text-sm md:text-base">📋 Customers</p>
                 <p className="text-xs md:text-sm text-gray-600">Manage all customers</p>
               </div>
             </Link>
             <Link href="/manage/customer-search">
-              <div className="bg-white p-3 md:p-4 rounded-lg shadow hover:shadow-lg cursor-pointer border-l-4 border-blue-600">
+              <div className="bg-white p-4 md:p-6 rounded-lg shadow hover:shadow-lg cursor-pointer border-l-4 border-blue-600">
                 <p className="font-bold text-gray-900 text-sm md:text-base">🔍 Customer Search</p>
                 <p className="text-xs md:text-sm text-gray-600">Find customers quickly</p>
               </div>
             </Link>
             <Link href="/manage/campaigns">
-              <div className="bg-white p-3 md:p-4 rounded-lg shadow hover:shadow-lg cursor-pointer border-l-4 border-purple-600">
+              <div className="bg-white p-4 md:p-6 rounded-lg shadow hover:shadow-lg cursor-pointer border-l-4 border-blue-600">
                 <p className="font-bold text-gray-900 text-sm md:text-base">📢 Campaigns</p>
                 <p className="text-xs md:text-sm text-gray-600">Create marketing campaigns</p>
               </div>
@@ -280,8 +280,8 @@ export default function CustomersPage() {
                 </tbody>
               </table>
             )}
-          </div>
         </div>
+      </div>
       </div>
     </Layout>
   );

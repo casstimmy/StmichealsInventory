@@ -43,11 +43,11 @@ export default function CustomerSearchPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-4xl font-bold text-gray-900">Customer Search</h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900">Customer Search</h1>
             <Link href="/manage/customers">
               <button className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg">
                 ← Back to Customers

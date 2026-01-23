@@ -67,7 +67,8 @@ export default function Reporting() {
 
   return (
     <Layout title="Reporting">
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6">
+      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto">
         <div className="mb-6 text-sm">
           <Link href="/" className="text-cyan-600 hover:text-cyan-700">Home</Link>
           <span className="mx-2 text-gray-400">›</span>
@@ -148,6 +149,7 @@ export default function Reporting() {
               }}
             />
           </div>
+        </div>
         </div>
       </div>
     </Layout>

@@ -152,11 +152,12 @@ export default function Promotions() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6">
+      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold text-gray-900">Promotions</h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900">Promotions</h1>
             <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
               HELP
             </span>
@@ -526,6 +527,7 @@ export default function Promotions() {
             </button>
           </div>
         )}
+        </div>
       </div>
     </Layout>
   );

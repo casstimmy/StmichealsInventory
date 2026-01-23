@@ -232,16 +232,17 @@ export default function Products() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6">
+      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
-          <h1 className="text-xl md:text-2xl font-bold text-gray-900">Products</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900">Products</h1>
 
           {/* When linking to product creation, set highlight to newly created product if you want.
               For edit page navigation, we store highlight in sessionStorage below via onClick handler. */}
           <Link
             href="../products/new"
-            className="mt-2 sm:mt-0 w-full sm:w-auto inline-block py-2 px-5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm transition text-center"
+            className="mt-2 sm:mt-0 w-full sm:w-auto inline-block py-2 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition text-center"
           >
             + Add Product
           </Link>
@@ -255,7 +256,7 @@ export default function Products() {
               ref={searchRef}
               type="text"
               placeholder="Search products..."
-              className="w-full border border-gray-300 bg-white py-2 pl-9 pr-4 rounded-lg text-sm focus:ring-2 focus:ring-cyan-600 focus:outline-none"
+              className="w-full border border-gray-300 bg-white py-2 pl-9 pr-4 rounded-lg text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
               value={searchTerm}
               onChange={handleSearchChange}
             />
@@ -263,9 +264,9 @@ export default function Products() {
         </div>
 
         {/* Table - Responsive wrapper */}
-        <div className="overflow-x-auto rounded-2xl shadow border border-gray-200 bg-white">
-          <table className="min-w-full text-xs md:text-sm divide-y divide-blue-100">
-            <thead className="bg-cyan-600 text-white text-left text-xs md:text-sm">
+        <div className="overflow-x-auto rounded-lg shadow border border-gray-200 bg-white">
+          <table className="min-w-full text-xs md:text-sm divide-y divide-gray-100">
+            <thead className="bg-gradient-to-r from-blue-600 to-blue-700 text-white text-left text-xs md:text-sm">
               <tr>
                 <th className="p-2 md:p-3"></th>
                 <th className="p-2 md:p-3">Advanced</th>
@@ -283,7 +284,7 @@ export default function Products() {
               </tr>
             </thead>
 
-            <tbody className="bg-white divide-y divide-blue-50">
+            <tbody className="bg-white divide-y divide-gray-100">
               {visibleProducts.length === 0 ? (
                 <tr>
                   <td colSpan={13} className="p-6 text-center text-gray-500 italic">
@@ -325,7 +326,7 @@ export default function Products() {
                               e.stopPropagation();
                               handleEditClick(realIndex, p);
                             }}
-                            className="py-1 px-2 md:px-3 border border-cyan-600 text-cyan-700 hover:bg-gray-500 hover:text-white rounded text-xs"
+                            className="py-1 px-2 md:px-3 border border-blue-600 text-blue-700 hover:bg-blue-600 hover:text-white rounded text-xs"
                           >
                             Edit
                           </button>
@@ -342,7 +343,7 @@ export default function Products() {
                         >
                           <button
                             onClick={(e) => e.stopPropagation()}
-                            className="py-1 px-2 md:px-3 border border-gray-300 text-cyan-600 hover:bg-cyan-600 hover:text-white rounded text-xs transition"
+                            className="py-1 px-2 md:px-3 border border-gray-300 text-blue-600 hover:bg-blue-600 hover:text-white rounded text-xs transition"
                           >
                             Adv
                           </button>
@@ -456,6 +457,7 @@ export default function Products() {
           ) : (
             <div className="text-sm text-gray-500">End of list</div>
           )}
+        </div>
         </div>
       </div>
     </Layout>

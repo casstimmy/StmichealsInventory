@@ -127,17 +127,17 @@ export default function OrderInventoryPage() {
 
   return (
     <Layout>
-    <div className="min-h-screen bg-gray-50 p-3 md:p-6">
-        <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-6 md:mb-8">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Order Management</h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900">Order Management</h1>
             <p className="text-sm md:text-base text-gray-600 mt-2">Manage customer orders and track shipments</p>
           </div>
 
           {/* Search Box */}
           <div className="mb-6 relative max-w-md">
-            <Search className="absolute left-3 top-3.5 text-cyan-600 w-4 md:w-5 h-4 md:h-5" />
+            <Search className="absolute left-3 top-3.5 text-blue-600 w-4 md:w-5 h-4 md:h-5" />
             <input
               type="search"
               placeholder="Search by customer or order ID"
@@ -146,7 +146,7 @@ export default function OrderInventoryPage() {
                 setSearch(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full pl-10 pr-4 py-2 md:py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-700 text-sm md:text-base"
+              className="w-full pl-10 pr-4 py-2 md:py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700 text-sm md:text-base"
             />
           </div>
 

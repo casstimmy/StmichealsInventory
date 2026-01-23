@@ -214,7 +214,7 @@ export default function Setup() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6">
+      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-6 md:mb-8">

@@ -169,7 +169,7 @@ export default function SalesReport() {
 
   return (
     <Layout title="Completed Transactions">
-      <div className="min-h-screen bg-gray-50 p-6 text-gray-900 font-sans">
+      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8 text-gray-900 font-sans">
         <div className="mb-6">
           <h1 className="text-4xl font-bold text-gray-800">Completed Transactions</h1>
           <p className="text-gray-600 mt-1">View and manage transaction records with advanced filtering</p>
@@ -220,7 +220,7 @@ export default function SalesReport() {
                         !item.isCurrentMonth
                           ? "text-gray-300 cursor-default"
                           : isSelected
-                          ? "bg-gradient-to-br from-cyan-600 to-cyan-700 text-white shadow-md"
+                          ? "bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-md"
                           : "text-gray-700 hover:bg-gray-100"
                       }`}
                       disabled={!item.isCurrentMonth}
@@ -317,7 +317,7 @@ export default function SalesReport() {
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={exportCSV}
-                  className="bg-gradient-to-r from-cyan-600 to-cyan-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:shadow-lg transition-all"
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:shadow-lg transition-all"
                 >
                   📊 Export CSV
                 </button>
@@ -347,7 +347,7 @@ export default function SalesReport() {
           {transactions.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-gradient-to-r from-cyan-600 to-cyan-700 text-white sticky top-0">
+                <thead className="bg-gradient-to-r from-blue-600 to-blue-700 text-white sticky top-0">
                   <tr>
                     <th className="px-4 py-3 text-left font-semibold">Staff</th>
                     <th className="px-4 py-3 text-left font-semibold">Location</th>

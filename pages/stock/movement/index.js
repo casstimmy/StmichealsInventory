@@ -154,7 +154,8 @@ export default function StockMovement() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6">
+      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-10">
           <div>
@@ -334,6 +335,7 @@ export default function StockMovement() {
             </div>
           </>
         )}
+        </div>
       </div>
     </Layout>
   );

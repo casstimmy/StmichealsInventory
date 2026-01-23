@@ -354,9 +354,10 @@ export default function StaffPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6">
+      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <h1 className="text-2xl md:text-3xl font-bold text-blue-800 mb-6">Manage Staff Logins</h1>
+        <h1 className="text-3xl md:text-4xl font-bold text-blue-800 mb-6">Manage Staff Logins</h1>
 
         {/* Add New Staff Form */}
         <div className="bg-white p-4 md:p-6 shadow rounded-lg mb-6">
@@ -799,6 +800,7 @@ export default function StaffPage() {
               <p className="text-gray-500">No staff members found</p>
             </div>
           )}
+        </div>
         </div>
       </div>
     </Layout>

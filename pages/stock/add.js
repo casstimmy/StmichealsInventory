@@ -209,7 +209,8 @@ export default function StockMovementAdd() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6">
+      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6 md:mb-10">
           <h1 className="text-2xl md:text-4xl font-bold text-gray-900 mb-2">Create Stock Movement</h1>
@@ -458,11 +459,11 @@ export default function StockMovementAdd() {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
                     <p className="text-xs md:text-sm text-gray-600 mb-1">Total Cost Price</p>
-                    <p className="text-2xl md:text-3xl font-bold text-gray-900\">₦{totalCost.toLocaleString()}</p>
+                    <p className="text-2xl md:text-3xl font-bold text-gray-900">₦{totalCost.toLocaleString()}</p>
                   </div>
                   <div className="text-left sm:text-right">
-                    <p className="text-xs md:text-sm text-gray-600 mb-1\">Total Items</p>
-                    <p className="text-2xl md:text-3xl font-bold text-cyan-600\">{addedProducts.reduce((sum, p) => sum + p.quantity, 0)}</p>
+                    <p className="text-xs md:text-sm text-gray-600 mb-1">Total Items</p>
+                    <p className="text-2xl md:text-3xl font-bold text-cyan-600">{addedProducts.reduce((sum, p) => sum + p.quantity, 0)}</p>
                   </div>
                 </div>
               </div>
@@ -485,6 +486,7 @@ export default function StockMovementAdd() {
               </button>
             </div>
           </div>
+        </div>
         </div>
       </div>
     </Layout>

@@ -21,30 +21,36 @@ export default function Layout({ children, title = "Dashboard" }) {
 
   //  REDIRECT TO LOGIN IF NOT AUTHENTICATED
   if (!isAuthenticated) {
-    if (typeof window !== 'undefined') {
-      router.push('/login');
+    if (typeof window !== "undefined") {
+      router.push("/login");
     }
     return null;
   }
 
   //  APP SHELL
   return (
-    <div className="bg-slate-50 min-h-screen flex flex-col md:flex-row">
-      {/* Desktop Navigation */}
-      <Nav className="fixed top-24 left-0 h-full w-[5rem] z-10 hidden md:block" />
+    <div className="bg-gray-50 min-h-screen w-full flex flex-col">
+      {/* Top Navigation Bar - Fixed */}
+      <div className="fixed top-0 left-0 right-0 z-50 w-full">
+        <NavBar user={user} logout={logout} />
+      </div>
 
-      {/* Mobile spacing for hamburger menu */}
-      <div className="md:hidden h-12 bg-gradient-to-r from-sky-600 to-sky-700" />
+      {/* Main Layout Container */}
+      <div className="w-full flex flex-col md:flex-row pt-12 md:pt-16 md:pl-20">
+        {/* Desktop Navigation - Relative positioned sidebar */}
+        <Nav className="hidden md:flex md:fixed md:top-16 md:left-0 md:w-20 md:h-screen md:z-40 md:flex-col" />
 
-      {/* Main Content */}
-      <div className="w-full md:ml-[5rem] flex justify-center overflow-hidden">
-        <div className="w-full md:max-w-[calc(100%-42px)] p-3 md:p-6 md:mt-20 bg-slate-100 overflow-y-auto">
-          {children}
+        {/* Main Content Area */}
+        <div className="w-full flex-1 overflow-hidden">
+          <div
+            className="w-full min-h-[calc(100vh-48px)] md:min-h-[calc(100vh-64px)] px-3 md:px-6 bg-gray-50 overflow-y-auto"
+          >
+            {children}
+          </div>
         </div>
       </div>
 
-      {/* Top Navigation Bar */}
-      <NavBar user={user} logout={logout} />
+      {/* Mobile Menu Button - Handled by Nav component */}
     </div>
   );
 }

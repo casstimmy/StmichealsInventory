@@ -89,11 +89,11 @@ export default function CampaignsPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6">
-        <div className="max-w-6xl mx-auto">
+      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-4xl font-bold text-gray-900">Marketing Campaigns</h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900">Marketing Campaigns</h1>
             <button
               onClick={() => {
                 setShowForm(!showForm);
@@ -107,7 +107,7 @@ export default function CampaignsPage() {
                   endDate: "",
                 });
               }}
-              className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg font-semibold"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold"
             >
               + Create Campaign
             </button>

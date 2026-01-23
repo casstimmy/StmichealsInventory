@@ -72,7 +72,8 @@ console.log("Filtered Items:", filteredItems);
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6">
+      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto">
         <header className="mb-10">
           <h1 className="text-3xl text-gray-900 font-bold mb-2">Stock Management</h1>
           <p className="text-gray-600">Monitor all stock levels and alerts in real-time.</p>
@@ -157,11 +158,11 @@ console.log("Filtered Items:", filteredItems);
                                 ? "text-yellow-600"
                                 : status === "Negative Stock"
                                 ? "text-red-700"
-                            : "text-red-600"
-                        }`}
-                      >
-                        {status}
-                      </td>
+                                : "text-red-600"
+                            }`}
+                          >
+                            {status}
+                          </td>
                     </tr>
                   );
                 })
@@ -171,6 +172,7 @@ console.log("Filtered Items:", filteredItems);
             </section>
           </>
         )}
+        </div>
       </div>
     </Layout>
   );

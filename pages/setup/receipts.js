@@ -170,7 +170,8 @@ export default function Receipts() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6">
+      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold mb-6">Receipt Settings</h1>
 
         {/* Error Message */}
@@ -431,6 +432,7 @@ export default function Receipts() {
                 />
               </div>
             </div>
+          </div>
           </div>
 
           {/* RIGHT SIDE - PREVIEW */}

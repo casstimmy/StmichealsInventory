@@ -92,11 +92,11 @@ export default function Login({ staffList, locations }) {
         {/* ===== HERO ===== */}
         <div className="w-full lg:w-1/2 text-center lg:text-left">
           {/* Brand */}
-          <div className="flex justify-center lg:justify-start mb-6">
+          <div className="flex justify-center lg:justify-center mb-6">
             <img
               src="/images/st-micheals-logo.png"
               alt="St Micheals Logo"
-              className="h-16 w-auto"
+              className="h-20 w-auto border-b-4 border-blue-600 pb-2"
             />
           </div>
 
@@ -249,12 +249,7 @@ export async function getServerSideProps() {
   await connectToDatabase();
 
   // ✅ Fetch ONLY admin users
-  const adminUsers = await User.find(
-    { role: "admin", isActive: true },
-    "name email role",
-  ).lean();
-
-  console.log("Admin Users:", adminUsers);
+  const adminUsers = await User.find("name email role").lean();
 
   const store = await Store.findOne({}).lean();
 

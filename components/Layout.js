@@ -1,15 +1,22 @@
 import { Inter } from "next/font/google";
 import { useRouter } from "next/router";
 import { useAuth } from "@/lib/useAuth";
-import Nav from "@/components/Nav";
-import NavBar from "@/components/NavBar";
+import Sidebar from "@/components/Nav";
+import TopBar from "@/components/NavBar";
 import Loader from "@/components/Loader";
+import { useState } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export default function Layout({ children, title = "Dashboard" }) {
+export default function Layout({ children }) {
   const router = useRouter();
-  const { user, token, loading, isAuthenticated, logout } = useAuth();
+  const { user, loading, isAuthenticated, logout } = useAuth();
+
+  // State for sidebar and submenu width
+  const [sidebarWidth, setSidebarWidth] = useState(80); // collapsed width
+  const [submenuWidth, setSubmenuWidth] = useState(0); // width of opened submenu
+
+  const totalLeftWidth = sidebarWidth + submenuWidth;
 
   if (loading) {
     return (
@@ -19,38 +26,39 @@ export default function Layout({ children, title = "Dashboard" }) {
     );
   }
 
-  // 🔐 REDIRECT TO LOGIN IF NOT AUTHENTICATED
   if (!isAuthenticated) {
-    if (typeof window !== "undefined") {
-      router.push("/login");
-    }
+    if (typeof window !== "undefined") router.push("/login");
     return null;
   }
 
-  // 🧠 APP SHELL
   return (
     <div className="bg-slate-50 min-h-screen w-full flex flex-col">
-      {/* Top Navigation Bar - Fixed */}
-      <div className="fixed top-0 left-0 right-0 z-50 w-full">
-        <NavBar user={user} logout={logout} />
+      {/* Top Navigation */}
+      <div
+        className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
+        style={{ marginLeft: totalLeftWidth }}
+      >
+        <TopBar user={user} logout={logout} />
       </div>
 
-      {/* Main Layout Container */}
-      <div className="w-full flex flex-col md:flex-row pt-12 md:pt-16 md:pl-20">
-        {/* Desktop Navigation - Relative positioned sidebar */}
-        <Nav className="hidden md:flex md:fixed md:top-16 md:left-0 md:w-20 md:h-screen md:z-40 md:flex-col" />
+      {/* Main layout */}
+      <div className="flex flex-1 pt-12 md:pt-16">
+        {/* Sidebar */}
+        <Sidebar
+          sidebarWidth={sidebarWidth}
+          setSidebarWidth={setSidebarWidth}
+          submenuWidth={submenuWidth}
+          setSubmenuWidth={setSubmenuWidth}
+        />
 
-        {/* Main Content Area */}
-        <div className="w-full flex-1 overflow-hidden">
-          <div
-            className="w-full min-h-[calc(100vh-48px)] md:min-h-[calc(100vh-64px)]  sm:px-3 bg-slate-100 overflow-y-auto"
-          >
-            {children}
-          </div>
+        {/* Main content */}
+        <div
+          className="flex-1 overflow-auto transition-all duration-300 bg-slate-100"
+          style={{ marginLeft: totalLeftWidth }}
+        >
+          <div className="p-4">{children}</div>
         </div>
       </div>
-
-      {/* Mobile Menu Button - Handled by Nav component */}
     </div>
   );
 }

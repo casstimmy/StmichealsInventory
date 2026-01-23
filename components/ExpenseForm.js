@@ -72,6 +72,15 @@ export default function ExpenseForm({ onSaved }) {
       }
     }
 
+    // Get the category name from the selected category
+    let categoryName = "";
+    if (isOtherCategory) {
+      categoryName = customCategory;
+    } else {
+      const selectedCat = categories.find(cat => cat._id === categoryToSave);
+      categoryName = selectedCat?.name || formData.category;
+    }
+
     const res = await fetch("/api/expenses", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -79,7 +88,7 @@ export default function ExpenseForm({ onSaved }) {
         title: formData.title,
         amount: formData.amount,
         categoryId: categoryToSave,
-        categoryName: isOtherCategory ? customCategory : formData.category,
+        categoryName: categoryName,
         description: formData.description,
         locationId: null,
         locationName: formData.location || "",

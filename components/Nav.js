@@ -12,7 +12,7 @@ import {
   faBars,
   faTimes,
 } from "@fortawesome/free-solid-svg-icons";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import Loader from "@/components/Loader";
@@ -57,41 +57,53 @@ export default function Sidebar() {
   const closeMenuOnNavigation = () => {
     setOpenMenu(null);
     setOpenSubMenu(null);
-    if (isMobile) {
-      setIsMobileMenuOpen(false);
-    }
+    setIsMobileMenuOpen(false); // Always close mobile menu on navigation
   };
 
-  // Auto-open menu based on active pathname ONLY if desktop
+  // Track if user manually closed the menu
+  const userClosedMenu = useRef(false);
+
+  // Auto-open menu based on active pathname ONLY on mount
   useEffect(() => {
     if (isMobile) return;
-    if (pathname.startsWith("/setup")) {
-      setOpenMenu("setup");
-      setOpenSubMenu(null);
-    } else if (pathname.startsWith("/manage")) {
-      setOpenMenu("manage");
-      setOpenSubMenu(null);
-    } else if (pathname.startsWith("/stock")) {
-      setOpenMenu("stock");
-      setOpenSubMenu(null);
-    } else if (pathname.startsWith("/reporting")) {
-      setOpenMenu("reporting");
-      if (pathname.startsWith("/reporting/sales-report")) {
-        setOpenSubMenu("sales-report");
-      } else {
+    
+    // If user hasn't closed the menu, auto-open based on pathname
+    if (!userClosedMenu.current) {
+      if (pathname.startsWith("/setup")) {
+        setOpenMenu("setup");
+        setOpenSubMenu(null);
+      } else if (pathname.startsWith("/manage")) {
+        setOpenMenu("manage");
+        setOpenSubMenu(null);
+      } else if (pathname.startsWith("/stock")) {
+        setOpenMenu("stock");
+        setOpenSubMenu(null);
+      } else if (pathname.startsWith("/reporting")) {
+        setOpenMenu("reporting");
+        if (pathname.startsWith("/reporting/sales-report")) {
+          setOpenSubMenu("sales-report");
+        } else {
+          setOpenSubMenu(null);
+        }
+      } else if (pathname.startsWith("/expenses")) {
+        setOpenMenu("expenses");
+        setOpenSubMenu(null);
+      } else if (pathname === "/till") {
+        setOpenMenu("till");
+        setOpenSubMenu(null);
+      } else if (pathname.startsWith("/support")) {
+        setOpenMenu("support");
         setOpenSubMenu(null);
       }
-    } else if (pathname.startsWith("/expenses")) {
-      setOpenMenu("expenses");
-      setOpenSubMenu(null);
-    } else if (pathname === "/till") {
-      setOpenMenu("till");
-      setOpenSubMenu(null);
-    } else if (pathname.startsWith("/support")) {
-      setOpenMenu("support");
-      setOpenSubMenu(null);
     }
-  }, [pathname, isMobile]);
+  }, [isMobile]);
+
+  // When user closes menu via closeMenuOnNavigation, mark it as manually closed
+  useEffect(() => {
+    if (openMenu === null && openSubMenu === null && !isMobileMenuOpen) {
+      userClosedMenu.current = true;
+    }
+  }, [openMenu, openSubMenu, isMobileMenuOpen]);
 
   useEffect(() => {
     const handleStart = () => setLoading(true);
@@ -167,20 +179,6 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* MOBILE MENU BUTTON - Floating Circle at Bottom */}
-      {isMobile && !isMobileMenuOpen && (
-        <button
-          onClick={() => setIsMobileMenuOpen(true)}
-          className="md:hidden fixed bottom-6 right-6 w-16 h-16 rounded-full bg-gradient-to-r from-blue-600 to-blue-700 text-white flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-110 z-40"
-          aria-label="Open menu"
-        >
-          <div className="flex flex-col items-center justify-center gap-1">
-            <FontAwesomeIcon icon={faBars} className="w-5 h-5" />
-            <span className="text-xs font-semibold">Menu</span>
-          </div>
-        </button>
-      )}
-
       {/* MOBILE BACKDROP */}
       {isMobileMenuOpen && isMobile && (
         <div
@@ -192,20 +190,6 @@ export default function Sidebar() {
       {/* DESKTOP SIDEBAR */}
       <aside className="fixed top-16 left-0 w-20 h-screen bg-gradient-to-b from-gray-50 to-gray-100 border-r border-gray-200 z-10 shadow-lg hidden md:block overflow-visible">
         <nav className="h-full overflow-visible flex flex-col">
-          {/* Toggle Button at top */}
-          <div className="flex justify-center items-center p-2 border-b border-gray-200 bg-white">
-            <button
-              onClick={() => {
-                setOpenMenu(null);
-                setOpenSubMenu(null);
-              }}
-              className="p-2 rounded hover:bg-gray-100 transition flex items-center justify-center w-full"
-              title="Close menu"
-              aria-label="Close menu"
-            >
-              <FontAwesomeIcon icon={faTimes} className="w-4 h-4 text-gray-600" />
-            </button>
-          </div>
 
           <ul className="space-y-1 mt-2 flex-1">
             {renderMenuItem("/", faHome, "Home")}

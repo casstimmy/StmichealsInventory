@@ -10,8 +10,8 @@ export default function Register({ locations }) {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("admin");
   const [location, setLocation] = useState(locations?.[0] || "");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [pin, setPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
 
   const [availableLocations, setAvailableLocations] = useState(locations || []);
   const [loading, setLoading] = useState(false);
@@ -31,18 +31,18 @@ export default function Register({ locations }) {
     setError("");
     setSuccess("");
 
-    if (!name || !email || !password || !confirmPassword) {
+    if (!name || !email || !pin || !confirmPin) {
       setError("All fields are required.");
       return;
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+    if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+      setError("PIN must be exactly 4 digits.");
       return;
     }
 
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+    if (pin !== confirmPin) {
+      setError("PINs do not match.");
       return;
     }
 
@@ -52,7 +52,7 @@ export default function Register({ locations }) {
       const res = await apiClient.post("/api/auth/register", {
         name,
         email,
-        password,
+        password: pin,
         role,
         location,
       });
@@ -184,29 +184,35 @@ export default function Register({ locations }) {
               </select>
             </div>
 
-            {/* Password */}
+            {/* PIN */}
             <div className="mb-4">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Password
+                4-Digit PIN
               </label>
               <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                type="text"
+                inputMode="numeric"
+                maxLength="4"
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                placeholder="0000"
+                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 text-center text-2xl tracking-widest"
               />
             </div>
 
-            {/* Confirm Password */}
+            {/* Confirm PIN */}
             <div className="mb-4">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Confirm Password
+                Confirm PIN
               </label>
               <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                type="text"
+                inputMode="numeric"
+                maxLength="4"
+                value={confirmPin}
+                onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                placeholder="0000"
+                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 text-center text-2xl tracking-widest"
               />
             </div>
 

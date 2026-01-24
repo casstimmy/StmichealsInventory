@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faStore, faRightFromBracket, faBell, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
+import { faStore, faRightFromBracket, faBell } from '@fortawesome/free-solid-svg-icons';
 
 const TopBar = ({ user, logout }) => {
   const [lowStockCount, setLowStockCount] = useState(0);
   const [expiringCount, setExpiringCount] = useState(0);
-  const [showAlert, setShowAlert] = useState(false);
-  const [alertType, setAlertType] = useState('stock'); // 'stock' or 'expiring'
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [activeTab, setActiveTab] = useState('all'); // 'all', 'stock', 'expiring'
 
   useEffect(() => {
     // Fetch low stock count periodically
@@ -75,83 +75,149 @@ const TopBar = ({ user, logout }) => {
 
       {/* Right Section: Profile and Icons */}
       <div className="flex items-center gap-1 sm:gap-2 md:gap-6 w-auto justify-end flex-shrink-0">
-        {/* Notification Icon with Low Stock Alert */}
-        <div className="relative group">
-          <button 
-            className="relative p-1 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors duration-300"
-            onClick={() => setShowAlert(!showAlert)}
-            title="Low stock alerts"
-          >
-            <FontAwesomeIcon icon={faBell} className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-gray-600 hover:text-blue-600 transition-colors" />
-            {lowStockCount > 0 && (
-              <span className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 bg-red-500 rounded-full absolute -top-1 -right-1 shadow-sm flex items-center justify-center text-white text-xs font-bold">
-                {lowStockCount > 9 ? '9+' : lowStockCount}
-              </span>
-            )}
-          </button>
-
-          {/* Alert Dropdown - Mobile responsive */}
-          {showAlert && lowStockCount > 0 && (
-            <div className="absolute right-0 mt-2 w-72 md:w-72 bg-white rounded-lg shadow-xl border border-gray-200 p-4 z-50 text-sm">
-              <div className="flex items-center gap-2 mb-3 pb-3 border-b border-gray-200">
-                <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <span className="text-yellow-600 font-bold text-sm">⚠️</span>
-                </div>
-                <div className="min-w-0">
-                  <p className="font-semibold text-gray-900 text-xs md:text-sm">Low Stock Alert</p>
-                  <p className="text-xs text-gray-600">{lowStockCount} product(s) below minimum</p>
-                </div>
-              </div>
-              <div className="text-xs text-gray-600 mb-3">
-                <p>Products are running low on stock. Please review inventory.</p>
-              </div>
-              <a 
-                href="/stock/management"
-                className="inline-block w-full text-center bg-yellow-50 hover:bg-yellow-100 text-yellow-700 py-2 rounded font-medium transition-colors text-xs border border-yellow-200"
-              >
-                View Stock Details
-              </a>
-            </div>
-          )}
-        </div>
-
-        {/* Expiration Alert Icon */}
-        {expiringCount > 0 && (
-          <div className="relative group">
+        {/* Unified Notification Icon */}
+        {(lowStockCount > 0 || expiringCount > 0) && (
+          <div className="relative">
             <button 
-              className="relative p-1 sm:p-2 hover:bg-orange-50 rounded-lg transition-colors duration-300"
-              onClick={() => setShowAlert(!showAlert)}
-              title="Products expiring soon"
+              className="relative p-1 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors duration-300"
+              onClick={() => setShowNotifications(!showNotifications)}
+              title="View notifications"
             >
-              <FontAwesomeIcon icon={faExclamationTriangle} className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-orange-600 hover:text-orange-700 transition-colors" />
-              {expiringCount > 0 && (
-                <span className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 bg-orange-500 rounded-full absolute -top-1 -right-1 shadow-sm flex items-center justify-center text-white text-xs font-bold">
-                  {expiringCount > 9 ? '9+' : expiringCount}
+              <FontAwesomeIcon icon={faBell} className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-gray-600 hover:text-blue-600 transition-colors" />
+              {(lowStockCount + expiringCount) > 0 && (
+                <span className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 bg-red-500 rounded-full absolute -top-1 -right-1 shadow-sm flex items-center justify-center text-white text-xs font-bold">
+                  {(lowStockCount + expiringCount) > 9 ? '9+' : (lowStockCount + expiringCount)}
                 </span>
               )}
             </button>
 
-            {/* Expiration Alert Dropdown - Mobile responsive */}
-            {showAlert && expiringCount > 0 && (
-              <div className="absolute right-0 mt-2 w-72 md:w-72 bg-white rounded-lg shadow-xl border border-gray-200 p-4 z-50 text-sm">
-                <div className="flex items-center gap-2 mb-3 pb-3 border-b border-gray-200">
-                  <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <span className="text-orange-600 font-bold text-sm">⏰</span>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-semibold text-gray-900 text-xs md:text-sm">Expiration Alert</p>
-                    <p className="text-xs text-gray-600">{expiringCount} product(s) expiring soon</p>
-                  </div>
+            {/* Unified Notification Center Dropdown */}
+            {showNotifications && (
+              <div className="absolute right-0 mt-2 w-80 md:w-96 bg-white rounded-lg shadow-2xl border border-gray-200 z-50 overflow-hidden">
+                {/* Header */}
+                <div className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-3">
+                  <p className="font-semibold text-sm flex items-center gap-2">
+                    🔔 Notifications
+                    <span className="ml-auto bg-white/30 px-2 py-0.5 rounded-full text-xs">
+                      {lowStockCount + expiringCount}
+                    </span>
+                  </p>
                 </div>
-                <div className="text-xs text-gray-600 mb-3">
-                  <p>Products expiring within the next 30 days. Please review expiry dates.</p>
+
+                {/* Tabs */}
+                <div className="flex border-b border-gray-200 bg-gray-50">
+                  <button
+                    onClick={() => setActiveTab('all')}
+                    className={`flex-1 px-4 py-2 text-sm font-semibold transition-colors ${
+                      activeTab === 'all'
+                        ? 'bg-white text-blue-600 border-b-2 border-blue-600'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    All ({lowStockCount + expiringCount})
+                  </button>
+                  {lowStockCount > 0 && (
+                    <button
+                      onClick={() => setActiveTab('stock')}
+                      className={`flex-1 px-4 py-2 text-sm font-semibold transition-colors ${
+                        activeTab === 'stock'
+                          ? 'bg-white text-yellow-600 border-b-2 border-yellow-600'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      Stock ({lowStockCount})
+                    </button>
+                  )}
+                  {expiringCount > 0 && (
+                    <button
+                      onClick={() => setActiveTab('expiring')}
+                      className={`flex-1 px-4 py-2 text-sm font-semibold transition-colors ${
+                        activeTab === 'expiring'
+                          ? 'bg-white text-orange-600 border-b-2 border-orange-600'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      Expiring ({expiringCount})
+                    </button>
+                  )}
                 </div>
-                <a 
-                  href="/stock/management"
-                  className="inline-block w-full text-center bg-orange-50 hover:bg-orange-100 text-orange-700 py-2 rounded font-medium transition-colors text-xs border border-orange-200"
-                >
-                  View Expiry Details
-                </a>
+
+                {/* Content */}
+                <div className="p-4 space-y-3 max-h-96 overflow-y-auto">
+                  {/* All Notifications */}
+                  {(activeTab === 'all' || activeTab === 'stock') && lowStockCount > 0 && (
+                    <div className="bg-yellow-50 border-l-4 border-yellow-500 p-3 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <div className="text-xl">⚠️</div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-gray-900 text-sm">Low Stock Alert</p>
+                          <p className="text-xs text-gray-600 mt-1">
+                            {lowStockCount} product{lowStockCount > 1 ? 's' : ''} below minimum stock level
+                          </p>
+                          <a
+                            href="/stock/management"
+                            onClick={() => setShowNotifications(false)}
+                            className="inline-block mt-2 text-xs font-semibold text-yellow-700 hover:text-yellow-900 underline"
+                          >
+                            View Details →
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Expiring Notifications */}
+                  {(activeTab === 'all' || activeTab === 'expiring') && expiringCount > 0 && (
+                    <div className="bg-orange-50 border-l-4 border-orange-500 p-3 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <div className="text-xl">⏰</div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-gray-900 text-sm">Expiration Alert</p>
+                          <p className="text-xs text-gray-600 mt-1">
+                            {expiringCount} product{expiringCount > 1 ? 's' : ''} expiring within 30 days
+                          </p>
+                          <a
+                            href="/stock/management"
+                            onClick={() => setShowNotifications(false)}
+                            className="inline-block mt-2 text-xs font-semibold text-orange-700 hover:text-orange-900 underline"
+                          >
+                            View Details →
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* No Notifications Message */}
+                  {activeTab !== 'all' && lowStockCount === 0 && expiringCount === 0 && (
+                    <div className="text-center py-6">
+                      <p className="text-sm text-gray-600">✓ No notifications for this category</p>
+                    </div>
+                  )}
+
+                  {activeTab === 'stock' && lowStockCount === 0 && (
+                    <div className="text-center py-6">
+                      <p className="text-sm text-gray-600">✓ All stock levels are healthy</p>
+                    </div>
+                  )}
+
+                  {activeTab === 'expiring' && expiringCount === 0 && (
+                    <div className="text-center py-6">
+                      <p className="text-sm text-gray-600">✓ No expiring products</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="bg-gray-50 border-t border-gray-200 px-4 py-2">
+                  <a
+                    href="/stock/management"
+                    onClick={() => setShowNotifications(false)}
+                    className="block text-center text-sm font-semibold text-blue-600 hover:text-blue-700 transition"
+                  >
+                    View Full Inventory Management →
+                  </a>
+                </div>
               </div>
             )}
           </div>

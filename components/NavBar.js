@@ -9,42 +9,58 @@ const TopBar = ({ user, logout }) => {
   const [activeTab, setActiveTab] = useState('all'); // 'all', 'stock', 'expiring'
 
   useEffect(() => {
-    // Fetch low stock count periodically
-    const fetchLowStockCount = async () => {
+    // Fetch notifications data periodically
+    const fetchNotifications = async () => {
       try {
-        const res = await fetch("/api/products");
-        if (!res.ok) {
-          console.warn(`API returned status ${res.status} for /api/products`);
-          return;
+        // Fetch low stock from products
+        const productsRes = await fetch("/api/products");
+        if (productsRes.ok) {
+          const data = await productsRes.json();
+          const productList = data.data || data;
+          const products = Array.isArray(productList) ? productList : [];
+          
+          const lowStockCount = products.filter(p => p.quantity < (p.minStock || 10)).length;
+          setLowStockCount(lowStockCount);
         }
-        const data = await res.json();
-        const productList = data.data || data;
-        const products = Array.isArray(productList) ? productList : [];
-        
-        const count = products.filter(p => p.quantity < (p.minStock || 10)).length;
-        setLowStockCount(count);
 
-        // Check for products close to expiring (within 30 days)
-        const now = new Date();
-        const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-        
-        const expiringProducts = products.filter(p => {
-          if (!p.expiryDate) return false;
-          const expiryDate = new Date(p.expiryDate);
-          return expiryDate <= thirtyDaysFromNow && expiryDate > now;
-        });
-        
-        setExpiringCount(expiringProducts.length);
+        // Fetch expiring batches from the same endpoint as expiration-report
+        const batchesRes = await fetch("/api/stock-movement/batches-with-expiry");
+        if (batchesRes.ok) {
+          const batchData = await batchesRes.json();
+          
+          // Handle different API response formats
+          let batchList = [];
+          if (Array.isArray(batchData)) {
+            batchList = batchData;
+          } else if (batchData.data && Array.isArray(batchData.data)) {
+            batchList = batchData.data;
+          } else if (batchData.batches && Array.isArray(batchData.batches)) {
+            batchList = batchData.batches;
+          }
+          
+          // Calculate expiring count (batches expiring within 30 days, but not already expired)
+          const now = new Date();
+          const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+          
+          const expiringBatches = batchList.filter(batch => {
+            if (!batch.expiryDate) return false;
+            const expiryDate = new Date(batch.expiryDate);
+            // Include critical (≤7 days) and warning (8-30 days) statuses
+            return expiryDate > now && expiryDate <= thirtyDaysFromNow;
+          });
+          
+          setExpiringCount(expiringBatches.length);
+        }
       } catch (err) {
-        console.error("Error fetching stock count:", err);
+        console.error("Error fetching notifications:", err);
         setLowStockCount(0);
         setExpiringCount(0);
       }
     };
 
-    fetchLowStockCount();
+    fetchNotifications();
     // Refresh every 2 minutes
-    const interval = setInterval(fetchLowStockCount, 120000);
+    const interval = setInterval(fetchNotifications, 120000);
     return () => clearInterval(interval);
   }, []);
 
@@ -174,10 +190,10 @@ const TopBar = ({ user, logout }) => {
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-gray-900 text-sm">Expiration Alert</p>
                           <p className="text-xs text-gray-600 mt-1">
-                            {expiringCount} product{expiringCount > 1 ? 's' : ''} expiring within 30 days
+                            {expiringCount} batch{expiringCount > 1 ? 'es' : ''} expiring within 30 days
                           </p>
                           <a
-                            href="/stock/management"
+                            href="/stock/expiration-report"
                             onClick={() => setShowNotifications(false)}
                             className="inline-block mt-2 text-xs font-semibold text-orange-700 hover:text-orange-900 underline"
                           >
@@ -211,11 +227,11 @@ const TopBar = ({ user, logout }) => {
                 {/* Footer */}
                 <div className="bg-gray-50 border-t border-gray-200 px-4 py-2">
                   <a
-                    href="/stock/management"
+                    href="/stock/expiration-report"
                     onClick={() => setShowNotifications(false)}
                     className="block text-center text-sm font-semibold text-blue-600 hover:text-blue-700 transition"
                   >
-                    View Full Inventory Management →
+                    View Expiration Report →
                   </a>
                 </div>
               </div>

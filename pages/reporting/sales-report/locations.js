@@ -104,20 +104,22 @@ export default function LocationsSales() {
               onChange={(e) => setPeriod(e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cyan-600 focus:border-transparent"
             >
+              <option value="hourly">Hourly</option>
               <option value="day">Daily</option>
               <option value="week">Weekly</option>
               <option value="month">Monthly</option>
-              <option value="hourly">Hourly</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Number of Days</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Time Range</label>
             <select
               value={days}
               onChange={(e) => setDays(e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cyan-600 focus:border-transparent"
             >
+              <option value="0">Today</option>
+              <option value="1">Yesterday</option>
               <option value="7">Last 7 Days</option>
               <option value="14">Last 14 Days</option>
               <option value="30">Last 30 Days</option>

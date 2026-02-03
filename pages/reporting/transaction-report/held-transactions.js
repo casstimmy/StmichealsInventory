@@ -8,13 +8,14 @@ export default function HeldTransactions() {
   const [expandedTxId, setExpandedTxId] = useState(null);
   const [locationFilter, setLocationFilter] = useState("All");
   const [staffFilter, setStaffFilter] = useState("All");
+  const [timeRange, setTimeRange] = useState("all");
   const [locations, setLocations] = useState([]);
   const [staffList, setStaffList] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchHeldTransactions();
-  }, [locationFilter, staffFilter]);
+  }, [locationFilter, staffFilter, timeRange]);
 
   async function fetchHeldTransactions() {
     try {
@@ -25,23 +26,46 @@ export default function HeldTransactions() {
       
       let filtered = (data.transactions || []).filter(tx => tx.status === "held");
 
-      // Extract locations
+      // Extract locations and staff for dropdowns
       const locSet = new Set();
       const staffSet = new Set();
       filtered.forEach(tx => {
         if (tx.location) locSet.add(tx.location);
-        if (tx.staff) staffSet.add(tx.staff?.name || tx.staff);
+        if (tx.staff?.name) staffSet.add(tx.staff.name);
+        else if (typeof tx.staff === 'string') staffSet.add(tx.staff);
       });
 
       setLocations(Array.from(locSet).sort());
       setStaffList(Array.from(staffSet).sort());
 
-      // Apply filters
+      // Apply location filter
       if (locationFilter !== "All") {
         filtered = filtered.filter(tx => tx.location === locationFilter);
       }
+      
+      // Apply staff filter
       if (staffFilter !== "All") {
         filtered = filtered.filter(tx => (tx.staff?.name || tx.staff) === staffFilter);
+      }
+      
+      // Apply time range filter
+      if (timeRange !== "all") {
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        
+        filtered = filtered.filter(tx => {
+          const txDate = new Date(tx.createdAt);
+          txDate.setHours(0, 0, 0, 0);
+          const daysDiff = Math.floor((now - txDate) / (1000 * 60 * 60 * 24));
+          
+          switch (timeRange) {
+            case "today": return daysDiff === 0;
+            case "yesterday": return daysDiff === 1;
+            case "last7": return daysDiff <= 7;
+            case "last30": return daysDiff <= 30;
+            default: return true;
+          }
+        });
       }
 
       setTransactions(filtered);
@@ -56,8 +80,26 @@ export default function HeldTransactions() {
     setExpandedTxId(expandedTxId === id ? null : id);
   };
 
+  const handleVoidTransaction = async (txId) => {
+    if (!confirm("Are you sure you want to void this held transaction?")) return;
+    
+    try {
+      const res = await fetch(`/api/transactions/${txId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setTransactions(prev => prev.filter(tx => tx._id !== txId));
+      } else {
+        alert("Failed to void transaction");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error voiding transaction");
+    }
+  };
+
   const exportCSV = () => {
-    const headers = ["ID", "Staff", "Location", "Date", "Amount", "Items", "Time Held"];
+    const headers = ["ID", "Staff", "Location", "Date", "Amount", "Items", "Status"];
     const rows = transactions.map(tx => {
       const heldTime = tx.createdAt ? new Date(tx.createdAt).toLocaleString() : "N/A";
       return [
@@ -67,7 +109,7 @@ export default function HeldTransactions() {
         heldTime,
         `₦${tx.total?.toFixed(2)}`,
         tx.items?.length || 0,
-        "Pending"
+        "Held"
       ].join(",");
     });
     const csv = [headers.join(","), ...rows].join("\n");
@@ -105,29 +147,49 @@ export default function HeldTransactions() {
 
         {/* FILTERS */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8 border border-gray-200">
-          <div className="flex flex-col sm:flex-row gap-4 items-end">
-            <span className="font-semibold text-gray-700">Filter by:</span>
-            <select 
-              value={locationFilter} 
-              onChange={(e) => setLocationFilter(e.target.value)}
-              className="border-2 border-gray-300 px-4 py-2 rounded-lg focus:border-cyan-600 focus:outline-none text-sm font-medium"
-            >
-              <option value="All">All Locations</option>
-              {locations.map(loc => (
-                <option key={loc} value={loc}>{loc}</option>
-              ))}
-            </select>
+          <div className="flex flex-col sm:flex-row gap-4 items-end flex-wrap">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Time Range</label>
+              <select 
+                value={timeRange} 
+                onChange={(e) => setTimeRange(e.target.value)}
+                className="border-2 border-gray-300 px-4 py-2 rounded-lg focus:border-cyan-600 focus:outline-none text-sm font-medium"
+              >
+                <option value="all">All Time</option>
+                <option value="today">Today</option>
+                <option value="yesterday">Yesterday</option>
+                <option value="last7">Last 7 Days</option>
+                <option value="last30">Last 30 Days</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+              <select 
+                value={locationFilter} 
+                onChange={(e) => setLocationFilter(e.target.value)}
+                className="border-2 border-gray-300 px-4 py-2 rounded-lg focus:border-cyan-600 focus:outline-none text-sm font-medium"
+              >
+                <option value="All">All Locations</option>
+                {locations.map(loc => (
+                  <option key={loc} value={loc}>{loc}</option>
+                ))}
+              </select>
+            </div>
 
-            <select 
-              value={staffFilter} 
-              onChange={(e) => setStaffFilter(e.target.value)}
-              className="border-2 border-gray-300 px-4 py-2 rounded-lg focus:border-cyan-600 focus:outline-none text-sm font-medium"
-            >
-              <option value="All">All Staff</option>
-              {staffList.map(staff => (
-                <option key={staff} value={staff}>{staff}</option>
-              ))}
-            </select>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Staff</label>
+              <select 
+                value={staffFilter} 
+                onChange={(e) => setStaffFilter(e.target.value)}
+                className="border-2 border-gray-300 px-4 py-2 rounded-lg focus:border-cyan-600 focus:outline-none text-sm font-medium"
+              >
+                <option value="All">All Staff</option>
+                {staffList.map(staff => (
+                  <option key={staff} value={staff}>{staff}</option>
+                ))}
+              </select>
+            </div>
 
             <button 
               onClick={exportCSV}
@@ -175,12 +237,20 @@ export default function HeldTransactions() {
                         <td className="px-4 py-3 text-right text-gray-600">{tx.items?.length || 0}</td>
                         <td className="px-4 py-3 text-right font-bold text-orange-600">₦{tx.total?.toFixed(2)}</td>
                         <td className="px-4 py-3 text-center">
-                          <button 
-                            onClick={() => toggleDetails(tx._id)}
-                            className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition"
-                          >
-                            {expandedTxId === tx._id ? "Hide" : "View"}
-                          </button>
+                          <div className="flex gap-2 justify-center">
+                            <button 
+                              onClick={() => toggleDetails(tx._id)}
+                              className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition"
+                            >
+                              {expandedTxId === tx._id ? "Hide" : "View"}
+                            </button>
+                            <button 
+                              onClick={() => handleVoidTransaction(tx._id)}
+                              className="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition"
+                            >
+                              Void
+                            </button>
+                          </div>
                         </td>
                       </tr>
                       {expandedTxId === tx._id && (

@@ -60,9 +60,10 @@ export default function TimeComparisons() {
       yesterday: 1,
       thisWeek: 7,
       thisMonth: 30,
-      thisQuarter: 90,
+      thisYear: 365,
       lastWeek: 7,
       lastMonth: 30,
+      lastYear: 365,
       last7: 7,
       last14: 14,
       last30: 30,
@@ -261,16 +262,17 @@ export default function TimeComparisons() {
               >
                 <option value="today">Today</option>
                 <option value="yesterday">Yesterday</option>
-                <option value="thisWeek">This Week</option>
-                <option value="thisMonth">This Month</option>
-                <option value="thisQuarter">This Quarter</option>
-                <option value="lastWeek">Last Week</option>
-                <option value="lastMonth">Last Month</option>
                 <option value="last7">Last 7 days</option>
                 <option value="last14">Last 14 days</option>
                 <option value="last30">Last 30 days</option>
                 <option value="last60">Last 60 days</option>
                 <option value="last90">Last 90 days</option>
+                <option value="thisWeek">This Week</option>
+                <option value="thisMonth">This Month</option>
+                <option value="thisYear">This Year</option>
+                <option value="lastWeek">Last Week</option>
+                <option value="lastMonth">Last Month</option>
+                <option value="lastYear">Last Year</option>
               </select>
             </div>
 
@@ -283,14 +285,12 @@ export default function TimeComparisons() {
               >
                 <option value="previous-week">Previous Week</option>
                 <option value="previous-month">Previous Month</option>
-                <option value="previous-quarter">Previous Quarter</option>
                 <option value="previous-year">Previous Year</option>
                 <option value="7days-ago">7 days ago</option>
                 <option value="14days-ago">14 days ago</option>
                 <option value="30days-ago">30 days ago</option>
                 <option value="60days-ago">60 days ago</option>
                 <option value="90days-ago">90 days ago</option>
-                <option value="custom">Custom</option>
               </select>
             </div>
 

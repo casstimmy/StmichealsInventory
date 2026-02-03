@@ -34,12 +34,18 @@ export default function Reporting() {
   // Map time range to days
   const getTimeDays = (range) => {
     const rangeMap = {
+      "Today": 0,
+      "Yesterday": 1,
       "Last 7 days": 7,
       "Last 14 days": 14,
       "Last 30 days": 30,
       "Last 90 days": 90,
+      "This week": 7,
       "This month": 30,
+      "This year": 365,
+      "Last week": 14,
       "Last month": 30,
+      "Last year": 365,
     };
     return rangeMap[range] || 14;
   };
@@ -129,12 +135,18 @@ export default function Reporting() {
                     onChange={(e) => setTimeRange(e.target.value)} 
                     className="form-select"
                   >
+                    <option value="Today">Today</option>
+                    <option value="Yesterday">Yesterday</option>
                     <option value="Last 7 days">Last 7 days</option>
                     <option value="Last 14 days">Last 14 days</option>
                     <option value="Last 30 days">Last 30 days</option>
                     <option value="Last 90 days">Last 90 days</option>
+                    <option value="This week">This week</option>
                     <option value="This month">This month</option>
+                    <option value="This year">This year</option>
+                    <option value="Last week">Last week</option>
                     <option value="Last month">Last month</option>
+                    <option value="Last year">Last year</option>
                   </select>
                 </div>
               </div>

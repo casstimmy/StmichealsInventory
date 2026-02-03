@@ -24,16 +24,37 @@ ChartJS.register(
 export default function ProductsSales() {
   const [products, setProducts] = useState([]);
   const [sortBy, setSortBy] = useState("sales");
+  const [timeRange, setTimeRange] = useState("last30");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [timeRange]);
+
+  const getTimeRangeDays = (range) => {
+    const daysMap = {
+      today: 0,
+      yesterday: 1,
+      last7: 7,
+      last14: 14,
+      last30: 30,
+      last60: 60,
+      last90: 90,
+      thisWeek: 7,
+      thisMonth: 30,
+      thisYear: 365,
+      lastWeek: 14,
+      lastMonth: 60,
+      lastYear: 365,
+    };
+    return daysMap[range] || 30;
+  };
 
   async function fetchProducts() {
     try {
       setLoading(true);
-      const res = await fetch("/api/reporting/reporting-data?location=All&period=day&days=30");
+      const days = getTimeRangeDays(timeRange);
+      const res = await fetch(`/api/reporting/reporting-data?location=All&period=day&days=${days}`);
       const data = await res.json();
       setProducts(data.bestSellingProducts || []);
     } catch (err) {
@@ -76,6 +97,34 @@ export default function ProductsSales() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-800 mb-2">📦 Sales by Products</h1>
           <p className="text-gray-600">Top performing products and their sales metrics</p>
+        </div>
+
+        {/* FILTERS */}
+        <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Time Range</label>
+              <select
+                value={timeRange}
+                onChange={(e) => setTimeRange(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-cyan-600"
+              >
+                <option value="today">Today</option>
+                <option value="yesterday">Yesterday</option>
+                <option value="last7">Last 7 Days</option>
+                <option value="last14">Last 14 Days</option>
+                <option value="last30">Last 30 Days</option>
+                <option value="last60">Last 60 Days</option>
+                <option value="last90">Last 90 Days</option>
+                <option value="thisWeek">This Week</option>
+                <option value="thisMonth">This Month</option>
+                <option value="thisYear">This Year</option>
+                <option value="lastWeek">Last Week</option>
+                <option value="lastMonth">Last Month</option>
+                <option value="lastYear">Last Year</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         {/* SUMMARY */}

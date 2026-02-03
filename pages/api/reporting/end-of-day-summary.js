@@ -30,21 +30,42 @@ export default async function handler(req, res) {
     // Calculate date range
     const now = new Date();
     let dateGte = new Date();
+    let dateLte = null; // For yesterday filter
 
-    if (period === "day") {
+    if (period === "today") {
+      dateGte.setHours(0, 0, 0, 0);
+    } else if (period === "yesterday") {
+      dateGte.setDate(dateGte.getDate() - 1);
+      dateGte.setHours(0, 0, 0, 0);
+      dateLte = new Date();
+      dateLte.setDate(dateLte.getDate() - 1);
+      dateLte.setHours(23, 59, 59, 999);
+    } else if (period === "day") {
       dateGte.setDate(dateGte.getDate() - 1);
     } else if (period === "week") {
       dateGte.setDate(dateGte.getDate() - 7);
+    } else if (period === "thisWeek") {
+      const dayOfWeek = dateGte.getDay();
+      const diff = dateGte.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+      dateGte.setDate(diff);
+      dateGte.setHours(0, 0, 0, 0);
     } else if (period === "month") {
       dateGte.setMonth(dateGte.getMonth() - 1);
+    } else if (period === "thisMonth") {
+      dateGte.setDate(1);
+      dateGte.setHours(0, 0, 0, 0);
     } else if (period === "year") {
       dateGte.setFullYear(dateGte.getFullYear() - 1);
+    } else if (period === "thisYear") {
+      dateGte.setMonth(0);
+      dateGte.setDate(1);
+      dateGte.setHours(0, 0, 0, 0);
     }
 
-    filter.closedAt = { $gte: dateGte };
+    filter.closedAt = dateLte ? { $gte: dateGte, $lte: dateLte } : { $gte: dateGte };
 
     console.log("📊 Filter:", JSON.stringify(filter, null, 2));
-    console.log("📅 Date Range:", { from: dateGte, to: now });
+    console.log("📅 Date Range:", { from: dateGte, to: dateLte || now });
 
     // DIRECT QUERY - Simple find without complex population
     const reports = await EndOfDayReport.find(filter)

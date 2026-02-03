@@ -165,20 +165,50 @@ export default function CategoriesSales() {
         // Time range filter
         const txDate = new Date(tx.createdAt);
         const today = new Date();
-        const daysDiff = Math.floor((today - txDate) / (1000 * 60 * 60 * 24));
+        today.setHours(0, 0, 0, 0);
+        const txDateNormalized = new Date(txDate);
+        txDateNormalized.setHours(0, 0, 0, 0);
+        const daysDiff = Math.floor((today - txDateNormalized) / (1000 * 60 * 60 * 24));
+        
+        // Handle special time ranges
+        if (timeRange === "today") {
+          return daysDiff === 0;
+        } else if (timeRange === "yesterday") {
+          return daysDiff === 1;
+        } else if (timeRange === "thisWeek") {
+          const dayOfWeek = today.getDay();
+          const weekStart = new Date(today);
+          weekStart.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+          return txDateNormalized >= weekStart;
+        } else if (timeRange === "thisMonth") {
+          const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+          return txDateNormalized >= monthStart;
+        } else if (timeRange === "lastWeek") {
+          const dayOfWeek = today.getDay();
+          const lastWeekStart = new Date(today);
+          lastWeekStart.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1) - 7);
+          const lastWeekEnd = new Date(lastWeekStart);
+          lastWeekEnd.setDate(lastWeekStart.getDate() + 6);
+          return txDateNormalized >= lastWeekStart && txDateNormalized <= lastWeekEnd;
+        } else if (timeRange === "lastMonth") {
+          const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+          const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+          return txDateNormalized >= lastMonthStart && txDateNormalized <= lastMonthEnd;
+        } else if (timeRange === "thisYear") {
+          const yearStart = new Date(today.getFullYear(), 0, 1);
+          return txDateNormalized >= yearStart;
+        } else if (timeRange === "lastYear") {
+          const lastYearStart = new Date(today.getFullYear() - 1, 0, 1);
+          const lastYearEnd = new Date(today.getFullYear() - 1, 11, 31);
+          return txDateNormalized >= lastYearStart && txDateNormalized <= lastYearEnd;
+        }
         
         const daysMap = {
-          today: 0,
-          yesterday: 1,
           last7: 7,
           last14: 14,
           last30: 30,
           last60: 60,
           last90: 90,
-          thisWeek: 7,
-          thisMonth: 30,
-          lastWeek: 14,
-          lastMonth: 60,
           last365: 365,
         };
         
@@ -312,9 +342,10 @@ export default function CategoriesSales() {
                 <option value="last90">Last 90 Days</option>
                 <option value="thisWeek">This Week</option>
                 <option value="thisMonth">This Month</option>
+                <option value="thisYear">This Year</option>
                 <option value="lastWeek">Last Week</option>
                 <option value="lastMonth">Last Month</option>
-                <option value="last365">Last Year</option>
+                <option value="lastYear">Last Year</option>
               </select>
             </div>
 

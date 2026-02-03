@@ -40,6 +40,7 @@ export default function EndOfDayReporting() {
   const [selectedLocation, setSelectedLocation] = useState("All");
   const [locations, setLocations] = useState([]);
   const [locationMap, setLocationMap] = useState({}); // Map location names to IDs
+  const [expandedReportId, setExpandedReportId] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -189,10 +190,15 @@ export default function EndOfDayReporting() {
                 onChange={(e) => setPeriod(e.target.value)}
                 className="form-select"
               >
+                <option value="today">Today</option>
+                <option value="yesterday">Yesterday</option>
                 <option value="day">Last Day</option>
                 <option value="week">Last 7 Days</option>
+                <option value="thisWeek">This Week</option>
                 <option value="month">Last Month</option>
+                <option value="thisMonth">This Month</option>
                 <option value="year">Last Year</option>
+                <option value="thisYear">This Year</option>
               </select>
             </div>
 
@@ -335,6 +341,7 @@ export default function EndOfDayReporting() {
               <table className="data-table">
                 <thead>
                   <tr>
+                    <th></th>
                     <th>Date</th>
                     <th>Location</th>
                     <th>Staff</th>
@@ -346,46 +353,104 @@ export default function EndOfDayReporting() {
                 </thead>
                 <tbody>
                   {reports.slice(0, 20).map((report, idx) => (
-                    <tr
-                      key={idx}
-                      className={`${
-                        report.status === "VARIANCE_NOTED" ? "bg-yellow-50" : ""
-                      }`}
-                    >
-                      <td>
-                        {new Date(report.closedAt).toLocaleDateString()}
-                      </td>
-                      <td>
-                        {report.locationName || "Unknown"}
-                      </td>
-                      <td>{report.staffName || "N/A"}</td>
-                      <td className="text-right font-medium">
-                        ₦{(report.totalSales || 0).toLocaleString("en-NG", {
-                          maximumFractionDigits: 0,
-                        })}
-                      </td>
-                      <td className="text-right">
-                        {report.transactionCount || 0}
-                      </td>
-                      <td
-                        className={`text-right font-medium ${
-                          (report.variance || 0) >= 0 ? "text-emerald-600" : "text-red-600"
+                    <>
+                      <tr
+                        key={report._id || idx}
+                        onClick={() => setExpandedReportId(expandedReportId === (report._id || idx) ? null : (report._id || idx))}
+                        className={`cursor-pointer hover:bg-gray-50 transition ${
+                          report.status === "VARIANCE_NOTED" ? "bg-yellow-50" : ""
                         }`}
                       >
-                        ₦{(report.variance || 0).toLocaleString()}
-                      </td>
-                      <td className="text-center">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            report.status === "RECONCILED"
-                              ? "bg-emerald-100 text-emerald-800"
-                              : "bg-yellow-100 text-yellow-800"
+                        <td className="text-center w-8">
+                          <span className={`inline-block transition-transform ${expandedReportId === (report._id || idx) ? "rotate-90" : ""}`}>
+                            ▶
+                          </span>
+                        </td>
+                        <td>
+                          {new Date(report.closedAt).toLocaleDateString()}
+                        </td>
+                        <td>
+                          {report.locationName || "Unknown"}
+                        </td>
+                        <td>{report.staffName || "N/A"}</td>
+                        <td className="text-right font-medium">
+                          ₦{(report.totalSales || 0).toLocaleString("en-NG", {
+                            maximumFractionDigits: 0,
+                          })}
+                        </td>
+                        <td className="text-right">
+                          {report.transactionCount || 0}
+                        </td>
+                        <td
+                          className={`text-right font-medium ${
+                            (report.variance || 0) >= 0 ? "text-emerald-600" : "text-red-600"
                           }`}
                         >
-                          {report.status === "RECONCILED" ? "✅ Reconciled" : "⚠️ Variance"}
-                        </span>
-                      </td>
-                    </tr>
+                          ₦{(report.variance || 0).toLocaleString()}
+                        </td>
+                        <td className="text-center">
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              report.status === "RECONCILED"
+                                ? "bg-emerald-100 text-emerald-800"
+                                : "bg-yellow-100 text-yellow-800"
+                            }`}
+                          >
+                            {report.status === "RECONCILED" ? "✅ Reconciled" : "⚠️ Variance"}
+                          </span>
+                        </td>
+                      </tr>
+                      {expandedReportId === (report._id || idx) && (
+                        <tr key={`details-${report._id || idx}`} className="bg-gray-50">
+                          <td colSpan={8} className="px-6 py-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                              {/* Opening Info */}
+                              <div>
+                                <h4 className="font-semibold text-gray-800 mb-2">Opening Info</h4>
+                                <div className="space-y-1 text-sm">
+                                  <p><span className="text-gray-500">Opened At:</span> {report.openedAt ? new Date(report.openedAt).toLocaleString() : "N/A"}</p>
+                                  <p><span className="text-gray-500">Opening Balance:</span> ₦{(report.openingBalance || 0).toLocaleString()}</p>
+                                </div>
+                              </div>
+                              
+                              {/* Closing Info */}
+                              <div>
+                                <h4 className="font-semibold text-gray-800 mb-2">Closing Info</h4>
+                                <div className="space-y-1 text-sm">
+                                  <p><span className="text-gray-500">Closed At:</span> {report.closedAt ? new Date(report.closedAt).toLocaleString() : "N/A"}</p>
+                                  <p><span className="text-gray-500">Physical Count:</span> ₦{(report.physicalCount || 0).toLocaleString()}</p>
+                                  <p><span className="text-gray-500">Expected Balance:</span> ₦{(report.expectedClosingBalance || 0).toLocaleString()}</p>
+                                </div>
+                              </div>
+                              
+                              {/* Tender Breakdown */}
+                              <div>
+                                <h4 className="font-semibold text-gray-800 mb-2">Tender Breakdown</h4>
+                                <div className="space-y-1 text-sm">
+                                  {report.tenderBreakdown && Object.entries(report.tenderBreakdown).length > 0 ? (
+                                    Object.entries(report.tenderBreakdown).map(([tender, amount]) => (
+                                      <p key={tender}>
+                                        <span className="text-gray-500">{tender}:</span> ₦{(amount || 0).toLocaleString()}
+                                      </p>
+                                    ))
+                                  ) : (
+                                    <p className="text-gray-400">No breakdown available</p>
+                                  )}
+                                </div>
+                              </div>
+                              
+                              {/* Notes */}
+                              {report.closingNotes && (
+                                <div className="md:col-span-3">
+                                  <h4 className="font-semibold text-gray-800 mb-2">Closing Notes</h4>
+                                  <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">{report.closingNotes}</p>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
                   ))}
                 </tbody>
               </table>

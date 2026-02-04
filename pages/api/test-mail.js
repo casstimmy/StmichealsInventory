@@ -38,13 +38,14 @@ export default async function handler(req, res) {
 
     console.log('[TEST MAIL] Testing mail system and generating daily report...');
     
-    const { FROM_EMAIL } = process.env;
-    console.log('[TEST MAIL] ENV:', { FROM_EMAIL });
+    const { FROM_EMAIL, EMAIL_USER, EMAIL_PASS } = process.env;
+    console.log('[TEST MAIL] ENV:', { FROM_EMAIL, EMAIL_USER });
     
-    if (!FROM_EMAIL) {
-      console.log('[TEST MAIL] Missing FROM_EMAIL');
+    if (!EMAIL_USER || !EMAIL_PASS) {
+      console.log('[TEST MAIL] Missing email credentials');
       return res.status(500).json({
-        error: "Missing FROM_EMAIL in .env",
+        error: "Missing EMAIL_USER or EMAIL_PASS in .env",
+        hint: "Check your Gmail credentials and app password",
       });
     }
 
@@ -220,13 +221,17 @@ export default async function handler(req, res) {
       </div>
     `;
 
-    // Create transporter
+    // Create transporter with same config as salary-mail.js (working configuration)
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false,
       auth: {
-        user: process.env.EMAIL_USER || FROM_EMAIL,
-        pass: process.env.EMAIL_PASSWORD || process.env.EMAIL_PASS,
+        user: EMAIL_USER,
+        pass: EMAIL_PASS,
       },
+      connectionTimeout: 10000,
+      socketTimeout: 10000,
     });
 
     const testEmailTo = process.env.TEST_EMAIL || FROM_EMAIL;

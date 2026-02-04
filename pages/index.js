@@ -219,17 +219,35 @@ export default function Home() {
     ],
   };
 
+  const handleTestMail = async () => {
+    try {
+      const response = await apiClient.post("/api/test-mail");
+      alert(`✅ Test email sent successfully!\n\nSent to: ${response.data.sentTo}`);
+    } catch (error) {
+      alert(`❌ Failed to send test email\n\n${error.response?.data?.error || error.message}`);
+    }
+  };
+
   return (
       <div className="page-container">
         {/* Header */}
         <header className="page-header flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h1 className="page-title">Welcome {selectedUser}</h1>
-          <button
-            className="btn-action-primary w-full sm:w-auto"
-            onClick={() => router.push("/products/new")}
-          >
-            + Add Product
-          </button>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <button
+              className="btn-action-primary w-full sm:w-auto"
+              onClick={() => router.push("/products/new")}
+            >
+              + Add Product
+            </button>
+            <button
+              className="btn-action-secondary w-full sm:w-auto"
+              onClick={handleTestMail}
+              title="Test mail system configuration"
+            >
+              📧 Test Mail
+            </button>
+          </div>
         </header>
 
         {/* Filters */}

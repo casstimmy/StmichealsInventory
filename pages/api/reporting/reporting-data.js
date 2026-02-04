@@ -49,7 +49,16 @@ export default async function handler(req, res) {
     if (cached) return res.json(cached);
 
     const now = new Date();
-    const cutoffDate = subDays(now, Number(days));
+    let cutoffDate = subDays(now, Number(days));
+    
+    // For "Today" (days=0), set cutoff to start of today
+    if (Number(days) === 0) {
+      cutoffDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    }
+    // For "Yesterday" (days=1), set cutoff to start of yesterday and end before today
+    else if (Number(days) === 1) {
+      cutoffDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+    }
 
     /* ---------------------------------------------
        PERIOD FORMAT

@@ -4,23 +4,31 @@ import EndOfDayReport from "@/models/EndOfDayReport";
 import Product from "@/models/Product";
 import Store from "@/models/Store";
 import StockMovement from "@/models/StockMovement";
+import jwt from "jsonwebtoken";
 
 export default async function handler(req, res) {
   try {
-    // Auth check for production
+    // Auth check - Allow JWT or CRON_SECRET
     if (process.env.NODE_ENV === "production") {
       const key = req.query.key;
-      console.log("[TEST MAIL] Received key:", key);
-      console.log("[TEST MAIL] Server CRON_SECRET:", process.env.CRON_SECRET);
-      if (key && key === process.env.CRON_SECRET) {
-        // Allow
-      } else {
-        const auth = req.headers.authorization;
-        console.log("[TEST MAIL] Received Authorization header:", auth);
-        if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-          console.log("[TEST MAIL] 401 Unauthorized triggered");
-          return res.status(401).send("Unauthorized");
+      const auth = req.headers.authorization;
+
+      // Check for CRON_SECRET in query or header
+      if (key === process.env.CRON_SECRET || auth === `Bearer ${process.env.CRON_SECRET}`) {
+        console.log("[TEST MAIL] ✅ Authorized via CRON_SECRET");
+      } else if (auth && auth.startsWith("Bearer ")) {
+        // Verify JWT token for admin users
+        try {
+          const token = auth.substring(7); // Remove "Bearer " prefix
+          jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
+          console.log("[TEST MAIL] ✅ Authorized via JWT token");
+        } catch (tokenErr) {
+          console.log("[TEST MAIL] ❌ Invalid JWT token:", tokenErr.message);
+          return res.status(401).json({ error: "Unauthorized" });
         }
+      } else {
+        console.log("[TEST MAIL] ❌ No valid authorization");
+        return res.status(401).json({ error: "Unauthorized" });
       }
     }
 

@@ -243,9 +243,9 @@ export default function Home() {
             <button
               className="btn-action-secondary w-full sm:w-auto"
               onClick={handleTestMail}
-              title="Test mail system configuration"
+              title="Send daily mail report"
             >
-              📧 Test Mail
+              📧 Mail Report
             </button>
           </div>
         </header>

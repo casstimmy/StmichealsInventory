@@ -3,7 +3,8 @@ import { mongooseConnect } from "@/lib/mongoose";
 import EndOfDayReport from "@/models/EndOfDayReport";
 import Product from "@/models/Product";
 import Store from "@/models/Store";
-import StockMovement from "@/models/StockMovement";
+import Transaction from "@/models/Transactions";
+import Expense from "@/models/Expense";
 import jwt from "jsonwebtoken";
 
 export default async function handler(req, res) {
@@ -19,7 +20,7 @@ export default async function handler(req, res) {
       } else if (auth && auth.startsWith("Bearer ")) {
         // Verify JWT token for admin users
         try {
-          const token = auth.substring(7); // Remove "Bearer " prefix
+          const token = auth.substring(7);
           jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
           console.log("[TEST MAIL] ✅ Authorized via JWT token");
         } catch (tokenErr) {
@@ -36,7 +37,7 @@ export default async function handler(req, res) {
       return res.status(405).json({ error: "Method not allowed" });
     }
 
-    console.log('[TEST MAIL] Testing mail system and generating daily report...');
+    console.log('[TEST MAIL] Generating comprehensive daily report...');
     
     const { FROM_EMAIL, EMAIL_USER, EMAIL_PASS } = process.env;
     console.log('[TEST MAIL] ENV:', { FROM_EMAIL, EMAIL_USER });
@@ -53,175 +54,483 @@ export default async function handler(req, res) {
     await mongooseConnect();
     console.log('[TEST MAIL] Connected to MongoDB');
 
-    // Get today's EOD data
+    // Get today's date range
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
+    // =====================
+    // FETCH ALL DATA
+    // =====================
+
+    // 1. Get Store with locations
+    const stores = await Store.find().lean();
+    const storesMap = {};
+    const locationsMap = {};
+    stores.forEach(store => {
+      storesMap[store._id.toString()] = store;
+      if (store.locations) {
+        store.locations.forEach(loc => {
+          locationsMap[loc._id.toString()] = loc.name;
+          locationsMap[loc.name] = loc.name; // Also map by name
+        });
+      }
+    });
+
+    // Get all location names for report
+    const allLocations = [];
+    stores.forEach(store => {
+      if (store.locations) {
+        store.locations.forEach(loc => {
+          if (loc.isActive !== false) {
+            allLocations.push({ id: loc._id.toString(), name: loc.name });
+          }
+        });
+      }
+    });
+
+    // 2. Get EOD reports for today
     const eodReports = await EndOfDayReport.find({
       closedAt: { $gte: today, $lt: tomorrow }
     }).lean();
+    console.log(`[TEST MAIL] Found ${eodReports.length} EOD reports`);
 
-    console.log(`[TEST MAIL] Found ${eodReports.length} EOD reports for today`);
+    // 3. Get transactions for today
+    const transactions = await Transaction.find({
+      createdAt: { $gte: today, $lt: tomorrow },
+      status: "completed"
+    }).lean();
+    console.log(`[TEST MAIL] Found ${transactions.length} transactions`);
 
-    // Get Store with locations
-    const stores = await Store.find().select("storeName locations").lean();
-    const storesMap = {};
-    stores.forEach(store => {
-      storesMap[store._id.toString()] = store;
-    });
+    // 4. Get expenses for today
+    const expenses = await Expense.find({
+      $or: [
+        { createdAt: { $gte: today, $lt: tomorrow } },
+        { expenseDate: { $gte: today, $lt: tomorrow } }
+      ]
+    }).lean();
+    console.log(`[TEST MAIL] Found ${expenses.length} expenses`);
 
-    // Enrich EOD reports with location names
-    const enrichedEodReports = eodReports.map(report => {
+    // 5. Get all products for stock report
+    const allProducts = await Product.find().lean();
+    console.log(`[TEST MAIL] Found ${allProducts.length} products`);
+
+    // =====================
+    // PROCESS EOD DATA
+    // =====================
+    const eodByLocation = {};
+    const tenderBreakdownByLocation = {};
+
+    eodReports.forEach(report => {
+      // Get location name
+      let locationName = "Unknown";
       const store = storesMap[report.storeId?.toString()];
       if (store && store.locations && report.locationId) {
         const location = store.locations.find(
           loc => loc._id.toString() === report.locationId.toString()
         );
-        if (location) {
-          return {
-            ...report,
-            locationName: location.name,
-          };
-        }
+        if (location) locationName = location.name;
       }
-      return {
-        ...report,
-        locationName: "Unknown",
+
+      // Aggregate EOD by location
+      if (!eodByLocation[locationName]) {
+        eodByLocation[locationName] = {
+          location: locationName,
+          totalSales: 0,
+          transactionCount: 0,
+          variance: 0,
+          openingBalance: 0,
+          closingBalance: 0,
+        };
+      }
+      eodByLocation[locationName].totalSales += report.totalSales || 0;
+      eodByLocation[locationName].transactionCount += report.transactionCount || 0;
+      eodByLocation[locationName].variance += report.variance || 0;
+      eodByLocation[locationName].openingBalance += report.openingBalance || 0;
+      eodByLocation[locationName].closingBalance += report.expectedClosingBalance || 0;
+
+      // Process tender breakdown
+      if (!tenderBreakdownByLocation[locationName]) {
+        tenderBreakdownByLocation[locationName] = {};
+      }
+      if (report.tenderBreakdown) {
+        // Handle both Map and Object formats
+        const tenders = report.tenderBreakdown instanceof Map 
+          ? Object.fromEntries(report.tenderBreakdown) 
+          : report.tenderBreakdown;
+        
+        Object.entries(tenders).forEach(([tender, amount]) => {
+          tenderBreakdownByLocation[locationName][tender] = 
+            (tenderBreakdownByLocation[locationName][tender] || 0) + Number(amount || 0);
+        });
+      }
+    });
+
+    // =====================
+    // PROCESS TRANSACTIONS FOR SALES BY LOCATION
+    // =====================
+    const salesByLocation = {};
+    const tenderTotals = {};
+
+    transactions.forEach(tx => {
+      const locName = locationsMap[tx.location] || tx.location || "Unknown";
+      
+      if (!salesByLocation[locName]) {
+        salesByLocation[locName] = {
+          location: locName,
+          totalSales: 0,
+          transactionCount: 0,
+          itemsSold: 0,
+        };
+      }
+      salesByLocation[locName].totalSales += tx.total || 0;
+      salesByLocation[locName].transactionCount += 1;
+      
+      // Count items sold
+      if (tx.items && Array.isArray(tx.items)) {
+        tx.items.forEach(item => {
+          salesByLocation[locName].itemsSold += item.qty || item.quantity || 0;
+        });
+      }
+
+      // Aggregate tender totals
+      const tender = tx.tenderType || "CASH";
+      tenderTotals[tender] = (tenderTotals[tender] || 0) + (tx.total || 0);
+    });
+
+    // =====================
+    // PROCESS EXPENSES BY LOCATION
+    // =====================
+    const expensesByLocation = {};
+    let totalExpenses = 0;
+
+    expenses.forEach(exp => {
+      const locName = exp.locationName || "Unassigned";
+      
+      if (!expensesByLocation[locName]) {
+        expensesByLocation[locName] = {
+          location: locName,
+          totalAmount: 0,
+          count: 0,
+          categories: {},
+        };
+      }
+      expensesByLocation[locName].totalAmount += exp.amount || 0;
+      expensesByLocation[locName].count += 1;
+      totalExpenses += exp.amount || 0;
+
+      // Track by category
+      const catName = exp.categoryName || "Uncategorized";
+      expensesByLocation[locName].categories[catName] = 
+        (expensesByLocation[locName].categories[catName] || 0) + (exp.amount || 0);
+    });
+
+    // =====================
+    // PROCESS STOCK BY LOCATION
+    // =====================
+    const stockByLocation = {};
+    
+    // Initialize all locations
+    allLocations.forEach(loc => {
+      stockByLocation[loc.name] = {
+        location: loc.name,
+        totalUnits: 0,
+        totalCostValue: 0,
+        totalSaleValue: 0,
+        productCount: 0,
+        lowStockItems: 0,
+        outOfStockItems: 0,
       };
     });
 
-    // Calculate EOD summary
-    const totalSales = enrichedEodReports.reduce((sum, r) => sum + (r.totalSales || 0), 0);
-    const totalTransactions = enrichedEodReports.reduce((sum, r) => sum + (r.transactionCount || 0), 0);
-    const totalVariance = enrichedEodReports.reduce((sum, r) => sum + (r.variance || 0), 0);
-
-    // Get stock by location
-    const stockByLocation = {};
-    const allProducts = await Product.find().lean();
-    
-    stores.forEach(store => {
-      if (store.locations) {
-        store.locations.forEach(location => {
-          const locId = location._id.toString();
-          stockByLocation[location.name] = {
-            location: location.name,
-            totalItems: 0,
-            lowStockItems: 0,
-            outOfStockItems: 0,
-          };
-        });
-      }
-    });
-
-    // Count products by location
+    // Process products - check for inventory by location
     allProducts.forEach(product => {
+      const costPrice = product.costPrice || 0;
+      const salePrice = product.salePriceIncTax || 0;
+      const minStock = product.minStock || 5;
+
+      // Check if product has location-based inventory
       if (product.inventory && typeof product.inventory === 'object') {
         Object.entries(product.inventory).forEach(([locId, qty]) => {
-          // Find location name from stores
-          for (const store of stores) {
-            if (store.locations) {
-              const location = store.locations.find(l => l._id.toString() === locId);
-              if (location) {
-                const locName = location.name;
-                if (stockByLocation[locName]) {
-                  stockByLocation[locName].totalItems += Number(qty || 0);
-                  
-                  const lowThreshold = product.lowStockThreshold || 10;
-                  if (qty > 0 && qty <= lowThreshold) {
-                    stockByLocation[locName].lowStockItems++;
-                  }
-                  if (qty === 0) {
-                    stockByLocation[locName].outOfStockItems++;
-                  }
-                }
-                break;
-              }
+          const locName = locationsMap[locId];
+          if (locName && stockByLocation[locName]) {
+            const quantity = Number(qty) || 0;
+            stockByLocation[locName].totalUnits += quantity;
+            stockByLocation[locName].totalCostValue += quantity * costPrice;
+            stockByLocation[locName].totalSaleValue += quantity * salePrice;
+            stockByLocation[locName].productCount += 1;
+            
+            if (quantity === 0) {
+              stockByLocation[locName].outOfStockItems += 1;
+            } else if (quantity <= minStock) {
+              stockByLocation[locName].lowStockItems += 1;
             }
           }
         });
+      } else {
+        // Single location or no location tracking - add to first location
+        const qty = product.quantity || 0;
+        if (allLocations.length > 0 && stockByLocation[allLocations[0].name]) {
+          stockByLocation[allLocations[0].name].totalUnits += qty;
+          stockByLocation[allLocations[0].name].totalCostValue += qty * costPrice;
+          stockByLocation[allLocations[0].name].totalSaleValue += qty * salePrice;
+          stockByLocation[allLocations[0].name].productCount += 1;
+          
+          if (qty === 0) {
+            stockByLocation[allLocations[0].name].outOfStockItems += 1;
+          } else if (qty <= minStock) {
+            stockByLocation[allLocations[0].name].lowStockItems += 1;
+          }
+        }
       }
     });
 
-    // Create comprehensive HTML report
+    // =====================
+    // CALCULATE TOTALS
+    // =====================
+    const totalSales = Object.values(salesByLocation).reduce((sum, l) => sum + l.totalSales, 0);
+    const totalTransactionCount = Object.values(salesByLocation).reduce((sum, l) => sum + l.transactionCount, 0);
+    const totalVariance = Object.values(eodByLocation).reduce((sum, l) => sum + l.variance, 0);
+    const totalStockValue = Object.values(stockByLocation).reduce((sum, l) => sum + l.totalSaleValue, 0);
+    const totalStockCost = Object.values(stockByLocation).reduce((sum, l) => sum + l.totalCostValue, 0);
+
+    // =====================
+    // BUILD HTML REPORT
+    // =====================
+    const formatMoney = (val) => `₦${Number(val || 0).toLocaleString('en-NG', { minimumFractionDigits: 0 })}`;
+
     const mailHtml = `
-      <div style="font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; max-width: 800px; margin: 0 auto;">
-        <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-          <h1 style="color: #1f2937; border-bottom: 3px solid #059669; padding-bottom: 10px;">📊 Daily Business Report</h1>
-          <p style="color: #666; margin: 5px 0;"><b>Date:</b> ${today.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-          <p style="color: #666; margin: 5px 0;"><b>Generated:</b> ${new Date().toLocaleString()}</p>
+      <div style="font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; max-width: 900px; margin: 0 auto;">
+        
+        <!-- HEADER -->
+        <div style="background: linear-gradient(135deg, #1f2937 0%, #374151 100%); color: white; padding: 25px; border-radius: 10px; margin-bottom: 20px;">
+          <h1 style="margin: 0; font-size: 28px;">📊 Daily Business Report</h1>
+          <p style="margin: 10px 0 0 0; opacity: 0.9;">${today.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          <p style="margin: 5px 0 0 0; opacity: 0.7; font-size: 12px;">Generated: ${new Date().toLocaleString()}</p>
         </div>
 
-        <!-- EOD SUMMARY -->
-        <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #3b82f6;">
-          <h2 style="color: #3b82f6; margin-top: 0;">💰 End-of-Day Summary</h2>
-          ${enrichedEodReports.length === 0 ? 
-            '<p style="color: #999;">No EOD reports available for today</p>' :
-            `
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+        <!-- QUICK SUMMARY CARDS -->
+        <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 150px; background: white; padding: 20px; border-radius: 10px; border-left: 4px solid #059669;">
+            <p style="margin: 0; color: #666; font-size: 12px;">TOTAL SALES</p>
+            <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: #059669;">${formatMoney(totalSales)}</p>
+          </div>
+          <div style="flex: 1; min-width: 150px; background: white; padding: 20px; border-radius: 10px; border-left: 4px solid #3b82f6;">
+            <p style="margin: 0; color: #666; font-size: 12px;">TRANSACTIONS</p>
+            <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: #3b82f6;">${totalTransactionCount}</p>
+          </div>
+          <div style="flex: 1; min-width: 150px; background: white; padding: 20px; border-radius: 10px; border-left: 4px solid #dc2626;">
+            <p style="margin: 0; color: #666; font-size: 12px;">TOTAL EXPENSES</p>
+            <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: #dc2626;">${formatMoney(totalExpenses)}</p>
+          </div>
+          <div style="flex: 1; min-width: 150px; background: white; padding: 20px; border-radius: 10px; border-left: 4px solid #f59e0b;">
+            <p style="margin: 0; color: #666; font-size: 12px;">STOCK VALUE</p>
+            <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: #f59e0b;">${formatMoney(totalStockValue)}</p>
+          </div>
+        </div>
+
+        <!-- EOD SUMMARY BY LOCATION -->
+        <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #3b82f6;">
+          <h2 style="color: #3b82f6; margin-top: 0; font-size: 18px;">💰 End-of-Day Summary by Location</h2>
+          ${Object.keys(eodByLocation).length === 0 ? 
+            '<p style="color: #999; font-style: italic;">No EOD reports available for today</p>' :
+            `<table style="width: 100%; border-collapse: collapse;">
               <thead>
                 <tr style="background: #f0f9ff;">
-                  <th style="padding: 10px; text-align: left; border-bottom: 2px solid #3b82f6;">Location</th>
-                  <th style="padding: 10px; text-align: right; border-bottom: 2px solid #3b82f6;">Sales</th>
-                  <th style="padding: 10px; text-align: right; border-bottom: 2px solid #3b82f6;">Transactions</th>
-                  <th style="padding: 10px; text-align: right; border-bottom: 2px solid #3b82f6;">Variance</th>
+                  <th style="padding: 12px; text-align: left; border-bottom: 2px solid #3b82f6; font-size: 13px;">Location</th>
+                  <th style="padding: 12px; text-align: right; border-bottom: 2px solid #3b82f6; font-size: 13px;">Sales</th>
+                  <th style="padding: 12px; text-align: right; border-bottom: 2px solid #3b82f6; font-size: 13px;">Transactions</th>
+                  <th style="padding: 12px; text-align: right; border-bottom: 2px solid #3b82f6; font-size: 13px;">Variance</th>
                 </tr>
               </thead>
               <tbody>
-                ${enrichedEodReports.map(report => `
+                ${Object.values(eodByLocation).map(loc => `
                   <tr style="border-bottom: 1px solid #e5e7eb;">
-                    <td style="padding: 10px;">${report.locationName}</td>
-                    <td style="padding: 10px; text-align: right;"><b>₦${(report.totalSales || 0).toLocaleString('en-NG')}</b></td>
-                    <td style="padding: 10px; text-align: right;">${report.transactionCount || 0}</td>
-                    <td style="padding: 10px; text-align: right; color: ${(report.variance || 0) > 0 ? '#dc2626' : '#059669'};"><b>₦${(report.variance || 0).toLocaleString('en-NG')}</b></td>
+                    <td style="padding: 12px; font-weight: 600;">${loc.location}</td>
+                    <td style="padding: 12px; text-align: right; color: #059669; font-weight: 600;">${formatMoney(loc.totalSales)}</td>
+                    <td style="padding: 12px; text-align: right;">${loc.transactionCount}</td>
+                    <td style="padding: 12px; text-align: right; color: ${loc.variance > 0 ? '#dc2626' : loc.variance < 0 ? '#f59e0b' : '#059669'}; font-weight: 600;">${formatMoney(loc.variance)}</td>
                   </tr>
                 `).join('')}
               </tbody>
-            </table>
-            <div style="background: #f0f9ff; padding: 15px; border-radius: 6px;">
-              <p style="margin: 5px 0;"><b>Total Sales:</b> ₦${totalSales.toLocaleString('en-NG')}</p>
-              <p style="margin: 5px 0;"><b>Total Transactions:</b> ${totalTransactions}</p>
-              <p style="margin: 5px 0;"><b>Total Variance:</b> <span style="color: ${totalVariance > 0 ? '#dc2626' : '#059669'};">₦${totalVariance.toLocaleString('en-NG')}</span></p>
-            </div>
-            `
+            </table>`
           }
         </div>
 
+        <!-- TENDER BREAKDOWN BY LOCATION -->
+        <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #8b5cf6;">
+          <h2 style="color: #8b5cf6; margin-top: 0; font-size: 18px;">💳 Tender Breakdown by Location</h2>
+          ${Object.keys(tenderBreakdownByLocation).length === 0 ? 
+            '<p style="color: #999; font-style: italic;">No tender data available for today</p>' :
+            Object.entries(tenderBreakdownByLocation).map(([location, tenders]) => `
+              <div style="margin-bottom: 15px; padding: 15px; background: #f9fafb; border-radius: 8px;">
+                <h3 style="margin: 0 0 10px 0; color: #374151; font-size: 14px;">📍 ${location}</h3>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                  ${Object.entries(tenders).map(([tender, amount]) => `
+                    <div style="background: white; padding: 10px 15px; border-radius: 6px; border: 1px solid #e5e7eb;">
+                      <span style="color: #666; font-size: 12px;">${tender}</span>
+                      <span style="display: block; font-weight: bold; color: #1f2937;">${formatMoney(amount)}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            `).join('')
+          }
+          
+          <!-- Total Tender Summary -->
+          ${Object.keys(tenderTotals).length > 0 ? `
+            <div style="margin-top: 15px; padding: 15px; background: #ede9fe; border-radius: 8px;">
+              <h3 style="margin: 0 0 10px 0; color: #6d28d9; font-size: 14px;">📊 Overall Tender Totals</h3>
+              <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                ${Object.entries(tenderTotals).map(([tender, amount]) => `
+                  <div style="background: white; padding: 10px 15px; border-radius: 6px; border: 1px solid #c4b5fd;">
+                    <span style="color: #666; font-size: 12px;">${tender}</span>
+                    <span style="display: block; font-weight: bold; color: #6d28d9;">${formatMoney(amount)}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+
         <!-- STOCK REPORT BY LOCATION -->
-        <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #f59e0b;">
-          <h2 style="color: #f59e0b; margin-top: 0;">📦 Stock Report by Location</h2>
+        <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #f59e0b;">
+          <h2 style="color: #f59e0b; margin-top: 0; font-size: 18px;">📦 Stock Report by Location</h2>
           <table style="width: 100%; border-collapse: collapse;">
             <thead>
               <tr style="background: #fffbeb;">
-                <th style="padding: 10px; text-align: left; border-bottom: 2px solid #f59e0b;">Location</th>
-                <th style="padding: 10px; text-align: right; border-bottom: 2px solid #f59e0b;">Total Items</th>
-                <th style="padding: 10px; text-align: right; border-bottom: 2px solid #f59e0b;">Low Stock</th>
-                <th style="padding: 10px; text-align: right; border-bottom: 2px solid #f59e0b;">Out of Stock</th>
+                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #f59e0b; font-size: 13px;">Location</th>
+                <th style="padding: 12px; text-align: right; border-bottom: 2px solid #f59e0b; font-size: 13px;">Units</th>
+                <th style="padding: 12px; text-align: right; border-bottom: 2px solid #f59e0b; font-size: 13px;">Cost Value</th>
+                <th style="padding: 12px; text-align: right; border-bottom: 2px solid #f59e0b; font-size: 13px;">Sale Value</th>
+                <th style="padding: 12px; text-align: right; border-bottom: 2px solid #f59e0b; font-size: 13px;">Low Stock</th>
+                <th style="padding: 12px; text-align: right; border-bottom: 2px solid #f59e0b; font-size: 13px;">Out of Stock</th>
               </tr>
             </thead>
             <tbody>
-              ${Object.values(stockByLocation).map(stock => `
+              ${Object.values(stockByLocation).filter(s => s.productCount > 0).map(stock => `
                 <tr style="border-bottom: 1px solid #e5e7eb;">
-                  <td style="padding: 10px;"><b>${stock.location}</b></td>
-                  <td style="padding: 10px; text-align: right;">${stock.totalItems.toLocaleString('en-NG')}</td>
-                  <td style="padding: 10px; text-align: right; color: ${stock.lowStockItems > 0 ? '#f59e0b' : '#059669'};"><b>${stock.lowStockItems}</b></td>
-                  <td style="padding: 10px; text-align: right; color: ${stock.outOfStockItems > 0 ? '#dc2626' : '#059669'};"><b>${stock.outOfStockItems}</b></td>
+                  <td style="padding: 12px; font-weight: 600;">${stock.location}</td>
+                  <td style="padding: 12px; text-align: right;">${stock.totalUnits.toLocaleString()}</td>
+                  <td style="padding: 12px; text-align: right; color: #666;">${formatMoney(stock.totalCostValue)}</td>
+                  <td style="padding: 12px; text-align: right; color: #059669; font-weight: 600;">${formatMoney(stock.totalSaleValue)}</td>
+                  <td style="padding: 12px; text-align: right; color: ${stock.lowStockItems > 0 ? '#f59e0b' : '#059669'}; font-weight: 600;">${stock.lowStockItems}</td>
+                  <td style="padding: 12px; text-align: right; color: ${stock.outOfStockItems > 0 ? '#dc2626' : '#059669'}; font-weight: 600;">${stock.outOfStockItems}</td>
                 </tr>
               `).join('')}
             </tbody>
+            <tfoot>
+              <tr style="background: #fef3c7; font-weight: bold;">
+                <td style="padding: 12px;">TOTAL</td>
+                <td style="padding: 12px; text-align: right;">${Object.values(stockByLocation).reduce((s, l) => s + l.totalUnits, 0).toLocaleString()}</td>
+                <td style="padding: 12px; text-align: right;">${formatMoney(totalStockCost)}</td>
+                <td style="padding: 12px; text-align: right; color: #059669;">${formatMoney(totalStockValue)}</td>
+                <td style="padding: 12px; text-align: right;">${Object.values(stockByLocation).reduce((s, l) => s + l.lowStockItems, 0)}</td>
+                <td style="padding: 12px; text-align: right;">${Object.values(stockByLocation).reduce((s, l) => s + l.outOfStockItems, 0)}</td>
+              </tr>
+            </tfoot>
           </table>
+        </div>
+
+        <!-- SALES BY LOCATION -->
+        <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #059669;">
+          <h2 style="color: #059669; margin-top: 0; font-size: 18px;">🛒 Sales by Location (Today)</h2>
+          ${Object.keys(salesByLocation).length === 0 ? 
+            '<p style="color: #999; font-style: italic;">No sales recorded for today</p>' :
+            `<table style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="background: #ecfdf5;">
+                  <th style="padding: 12px; text-align: left; border-bottom: 2px solid #059669; font-size: 13px;">Location</th>
+                  <th style="padding: 12px; text-align: right; border-bottom: 2px solid #059669; font-size: 13px;">Sales Total</th>
+                  <th style="padding: 12px; text-align: right; border-bottom: 2px solid #059669; font-size: 13px;">Transactions</th>
+                  <th style="padding: 12px; text-align: right; border-bottom: 2px solid #059669; font-size: 13px;">Items Sold</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${Object.values(salesByLocation).map(loc => `
+                  <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 12px; font-weight: 600;">${loc.location}</td>
+                    <td style="padding: 12px; text-align: right; color: #059669; font-weight: 600;">${formatMoney(loc.totalSales)}</td>
+                    <td style="padding: 12px; text-align: right;">${loc.transactionCount}</td>
+                    <td style="padding: 12px; text-align: right;">${loc.itemsSold}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>`
+          }
+        </div>
+
+        <!-- EXPENSES BY LOCATION -->
+        <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #dc2626;">
+          <h2 style="color: #dc2626; margin-top: 0; font-size: 18px;">💸 Expenses by Location (Today)</h2>
+          ${Object.keys(expensesByLocation).length === 0 ? 
+            '<p style="color: #999; font-style: italic;">No expenses recorded for today</p>' :
+            `<table style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="background: #fef2f2;">
+                  <th style="padding: 12px; text-align: left; border-bottom: 2px solid #dc2626; font-size: 13px;">Location</th>
+                  <th style="padding: 12px; text-align: right; border-bottom: 2px solid #dc2626; font-size: 13px;">Total Amount</th>
+                  <th style="padding: 12px; text-align: right; border-bottom: 2px solid #dc2626; font-size: 13px;">Count</th>
+                  <th style="padding: 12px; text-align: left; border-bottom: 2px solid #dc2626; font-size: 13px;">Categories</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${Object.values(expensesByLocation).map(loc => `
+                  <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 12px; font-weight: 600;">${loc.location}</td>
+                    <td style="padding: 12px; text-align: right; color: #dc2626; font-weight: 600;">${formatMoney(loc.totalAmount)}</td>
+                    <td style="padding: 12px; text-align: right;">${loc.count}</td>
+                    <td style="padding: 12px; font-size: 12px; color: #666;">
+                      ${Object.entries(loc.categories).map(([cat, amt]) => `${cat}: ${formatMoney(amt)}`).join(', ')}
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+              <tfoot>
+                <tr style="background: #fee2e2; font-weight: bold;">
+                  <td style="padding: 12px;">TOTAL EXPENSES</td>
+                  <td style="padding: 12px; text-align: right; color: #dc2626;">${formatMoney(totalExpenses)}</td>
+                  <td style="padding: 12px; text-align: right;">${expenses.length}</td>
+                  <td style="padding: 12px;"></td>
+                </tr>
+              </tfoot>
+            </table>`
+          }
+        </div>
+
+        <!-- PROFIT SUMMARY -->
+        <div style="background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+          <h2 style="margin-top: 0; font-size: 18px;">📈 Day Summary</h2>
+          <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
+            <div>
+              <p style="margin: 0; opacity: 0.8; font-size: 12px;">GROSS SALES</p>
+              <p style="margin: 5px 0 0 0; font-size: 20px; font-weight: bold;">${formatMoney(totalSales)}</p>
+            </div>
+            <div>
+              <p style="margin: 0; opacity: 0.8; font-size: 12px;">TOTAL EXPENSES</p>
+              <p style="margin: 5px 0 0 0; font-size: 20px; font-weight: bold;">${formatMoney(totalExpenses)}</p>
+            </div>
+            <div>
+              <p style="margin: 0; opacity: 0.8; font-size: 12px;">NET POSITION</p>
+              <p style="margin: 5px 0 0 0; font-size: 20px; font-weight: bold;">${formatMoney(totalSales - totalExpenses)}</p>
+            </div>
+            <div>
+              <p style="margin: 0; opacity: 0.8; font-size: 12px;">VARIANCE</p>
+              <p style="margin: 5px 0 0 0; font-size: 20px; font-weight: bold;">${formatMoney(totalVariance)}</p>
+            </div>
+          </div>
         </div>
 
         <!-- FOOTER -->
         <div style="background: #f9fafb; padding: 15px; border-radius: 8px; text-align: center;">
-          <p style="color: #999; font-size: 12px; margin: 0;">This is an automated daily report from your Inventory Admin System</p>
-          <p style="color: #999; font-size: 12px; margin: 5px 0;">✅ Mail system is working correctly</p>
+          <p style="color: #999; font-size: 12px; margin: 0;">This is an automated daily report from St. Micheals Inventory System</p>
+          <p style="color: #059669; font-size: 12px; margin: 5px 0;">✅ Report generated successfully</p>
         </div>
       </div>
     `;
 
-    // Create transporter with same config as salary-mail.js (working configuration)
+    // Create transporter
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
       port: 587,
@@ -234,42 +543,42 @@ export default async function handler(req, res) {
       socketTimeout: 10000,
     });
 
-    const testEmailTo = process.env.TEST_EMAIL || FROM_EMAIL;
+    const testEmailTo = process.env.TEST_EMAIL || FROM_EMAIL || EMAIL_USER;
 
-    console.log("📧 Sending daily report email via Nodemailer to:", testEmailTo);
-    try {
-      const emailResponse = await transporter.sendMail({
-        from: FROM_EMAIL,
-        to: testEmailTo,
-        subject: `📊 Daily Business Report - ${today.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
-        html: mailHtml,
-      });
-      console.log("✅ Email sent successfully:", emailResponse.messageId);
-      return res.status(200).json({
-        message: "Daily report sent successfully!",
-        sentTo: testEmailTo,
-        messageId: emailResponse.messageId,
-        timestamp: new Date().toISOString(),
-        report: {
-          eodReportsCount: enrichedEodReports.length,
-          totalSales,
-          totalTransactions,
-          stockLocations: Object.keys(stockByLocation).length,
-        },
-      });
-    } catch (error) {
-      console.error("❌ Nodemailer error:", error);
-      return res.status(500).json({
-        error: "Failed to send report email",
-        details: error.message,
-      });
-    }
+    console.log("📧 Sending daily report email to:", testEmailTo);
+    
+    const emailResponse = await transporter.sendMail({
+      from: EMAIL_USER,
+      to: testEmailTo,
+      subject: `📊 Daily Business Report - ${today.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+      html: mailHtml,
+    });
+    
+    console.log("✅ Email sent successfully:", emailResponse.messageId);
+    
+    return res.status(200).json({
+      message: "Daily report sent successfully!",
+      sentTo: testEmailTo,
+      messageId: emailResponse.messageId,
+      timestamp: new Date().toISOString(),
+      summary: {
+        totalSales,
+        totalTransactions: totalTransactionCount,
+        totalExpenses,
+        netPosition: totalSales - totalExpenses,
+        stockValue: totalStockValue,
+        variance: totalVariance,
+        locationsCount: allLocations.length,
+        eodReportsCount: eodReports.length,
+      },
+    });
+
   } catch (err) {
     console.error("❌ Error generating daily report:", err);
     return res.status(500).json({
       error: "Failed to generate daily report",
       message: err.message,
-      hint: "Check EMAIL_USER/EMAIL_PASS configuration and ensure you have enabled Gmail app password",
+      hint: "Check EMAIL_USER/EMAIL_PASS configuration and database connection",
     });
   }
 }

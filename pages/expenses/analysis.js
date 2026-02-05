@@ -340,24 +340,38 @@ export default function ExpenseAnalysis() {
                 </button>
 
                 <button
-                  onClick={() =>
-                    window.open(
-                      "mailto:?subject=Expense Report&body=Please find attached the expense report."
-                    )
-                  }
+                  onClick={() => {
+                    const subject = encodeURIComponent(`Expense Report - ${new Date().toLocaleDateString()}`);
+                    const body = encodeURIComponent(
+                      `Expense Report Summary\n\n` +
+                      `Date: ${new Date().toLocaleDateString()}\n` +
+                      `Total Expenses: ₦${totalSpent.toLocaleString()}\n` +
+                      `Number of Expenses: ${filteredExpenses.length}\n\n` +
+                      `Category Breakdown:\n` +
+                      chartData.map(c => `• ${c.category}: ₦${c.amount.toLocaleString()}`).join('\n') +
+                      `\n\nGenerated from St. Micheals Inventory System`
+                    );
+                    window.open(`mailto:?subject=${subject}&body=${body}`);
+                  }}
                   className="btn-action btn-action-success flex items-center gap-2"
                 >
                   <Mail className="w-5 h-5" /> Send via Email
                 </button>
 
                 <button
-                  onClick={() =>
-                    window.open(
-                      "https://wa.me/?text=Download%20your%20expense%20report%20here:%20https://yourdomain.com/reports/ExpenseReport.pdf",
-                      "_blank"
-                    )
-                  }
-                  className="btn-action bg-gray-800 text-white hover:bg-gray-900 flex items-center gap-2"
+                  onClick={() => {
+                    const message = encodeURIComponent(
+                      `📊 *Expense Report Summary*\n\n` +
+                      `📅 Date: ${new Date().toLocaleDateString()}\n` +
+                      `💰 Total Expenses: ₦${totalSpent.toLocaleString()}\n` +
+                      `📝 Number of Expenses: ${filteredExpenses.length}\n\n` +
+                      `*Category Breakdown:*\n` +
+                      chartData.map(c => `• ${c.category}: ₦${c.amount.toLocaleString()}`).join('\n') +
+                      `\n\n_Generated from St. Micheals Inventory System_`
+                    );
+                    window.open(`https://wa.me/?text=${message}`, "_blank");
+                  }}
+                  className="btn-action bg-green-600 text-white hover:bg-green-700 flex items-center gap-2"
                 >
                   <Share2 className="w-5 h-5" /> Share on WhatsApp
                 </button>

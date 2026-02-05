@@ -50,6 +50,10 @@ export default function Home() {
 
   const [selectedLocation, setSelectedLocation] = useState("All");
   const [selectedPeriod, setSelectedPeriod] = useState("today");
+  const [customDateRange, setCustomDateRange] = useState({
+    startDate: "",
+    endDate: "",
+  });
 
   /* =======================
      FETCH DATA
@@ -101,16 +105,47 @@ export default function Home() {
     if (selectedPeriod === "today")
       return d.toDateString() === now.toDateString();
 
+    if (selectedPeriod === "yesterday") {
+      const yesterday = new Date();
+      yesterday.setDate(now.getDate() - 1);
+      return d.toDateString() === yesterday.toDateString();
+    }
+
     if (selectedPeriod === "week") {
       const weekAgo = new Date();
       weekAgo.setDate(now.getDate() - 7);
       return d >= weekAgo && d <= now;
     }
 
+    if (selectedPeriod === "lastWeek") {
+      const lastWeekStart = new Date();
+      lastWeekStart.setDate(now.getDate() - 14);
+      const lastWeekEnd = new Date();
+      lastWeekEnd.setDate(now.getDate() - 7);
+      return d >= lastWeekStart && d <= lastWeekEnd;
+    }
+
     if (selectedPeriod === "month")
       return (
         d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
       );
+
+    if (selectedPeriod === "lastMonth") {
+      const lastMonth = new Date();
+      lastMonth.setMonth(now.getMonth() - 1);
+      return (
+        d.getMonth() === lastMonth.getMonth() && d.getFullYear() === lastMonth.getFullYear()
+      );
+    }
+
+    if (selectedPeriod === "custom") {
+      if (!customDateRange.startDate || !customDateRange.endDate) return true;
+      const start = new Date(customDateRange.startDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(customDateRange.endDate);
+      end.setHours(23, 59, 59, 999);
+      return d >= start && d <= end;
+    }
 
     return true;
   };
@@ -276,10 +311,47 @@ export default function Home() {
               onChange={(e) => setSelectedPeriod(e.target.value)}
             >
               <option value="today">Today</option>
+              <option value="yesterday">Yesterday</option>
               <option value="week">This Week</option>
+              <option value="lastWeek">Last Week</option>
               <option value="month">This Month</option>
+              <option value="lastMonth">Last Month</option>
+              <option value="custom">Custom Period</option>
             </select>
           </div>
+
+          {selectedPeriod === "custom" && (
+            <>
+              <div className="form-group">
+                <label className="form-label">Start Date</label>
+                <input
+                  type="date"
+                  className="form-input"
+                  value={customDateRange.startDate}
+                  onChange={(e) =>
+                    setCustomDateRange((prev) => ({
+                      ...prev,
+                      startDate: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">End Date</label>
+                <input
+                  type="date"
+                  className="form-input"
+                  value={customDateRange.endDate}
+                  onChange={(e) =>
+                    setCustomDateRange((prev) => ({
+                      ...prev,
+                      endDate: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+            </>
+          )}
         </div>
 
         {loading ? (

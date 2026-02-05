@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import path from "path";
 import { mongooseConnect } from "@/lib/mongoose";
 import EndOfDayReport from "@/models/EndOfDayReport";
 import Product from "@/models/Product";
@@ -305,8 +306,18 @@ export default async function handler(req, res) {
         
         <!-- HEADER -->
         <div style="background: linear-gradient(135deg, #1f2937 0%, #374151 100%); color: white; padding: 25px; border-radius: 10px; margin-bottom: 20px;">
-          <h1 style="margin: 0; font-size: 28px;">📊 Daily Business Report</h1>
-          <p style="margin: 10px 0 0 0; opacity: 0.9;">${today.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          <table style="width: 100%;">
+            <tr>
+              <td style="width: 70px; vertical-align: middle;">
+                <img src="cid:businessLogo" alt="St. Micheals" style="width: 60px; height: 60px; border-radius: 8px; background: white; padding: 5px;" onerror="this.style.display='none'" />
+              </td>
+              <td style="vertical-align: middle; padding-left: 15px;">
+                <h1 style="margin: 0; font-size: 24px;">Daily Business Report</h1>
+                <p style="margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;">St. Micheals Inventory System</p>
+              </td>
+            </tr>
+          </table>
+          <p style="margin: 15px 0 0 0; opacity: 0.9;">${today.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
           <p style="margin: 5px 0 0 0; opacity: 0.7; font-size: 12px;">Generated: ${new Date().toLocaleString()}</p>
         </div>
 
@@ -547,11 +558,29 @@ export default async function handler(req, res) {
 
     console.log("📧 Sending daily report email to:", testEmailTo);
     
+    // Logo path for embedding
+    const logoPath = path.join(process.cwd(), "public/images/st-micheals-logo.png");
+    let attachments = [];
+    
+    try {
+      const fs = await import("fs");
+      if (fs.existsSync(logoPath)) {
+        attachments.push({
+          filename: "logo.png",
+          path: logoPath,
+          cid: "businessLogo",
+        });
+      }
+    } catch (logoErr) {
+      console.log("[TEST MAIL] Logo not found, sending without embedded image");
+    }
+    
     const emailResponse = await transporter.sendMail({
       from: EMAIL_USER,
       to: testEmailTo,
-      subject: `📊 Daily Business Report - ${today.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+      subject: `Daily Business Report - ${today.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} | St. Micheals`,
       html: mailHtml,
+      attachments,
     });
     
     console.log("✅ Email sent successfully:", emailResponse.messageId);

@@ -19,6 +19,12 @@ const ExpenseSchema = new Schema(
     locationId: Schema.Types.ObjectId,
     locationName: String,
 
+    staffId: {
+      type: Schema.Types.ObjectId,
+      ref: "Staff",
+    },
+    staffName: String,
+
     expenseDate: { type: Date, default: Date.now },
 
     description: String,

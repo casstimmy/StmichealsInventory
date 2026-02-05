@@ -1,7 +1,7 @@
 import ExpenseForm from "@/components/ExpenseForm";
 import Layout from "@/components/Layout";
 import { useEffect, useState } from "react";
-import { CalendarDays, CircleDollarSign, MapPin } from "lucide-react";
+import { CalendarDays, CircleDollarSign, MapPin, User } from "lucide-react";
 
 export default function ManageExpenses() {
   const [expenses, setExpenses] = useState([]);
@@ -81,6 +81,12 @@ export default function ManageExpenses() {
                         <div className="flex items-center gap-2 text-gray-700">
                           <MapPin className="w-4 h-4 text-gray-500" />
                           <span className="font-medium">{exp.location}</span>
+                        </div>
+                      )}
+                      {exp.staffName && (
+                        <div className="flex items-center gap-2 text-gray-700">
+                          <User className="w-4 h-4 text-gray-500" />
+                          <span className="font-medium">{exp.staffName}</span>
                         </div>
                       )}
                       <div className="flex items-center gap-2 text-gray-600">

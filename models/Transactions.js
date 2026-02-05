@@ -20,6 +20,7 @@ const TransactionSchema = new mongoose.Schema({
   amountPaid: Number,
   total: Number,
   staff: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
+  staffName: { type: String }, // Staff name for reference (redundant but useful)
   location: { type: String }, // Store location as string (location name or 'online')
   device: String,
   tableName: String,

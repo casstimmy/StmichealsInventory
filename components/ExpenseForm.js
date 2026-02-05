@@ -9,11 +9,13 @@ export default function ExpenseForm({ onSaved }) {
     category: "",
     description: "",
     location: "",
+    staff: "",
   });
 
   const [customCategory, setCustomCategory] = useState("");
   const [categories, setCategories] = useState([]);
   const [locations, setLocations] = useState([]);
+  const [staff, setStaff] = useState([]);
   const [isOtherCategory, setIsOtherCategory] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -33,6 +35,19 @@ export default function ExpenseForm({ onSaved }) {
         }
       } catch (err) {
         console.error("Failed to fetch locations:", err);
+      }
+
+      // Fetch staff
+      try {
+        const staffRes = await fetch("/api/setup/staff");
+        const staffData = await staffRes.json();
+        if (staffData.staff && Array.isArray(staffData.staff)) {
+          setStaff(staffData.staff);
+        } else if (Array.isArray(staffData)) {
+          setStaff(staffData);
+        }
+      } catch (err) {
+        console.error("Failed to fetch staff:", err);
       }
     }
     fetchData();
@@ -94,6 +109,13 @@ export default function ExpenseForm({ onSaved }) {
       categoryName = selectedCat?.name || formData.category;
     }
 
+    // Get staff name
+    let staffName = "";
+    if (formData.staff) {
+      const selectedStaff = staff.find(s => s._id === formData.staff);
+      staffName = selectedStaff?.name || formData.staff;
+    }
+
     const res = await fetch("/api/expenses", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -105,11 +127,13 @@ export default function ExpenseForm({ onSaved }) {
         description: formData.description,
         locationId: null,
         locationName: formData.location || "",
+        staffId: formData.staff || null,
+        staffName: staffName || "",
       }),
     });
 
     if (res.ok) {
-      setFormData({ title: "", amount: "", category: "", description: "", location: "" });
+      setFormData({ title: "", amount: "", category: "", description: "", location: "", staff: "" });
       setCustomCategory("");
       setIsOtherCategory(false);
       onSaved && onSaved();
@@ -214,6 +238,24 @@ export default function ExpenseForm({ onSaved }) {
           {locations.map((loc) => (
             <option key={loc._id || loc.name} value={loc.name}>
               {loc.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Staff */}
+      <div className="form-group">
+        <label className="form-label">Staff Member (Optional)</label>
+        <select
+          name="staff"
+          value={formData.staff}
+          onChange={handleChange}
+          className="form-select"
+        >
+          <option value="">Select Staff Member</option>
+          {staff.map((s) => (
+            <option key={s._id} value={s._id}>
+              {s.name}
             </option>
           ))}
         </select>

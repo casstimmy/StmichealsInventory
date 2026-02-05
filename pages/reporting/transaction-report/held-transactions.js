@@ -31,8 +31,8 @@ export default function HeldTransactions() {
       const staffSet = new Set();
       filtered.forEach(tx => {
         if (tx.location) locSet.add(tx.location);
-        if (tx.staff?.name) staffSet.add(tx.staff.name);
-        else if (typeof tx.staff === 'string') staffSet.add(tx.staff);
+        if (tx.staffName) staffSet.add(tx.staffName);
+        else if (tx.staff?.name) staffSet.add(tx.staff.name);
       });
 
       setLocations(Array.from(locSet).sort());
@@ -45,7 +45,7 @@ export default function HeldTransactions() {
       
       // Apply staff filter
       if (staffFilter !== "All") {
-        filtered = filtered.filter(tx => (tx.staff?.name || tx.staff) === staffFilter);
+        filtered = filtered.filter(tx => (tx.staffName || tx.staff?.name) === staffFilter);
       }
       
       // Apply time range filter
@@ -104,7 +104,7 @@ export default function HeldTransactions() {
       const heldTime = tx.createdAt ? new Date(tx.createdAt).toLocaleString() : "N/A";
       return [
         tx._id,
-        tx.staff?.name || tx.staff || "N/A",
+        tx.staffName || tx.staff?.name || "N/A",
         tx.location || "Online",
         heldTime,
         `₦${tx.total?.toFixed(2)}`,
@@ -225,7 +225,7 @@ export default function HeldTransactions() {
                   {transactions.map((tx, idx) => (
                     <>
                       <tr key={tx._id} className={`${idx % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-cyan-50 transition`}>
-                        <td className="px-4 py-3 font-medium text-gray-800">{tx.staff?.name || tx.staff || "N/A"}</td>
+                        <td className="px-4 py-3 font-medium text-gray-800">{tx.staffName || tx.staff?.name || "N/A"}</td>
                         <td className="px-4 py-3">
                           <span className="bg-cyan-100 text-cyan-700 px-2 py-1 rounded text-xs font-medium">
                             {tx.location || "Online"}

@@ -149,7 +149,6 @@ export default function HeldTransactions() {
                 </div>
                 <p className="mt-4 text-gray-600 font-medium">Loading held transactions...</p>
               </div>
-            </div>              </div>
             </div>
           ) : transactions.length === 0 ? (
             <div className="p-8 text-center">

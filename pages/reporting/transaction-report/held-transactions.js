@@ -121,7 +121,7 @@ export default function HeldTransactions() {
 
   return (
     <Layout title="Held Transactions">
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 p-8">
+      <div className="page-container">
         {/* BREADCRUMB */}
         <div className="mb-6 text-sm">
           <Link href="/" className="text-cyan-600 hover:text-cyan-700">Home</Link>
@@ -139,14 +139,14 @@ export default function HeldTransactions() {
 
         {/* SUMMARY CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <SummaryCard title="Total Held" value={transactions.length} icon="📝" color="amber" />
-          <SummaryCard title="Total Value" value={`₦${totalValue.toLocaleString('en-NG', {minimumFractionDigits: 2})}`} icon="💰" color="orange" />
-          <SummaryCard title="Locations" value={locations.length} icon="🏪" color="yellow" />
-          <SummaryCard title="Staff" value={staffList.length} icon="👥" color="red" />
+          <SummaryCard title="Total Held" value={transactions.length} icon="📝" color="cyan" />
+          <SummaryCard title="Total Value" value={`₦${totalValue.toLocaleString('en-NG', {minimumFractionDigits: 2})}`} icon="💰" color="blue" />
+          <SummaryCard title="Locations" value={locations.length} icon="🏪" color="cyan" />
+          <SummaryCard title="Staff" value={staffList.length} icon="👥" color="cyan" />
         </div>
 
         {/* FILTERS */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8 border border-gray-200">
+        <div className="content-card mb-8">
           <div className="flex flex-col sm:flex-row gap-4 items-end flex-wrap">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Time Range</label>
@@ -201,7 +201,7 @@ export default function HeldTransactions() {
         </div>
 
         {/* TRANSACTIONS TABLE */}
-        <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+        <div className="content-card overflow-hidden">
           {loading ? (
             <div className="p-8 text-center text-gray-500">Loading...</div>
           ) : transactions.length === 0 ? (
@@ -211,12 +211,11 @@ export default function HeldTransactions() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-gradient-to-r from-amber-600 to-orange-600 text-white sticky top-0">
+                <thead className="bg-gradient-to-r from-cyan-600 to-cyan-700 text-white sticky top-0">
                   <tr>
                     <th className="px-4 py-3 text-left font-semibold">Staff</th>
                     <th className="px-4 py-3 text-left font-semibold">Location</th>
                     <th className="px-4 py-3 text-left font-semibold">Date/Time</th>
-                    <th className="px-4 py-3 text-left font-semibold">Customer</th>
                     <th className="px-4 py-3 text-right font-semibold">Items</th>
                     <th className="px-4 py-3 text-right font-semibold">Amount</th>
                     <th className="px-4 py-3 text-center font-semibold">Action</th>
@@ -225,22 +224,21 @@ export default function HeldTransactions() {
                 <tbody className="divide-y divide-gray-200">
                   {transactions.map((tx, idx) => (
                     <>
-                      <tr key={tx._id} className={`${idx % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-amber-50 transition`}>
-                        <td className="px-4 py-3 font-medium text-gray-800">{tx.staff?.name || "N/A"}</td>
+                      <tr key={tx._id} className={`${idx % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-cyan-50 transition`}>
+                        <td className="px-4 py-3 font-medium text-gray-800">{tx.staff?.name || tx.staff || "N/A"}</td>
                         <td className="px-4 py-3">
-                          <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded text-xs font-medium">
+                          <span className="bg-cyan-100 text-cyan-700 px-2 py-1 rounded text-xs font-medium">
                             {tx.location || "Online"}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-gray-600 text-xs">{new Date(tx.createdAt).toLocaleString()}</td>
-                        <td className="px-4 py-3 text-gray-800">{tx.customerName || "N/A"}</td>
                         <td className="px-4 py-3 text-right text-gray-600">{tx.items?.length || 0}</td>
-                        <td className="px-4 py-3 text-right font-bold text-orange-600">₦{tx.total?.toFixed(2)}</td>
+                        <td className="px-4 py-3 text-right font-bold text-cyan-600">₦{tx.total?.toFixed(2)}</td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex gap-2 justify-center">
                             <button 
                               onClick={() => toggleDetails(tx._id)}
-                              className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition"
+                              className="bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition"
                             >
                               {expandedTxId === tx._id ? "Hide" : "View"}
                             </button>
@@ -255,12 +253,12 @@ export default function HeldTransactions() {
                       </tr>
                       {expandedTxId === tx._id && (
                         <tr className="bg-gray-100">
-                          <td colSpan={7} className="px-6 py-4">
+                          <td colSpan={6} className="px-6 py-4">
                             <div className="bg-white rounded-lg p-4 border border-gray-200">
                               <p className="text-sm font-semibold text-gray-700 mb-3">Items ({tx.items?.length || 0})</p>
                               <div className="overflow-x-auto">
                                 <table className="w-full text-xs">
-                                  <thead className="bg-amber-50 border-b">
+                                  <thead className="bg-cyan-50 border-b">
                                     <tr>
                                       <th className="px-3 py-2 text-left font-semibold">Product</th>
                                       <th className="px-3 py-2 text-right font-semibold">Qty</th>
@@ -298,10 +296,8 @@ export default function HeldTransactions() {
 
 function SummaryCard({ title, value, icon, color }) {
   const colorClass = {
-    amber: "bg-amber-50 border-amber-200 text-amber-700",
-    orange: "bg-orange-50 border-orange-200 text-orange-700",
-    yellow: "bg-yellow-50 border-yellow-200 text-yellow-700",
-    red: "bg-red-50 border-red-200 text-red-700",
+    cyan: "bg-cyan-50 border-cyan-200 text-cyan-700",
+    blue: "bg-blue-50 border-blue-200 text-blue-700",
   }[color];
 
   return (

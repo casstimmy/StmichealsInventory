@@ -297,8 +297,8 @@ export default function ExpenseAnalysis() {
                         </span>
                         <span className="text-sm text-gray-600">
                           ₦{Number(exp.amount).toLocaleString()} -{" "}
-                          {exp.category?.name || "Uncategorized"}{" "}
-                          {exp.location && `- ${exp.location}`}
+                          {exp.categoryName || "Uncategorized"}{" "}
+                          {exp.locationName && `- ${exp.locationName}`}
                         </span>
                         <span className="text-xs text-gray-400">
                           {new Date(exp.createdAt).toLocaleDateString()}

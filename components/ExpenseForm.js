@@ -13,16 +13,29 @@ export default function ExpenseForm({ onSaved }) {
 
   const [customCategory, setCustomCategory] = useState("");
   const [categories, setCategories] = useState([]);
+  const [locations, setLocations] = useState([]);
   const [isOtherCategory, setIsOtherCategory] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    async function fetchCategories() {
-      const res = await fetch("/api/expenses/expense-category");
-      const data = await res.json();
-      setCategories(data);
+    async function fetchData() {
+      // Fetch categories
+      const catRes = await fetch("/api/expenses/expense-category");
+      const catData = await catRes.json();
+      setCategories(catData);
+
+      // Fetch locations from store
+      try {
+        const locRes = await fetch("/api/setup/store-info");
+        const locData = await locRes.json();
+        if (locData.locations && Array.isArray(locData.locations)) {
+          setLocations(locData.locations);
+        }
+      } catch (err) {
+        console.error("Failed to fetch locations:", err);
+      }
     }
-    fetchCategories();
+    fetchData();
   }, []);
 
   const handleChange = (e) => {
@@ -187,6 +200,24 @@ export default function ExpenseForm({ onSaved }) {
           />
         </div>
       )}
+
+      {/* Location */}
+      <div className="form-group">
+        <label className="form-label">Location</label>
+        <select
+          name="location"
+          value={formData.location}
+          onChange={handleChange}
+          className="form-select"
+        >
+          <option value="">Select Location</option>
+          {locations.map((loc) => (
+            <option key={loc._id || loc.name} value={loc.name}>
+              {loc.name}
+            </option>
+          ))}
+        </select>
+      </div>
 
       {/* Description */}
       <div className="form-group">

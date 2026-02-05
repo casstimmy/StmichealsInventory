@@ -39,12 +39,12 @@ export default function ExpenseForm({ onSaved }) {
 
       // Fetch staff
       try {
-        const staffRes = await fetch("/api/setup/staff");
+        const staffRes = await fetch("/api/staff");
         const staffData = await staffRes.json();
-        if (staffData.staff && Array.isArray(staffData.staff)) {
-          setStaff(staffData.staff);
-        } else if (Array.isArray(staffData)) {
+        if (Array.isArray(staffData)) {
           setStaff(staffData);
+        } else if (staffData.staff && Array.isArray(staffData.staff)) {
+          setStaff(staffData.staff);
         }
       } catch (err) {
         console.error("Failed to fetch staff:", err);

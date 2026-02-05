@@ -28,6 +28,8 @@ export default async function handler(req, res) {
         description,
         locationId,
         locationName,
+        staffId,
+        staffName,
       } = req.body;
 
       if (!title || !amount || !categoryName) {
@@ -45,6 +47,8 @@ export default async function handler(req, res) {
         description: description || "",
         locationId: locationId || null,
         locationName: locationName || "",
+        staffId: staffId || null,
+        staffName: staffName || "",
       });
 
       return res.status(201).json({

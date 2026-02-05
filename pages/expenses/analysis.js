@@ -58,7 +58,7 @@ export default function ExpenseAnalysis() {
   }, []);
 
   const allCategories = [
-    ...new Set(expenses.map((exp) => exp.category?.name).filter(Boolean)),
+    ...new Set(expenses.map((exp) => exp.categoryName).filter(Boolean)),
   ];
 
   const applyFilters = (expense) => {
@@ -67,10 +67,10 @@ export default function ExpenseAnalysis() {
     const amount = Number(expense.amount);
     const date = new Date(expense.createdAt);
     return (
-      (!category || expense.category?.name === category) &&
+      (!category || expense.categoryName === category) &&
       (!location ||
-        (expense.location &&
-          expense.location.toLowerCase().includes(location.toLowerCase()))) &&
+        (expense.locationName &&
+          expense.locationName.toLowerCase().includes(location.toLowerCase()))) &&
       (!minAmount || amount >= Number(minAmount)) &&
       (!maxAmount || amount <= Number(maxAmount)) &&
       (!startDate || date >= new Date(startDate)) &&
@@ -85,7 +85,7 @@ export default function ExpenseAnalysis() {
   );
 
   const expensesByCategory = filteredExpenses.reduce((acc, curr) => {
-    const catName = curr.category?.name || "Uncategorized";
+    const catName = curr.categoryName || "Uncategorized";
     acc[catName] = (acc[catName] || 0) + Number(curr.amount);
     return acc;
   }, {});

@@ -33,6 +33,7 @@ const COLORS = [
 
 export default function ExpenseAnalysis() {
   const [expenses, setExpenses] = useState([]);
+  const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showBarChart, setShowBarChart] = useState(false);
   const [filters, setFilters] = useState({
@@ -54,7 +55,21 @@ export default function ExpenseAnalysis() {
       }
       setLoading(false);
     }
+
+    async function fetchLocations() {
+      try {
+        const locRes = await fetch("/api/setup/get");
+        const locData = await locRes.json();
+        if (locData.store?.locations && Array.isArray(locData.store.locations)) {
+          setLocations(locData.store.locations);
+        }
+      } catch (err) {
+        console.error("Failed to fetch locations:", err);
+      }
+    }
+
     fetchExpenses();
+    fetchLocations();
   }, []);
 
   const allCategories = [
@@ -68,9 +83,7 @@ export default function ExpenseAnalysis() {
     const date = new Date(expense.createdAt);
     return (
       (!category || expense.categoryName === category) &&
-      (!location ||
-        (expense.locationName &&
-          expense.locationName.toLowerCase().includes(location.toLowerCase()))) &&
+      (!location || expense.locationName === location) &&
       (!minAmount || amount >= Number(minAmount)) &&
       (!maxAmount || amount <= Number(maxAmount)) &&
       (!startDate || date >= new Date(startDate)) &&
@@ -139,15 +152,20 @@ export default function ExpenseAnalysis() {
                 ))}
               </select>
 
-              <input
-                type="text"
-                placeholder="Location"
+              <select
                 value={filters.location}
                 onChange={(e) =>
                   setFilters({ ...filters, location: e.target.value })
                 }
-                className="form-input"
-              />
+                className="form-select"
+              >
+                <option value="">All Locations</option>
+                {locations.map((loc) => (
+                  <option key={loc._id || loc.name} value={loc.name}>
+                    {loc.name}
+                  </option>
+                ))}
+              </select>
               <input
                 type="number"
                 placeholder="Min Amount"
@@ -156,6 +174,7 @@ export default function ExpenseAnalysis() {
                   setFilters({ ...filters, minAmount: e.target.value })
                 }
                 className="form-input"
+                onWheel={(e) => e.target.blur()}
               />
               <input
                 type="number"
@@ -165,6 +184,7 @@ export default function ExpenseAnalysis() {
                   setFilters({ ...filters, maxAmount: e.target.value })
                 }
                 className="form-input"
+                onWheel={(e) => e.target.blur()}
               />
               <input
                 type="date"

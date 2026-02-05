@@ -133,6 +133,17 @@ select {
   @apply hover:border-gray-300;
 }
 
+/* Prevent scroll wheel from changing number input values */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 input::placeholder,
 textarea::placeholder {
   @apply text-gray-400;

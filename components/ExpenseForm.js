@@ -183,6 +183,7 @@ export default function ExpenseForm({ onSaved }) {
           required
           className="form-input"
           placeholder="e.g., 15000"
+          onWheel={(e) => e.target.blur()}
         />
       </div>
 

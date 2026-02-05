@@ -26,10 +26,10 @@ export default function ExpenseForm({ onSaved }) {
 
       // Fetch locations from store
       try {
-        const locRes = await fetch("/api/setup/store-info");
+        const locRes = await fetch("/api/setup/get");
         const locData = await locRes.json();
-        if (locData.locations && Array.isArray(locData.locations)) {
-          setLocations(locData.locations);
+        if (locData.store?.locations && Array.isArray(locData.store.locations)) {
+          setLocations(locData.store.locations);
         }
       } catch (err) {
         console.error("Failed to fetch locations:", err);

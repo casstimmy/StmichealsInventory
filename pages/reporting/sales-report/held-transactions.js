@@ -82,7 +82,7 @@ export default function HeldTransactions() {
       <div className="page-container">
         {/* BREADCRUMB */}
         <div className="mb-6 text-sm">
-          <Link href="/reporting/sales-report" className="text-sky-600 hover:underline">Sales Reports</Link>
+          <Link href="/reporting/sales-report" className="text-cyan-600 hover:underline">Sales Reports</Link>
           <span className="mx-2 text-gray-400">/</span>
           <span className="text-gray-600">Held Transactions</span>
         </div>
@@ -95,10 +95,10 @@ export default function HeldTransactions() {
 
         {/* SUMMARY CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <SummaryCard title="Total Held" value={transactions.length} icon="📝" color="sky" />
+          <SummaryCard title="Total Held" value={transactions.length} icon="📝" color="cyan" />
           <SummaryCard title="Total Value" value={`₦${totalValue.toLocaleString('en-NG', {minimumFractionDigits: 2})}`} icon="💰" color="blue" />
           <SummaryCard title="Locations" value={locations.length} icon="🏪" color="cyan" />
-          <SummaryCard title="Staff" value={staffList.length} icon="👥" color="teal" />
+          <SummaryCard title="Staff" value={staffList.length} icon="👥" color="cyan" />
         </div>
 
         {/* FILTERS */}
@@ -142,7 +142,7 @@ export default function HeldTransactions() {
             <div className="p-8 flex items-center justify-center min-h-[400px]">
               <div className="text-center">
                 <div className="inline-block">
-                  <svg className="animate-spin h-12 w-12 text-sky-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg className="animate-spin h-12 w-12 text-cyan-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
@@ -157,7 +157,7 @@ export default function HeldTransactions() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-gradient-to-r from-sky-600 to-sky-700 text-white sticky top-0">
+                <thead className="bg-gradient-to-r from-cyan-600 to-cyan-700 text-white sticky top-0">
                   <tr>
                     <th className="px-4 py-3 text-left font-semibold">Staff</th>
                     <th className="px-4 py-3 text-left font-semibold">Location</th>
@@ -170,20 +170,20 @@ export default function HeldTransactions() {
                 <tbody className="divide-y divide-gray-200">
                   {transactions.map((tx, idx) => (
                     <>
-                      <tr key={tx._id} className={`${idx % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-sky-50 transition`}>
+                      <tr key={tx._id} className={`${idx % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-cyan-50 transition`}>
                         <td className="px-4 py-3 font-medium text-gray-800">{tx.staff?.name || tx.staff || "N/A"}</td>
                         <td className="px-4 py-3">
-                          <span className="bg-sky-100 text-sky-700 px-2 py-1 rounded text-xs font-medium">
+                          <span className="bg-cyan-100 text-cyan-700 px-2 py-1 rounded text-xs font-medium">
                             {tx.location || "Online"}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-gray-600 text-xs">{new Date(tx.createdAt).toLocaleString()}</td>
                         <td className="px-4 py-3 text-right text-gray-600">{tx.items?.length || 0}</td>
-                        <td className="px-4 py-3 text-right font-bold text-sky-600">₦{tx.total?.toFixed(2)}</td>
+                        <td className="px-4 py-3 text-right font-bold text-cyan-600">₦{tx.total?.toFixed(2)}</td>
                         <td className="px-4 py-3 text-center">
                           <button 
                             onClick={() => toggleDetails(tx._id)}
-                            className="bg-sky-500 hover:bg-sky-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition"
+                            className="bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition"
                           >
                             {expandedTxId === tx._id ? "Hide" : "View"}
                           </button>
@@ -196,7 +196,7 @@ export default function HeldTransactions() {
                               <p className="text-sm font-semibold text-gray-700 mb-3">Items ({tx.items?.length || 0})</p>
                               <div className="overflow-x-auto">
                                 <table className="w-full text-xs">
-                                  <thead className="bg-sky-50 border-b">
+                                  <thead className="bg-cyan-50 border-b">
                                     <tr>
                                       <th className="px-3 py-2 text-left font-semibold">Product</th>
                                       <th className="px-3 py-2 text-right font-semibold">Qty</th>
@@ -234,10 +234,8 @@ export default function HeldTransactions() {
 
 function SummaryCard({ title, value, icon, color }) {
   const colorClass = {
-    sky: "bg-sky-50 border-sky-200 text-sky-700",
-    blue: "bg-blue-50 border-blue-200 text-blue-700",
     cyan: "bg-cyan-50 border-cyan-200 text-cyan-700",
-    teal: "bg-teal-50 border-teal-200 text-teal-700",
+    blue: "bg-blue-50 border-blue-200 text-blue-700",
   }[color];
 
   return (

@@ -510,25 +510,62 @@ export default async function handler(req, res) {
           }
         </div>
 
-        <!-- PROFIT SUMMARY -->
-        <div style="background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-          <h2 style="margin-top: 0; font-size: 18px;">📈 Day Summary</h2>
-          <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
-            <div>
-              <p style="margin: 0; opacity: 0.8; font-size: 12px;">GROSS SALES</p>
-              <p style="margin: 5px 0 0 0; font-size: 20px; font-weight: bold;">${formatMoney(totalSales)}</p>
+        <!-- DAY SUMMARY -->
+        <div style="background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 20px;">
+          <h2 style="margin-top: 0; margin-bottom: 25px; font-size: 22px; text-align: center; letter-spacing: 0.5px;">📈 Day Summary</h2>
+          
+          <!-- Main Metrics Grid -->
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 25px;">
+            <!-- Gross Sales -->
+            <div style="background: rgba(255, 255, 255, 0.15); padding: 18px; border-radius: 8px; border-left: 4px solid rgba(255, 255, 255, 0.4); backdrop-filter: blur(10px);">
+              <p style="margin: 0; opacity: 0.85; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">💰 Gross Sales</p>
+              <p style="margin: 12px 0 0 0; font-size: 28px; font-weight: bold; line-height: 1;">${formatMoney(totalSales)}</p>
+              <p style="margin: 8px 0 0 0; opacity: 0.7; font-size: 11px;">${totalTransactionCount} transactions</p>
             </div>
-            <div>
-              <p style="margin: 0; opacity: 0.8; font-size: 12px;">TOTAL EXPENSES</p>
-              <p style="margin: 5px 0 0 0; font-size: 20px; font-weight: bold;">${formatMoney(totalExpenses)}</p>
+
+            <!-- Total Expenses -->
+            <div style="background: rgba(255, 255, 255, 0.15); padding: 18px; border-radius: 8px; border-left: 4px solid rgba(255, 255, 255, 0.4); backdrop-filter: blur(10px);">
+              <p style="margin: 0; opacity: 0.85; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">💸 Total Expenses</p>
+              <p style="margin: 12px 0 0 0; font-size: 28px; font-weight: bold; line-height: 1;">${formatMoney(totalExpenses)}</p>
+              <p style="margin: 8px 0 0 0; opacity: 0.7; font-size: 11px;">${expenses.length} expense items</p>
             </div>
-            <div>
-              <p style="margin: 0; opacity: 0.8; font-size: 12px;">NET POSITION</p>
-              <p style="margin: 5px 0 0 0; font-size: 20px; font-weight: bold;">${formatMoney(totalSales - totalExpenses)}</p>
+
+            <!-- Net Profit -->
+            <div style="background: rgba(255, 255, 255, 0.15); padding: 18px; border-radius: 8px; border-left: 4px solid rgba(255, 255, 255, 0.4); backdrop-filter: blur(10px);">
+              <p style="margin: 0; opacity: 0.85; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">📊 Net Profit</p>
+              <p style="margin: 12px 0 0 0; font-size: 28px; font-weight: bold; line-height: 1;">${formatMoney(totalSales - totalExpenses)}</p>
+              <p style="margin: 8px 0 0 0; opacity: 0.7; font-size: 11px;">Sales minus expenses</p>
             </div>
-            <div>
-              <p style="margin: 0; opacity: 0.8; font-size: 12px;">VARIANCE</p>
-              <p style="margin: 5px 0 0 0; font-size: 20px; font-weight: bold;">${formatMoney(totalVariance)}</p>
+
+            <!-- Cash Variance -->
+            <div style="background: rgba(255, 255, 255, 0.15); padding: 18px; border-radius: 8px; border-left: 4px solid rgba(255, 255, 255, 0.4); backdrop-filter: blur(10px);">
+              <p style="margin: 0; opacity: 0.85; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">⚖️ Cash Variance</p>
+              <p style="margin: 12px 0 0 0; font-size: 28px; font-weight: bold; line-height: 1; color: ${totalVariance > 0 ? '#fbbf24' : totalVariance < 0 ? '#ef4444' : '#ffffff'};">${formatMoney(totalVariance)}</p>
+              <p style="margin: 8px 0 0 0; opacity: 0.7; font-size: 11px;">${totalVariance > 0 ? '↑ Surplus' : totalVariance < 0 ? '↓ Deficit' : 'Balanced'}</p>
+            </div>
+          </div>
+
+          <!-- Divider -->
+          <div style="border-top: 2px solid rgba(255, 255, 255, 0.25); margin: 20px 0;"></div>
+
+          <!-- Secondary Metrics -->
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+            <!-- Stock Value -->
+            <div style="text-align: center; padding: 12px;">
+              <p style="margin: 0; opacity: 0.8; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Stock Value</p>
+              <p style="margin: 8px 0 0 0; font-size: 18px; font-weight: bold;">${formatMoney(totalStockValue)}</p>
+            </div>
+
+            <!-- Locations Active -->
+            <div style="text-align: center; padding: 12px;">
+              <p style="margin: 0; opacity: 0.8; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Locations</p>
+              <p style="margin: 8px 0 0 0; font-size: 18px; font-weight: bold;">${allLocations.length}</p>
+            </div>
+
+            <!-- Profit Margin -->
+            <div style="text-align: center; padding: 12px;">
+              <p style="margin: 0; opacity: 0.8; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Profit Margin</p>
+              <p style="margin: 8px 0 0 0; font-size: 18px; font-weight: bold;">${totalSales > 0 ? ((((totalSales - totalExpenses) / totalSales) * 100).toFixed(1)) : '0'}%</p>
             </div>
           </div>
         </div>

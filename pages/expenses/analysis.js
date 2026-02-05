@@ -360,13 +360,33 @@ export default function ExpenseAnalysis() {
 
                 <button
                   onClick={() => {
+                    // Build date range information
+                    let dateRangeText = `📅 Report Generated: ${new Date().toLocaleDateString()}`;
+                    if (filters.startDate || filters.endDate) {
+                      const startDate = filters.startDate 
+                        ? new Date(filters.startDate).toLocaleDateString() 
+                        : "Start";
+                      const endDate = filters.endDate 
+                        ? new Date(filters.endDate).toLocaleDateString() 
+                        : "End";
+                      dateRangeText += `\n📆 Date Range: ${startDate} to ${endDate}`;
+                    }
+
+                    // Build expense details with dates
+                    const expenseDetails = filteredExpenses
+                      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                      .map(exp => `• ${exp.title}: ₦${Number(exp.amount).toLocaleString()} (${new Date(exp.createdAt).toLocaleDateString()})`)
+                      .join('\n');
+
                     const message = encodeURIComponent(
                       `📊 *Expense Report Summary*\n\n` +
-                      `📅 Date: ${new Date().toLocaleDateString()}\n` +
+                      `${dateRangeText}\n` +
                       `💰 Total Expenses: ₦${totalSpent.toLocaleString()}\n` +
                       `📝 Number of Expenses: ${filteredExpenses.length}\n\n` +
                       `*Category Breakdown:*\n` +
                       chartData.map(c => `• ${c.category}: ₦${c.amount.toLocaleString()}`).join('\n') +
+                      `\n\n*Expense Details:*\n` +
+                      expenseDetails +
                       `\n\n_Generated from St. Micheals Inventory System_`
                     );
                     window.open(`https://wa.me/?text=${message}`, "_blank");

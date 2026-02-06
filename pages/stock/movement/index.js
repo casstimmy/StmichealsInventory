@@ -108,7 +108,8 @@ export default function StockMovement() {
   const parseDate = (dateStr) => (dateStr ? new Date(dateStr) : null);
 
   const filteredMovements = movements.filter((item) => {
-    if (locationFilter !== "* All Locations" && item.fromLocationId !== locationFilter)
+    // Use fromLocation (resolved name) for location filter
+    if (locationFilter !== "* All Locations" && item.fromLocation !== locationFilter)
       return false;
     if (reason !== "* All Reasons" && item.reason !== reason) return false;
     if (status !== "All Statuses" && item.status !== status) return false;
@@ -303,8 +304,8 @@ export default function StockMovement() {
                       {filteredMovements.map((item, index) => (
                         <tr key={index}>
                           <td className="font-mono font-medium text-gray-900">{item.transRef}</td>
-                          <td className="text-gray-700">{locationMap[item.fromLocationId] || item.fromLocationId || "Unknown"}</td>
-                          <td className="text-gray-700">{locationMap[item.toLocationId] || item.toLocationId || "Unknown"}</td>
+                          <td className="text-gray-700">{item.fromLocation || "Vendor"}</td>
+                          <td className="text-gray-700">{item.toLocation || "Unknown"}</td>
                           <td>
                             <span className="inline-block bg-sky-100 text-gray-900 px-3 py-1 rounded-full text-xs font-semibold">
                               {item.reason}

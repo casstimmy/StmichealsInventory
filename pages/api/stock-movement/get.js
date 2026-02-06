@@ -79,8 +79,12 @@ export default async function handler(req, res) {
           const movement = {
             _id: m._id ? m._id.toString() : m._id,
             transRef: m.transRef || "Unknown", 
-            fromLocationId: fromLocationName,
-            toLocationId: toLocationName,
+            // Keep original IDs for reference
+            fromLocationId: m.fromLocationId ? m.fromLocationId.toString() : null,
+            toLocationId: m.toLocationId ? m.toLocationId.toString() : null,
+            // Include resolved names as separate fields
+            fromLocation: fromLocationName,
+            toLocation: toLocationName,
             sender: fromLocationName,
             receiver: toLocationName,
             reason: m.reason || "Unknown",

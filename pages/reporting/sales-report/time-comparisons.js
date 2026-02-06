@@ -237,74 +237,105 @@ export default function TimeComparisons() {
           <h1 className="text-3xl font-bold text-gray-800">Sales By Time <span className="text-xs bg-cyan-100 text-cyan-700 px-2 py-1 rounded ml-2">HELP</span></h1>
         </div>
 
-        {/* FILTERS */}
-        <div className="bg-white rounded p-4 mb-6 border border-gray-200">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="text-sm font-medium text-gray-700 block mb-2">Metric</label>
-              <select 
-                value={metric} 
-                onChange={(e) => setMetric(e.target.value)}
-                className="w-full border-2 border-gray-300 px-3 py-2 rounded focus:border-cyan-600"
-              >
-                {Object.entries(metrics).map(([key, { label }]) => (
-                  <option key={key} value={key}>{label}</option>
-                ))}
-              </select>
+        {/* FILTERS - CLEANER LAYOUT */}
+        <div className="bg-white rounded-lg border border-gray-200 mb-6 overflow-hidden">
+          {/* Filter Header */}
+          <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200 px-6 py-4">
+            <h2 className="text-lg font-semibold text-gray-800">Comparison Settings</h2>
+            <p className="text-sm text-gray-600 mt-1">Configure what to compare and how to display it</p>
+          </div>
+
+          {/* Filter Body */}
+          <div className="p-6">
+            {/* Row 1: Metric & Interval */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div>
+                <label className="block text-sm font-semibold text-gray-800 mb-3">📊 Metric</label>
+                <select 
+                  value={metric} 
+                  onChange={(e) => setMetric(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-cyan-500 focus:outline-none hover:border-gray-400 transition bg-white font-medium text-gray-800"
+                >
+                  {Object.entries(metrics).map(([key, { label }]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-800 mb-3">📈 Interval</label>
+                <select 
+                  value={interval} 
+                  onChange={(e) => setInterval(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-cyan-500 focus:outline-none hover:border-gray-400 transition bg-white font-medium text-gray-800"
+                >
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
             </div>
 
-            <div>
-              <label className="text-sm font-medium text-gray-700 block mb-2">Date Range</label>
-              <select 
-                value={dateRange} 
-                onChange={(e) => setDateRange(e.target.value)}
-                className="w-full border-2 border-gray-300 px-3 py-2 rounded focus:border-cyan-600"
-              >
-                <option value="today">Today</option>
-                <option value="yesterday">Yesterday</option>
-                <option value="last7">Last 7 days</option>
-                <option value="last14">Last 14 days</option>
-                <option value="last30">Last 30 days</option>
-                <option value="last60">Last 60 days</option>
-                <option value="last90">Last 90 days</option>
-                <option value="thisWeek">This Week</option>
-                <option value="thisMonth">This Month</option>
-                <option value="thisYear">This Year</option>
-                <option value="lastWeek">Last Week</option>
-                <option value="lastMonth">Last Month</option>
-                <option value="lastYear">Last Year</option>
-              </select>
+            {/* Divider */}
+            <div className="border-t border-gray-200 my-6"></div>
+
+            {/* Row 2: Date Range & Compare To */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-semibold text-gray-800 mb-3">📅 Date Range</label>
+                <p className="text-xs text-gray-600 mb-3">Current period to analyze</p>
+                <select 
+                  value={dateRange} 
+                  onChange={(e) => setDateRange(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-cyan-300 rounded-lg focus:border-cyan-600 focus:outline-none hover:border-cyan-400 transition bg-gradient-to-r from-cyan-50 to-white font-medium text-gray-800"
+                >
+                  <option value="today">Today</option>
+                  <option value="yesterday">Yesterday</option>
+                  <option value="last7">Last 7 days</option>
+                  <option value="last14">Last 14 days</option>
+                  <option value="last30">Last 30 days</option>
+                  <option value="last60">Last 60 days</option>
+                  <option value="last90">Last 90 days</option>
+                  <option value="thisWeek">This Week</option>
+                  <option value="thisMonth">This Month</option>
+                  <option value="thisYear">This Year</option>
+                  <option value="lastWeek">Last Week</option>
+                  <option value="lastMonth">Last Month</option>
+                  <option value="lastYear">Last Year</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-800 mb-3">🔄 Compare To</label>
+                <p className="text-xs text-gray-600 mb-3">Period to compare against</p>
+                <select 
+                  value={compareTo} 
+                  onChange={(e) => setCompareTo(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-cyan-500 focus:outline-none hover:border-gray-400 transition bg-white font-medium text-gray-800"
+                >
+                  <option value="previous-week">Previous Week</option>
+                  <option value="previous-month">Previous Month</option>
+                  <option value="previous-year">Previous Year</option>
+                  <option value="7days-ago">7 days ago</option>
+                  <option value="14days-ago">14 days ago</option>
+                  <option value="30days-ago">30 days ago</option>
+                  <option value="60days-ago">60 days ago</option>
+                  <option value="90days-ago">90 days ago</option>
+                </select>
+              </div>
             </div>
 
-            <div>
-              <label className="text-sm font-medium text-gray-700 block mb-2">Compare To</label>
-              <select 
-                value={compareTo} 
-                onChange={(e) => setCompareTo(e.target.value)}
-                className="w-full border-2 border-gray-300 px-3 py-2 rounded focus:border-cyan-600"
-              >
-                <option value="previous-week">Previous Week</option>
-                <option value="previous-month">Previous Month</option>
-                <option value="previous-year">Previous Year</option>
-                <option value="7days-ago">7 days ago</option>
-                <option value="14days-ago">14 days ago</option>
-                <option value="30days-ago">30 days ago</option>
-                <option value="60days-ago">60 days ago</option>
-                <option value="90days-ago">90 days ago</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-gray-700 block mb-2">Interval</label>
-              <select 
-                value={interval} 
-                onChange={(e) => setInterval(e.target.value)}
-                className="w-full border-2 border-gray-300 px-3 py-2 rounded focus:border-cyan-600"
-              >
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-              </select>
+            {/* Filter Summary */}
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <div className="bg-gradient-to-r from-cyan-50 to-blue-50 rounded-lg p-4 border border-cyan-200">
+                <p className="text-sm text-gray-700">
+                  <span className="font-semibold text-cyan-700">📋 Comparing:</span>
+                  <span className="ml-2 text-gray-800">
+                    <strong>{metrics[metric].label}</strong> over <strong>{dateRange.replace(/([A-Z])/g, ' $1').toLowerCase()}</strong> (by <strong>{interval}</strong>) 
+                    vs <strong>{compareTo.replace(/([A-Z])/g, ' $1').toLowerCase()}</strong>
+                  </span>
+                </p>
+              </div>
             </div>
           </div>
         </div>

@@ -103,27 +103,56 @@ export default async function handler(req, res) {
       .lean();
 
     const storesMap = {};
+    const locationsCache = {}; // Cache for location lookups
+    
     stores.forEach(store => {
       storesMap[store._id.toString()] = store;
+      // Build location cache: locationId -> name
+      if (store.locations && Array.isArray(store.locations)) {
+        store.locations.forEach(loc => {
+          const locId = loc._id.toString();
+          locationsCache[locId] = loc.name || "Unknown";
+          console.log(`✅ Cached location: ${locId} = ${locId}`);
+        });
+      }
     });
 
     // Enrich reports with location names
     const enrichedReports = reports.map(report => {
-      const store = storesMap[report.storeId?.toString()];
-      if (store && store.locations && report.locationId) {
-        const location = store.locations.find(
-          loc => loc._id.toString() === report.locationId.toString()
-        );
-        if (location) {
-          return {
-            ...report,
-            locationName: location.name,
-          };
+      const storeId = report.storeId?.toString();
+      const locationId = report.locationId?.toString();
+      
+      let locationName = "Unknown";
+      
+      // Try cache first
+      if (locationId && locationsCache[locationId]) {
+        locationName = locationsCache[locationId];
+      } 
+      // Then try store lookup
+      else if (storeId && locationId) {
+        try {
+          const store = storesMap[storeId];
+          if (store && store.locations && Array.isArray(store.locations)) {
+            const location = store.locations.find(
+              loc => loc._id.toString() === locationId
+            );
+            if (location) {
+              locationName = location.name || "Unknown";
+              locationsCache[locationId] = locationName;
+            } else {
+              console.warn(`⚠️ Location ${locationId} not found in store ${storeId}`);
+            }
+          } else {
+            console.warn(`⚠️ Store ${storeId} or locations array not found`);
+          }
+        } catch (err) {
+          console.error(`❌ Error enriching location for report:`, err);
         }
       }
+      
       return {
         ...report,
-        locationName: "Unknown",
+        locationName: locationName,
       };
     });
 

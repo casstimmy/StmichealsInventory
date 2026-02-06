@@ -1,6 +1,6 @@
 import { mongooseConnect } from "@/lib/mongodb";
 import EndOfDayReport from "@/models/EndOfDayReport";
-import Store from "@/models/Store";
+import { buildLocationCache, resolveLocationName } from "@/lib/serverLocationHelper";
 
 /**
  * GET /api/reporting/end-of-day-summary
@@ -96,59 +96,13 @@ export default async function handler(req, res) {
       });
     }
 
-    // Get Store with locations to enrich reports
-    const storeIds = [...new Set(reports.map(r => r.storeId?.toString()))].filter(Boolean);
-    const stores = await Store.find({ _id: { $in: storeIds } })
-      .select("storeName locations")
-      .lean();
+    // Build location cache ONCE using centralized helper
+    const locationCache = await buildLocationCache();
+    console.log(`✅ Location cache built with ${Object.keys(locationCache).length} entries`);
 
-    const storesMap = {};
-    const locationsCache = {}; // Cache for location lookups
-    
-    stores.forEach(store => {
-      storesMap[store._id.toString()] = store;
-      // Build location cache: locationId -> name
-      if (store.locations && Array.isArray(store.locations)) {
-        store.locations.forEach(loc => {
-          const locId = loc._id.toString();
-          locationsCache[locId] = loc.name || "Unknown";
-          console.log(`✅ Cached location: ${locId} = ${locId}`);
-        });
-      }
-    });
-
-    // Enrich reports with location names
+    // Enrich reports with location names using centralized helper
     const enrichedReports = reports.map(report => {
-      const storeId = report.storeId?.toString();
-      const locationId = report.locationId?.toString();
-      
-      let locationName = "Unknown";
-      
-      // Try cache first
-      if (locationId && locationsCache[locationId]) {
-        locationName = locationsCache[locationId];
-      } 
-      // Then try store lookup
-      else if (storeId && locationId) {
-        try {
-          const store = storesMap[storeId];
-          if (store && store.locations && Array.isArray(store.locations)) {
-            const location = store.locations.find(
-              loc => loc._id.toString() === locationId
-            );
-            if (location) {
-              locationName = location.name || "Unknown";
-              locationsCache[locationId] = locationName;
-            } else {
-              console.warn(`⚠️ Location ${locationId} not found in store ${storeId}`);
-            }
-          } else {
-            console.warn(`⚠️ Store ${storeId} or locations array not found`);
-          }
-        } catch (err) {
-          console.error(`❌ Error enriching location for report:`, err);
-        }
-      }
+      const locationName = resolveLocationName(report.locationId, locationCache);
       
       return {
         ...report,

@@ -3,8 +3,8 @@
 import { mongooseConnect } from "@/lib/mongodb";
 import StockMovement from "@/models/StockMovement";
 import Product from "@/models/Product";
-import Store from "@/models/Store";
 import Staff from "@/models/Staff";
+import { buildLocationCache, resolveLocationName } from "@/lib/serverLocationHelper";
 
 export default async function handler(req, res) {
   await mongooseConnect();
@@ -17,32 +17,9 @@ export default async function handler(req, res) {
         .populate("staffId")
         .lean();
 
-      // Fetch store to get location names
-      const store = await Store.findOne({}).lean();
-      const locations = store?.locations || [];
-      
-      // Create location map - handle both by index and by ObjectId
-      const locationMap = {};
-      if (locations && locations.length > 0) {
-        locations.forEach((loc, idx) => {
-          // Map by index (how they're sent from the form)
-          locationMap[idx.toString()] = loc.name;
-          locationMap[idx] = loc.name;
-          
-          // Map by ObjectId
-          const locId = loc._id?.toString?.();
-          if (locId) {
-            locationMap[locId] = loc.name;
-          }
-          
-          // Map by name
-          if (loc.name) {
-            locationMap[loc.name] = loc.name;
-          }
-        });
-      }
-      locationMap["vendor"] = "Vendor";
-      locationMap["Vendor"] = "Vendor";
+      // Build location cache using centralized helper
+      const locationCache = await buildLocationCache();
+      console.log(`✅ Location cache built with ${Object.keys(locationCache).length} entries`);
 
       console.log("Total stock movements found:", data.length);
 
@@ -73,53 +50,18 @@ export default async function handler(req, res) {
             }
           }
 
-          // Map location IDs to names - handle both string and ObjectId
-          // Handle null fromLocationId (indicates vendor/external source)
-          let fromLocationId = m.fromLocationId;
-          let toLocationId = m.toLocationId;
-          
-          // Convert ObjectId to string if needed
-          if (fromLocationId && typeof fromLocationId === 'object') {
-            fromLocationId = fromLocationId.toString ? fromLocationId.toString() : String(fromLocationId);
-          }
-          if (toLocationId && typeof toLocationId === 'object') {
-            toLocationId = toLocationId.toString ? toLocationId.toString() : String(toLocationId);
-          }
-          
-          // Default handling for null/undefined values
-          let fromLocationName = "Unknown";
-          if (fromLocationId === null || fromLocationId === undefined) {
-            fromLocationName = "Vendor";
-          } else if (fromLocationId === "") {
-            fromLocationName = "Vendor";
-          } else {
-            // Try to find in location map
-            fromLocationName = locationMap[fromLocationId];
-            if (!fromLocationName && fromLocationId) {
-              // Try as integer index
-              const idx = parseInt(fromLocationId);
-              if (!isNaN(idx)) {
-                fromLocationName = locationMap[idx.toString()] || locationMap[idx];
-              }
-            }
-            fromLocationName = fromLocationName || fromLocationId || "Unknown";
-          }
-          
+          // Resolve location names using centralized helper
+          let fromLocationName = "Vendor";
           let toLocationName = "Unknown";
-          if (toLocationId === null || toLocationId === undefined) {
-            toLocationName = "Unknown";
-          } else if (toLocationId === "") {
-            toLocationName = "Unknown";
+          
+          if (m.fromLocationId === null || m.fromLocationId === undefined || m.fromLocationId === "") {
+            fromLocationName = "Vendor";
           } else {
-            toLocationName = locationMap[toLocationId];
-            if (!toLocationName && toLocationId) {
-              // Try as integer index
-              const idx = parseInt(toLocationId);
-              if (!isNaN(idx)) {
-                toLocationName = locationMap[idx.toString()] || locationMap[idx];
-              }
-            }
-            toLocationName = toLocationName || toLocationId || "Unknown";
+            fromLocationName = resolveLocationName(m.fromLocationId, locationCache);
+          }
+          
+          if (m.toLocationId !== null && m.toLocationId !== undefined && m.toLocationId !== "") {
+            toLocationName = resolveLocationName(m.toLocationId, locationCache);
           }
 
           // Map products safely

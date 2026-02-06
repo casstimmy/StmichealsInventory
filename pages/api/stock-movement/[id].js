@@ -1,8 +1,8 @@
 import { mongooseConnect } from "@/lib/mongodb";
 import StockMovement from "@/models/StockMovement";
 import Product from "@/models/Product";
-import Store from "@/models/Store";
 import mongoose from "mongoose";
+import { buildLocationCache, resolveLocationName } from "@/lib/serverLocationHelper";
 
 export default async function handler(req, res) {
   await mongooseConnect();
@@ -56,21 +56,8 @@ export default async function handler(req, res) {
         );
       }
 
-
-
-      // Fetch store to get location names
-      const store = await Store.findOne({});
-      const locations = store?.locations || [];
-      
-      // Create location map: index/name -> name
-      const locationMap = {};
-      if (locations && locations.length > 0) {
-        locations.forEach((loc, idx) => {
-          locationMap[idx.toString()] = loc.name;
-          locationMap[loc.name] = loc.name;
-        });
-      }
-      locationMap["vendor"] = "Vendor";
+      // Build location cache using centralized helper
+      const locationCache = await buildLocationCache();
 
       // Use stored totalCostPrice if available, otherwise calculate
       let totalCostPrice = movement.totalCostPrice || 0;
@@ -81,12 +68,12 @@ export default async function handler(req, res) {
         }, 0);
       }
 
-      // Map location IDs to names
+      // Map location IDs to names using centralized helper
       const fromLocationId = movement.fromLocationId || movement.fromLocation || "";
       const toLocationId = movement.toLocationId || movement.toLocation || "";
       
-      const senderName = locationMap[fromLocationId] || fromLocationId;
-      const receiverName = locationMap[toLocationId] || toLocationId;
+      const senderName = fromLocationId ? resolveLocationName(fromLocationId, locationCache) : "Vendor";
+      const receiverName = toLocationId ? resolveLocationName(toLocationId, locationCache) : "Unknown";
 
       return res.status(200).json({
         _id: movement._id,

@@ -7,6 +7,7 @@ import Store from "@/models/Store";
 import Transaction from "@/models/Transactions";
 import Expense from "@/models/Expense";
 import jwt from "jsonwebtoken";
+import { buildLocationCache, resolveLocationName } from "@/lib/serverLocationHelper";
 
 export default async function handler(req, res) {
   try {
@@ -68,18 +69,13 @@ export default async function handler(req, res) {
     // FETCH ALL DATA
     // =====================
 
-    // 1. Get Store with locations
+    // 1. Get Store with locations and build location cache
     const stores = await Store.find().lean();
     const storesMap = {};
-    const locationsMap = {};
+    const locationsMap = await buildLocationCache(); // Use centralized helper
+    
     stores.forEach((store) => {
       storesMap[store._id.toString()] = store;
-      if (store.locations) {
-        store.locations.forEach((loc) => {
-          locationsMap[loc._id.toString()] = loc.name;
-          locationsMap[loc.name] = loc.name; // Also map by name
-        });
-      }
     });
 
     // Get all location names for report
@@ -127,15 +123,8 @@ export default async function handler(req, res) {
     const tenderBreakdownByLocation = {};
 
     eodReports.forEach((report) => {
-      // Get location name
-      let locationName = "Unknown";
-      const store = storesMap[report.storeId?.toString()];
-      if (store && store.locations && report.locationId) {
-        const location = store.locations.find(
-          (loc) => loc._id.toString() === report.locationId.toString(),
-        );
-        if (location) locationName = location.name;
-      }
+      // Get location name using centralized helper
+      let locationName = resolveLocationName(report.locationId, locationsMap);
 
       // Aggregate EOD by location
       if (!eodByLocation[locationName]) {
@@ -182,7 +171,7 @@ export default async function handler(req, res) {
     const tenderTotals = {};
 
     transactions.forEach((tx) => {
-      const locName = locationsMap[tx.location] || tx.location || "Unknown";
+      const locName = resolveLocationName(tx.location, locationsMap);
 
       if (!salesByLocation[locName]) {
         salesByLocation[locName] = {
@@ -262,8 +251,8 @@ export default async function handler(req, res) {
       // Check if product has location-based inventory
       if (product.inventory && typeof product.inventory === "object") {
         Object.entries(product.inventory).forEach(([locId, qty]) => {
-          const locName = locationsMap[locId];
-          if (locName && stockByLocation[locName]) {
+          const locName = resolveLocationName(locId, locationsMap);
+          if (locName && locName !== "Unknown" && stockByLocation[locName]) {
             const quantity = Number(qty) || 0;
             stockByLocation[locName].totalUnits += quantity;
             stockByLocation[locName].totalCostValue += quantity * costPrice;

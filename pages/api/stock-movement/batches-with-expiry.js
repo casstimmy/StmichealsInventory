@@ -3,8 +3,8 @@ import mongoose from "mongoose";
 import { mongooseConnect } from "@/lib/mongodb";
 import StockMovement from "@/models/StockMovement";
 import Product from "@/models/Product";
-import Store from "@/models/Store";
 import { Category } from "@/models/Category";
+import { buildLocationCache, resolveLocationName } from "@/lib/serverLocationHelper";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
@@ -13,6 +13,10 @@ export default async function handler(req, res) {
 
   try {
     await mongooseConnect();
+
+    // Build location cache ONCE at the start
+    const locationCache = await buildLocationCache();
+    console.log(`✅ Location cache built with ${Object.keys(locationCache).length} entries`);
 
     // Fetch all stock movements with products that have expiry dates
     const stockMovements = await StockMovement.find({})
@@ -25,9 +29,6 @@ export default async function handler(req, res) {
 
     console.log(`Fetched ${stockMovements.length} stock movements from database`);
 
-    // Cache for location lookups to avoid repeated queries
-    const locationCache = {};
-
     // Transform stock movements into batch entries with expiry information
     const batches = [];
     let productsProcessed = 0;
@@ -38,73 +39,16 @@ export default async function handler(req, res) {
         continue;
       }
 
-      // Get location name from toLocationId
+      // Get location name using the centralized helper
       let locationName = "Unknown";
       
       if (movement.toLocationId) {
-        const locationId = movement.toLocationId.toString();
-        
-        // Check cache first
-        if (locationCache[locationId]) {
-          locationName = locationCache[locationId];
-        } else {
-          try {
-            // Try to find the location in Store
-            const store = await Store.findOne(
-              { "locations._id": movement.toLocationId },
-              { "locations.$": 1 }
-            ).lean();
-            
-            if (store && store.locations && store.locations.length > 0) {
-              locationName = store.locations[0].name || "Unknown";
-            } else {
-              // Fallback: try to find by location ID directly in Store locations array
-              const allStores = await Store.findOne({ "locations._id": locationId }).select("locations").lean();
-              if (allStores && allStores.locations) {
-                const location = allStores.locations.find(loc => loc._id.toString() === locationId);
-                if (location) {
-                  locationName = location.name || "Unknown";
-                }
-              }
-            }
-            
-            // Cache the result
-            locationCache[locationId] = locationName;
-            
-            if (locationName !== "Unknown") {
-              console.log(`✅ Location found: ${locationId} = ${locationName}`);
-            } else {
-              console.warn(`⚠️ Location not found for ID: ${locationId}`);
-            }
-          } catch (err) {
-            console.error(`Error fetching location ${movement.toLocationId}:`, err);
-            locationCache[locationId] = "Unknown";
-          }
-        }
+        locationName = resolveLocationName(movement.toLocationId, locationCache);
       } else if (movement.reason === "Restock") {
         locationName = "Vendor";
       } else if (movement.fromLocationId) {
-        // Fallback: if toLocationId is not set, try fromLocationId
-        try {
-          const fromLocationId = movement.fromLocationId.toString();
-          if (locationCache[fromLocationId]) {
-            locationName = locationCache[fromLocationId];
-          } else {
-            const store = await Store.findOne(
-              { "locations._id": movement.fromLocationId }
-            ).lean();
-            
-            if (store && store.locations) {
-              const location = store.locations.find(loc => loc._id.toString() === fromLocationId);
-              if (location) {
-                locationName = location.name || "Unknown";
-              }
-            }
-            locationCache[fromLocationId] = locationName;
-          }
-        } catch (err) {
-          console.error(`Fallback error with fromLocationId:`, err);
-        }
+        // Fallback to fromLocationId if toLocationId is not set
+        locationName = resolveLocationName(movement.fromLocationId, locationCache);
       }
 
       // Process each product in the batch

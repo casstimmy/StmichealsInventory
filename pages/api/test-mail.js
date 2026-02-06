@@ -549,7 +549,8 @@ export default async function handler(req, res) {
           <div style="border-top: 2px solid rgba(255, 255, 255, 0.25); margin: 20px 0;"></div>
 
           <!-- Secondary Metrics -->
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+         
+           <div style="display: flex; flex-wrap: wrap; gap: 10px;"> 
             <!-- Stock Value -->
             <div style="text-align: center; padding: 12px;">
               <p style="margin: 0; opacity: 0.8; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Stock Value</p>

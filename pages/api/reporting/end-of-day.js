@@ -1,5 +1,6 @@
 import { mongooseConnect } from "../../../lib/mongodb";
 import EndOfDayReport from "../../../models/EndOfDayReport";
+import { buildLocationCache, resolveLocationName } from "../../../lib/serverLocationHelper";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
@@ -41,20 +42,32 @@ export default async function handler(req, res) {
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
+    // Don't populate locationId - keep it as ID and resolve name separately
     const reports = await EndOfDayReport.find(filter)
       .populate("storeId", "storeName")
       .populate("staffId", "name")
       .sort({ closedAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(parseInt(limit))
+      .lean();
+
+    // Build location cache and resolve names
+    const locationCache = await buildLocationCache();
+    const enrichedReports = await Promise.all(
+      reports.map(async (report) => ({
+        ...report,
+        locationId: String(report.locationId),
+        locationName: await resolveLocationName(report.locationId, locationCache, report.storeId),
+      }))
+    );
 
     const total = await EndOfDayReport.countDocuments(filter);
 
-    console.log(`📊 Found ${reports.length} EndOfDay reports`);
+    console.log(`📊 Found ${enrichedReports.length} EndOfDay reports`);
 
     return res.status(200).json({
       success: true,
-      reports,
+      reports: enrichedReports,
       pagination: {
         total,
         page: parseInt(page),

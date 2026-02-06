@@ -64,8 +64,15 @@ export default function StockManagement() {
   );
 
   const totalStock = products.reduce((sum, item) => sum + (item.quantity || 0), 0);
+  
+  // "Incoming Stock" = products well-stocked above minimum
   const totalIncoming = products.filter(p => (p.quantity || 0) > (p.minStock || 10)).length;
+  
+  // "Outgoing Stock" = critically low products (need urgent reordering)
+  // This counts products below 50% of minimum stock threshold
   const totalOutgoing = products.filter(p => (p.quantity || 0) < (p.minStock || 10) / 2).length;
+  
+  // Low stock = products below minimum threshold
   const lowStockCount = products.filter((p) => p.quantity < (p.minStock || 10)).length;
 
 console.log("Filtered Items:", filteredItems);
@@ -93,8 +100,8 @@ console.log("Filtered Items:", filteredItems);
           <>
             <section className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
               <StatCard label="Total Stock" value={`${totalStock} units`} />
-              <StatCard label="Incoming Stock" value={`${totalIncoming} orders`} />
-              <StatCard label="Outgoing Stock" value={`${totalOutgoing} orders`} />
+              <StatCard label="Well Stocked" value={`${totalIncoming} products`} />
+              <StatCard label="Critical Level" value={`${totalOutgoing} products`} />
               <StatCard label="Low Stock Alerts" value={lowStockCount} highlight />
             </section>
 

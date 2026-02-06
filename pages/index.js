@@ -6,6 +6,7 @@ import { useRouter } from "next/router";
 import { apiClient } from "@/lib/api-client";
 import { motion } from "framer-motion";
 import { Loader } from "@/components/ui";
+import { getCachedSetup, refreshSetupCache } from "@/lib/setupCache";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -40,6 +41,7 @@ export default function Home() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
+  const [lastRefresh, setLastRefresh] = useState(null);
 
   const [storeInfo, setStoreInfo] = useState({});
   const [selectedUser, setSelectedUser] = useState("Admin");
@@ -56,43 +58,48 @@ export default function Home() {
   });
 
   /* =======================
-     FETCH DATA
+     FETCH DATA (Optimized with caching + parallel calls)
   ======================= */
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true);
+  async function fetchDashboardData() {
+    try {
+      setLoading(true);
 
-        const [txRes, storeRes, expenseRes, orderRes] = await Promise.all([
-          apiClient.get("/api/transactions/transactions"),
-          apiClient.get("/api/setup/get"),
-          apiClient.get("/api/expenses"),
-          apiClient.get("/api/orders"),
-        ]);
+      // Use cached setup (24-hour TTL) to avoid unnecessary API call
+      const setupData = await getCachedSetup();
+      setStoreInfo(setupData?.store || {});
+      setSelectedUser(setupData?.user?.name || "Admin");
 
-        setStoreInfo(storeRes.data.store || {});
-        setSelectedUser(storeRes.data.user?.name || "Admin");
-        setAllTransactions(txRes.data.transactions || []);
-        setAllExpenses(expenseRes.data.expenses || []);
-        setAllOrders(
-          Array.isArray(orderRes.data?.orders) ? orderRes.data.orders : []
-        );
-      } catch (err) {
-        console.error("Dashboard load failed:", err);
-        if (err.response?.status === 500) {
-          console.error("Server error details:", {
-            endpoint: err.config?.url,
-            status: err.response?.status,
-            message: err.response?.data?.message || err.response?.data?.error,
-            details: err.response?.data?.error || err.message
-          });
-        }
-      } finally {
-        setLoading(false);
+      // Fetch transactional data in parallel (cannot cache - changes frequently)
+      const [txRes, expenseRes, orderRes] = await Promise.all([
+        apiClient.get("/api/transactions/transactions"),
+        apiClient.get("/api/expenses"),
+        apiClient.get("/api/orders"),
+      ]);
+
+      setAllTransactions(txRes.data.transactions || []);
+      setAllExpenses(expenseRes.data.expenses || []);
+      setAllOrders(
+        Array.isArray(orderRes.data?.orders) ? orderRes.data.orders : []
+      );
+      
+      setLastRefresh(new Date());
+    } catch (err) {
+      console.error("Dashboard load failed:", err);
+      if (err.response?.status === 500) {
+        console.error("Server error details:", {
+          endpoint: err.config?.url,
+          status: err.response?.status,
+          message: err.response?.data?.message || err.response?.data?.error,
+          details: err.response?.data?.error || err.message
+        });
       }
+    } finally {
+      setLoading(false);
     }
+  }
 
-    fetchData();
+  useEffect(() => {
+    fetchDashboardData();
   }, []);
 
   /* =======================
@@ -267,8 +274,23 @@ export default function Home() {
       <div className="page-container">
         {/* Header */}
         <header className="page-header flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h1 className="page-title">Welcome {selectedUser}</h1>
+          <div className="flex flex-col gap-1">
+            <h1 className="page-title">Welcome {selectedUser}</h1>
+            {lastRefresh && (
+              <p className="text-xs text-gray-500">
+                Last updated: {lastRefresh.toLocaleTimeString()}
+              </p>
+            )}
+          </div>
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <button
+              className="btn-action-secondary w-full sm:w-auto flex items-center justify-center gap-2"
+              onClick={fetchDashboardData}
+              disabled={loading}
+              title="Refresh dashboard data"
+            >
+              {loading ? "🔄 Loading..." : "🔄 Refresh"}
+            </button>
             <button
               className="btn-action-primary w-full sm:w-auto"
               onClick={() => router.push("/products/new")}

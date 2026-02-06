@@ -43,12 +43,13 @@ export default async function handler(req, res) {
       let locationName = "Unknown";
       
       if (movement.toLocationId) {
-        locationName = resolveLocationName(movement.toLocationId, locationCache);
+        // No storeId in StockMovement, so can't use direct store lookup, but cache should work
+        locationName = await resolveLocationName(movement.toLocationId, locationCache);
       } else if (movement.reason === "Restock") {
         locationName = "Vendor";
       } else if (movement.fromLocationId) {
         // Fallback to fromLocationId if toLocationId is not set
-        locationName = resolveLocationName(movement.fromLocationId, locationCache);
+        locationName = await resolveLocationName(movement.fromLocationId, locationCache);
       }
 
       // Process each product in the batch

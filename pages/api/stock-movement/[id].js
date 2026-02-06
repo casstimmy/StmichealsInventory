@@ -72,8 +72,8 @@ export default async function handler(req, res) {
       const fromLocationId = movement.fromLocationId || movement.fromLocation || "";
       const toLocationId = movement.toLocationId || movement.toLocation || "";
       
-      const senderName = fromLocationId ? resolveLocationName(fromLocationId, locationCache) : "Vendor";
-      const receiverName = toLocationId ? resolveLocationName(toLocationId, locationCache) : "Unknown";
+      const senderName = fromLocationId ? await resolveLocationName(fromLocationId, locationCache) : "Vendor";
+      const receiverName = toLocationId ? await resolveLocationName(toLocationId, locationCache) : "Unknown";
 
       return res.status(200).json({
         _id: movement._id,

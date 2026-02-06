@@ -96,19 +96,20 @@ export default async function handler(req, res) {
       });
     }
 
-    // Build location cache ONCE using centralized helper
+    // Build location cache using centralized helper
     const locationCache = await buildLocationCache();
     console.log(`✅ Location cache built with ${Object.keys(locationCache).length} entries`);
 
     // Enrich reports with location names using centralized helper
-    const enrichedReports = reports.map(report => {
-      const locationName = resolveLocationName(report.locationId, locationCache);
+    const enrichedReports = await Promise.all(reports.map(async (report) => {
+      // Use storeId for fallback lookup if needed
+      const locationName = await resolveLocationName(report.locationId, locationCache, report.storeId);
       
       return {
         ...report,
         locationName: locationName,
       };
-    });
+    }));
 
     console.log(`✅ Enriched ${enrichedReports.length} reports with location names`);
 

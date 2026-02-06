@@ -122,9 +122,16 @@ export default async function handler(req, res) {
     const eodByLocation = {};
     const tenderBreakdownByLocation = {};
 
-    eodReports.forEach((report) => {
-      // Get location name using centralized helper
-      let locationName = resolveLocationName(report.locationId, locationsMap);
+    // Resolve all location names first
+    const eodReportsWithLocations = await Promise.all(
+      eodReports.map(async (report) => ({
+        ...report,
+        locationName: await resolveLocationName(report.locationId, locationsMap, report.storeId),
+      }))
+    );
+
+    eodReportsWithLocations.forEach((report) => {
+      const locationName = report.locationName;
 
       // Aggregate EOD by location
       if (!eodByLocation[locationName]) {
@@ -170,8 +177,8 @@ export default async function handler(req, res) {
     const salesByLocation = {};
     const tenderTotals = {};
 
-    transactions.forEach((tx) => {
-      const locName = resolveLocationName(tx.location, locationsMap);
+    for (const tx of transactions) {
+      const locName = await resolveLocationName(tx.location, locationsMap);
 
       if (!salesByLocation[locName]) {
         salesByLocation[locName] = {
@@ -194,7 +201,7 @@ export default async function handler(req, res) {
       // Aggregate tender totals
       const tender = tx.tenderType || "CASH";
       tenderTotals[tender] = (tenderTotals[tender] || 0) + (tx.total || 0);
-    });
+    }
 
     // =====================
     // PROCESS EXPENSES BY LOCATION
@@ -243,15 +250,15 @@ export default async function handler(req, res) {
     });
 
     // Process products - check for inventory by location
-    allProducts.forEach((product) => {
+    for (const product of allProducts) {
       const costPrice = product.costPrice || 0;
       const salePrice = product.salePriceIncTax || 0;
       const minStock = product.minStock || 5;
 
       // Check if product has location-based inventory
       if (product.inventory && typeof product.inventory === "object") {
-        Object.entries(product.inventory).forEach(([locId, qty]) => {
-          const locName = resolveLocationName(locId, locationsMap);
+        for (const [locId, qty] of Object.entries(product.inventory)) {
+          const locName = await resolveLocationName(locId, locationsMap);
           if (locName && locName !== "Unknown" && stockByLocation[locName]) {
             const quantity = Number(qty) || 0;
             stockByLocation[locName].totalUnits += quantity;
@@ -265,7 +272,7 @@ export default async function handler(req, res) {
               stockByLocation[locName].lowStockItems += 1;
             }
           }
-        });
+        }
       } else {
         // Single location or no location tracking - add to first location
         const qty = product.quantity || 0;
@@ -284,7 +291,7 @@ export default async function handler(req, res) {
           }
         }
       }
-    });
+    }
 
     // =====================
     // CALCULATE TOTALS

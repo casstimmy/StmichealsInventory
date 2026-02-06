@@ -57,11 +57,11 @@ export default async function handler(req, res) {
           if (m.fromLocationId === null || m.fromLocationId === undefined || m.fromLocationId === "") {
             fromLocationName = "Vendor";
           } else {
-            fromLocationName = resolveLocationName(m.fromLocationId, locationCache);
+            fromLocationName = await resolveLocationName(m.fromLocationId, locationCache);
           }
           
           if (m.toLocationId !== null && m.toLocationId !== undefined && m.toLocationId !== "") {
-            toLocationName = resolveLocationName(m.toLocationId, locationCache);
+            toLocationName = await resolveLocationName(m.toLocationId, locationCache);
           }
 
           // Map products safely

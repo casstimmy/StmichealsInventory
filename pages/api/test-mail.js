@@ -16,7 +16,10 @@ export default async function handler(req, res) {
       const auth = req.headers.authorization;
 
       // Check for CRON_SECRET in query or header
-      if (key === process.env.CRON_SECRET || auth === `Bearer ${process.env.CRON_SECRET}`) {
+      if (
+        key === process.env.CRON_SECRET ||
+        auth === `Bearer ${process.env.CRON_SECRET}`
+      ) {
         console.log("[TEST MAIL] ✅ Authorized via CRON_SECRET");
       } else if (auth && auth.startsWith("Bearer ")) {
         // Verify JWT token for admin users
@@ -38,13 +41,13 @@ export default async function handler(req, res) {
       return res.status(405).json({ error: "Method not allowed" });
     }
 
-    console.log('[TEST MAIL] Generating comprehensive daily report...');
-    
+    console.log("[TEST MAIL] Generating comprehensive daily report...");
+
     const { FROM_EMAIL, EMAIL_USER, EMAIL_PASS } = process.env;
-    console.log('[TEST MAIL] ENV:', { FROM_EMAIL, EMAIL_USER });
-    
+    console.log("[TEST MAIL] ENV:", { FROM_EMAIL, EMAIL_USER });
+
     if (!EMAIL_USER || !EMAIL_PASS) {
-      console.log('[TEST MAIL] Missing email credentials');
+      console.log("[TEST MAIL] Missing email credentials");
       return res.status(500).json({
         error: "Missing EMAIL_USER or EMAIL_PASS in .env",
         hint: "Check your Gmail credentials and app password",
@@ -53,7 +56,7 @@ export default async function handler(req, res) {
 
     // Connect to database
     await mongooseConnect();
-    console.log('[TEST MAIL] Connected to MongoDB');
+    console.log("[TEST MAIL] Connected to MongoDB");
 
     // Get today's date range
     const today = new Date();
@@ -69,10 +72,10 @@ export default async function handler(req, res) {
     const stores = await Store.find().lean();
     const storesMap = {};
     const locationsMap = {};
-    stores.forEach(store => {
+    stores.forEach((store) => {
       storesMap[store._id.toString()] = store;
       if (store.locations) {
-        store.locations.forEach(loc => {
+        store.locations.forEach((loc) => {
           locationsMap[loc._id.toString()] = loc.name;
           locationsMap[loc.name] = loc.name; // Also map by name
         });
@@ -81,9 +84,9 @@ export default async function handler(req, res) {
 
     // Get all location names for report
     const allLocations = [];
-    stores.forEach(store => {
+    stores.forEach((store) => {
       if (store.locations) {
-        store.locations.forEach(loc => {
+        store.locations.forEach((loc) => {
           if (loc.isActive !== false) {
             allLocations.push({ id: loc._id.toString(), name: loc.name });
           }
@@ -93,14 +96,14 @@ export default async function handler(req, res) {
 
     // 2. Get EOD reports for today
     const eodReports = await EndOfDayReport.find({
-      closedAt: { $gte: today, $lt: tomorrow }
+      closedAt: { $gte: today, $lt: tomorrow },
     }).lean();
     console.log(`[TEST MAIL] Found ${eodReports.length} EOD reports`);
 
     // 3. Get transactions for today
     const transactions = await Transaction.find({
       createdAt: { $gte: today, $lt: tomorrow },
-      status: "completed"
+      status: "completed",
     }).lean();
     console.log(`[TEST MAIL] Found ${transactions.length} transactions`);
 
@@ -108,8 +111,8 @@ export default async function handler(req, res) {
     const expenses = await Expense.find({
       $or: [
         { createdAt: { $gte: today, $lt: tomorrow } },
-        { expenseDate: { $gte: today, $lt: tomorrow } }
-      ]
+        { expenseDate: { $gte: today, $lt: tomorrow } },
+      ],
     }).lean();
     console.log(`[TEST MAIL] Found ${expenses.length} expenses`);
 
@@ -123,13 +126,13 @@ export default async function handler(req, res) {
     const eodByLocation = {};
     const tenderBreakdownByLocation = {};
 
-    eodReports.forEach(report => {
+    eodReports.forEach((report) => {
       // Get location name
       let locationName = "Unknown";
       const store = storesMap[report.storeId?.toString()];
       if (store && store.locations && report.locationId) {
         const location = store.locations.find(
-          loc => loc._id.toString() === report.locationId.toString()
+          (loc) => loc._id.toString() === report.locationId.toString(),
         );
         if (location) locationName = location.name;
       }
@@ -146,10 +149,12 @@ export default async function handler(req, res) {
         };
       }
       eodByLocation[locationName].totalSales += report.totalSales || 0;
-      eodByLocation[locationName].transactionCount += report.transactionCount || 0;
+      eodByLocation[locationName].transactionCount +=
+        report.transactionCount || 0;
       eodByLocation[locationName].variance += report.variance || 0;
       eodByLocation[locationName].openingBalance += report.openingBalance || 0;
-      eodByLocation[locationName].closingBalance += report.expectedClosingBalance || 0;
+      eodByLocation[locationName].closingBalance +=
+        report.expectedClosingBalance || 0;
 
       // Process tender breakdown
       if (!tenderBreakdownByLocation[locationName]) {
@@ -157,13 +162,15 @@ export default async function handler(req, res) {
       }
       if (report.tenderBreakdown) {
         // Handle both Map and Object formats
-        const tenders = report.tenderBreakdown instanceof Map 
-          ? Object.fromEntries(report.tenderBreakdown) 
-          : report.tenderBreakdown;
-        
+        const tenders =
+          report.tenderBreakdown instanceof Map
+            ? Object.fromEntries(report.tenderBreakdown)
+            : report.tenderBreakdown;
+
         Object.entries(tenders).forEach(([tender, amount]) => {
-          tenderBreakdownByLocation[locationName][tender] = 
-            (tenderBreakdownByLocation[locationName][tender] || 0) + Number(amount || 0);
+          tenderBreakdownByLocation[locationName][tender] =
+            (tenderBreakdownByLocation[locationName][tender] || 0) +
+            Number(amount || 0);
         });
       }
     });
@@ -174,9 +181,9 @@ export default async function handler(req, res) {
     const salesByLocation = {};
     const tenderTotals = {};
 
-    transactions.forEach(tx => {
+    transactions.forEach((tx) => {
       const locName = locationsMap[tx.location] || tx.location || "Unknown";
-      
+
       if (!salesByLocation[locName]) {
         salesByLocation[locName] = {
           location: locName,
@@ -187,10 +194,10 @@ export default async function handler(req, res) {
       }
       salesByLocation[locName].totalSales += tx.total || 0;
       salesByLocation[locName].transactionCount += 1;
-      
+
       // Count items sold
       if (tx.items && Array.isArray(tx.items)) {
-        tx.items.forEach(item => {
+        tx.items.forEach((item) => {
           salesByLocation[locName].itemsSold += item.qty || item.quantity || 0;
         });
       }
@@ -206,9 +213,9 @@ export default async function handler(req, res) {
     const expensesByLocation = {};
     let totalExpenses = 0;
 
-    expenses.forEach(exp => {
+    expenses.forEach((exp) => {
       const locName = exp.locationName || "Unassigned";
-      
+
       if (!expensesByLocation[locName]) {
         expensesByLocation[locName] = {
           location: locName,
@@ -223,17 +230,18 @@ export default async function handler(req, res) {
 
       // Track by category
       const catName = exp.categoryName || "Uncategorized";
-      expensesByLocation[locName].categories[catName] = 
-        (expensesByLocation[locName].categories[catName] || 0) + (exp.amount || 0);
+      expensesByLocation[locName].categories[catName] =
+        (expensesByLocation[locName].categories[catName] || 0) +
+        (exp.amount || 0);
     });
 
     // =====================
     // PROCESS STOCK BY LOCATION
     // =====================
     const stockByLocation = {};
-    
+
     // Initialize all locations
-    allLocations.forEach(loc => {
+    allLocations.forEach((loc) => {
       stockByLocation[loc.name] = {
         location: loc.name,
         totalUnits: 0,
@@ -246,13 +254,13 @@ export default async function handler(req, res) {
     });
 
     // Process products - check for inventory by location
-    allProducts.forEach(product => {
+    allProducts.forEach((product) => {
       const costPrice = product.costPrice || 0;
       const salePrice = product.salePriceIncTax || 0;
       const minStock = product.minStock || 5;
 
       // Check if product has location-based inventory
-      if (product.inventory && typeof product.inventory === 'object') {
+      if (product.inventory && typeof product.inventory === "object") {
         Object.entries(product.inventory).forEach(([locId, qty]) => {
           const locName = locationsMap[locId];
           if (locName && stockByLocation[locName]) {
@@ -261,7 +269,7 @@ export default async function handler(req, res) {
             stockByLocation[locName].totalCostValue += quantity * costPrice;
             stockByLocation[locName].totalSaleValue += quantity * salePrice;
             stockByLocation[locName].productCount += 1;
-            
+
             if (quantity === 0) {
               stockByLocation[locName].outOfStockItems += 1;
             } else if (quantity <= minStock) {
@@ -274,10 +282,12 @@ export default async function handler(req, res) {
         const qty = product.quantity || 0;
         if (allLocations.length > 0 && stockByLocation[allLocations[0].name]) {
           stockByLocation[allLocations[0].name].totalUnits += qty;
-          stockByLocation[allLocations[0].name].totalCostValue += qty * costPrice;
-          stockByLocation[allLocations[0].name].totalSaleValue += qty * salePrice;
+          stockByLocation[allLocations[0].name].totalCostValue +=
+            qty * costPrice;
+          stockByLocation[allLocations[0].name].totalSaleValue +=
+            qty * salePrice;
           stockByLocation[allLocations[0].name].productCount += 1;
-          
+
           if (qty === 0) {
             stockByLocation[allLocations[0].name].outOfStockItems += 1;
           } else if (qty <= minStock) {
@@ -290,16 +300,32 @@ export default async function handler(req, res) {
     // =====================
     // CALCULATE TOTALS
     // =====================
-    const totalSales = Object.values(salesByLocation).reduce((sum, l) => sum + l.totalSales, 0);
-    const totalTransactionCount = Object.values(salesByLocation).reduce((sum, l) => sum + l.transactionCount, 0);
-    const totalVariance = Object.values(eodByLocation).reduce((sum, l) => sum + l.variance, 0);
-    const totalStockValue = Object.values(stockByLocation).reduce((sum, l) => sum + l.totalSaleValue, 0);
-    const totalStockCost = Object.values(stockByLocation).reduce((sum, l) => sum + l.totalCostValue, 0);
+    const totalSales = Object.values(salesByLocation).reduce(
+      (sum, l) => sum + l.totalSales,
+      0,
+    );
+    const totalTransactionCount = Object.values(salesByLocation).reduce(
+      (sum, l) => sum + l.transactionCount,
+      0,
+    );
+    const totalVariance = Object.values(eodByLocation).reduce(
+      (sum, l) => sum + l.variance,
+      0,
+    );
+    const totalStockValue = Object.values(stockByLocation).reduce(
+      (sum, l) => sum + l.totalSaleValue,
+      0,
+    );
+    const totalStockCost = Object.values(stockByLocation).reduce(
+      (sum, l) => sum + l.totalCostValue,
+      0,
+    );
 
     // =====================
     // BUILD HTML REPORT
     // =====================
-    const formatMoney = (val) => `₦${Number(val || 0).toLocaleString('en-NG', { minimumFractionDigits: 0 })}`;
+    const formatMoney = (val) =>
+      `₦${Number(val || 0).toLocaleString("en-NG", { minimumFractionDigits: 0 })}`;
 
     const mailHtml = `
       <div style="font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; max-width: 900px; margin: 0 auto;">
@@ -317,7 +343,7 @@ export default async function handler(req, res) {
               </td>
             </tr>
           </table>
-          <p style="margin: 15px 0 0 0; opacity: 0.9;">${today.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          <p style="margin: 15px 0 0 0; opacity: 0.9;">${today.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
           <p style="margin: 5px 0 0 0; opacity: 0.7; font-size: 12px;">Generated: ${new Date().toLocaleString()}</p>
         </div>
 
@@ -344,9 +370,10 @@ export default async function handler(req, res) {
         <!-- EOD SUMMARY BY LOCATION -->
         <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #3b82f6;">
           <h2 style="color: #3b82f6; margin-top: 0; font-size: 18px;">💰 End-of-Day Summary by Location</h2>
-          ${Object.keys(eodByLocation).length === 0 ? 
-            '<p style="color: #999; font-style: italic;">No EOD reports available for today</p>' :
-            `<table style="width: 100%; border-collapse: collapse;">
+          ${
+            Object.keys(eodByLocation).length === 0
+              ? '<p style="color: #999; font-style: italic;">No EOD reports available for today</p>'
+              : `<table style="width: 100%; border-collapse: collapse;">
               <thead>
                 <tr style="background: #f0f9ff;">
                   <th style="padding: 12px; text-align: left; border-bottom: 2px solid #3b82f6; font-size: 13px;">Location</th>
@@ -356,14 +383,18 @@ export default async function handler(req, res) {
                 </tr>
               </thead>
               <tbody>
-                ${Object.values(eodByLocation).map(loc => `
+                ${Object.values(eodByLocation)
+                  .map(
+                    (loc) => `
                   <tr style="border-bottom: 1px solid #e5e7eb;">
                     <td style="padding: 12px; font-weight: 600;">${loc.location}</td>
                     <td style="padding: 12px; text-align: right; color: #059669; font-weight: 600;">${formatMoney(loc.totalSales)}</td>
                     <td style="padding: 12px; text-align: right;">${loc.transactionCount}</td>
-                    <td style="padding: 12px; text-align: right; color: ${loc.variance > 0 ? '#dc2626' : loc.variance < 0 ? '#f59e0b' : '#059669'}; font-weight: 600;">${formatMoney(loc.variance)}</td>
+                    <td style="padding: 12px; text-align: right; color: ${loc.variance > 0 ? "#dc2626" : loc.variance < 0 ? "#f59e0b" : "#059669"}; font-weight: 600;">${formatMoney(loc.variance)}</td>
                   </tr>
-                `).join('')}
+                `,
+                  )
+                  .join("")}
               </tbody>
             </table>`
           }
@@ -372,37 +403,54 @@ export default async function handler(req, res) {
         <!-- TENDER BREAKDOWN BY LOCATION -->
         <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #8b5cf6;">
           <h2 style="color: #8b5cf6; margin-top: 0; font-size: 18px;">💳 Tender Breakdown by Location</h2>
-          ${Object.keys(tenderBreakdownByLocation).length === 0 ? 
-            '<p style="color: #999; font-style: italic;">No tender data available for today</p>' :
-            Object.entries(tenderBreakdownByLocation).map(([location, tenders]) => `
+          ${
+            Object.keys(tenderBreakdownByLocation).length === 0
+              ? '<p style="color: #999; font-style: italic;">No tender data available for today</p>'
+              : Object.entries(tenderBreakdownByLocation)
+                  .map(
+                    ([location, tenders]) => `
               <div style="margin-bottom: 15px; padding: 15px; background: #f9fafb; border-radius: 8px;">
                 <h3 style="margin: 0 0 10px 0; color: #374151; font-size: 14px;">📍 ${location}</h3>
                 <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-                  ${Object.entries(tenders).map(([tender, amount]) => `
+                  ${Object.entries(tenders)
+                    .map(
+                      ([tender, amount]) => `
                     <div style="background: white; padding: 10px 15px; border-radius: 6px; border: 1px solid #e5e7eb;">
                       <span style="color: #666; font-size: 12px;">${tender}</span>
                       <span style="display: block; font-weight: bold; color: #1f2937;">${formatMoney(amount)}</span>
                     </div>
-                  `).join('')}
+                  `,
+                    )
+                    .join("")}
                 </div>
               </div>
-            `).join('')
+            `,
+                  )
+                  .join("")
           }
           
           <!-- Total Tender Summary -->
-          ${Object.keys(tenderTotals).length > 0 ? `
+          ${
+            Object.keys(tenderTotals).length > 0
+              ? `
             <div style="margin-top: 15px; padding: 15px; background: #ede9fe; border-radius: 8px;">
               <h3 style="margin: 0 0 10px 0; color: #6d28d9; font-size: 14px;">📊 Overall Tender Totals</h3>
               <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-                ${Object.entries(tenderTotals).map(([tender, amount]) => `
+                ${Object.entries(tenderTotals)
+                  .map(
+                    ([tender, amount]) => `
                   <div style="background: white; padding: 10px 15px; border-radius: 6px; border: 1px solid #c4b5fd;">
                     <span style="color: #666; font-size: 12px;">${tender}</span>
                     <span style="display: block; font-weight: bold; color: #6d28d9;">${formatMoney(amount)}</span>
                   </div>
-                `).join('')}
+                `,
+                  )
+                  .join("")}
               </div>
             </div>
-          ` : ''}
+          `
+              : ""
+          }
         </div>
 
         <!-- STOCK REPORT BY LOCATION -->
@@ -420,21 +468,30 @@ export default async function handler(req, res) {
               </tr>
             </thead>
             <tbody>
-              ${Object.values(stockByLocation).filter(s => s.productCount > 0).map(stock => `
+              ${Object.values(stockByLocation)
+                .filter((s) => s.productCount > 0)
+                .map(
+                  (stock) => `
                 <tr style="border-bottom: 1px solid #e5e7eb;">
                   <td style="padding: 12px; font-weight: 600;">${stock.location}</td>
                   <td style="padding: 12px; text-align: right;">${stock.totalUnits.toLocaleString()}</td>
                   <td style="padding: 12px; text-align: right; color: #666;">${formatMoney(stock.totalCostValue)}</td>
                   <td style="padding: 12px; text-align: right; color: #059669; font-weight: 600;">${formatMoney(stock.totalSaleValue)}</td>
-                  <td style="padding: 12px; text-align: right; color: ${stock.lowStockItems > 0 ? '#f59e0b' : '#059669'}; font-weight: 600;">${stock.lowStockItems}</td>
-                  <td style="padding: 12px; text-align: right; color: ${stock.outOfStockItems > 0 ? '#dc2626' : '#059669'}; font-weight: 600;">${stock.outOfStockItems}</td>
+                  <td style="padding: 12px; text-align: right; color: ${stock.lowStockItems > 0 ? "#f59e0b" : "#059669"}; font-weight: 600;">${stock.lowStockItems}</td>
+                  <td style="padding: 12px; text-align: right; color: ${stock.outOfStockItems > 0 ? "#dc2626" : "#059669"}; font-weight: 600;">${stock.outOfStockItems}</td>
                 </tr>
-              `).join('')}
+              `,
+                )
+                .join("")}
             </tbody>
             <tfoot>
               <tr style="background: #fef3c7; font-weight: bold;">
                 <td style="padding: 12px;">TOTAL</td>
-                <td style="padding: 12px; text-align: right;">${Object.values(stockByLocation).reduce((s, l) => s + l.totalUnits, 0).toLocaleString()}</td>
+                <td style="padding: 12px; text-align: right;">${Object.values(
+                  stockByLocation,
+                )
+                  .reduce((s, l) => s + l.totalUnits, 0)
+                  .toLocaleString()}</td>
                 <td style="padding: 12px; text-align: right;">${formatMoney(totalStockCost)}</td>
                 <td style="padding: 12px; text-align: right; color: #059669;">${formatMoney(totalStockValue)}</td>
                 <td style="padding: 12px; text-align: right;">${Object.values(stockByLocation).reduce((s, l) => s + l.lowStockItems, 0)}</td>
@@ -447,9 +504,10 @@ export default async function handler(req, res) {
         <!-- SALES BY LOCATION -->
         <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #059669;">
           <h2 style="color: #059669; margin-top: 0; font-size: 18px;">🛒 Sales by Location (Today)</h2>
-          ${Object.keys(salesByLocation).length === 0 ? 
-            '<p style="color: #999; font-style: italic;">No sales recorded for today</p>' :
-            `<table style="width: 100%; border-collapse: collapse;">
+          ${
+            Object.keys(salesByLocation).length === 0
+              ? '<p style="color: #999; font-style: italic;">No sales recorded for today</p>'
+              : `<table style="width: 100%; border-collapse: collapse;">
               <thead>
                 <tr style="background: #ecfdf5;">
                   <th style="padding: 12px; text-align: left; border-bottom: 2px solid #059669; font-size: 13px;">Location</th>
@@ -459,14 +517,18 @@ export default async function handler(req, res) {
                 </tr>
               </thead>
               <tbody>
-                ${Object.values(salesByLocation).map(loc => `
+                ${Object.values(salesByLocation)
+                  .map(
+                    (loc) => `
                   <tr style="border-bottom: 1px solid #e5e7eb;">
                     <td style="padding: 12px; font-weight: 600;">${loc.location}</td>
                     <td style="padding: 12px; text-align: right; color: #059669; font-weight: 600;">${formatMoney(loc.totalSales)}</td>
                     <td style="padding: 12px; text-align: right;">${loc.transactionCount}</td>
                     <td style="padding: 12px; text-align: right;">${loc.itemsSold}</td>
                   </tr>
-                `).join('')}
+                `,
+                  )
+                  .join("")}
               </tbody>
             </table>`
           }
@@ -475,9 +537,10 @@ export default async function handler(req, res) {
         <!-- EXPENSES BY LOCATION -->
         <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #dc2626;">
           <h2 style="color: #dc2626; margin-top: 0; font-size: 18px;">💸 Expenses by Location (Today)</h2>
-          ${Object.keys(expensesByLocation).length === 0 ? 
-            '<p style="color: #999; font-style: italic;">No expenses recorded for today</p>' :
-            `<table style="width: 100%; border-collapse: collapse;">
+          ${
+            Object.keys(expensesByLocation).length === 0
+              ? '<p style="color: #999; font-style: italic;">No expenses recorded for today</p>'
+              : `<table style="width: 100%; border-collapse: collapse;">
               <thead>
                 <tr style="background: #fef2f2;">
                   <th style="padding: 12px; text-align: left; border-bottom: 2px solid #dc2626; font-size: 13px;">Location</th>
@@ -487,16 +550,22 @@ export default async function handler(req, res) {
                 </tr>
               </thead>
               <tbody>
-                ${Object.values(expensesByLocation).map(loc => `
+                ${Object.values(expensesByLocation)
+                  .map(
+                    (loc) => `
                   <tr style="border-bottom: 1px solid #e5e7eb;">
                     <td style="padding: 12px; font-weight: 600;">${loc.location}</td>
                     <td style="padding: 12px; text-align: right; color: #dc2626; font-weight: 600;">${formatMoney(loc.totalAmount)}</td>
                     <td style="padding: 12px; text-align: right;">${loc.count}</td>
                     <td style="padding: 12px; font-size: 12px; color: #666;">
-                      ${Object.entries(loc.categories).map(([cat, amt]) => `${cat}: ${formatMoney(amt)}`).join(', ')}
+                      ${Object.entries(loc.categories)
+                        .map(([cat, amt]) => `${cat}: ${formatMoney(amt)}`)
+                        .join(", ")}
                     </td>
                   </tr>
-                `).join('')}
+                `,
+                  )
+                  .join("")}
               </tbody>
               <tfoot>
                 <tr style="background: #fee2e2; font-weight: bold;">
@@ -540,8 +609,8 @@ export default async function handler(req, res) {
             <!-- Cash Variance -->
             <div style="background: rgba(255, 255, 255, 0.15); padding: 18px; border-radius: 8px; border-left: 4px solid rgba(255, 255, 255, 0.4); backdrop-filter: blur(10px);">
               <p style="margin: 0; opacity: 0.85; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">⚖️ Cash Variance</p>
-              <p style="margin: 12px 0 0 0; font-size: 28px; font-weight: bold; line-height: 1; color: ${totalVariance > 0 ? '#fbbf24' : totalVariance < 0 ? '#ef4444' : '#ffffff'};">${formatMoney(totalVariance)}</p>
-              <p style="margin: 8px 0 0 0; opacity: 0.7; font-size: 11px;">${totalVariance > 0 ? '↑ Surplus' : totalVariance < 0 ? '↓ Deficit' : 'Balanced'}</p>
+              <p style="margin: 12px 0 0 0; font-size: 28px; font-weight: bold; line-height: 1; color: ${totalVariance > 0 ? "#fbbf24" : totalVariance < 0 ? "#ef4444" : "#ffffff"};">${formatMoney(totalVariance)}</p>
+              <p style="margin: 8px 0 0 0; opacity: 0.7; font-size: 11px;">${totalVariance > 0 ? "↑ Surplus" : totalVariance < 0 ? "↓ Deficit" : "Balanced"}</p>
             </div>
           </div>
 
@@ -553,20 +622,20 @@ export default async function handler(req, res) {
            <div style="display: flex; flex-wrap: wrap; gap: 10px;"> 
             <!-- Stock Value -->
             <div style="text-align: center; padding: 12px;">
-              <p style="margin: 0; opacity: 0.8; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Stock Value</p>
+              <p style="margin: 0; opacity: 0.8; font-size: 28px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">Stock Value</p>
               <p style="margin: 8px 0 0 0; font-size: 18px; font-weight: bold;">${formatMoney(totalStockValue)}</p>
             </div>
 
             <!-- Locations Active -->
             <div style="text-align: center; padding: 12px;">
-              <p style="margin: 0; opacity: 0.8; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Locations</p>
+              <p style="margin: 0; opacity: 0.8; font-size: 28px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">Locations</p>
               <p style="margin: 8px 0 0 0; font-size: 18px; font-weight: bold;">${allLocations.length}</p>
             </div>
 
             <!-- Profit Margin -->
             <div style="text-align: center; padding: 12px;">
-              <p style="margin: 0; opacity: 0.8; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Profit Margin</p>
-              <p style="margin: 8px 0 0 0; font-size: 18px; font-weight: bold;">${totalSales > 0 ? ((((totalSales - totalExpenses) / totalSales) * 100).toFixed(1)) : '0'}%</p>
+              <p style="margin: 0; opacity: 0.8; font-size: 28px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">Profit Margin</p>
+              <p style="margin: 8px 0 0 0; font-size: 18px; font-weight: bold;">${totalSales > 0 ? (((totalSales - totalExpenses) / totalSales) * 100).toFixed(1) : "0"}%</p>
             </div>
           </div>
         </div>
@@ -595,11 +664,14 @@ export default async function handler(req, res) {
     const testEmailTo = process.env.TEST_EMAIL || FROM_EMAIL || EMAIL_USER;
 
     console.log("📧 Sending daily report email to:", testEmailTo);
-    
+
     // Logo path for embedding
-    const logoPath = path.join(process.cwd(), "public/images/st-micheals-logo.png");
+    const logoPath = path.join(
+      process.cwd(),
+      "public/images/st-micheals-logo.png",
+    );
     let attachments = [];
-    
+
     try {
       const fs = await import("fs");
       if (fs.existsSync(logoPath)) {
@@ -612,17 +684,17 @@ export default async function handler(req, res) {
     } catch (logoErr) {
       console.log("[TEST MAIL] Logo not found, sending without embedded image");
     }
-    
+
     const emailResponse = await transporter.sendMail({
       from: EMAIL_USER,
       to: testEmailTo,
-      subject: `Daily Business Report - ${today.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} | St. Micheals`,
+      subject: `Daily Business Report - ${today.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} | St. Micheals`,
       html: mailHtml,
       attachments,
     });
-    
+
     console.log("✅ Email sent successfully:", emailResponse.messageId);
-    
+
     return res.status(200).json({
       message: "Daily report sent successfully!",
       sentTo: testEmailTo,
@@ -639,7 +711,6 @@ export default async function handler(req, res) {
         eodReportsCount: eodReports.length,
       },
     });
-
   } catch (err) {
     console.error("❌ Error generating daily report:", err);
     return res.status(500).json({

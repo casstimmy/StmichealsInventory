@@ -7,6 +7,7 @@ import Layout from "@/components/Layout";
 import axios from "axios";
 import Link from "next/link";
 import useSWR, { mutate } from "swr";
+import { useIndexedDBCache, clearCache } from "@/lib/useIndexedDBCache";
 
 const entriesPerPageDefault = 20;
 
@@ -23,19 +24,42 @@ function debounce(func, wait) {
 }
 
 export default function Products() {
-  // SWR-backed product list (cached & revalidated in background)
-  const { data: productsData, error } = useSWR("/api/products", fetcher, {
-    revalidateOnFocus: true,
-    dedupingInterval: 60000,
+  // ========== SMART CACHING STRATEGY ==========
+  // Products: IndexedDB cache with 30-minute TTL (frequently changes)
+  // + SWR background revalidation (only if cache expired)
+  const { data: cachedProducts, refresh: refreshProducts } = useIndexedDBCache(
+    "products_cache",
+    () => fetcher("/api/products"),
+    30 // 30 minutes TTL
+  );
+
+  // Categories: IndexedDB cache with 4-hour TTL (rarely changes)
+  const { data: cachedCategories, refresh: refreshCategories } = useIndexedDBCache(
+    "categories_cache",
+    () => fetcher("/api/categories"),
+    240 // 4 hours TTL
+  );
+
+  // SWR for background sync with minimal disruption
+  // Will only validate if explicitly triggered or cache expired
+  const { error } = useSWR("/api/products", fetcher, {
+    revalidateOnFocus: false, // Don't revalidate on every focus (we use IndexedDB)
+    revalidateOnReconnect: true, // Revalidate when connection restores
+    dedupingInterval: 180000, // 3 minutes deduping interval
+    compare: (a, b) => { // Only update SWR if data actually changed
+      return JSON.stringify(a) === JSON.stringify(b);
+    },
+    onSuccess: (newData) => {
+      // When new data arrives, refresh IndexedDB cache
+      if (newData && Array.isArray(newData)) {
+        clearCache("products_cache");
+        useIndexedDBCache("products_cache", () => Promise.resolve(newData), 30);
+      }
+    },
   });
 
-  // categories
-  const { data: categoriesData } = useSWR("/api/categories", fetcher, {
-    dedupingInterval: 60000,
-  });
-
-  // local UI state
-  const [allProducts, setAllProducts] = useState([]); // full list (from SWR)
+  // ========== LOCAL UI STATE ==========
+  const [allProducts, setAllProducts] = useState([]); // full list (from cache)
   const [filteredProducts, setFilteredProducts] = useState([]); // after search/filter
   const [categoryMap, setCategoryMap] = useState({});
   const [editIndex, setEditIndex] = useState(null);
@@ -43,6 +67,7 @@ export default function Products() {
   const [searchTerm, setSearchTerm] = useState("");
   const [properties, setProperties] = useState([]);
   const [expandedRow, setExpandedRow] = useState(null);
+  const [isInitializing, setIsInitializing] = useState(true); // Track first load
 
   // pagination / lazy load
   const [entriesPerPage] = useState(entriesPerPageDefault);
@@ -56,22 +81,23 @@ export default function Products() {
   // refs
   const searchRef = useRef();
 
-  // Initialize from SWR when data arrives
+  // Initialize from cache when data arrives
   useEffect(() => {
-    const list = Array.isArray(productsData) ? productsData : productsData?.data || [];
+    const list = Array.isArray(cachedProducts) ? cachedProducts : cachedProducts?.data || [];
     setAllProducts(list);
     setFilteredProducts(list);
-  }, [productsData]);
+    setIsInitializing(false);
+  }, [cachedProducts]);
 
   // categories -> map
   useEffect(() => {
-    const catList = Array.isArray(categoriesData) ? categoriesData : categoriesData?.data || [];
+    const catList = Array.isArray(cachedCategories) ? cachedCategories : cachedCategories?.data || [];
     const map = (catList || []).reduce((acc, c) => {
       acc[c._id] = c.name;
       return acc;
     }, {});
     setCategoryMap(map);
-  }, [categoriesData]);
+  }, [cachedCategories]);
 
   // Keep highlightedId in sessionStorage so it's preserved when navigating away & back
   useEffect(() => {
@@ -156,6 +182,10 @@ export default function Products() {
       );
       setAllProducts((prev) => prev.map((p) => (p._id === _id ? { ...p, ...updatedProduct } : p)));
 
+      // Invalidate IndexedDB cache and refresh from server
+      await clearCache("products_cache");
+      await refreshProducts();
+
       // revalidate SWR cache for /api/products
       mutate("/api/products");
 
@@ -181,6 +211,11 @@ export default function Products() {
       await axios.delete(`/api/products?id=${_id}`);
       setFilteredProducts((prev) => prev.filter((p) => p._id !== _id));
       setAllProducts((prev) => prev.filter((p) => p._id !== _id));
+      
+      // Invalidate cache and refresh
+      await clearCache("products_cache");
+      await refreshProducts();
+      
       mutate("/api/products");
       if (highlightedId === _id) setHighlightedId(null);
     } catch (err) {
@@ -225,6 +260,26 @@ export default function Products() {
         <div className="p-6">
           <h2 className="text-xl text-red-600">Failed to load products</h2>
           <p className="text-sm text-gray-600">{String(error)}</p>
+          <button 
+            onClick={() => refreshProducts()}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Try Again
+          </button>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Show initial loading state
+  if (isInitializing) {
+    return (
+      <Layout>
+        <div className="p-6 text-center">
+          <div className="animate-pulse">
+            <div className="h-8 w-48 bg-gray-300 rounded mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading products from cache...</p>
+          </div>
         </div>
       </Layout>
     );
@@ -237,12 +292,21 @@ export default function Products() {
         {/* Header */}
         <div className="page-header flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h1 className="page-title">Products</h1>
-          <Link
-            href="../products/new"
-            className="btn-action-primary w-full sm:w-auto text-center"
-          >
-            + Add Product
-          </Link>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={refreshProducts}
+              className="btn-action-secondary flex items-center gap-2"
+              title="Refresh products from server"
+            >
+              🔄 Refresh
+            </button>
+            <Link
+              href="../products/new"
+              className="btn-action-primary w-full sm:w-auto text-center"
+            >
+              + Add Product
+            </Link>
+          </div>
         </div>
 
         {/* Search */}

@@ -261,12 +261,12 @@ export default function Home() {
     ],
   };
 
-  const handleTestMail = async () => {
+  const handleDailyMail = async () => {
     try {
-      const response = await apiClient.post("/api/test-mail");
-      alert(`✅ Test email sent successfully!\n\nSent to: ${response.data.sentTo}`);
+      const response = await apiClient.post("/api/daily-mail");
+      alert(`✅ Daily email sent successfully!\n\nSent to: ${response.data.sentTo}`);
     } catch (error) {
-      alert(`❌ Failed to send test email\n\n${error.response?.data?.error || error.message}`);
+      alert(`❌ Failed to send daily email\n\n${error.response?.data?.error || error.message}`);
     }
   };
 
@@ -299,7 +299,7 @@ export default function Home() {
             </button>
             <button
               className="btn-action-secondary w-full sm:w-auto"
-              onClick={handleTestMail}
+              onClick={handleDailyMail}
               title="Send daily mail report"
             >
               📧 Mail Report

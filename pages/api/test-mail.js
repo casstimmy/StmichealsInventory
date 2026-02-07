@@ -235,6 +235,12 @@ export default async function handler(req, res) {
     // PROCESS STOCK BY LOCATION
     // =====================
     const stockByLocation = {};
+    const expiringSoonProducts = [];
+    const lowStockProducts = [];
+    const expiringSoonDays = 30;
+    const expiringSoonCutoff = new Date(today);
+    expiringSoonCutoff.setDate(expiringSoonCutoff.getDate() + expiringSoonDays);
+    const msPerDay = 1000 * 60 * 60 * 24;
 
     // Initialize all locations
     allLocations.forEach((loc) => {
@@ -254,6 +260,39 @@ export default async function handler(req, res) {
       const costPrice = product.costPrice || 0;
       const salePrice = product.salePriceIncTax || 0;
       const minStock = product.minStock || 5;
+      const productName = product.name || product.title || "Unnamed product";
+      const expiryDateValue = product.expiryDate
+        ? new Date(product.expiryDate)
+        : null;
+
+      const addExpiringEntry = (locName, quantity) => {
+        if (!expiryDateValue || quantity <= 0) {
+          return;
+        }
+        if (expiryDateValue <= expiringSoonCutoff) {
+          const daysToExpiry = Math.ceil(
+            (expiryDateValue.getTime() - today.getTime()) / msPerDay,
+          );
+          expiringSoonProducts.push({
+            name: productName,
+            location: locName,
+            quantity,
+            expiryDate: expiryDateValue,
+            daysToExpiry,
+          });
+        }
+      };
+
+      const addLowStockEntry = (locName, quantity) => {
+        if (quantity <= minStock) {
+          lowStockProducts.push({
+            name: productName,
+            location: locName,
+            quantity,
+            minStock,
+          });
+        }
+      };
 
       // Check if product has location-based inventory
       if (product.inventory && typeof product.inventory === "object") {
@@ -271,24 +310,43 @@ export default async function handler(req, res) {
             } else if (quantity <= minStock) {
               stockByLocation[locName].lowStockItems += 1;
             }
+
+            addExpiringEntry(locName, quantity);
+            addLowStockEntry(locName, quantity);
           }
         }
       } else {
         // Single location or no location tracking - add to first location
         const qty = product.quantity || 0;
-        if (allLocations.length > 0 && stockByLocation[allLocations[0].name]) {
-          stockByLocation[allLocations[0].name].totalUnits += qty;
-          stockByLocation[allLocations[0].name].totalCostValue +=
+        const fallbackLocation =
+          allLocations.length > 0 ? allLocations[0].name : "Unassigned";
+        if (!stockByLocation[fallbackLocation]) {
+          stockByLocation[fallbackLocation] = {
+            location: fallbackLocation,
+            totalUnits: 0,
+            totalCostValue: 0,
+            totalSaleValue: 0,
+            productCount: 0,
+            lowStockItems: 0,
+            outOfStockItems: 0,
+          };
+        }
+        if (stockByLocation[fallbackLocation]) {
+          stockByLocation[fallbackLocation].totalUnits += qty;
+          stockByLocation[fallbackLocation].totalCostValue +=
             qty * costPrice;
-          stockByLocation[allLocations[0].name].totalSaleValue +=
+          stockByLocation[fallbackLocation].totalSaleValue +=
             qty * salePrice;
-          stockByLocation[allLocations[0].name].productCount += 1;
+          stockByLocation[fallbackLocation].productCount += 1;
 
           if (qty === 0) {
-            stockByLocation[allLocations[0].name].outOfStockItems += 1;
+            stockByLocation[fallbackLocation].outOfStockItems += 1;
           } else if (qty <= minStock) {
-            stockByLocation[allLocations[0].name].lowStockItems += 1;
+            stockByLocation[fallbackLocation].lowStockItems += 1;
           }
+
+          addExpiringEntry(fallbackLocation, qty);
+          addLowStockEntry(fallbackLocation, qty);
         }
       }
     }
@@ -317,11 +375,22 @@ export default async function handler(req, res) {
       0,
     );
 
+    expiringSoonProducts.sort(
+      (a, b) => a.expiryDate - b.expiryDate || a.quantity - b.quantity,
+    );
+    lowStockProducts.sort((a, b) => a.quantity - b.quantity);
+
     // =====================
     // BUILD HTML REPORT
     // =====================
     const formatMoney = (val) =>
       `₦${Number(val || 0).toLocaleString("en-NG", { minimumFractionDigits: 0 })}`;
+    const formatShortDate = (date) =>
+      new Date(date).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
 
     const mailHtml = `
       <div style="font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; max-width: 900px; margin: 0 auto;">
@@ -497,6 +566,92 @@ export default async function handler(req, res) {
           </table>
         </div>
 
+        <!-- EXPIRING SOON & LOW STOCK -->
+        <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #f97316;">
+          <h2 style="color: #f97316; margin-top: 0; font-size: 18px;">⏰ Expiring Soon & Low Stock</h2>
+          <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+            <div style="flex: 1; min-width: 260px; background: #fff7ed; padding: 15px; border-radius: 8px; border: 1px solid #fed7aa;">
+              <h3 style="margin: 0 0 10px 0; color: #c2410c; font-size: 14px;">Expiring in next ${expiringSoonDays} days</h3>
+              ${
+                expiringSoonProducts.length === 0
+                  ? '<p style="margin: 0; color: #9a3412; font-style: italic;">No expiring products found</p>'
+                  : `<table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                    <thead>
+                      <tr>
+                        <th style="padding: 6px; text-align: left; border-bottom: 1px solid #fdba74;">Product</th>
+                        <th style="padding: 6px; text-align: left; border-bottom: 1px solid #fdba74;">Location</th>
+                        <th style="padding: 6px; text-align: right; border-bottom: 1px solid #fdba74;">Qty</th>
+                        <th style="padding: 6px; text-align: right; border-bottom: 1px solid #fdba74;">Expiry</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${expiringSoonProducts
+                        .slice(0, 15)
+                        .map((item) => {
+                          const status =
+                            item.daysToExpiry < 0
+                              ? `Expired ${Math.abs(item.daysToExpiry)}d`
+                              : `In ${item.daysToExpiry}d`;
+                          return `
+                        <tr>
+                          <td style="padding: 6px; border-bottom: 1px solid #ffedd5; font-weight: 600;">${item.name}</td>
+                          <td style="padding: 6px; border-bottom: 1px solid #ffedd5;">${item.location}</td>
+                          <td style="padding: 6px; text-align: right; border-bottom: 1px solid #ffedd5;">${item.quantity}</td>
+                          <td style="padding: 6px; text-align: right; border-bottom: 1px solid #ffedd5;">${formatShortDate(item.expiryDate)} (${status})</td>
+                        </tr>
+                      `;
+                        })
+                        .join("")}
+                    </tbody>
+                  </table>
+                  ${
+                    expiringSoonProducts.length > 15
+                      ? `<p style="margin: 8px 0 0 0; color: #9a3412; font-size: 11px;">Showing 15 of ${expiringSoonProducts.length}</p>`
+                      : ""
+                  }`
+              }
+            </div>
+
+            <div style="flex: 1; min-width: 260px; background: #fef2f2; padding: 15px; border-radius: 8px; border: 1px solid #fecaca;">
+              <h3 style="margin: 0 0 10px 0; color: #b91c1c; font-size: 14px;">Low stock (at or below min)</h3>
+              ${
+                lowStockProducts.length === 0
+                  ? '<p style="margin: 0; color: #991b1b; font-style: italic;">No low stock items</p>'
+                  : `<table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                    <thead>
+                      <tr>
+                        <th style="padding: 6px; text-align: left; border-bottom: 1px solid #fca5a5;">Product</th>
+                        <th style="padding: 6px; text-align: left; border-bottom: 1px solid #fca5a5;">Location</th>
+                        <th style="padding: 6px; text-align: right; border-bottom: 1px solid #fca5a5;">Qty</th>
+                        <th style="padding: 6px; text-align: right; border-bottom: 1px solid #fca5a5;">Min</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${lowStockProducts
+                        .slice(0, 15)
+                        .map(
+                          (item) => `
+                        <tr>
+                          <td style="padding: 6px; border-bottom: 1px solid #fee2e2; font-weight: 600;">${item.name}</td>
+                          <td style="padding: 6px; border-bottom: 1px solid #fee2e2;">${item.location}</td>
+                          <td style="padding: 6px; text-align: right; border-bottom: 1px solid #fee2e2;">${item.quantity}</td>
+                          <td style="padding: 6px; text-align: right; border-bottom: 1px solid #fee2e2;">${item.minStock}</td>
+                        </tr>
+                      `,
+                        )
+                        .join("")}
+                    </tbody>
+                  </table>
+                  ${
+                    lowStockProducts.length > 15
+                      ? `<p style="margin: 8px 0 0 0; color: #991b1b; font-size: 11px;">Showing 15 of ${lowStockProducts.length}</p>`
+                      : ""
+                  }`
+              }
+            </div>
+          </div>
+        </div>
+
         <!-- SALES BY LOCATION -->
         <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #059669;">
           <h2 style="color: #059669; margin-top: 0; font-size: 18px;">🛒 Sales by Location (Today)</h2>
@@ -631,7 +786,7 @@ export default async function handler(req, res) {
             <!-- Profit Margin -->
             <div style="text-align: center; padding: 12px;">
               <p style="margin: 0; opacity: 0.8; font-size: 28px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">Profit Margin</p>
-              <p style="margin: 8px 0 0 0; font-size: 18px; font-weight: bold;">${totalSales > 0 ? (((totalSales - totalExpenses) / totalSales) * 100).toFixed(1) : "0"}%</p>
+              <p style="margin: 8px 0 0 0; font-size: 18px; font-weight: bold;">${totalSales > 0 ? (((totalSales - totalStockCost - totalExpenses) / totalSales) * 100).toFixed(1) : "0"}%</p>
             </div>
           </div>
         </div>

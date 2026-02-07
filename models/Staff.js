@@ -9,6 +9,11 @@ const StaffSchema = new Schema(
       trim: true,
     },
 
+    username: {
+      type: String,
+      trim: true,
+    },
+
     password: {
       type: String,
       required: true,
@@ -63,6 +68,8 @@ const StaffSchema = new Schema(
   },
   { timestamps: true }
 );
+
+StaffSchema.index({ username: 1 }, { unique: true, sparse: true });
 
 export default models.Staff || mongoose.model("Staff", StaffSchema);
 

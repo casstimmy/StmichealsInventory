@@ -2,6 +2,14 @@ import { mongooseConnect } from "@/lib/mongodb";
 import Staff from "@/models/Staff";
 import bcrypt from "bcryptjs";
 
+let staffIndexesSynced = false;
+
+async function ensureStaffIndexes() {
+  if (staffIndexesSynced) return;
+  await Staff.syncIndexes();
+  staffIndexesSynced = true;
+}
+
 export default async function handler(req, res) {
   try {
 
@@ -9,6 +17,13 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error("MongoDB connection error:", err);
     return res.status(500).json({ error: "Failed to connect to DB", details: err.message });
+  }
+
+  try {
+    await ensureStaffIndexes();
+  } catch (err) {
+    console.error("Staff index sync error:", err);
+    return res.status(500).json({ error: "Failed to sync staff indexes", details: err.message });
   }
 
   if (req.method === "GET") {

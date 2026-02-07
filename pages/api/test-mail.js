@@ -116,6 +116,13 @@ export default async function handler(req, res) {
     const allProducts = await Product.find().lean();
     console.log(`[TEST MAIL] Found ${allProducts.length} products`);
 
+    const productCostById = {};
+    allProducts.forEach((product) => {
+      if (product?._id) {
+        productCostById[product._id.toString()] = product.costPrice || 0;
+      }
+    });
+
     // =====================
     // PROCESS EOD DATA
     // =====================
@@ -176,6 +183,9 @@ export default async function handler(req, res) {
     // =====================
     const salesByLocation = {};
     const tenderTotals = {};
+    let totalCogsToday = 0;
+    let missingProductIdCount = 0;
+    let missingCostCount = 0;
 
     for (const tx of transactions) {
       const locName = await resolveLocationName(tx.location, locationsMap);
@@ -194,7 +204,46 @@ export default async function handler(req, res) {
       // Count items sold
       if (tx.items && Array.isArray(tx.items)) {
         tx.items.forEach((item) => {
-          salesByLocation[locName].itemsSold += item.qty || item.quantity || 0;
+          const itemQty = Number(item.qty || item.quantity || 0);
+          salesByLocation[locName].itemsSold += itemQty;
+
+          const itemProductId =
+            item.productId?.toString?.() ||
+            item.productId ||
+            item._id?.toString?.() ||
+            item._id;
+          if (!itemProductId) {
+            missingProductIdCount += 1;
+            console.warn(
+              "[TEST MAIL] Missing productId for transaction item:",
+              {
+                transactionId: tx?._id?.toString?.() || tx?._id,
+                location: tx?.location || "Unknown",
+                itemName: item?.name || "Unnamed item",
+                quantity: itemQty,
+                price: item?.salePriceIncTax ?? item?.price ?? null,
+              },
+            );
+          }
+          const hasCostFromCatalog =
+            itemProductId &&
+            Object.prototype.hasOwnProperty.call(
+              productCostById,
+              itemProductId,
+            );
+          const resolvedCost = item.costPrice ??
+            (hasCostFromCatalog ? productCostById[itemProductId] : null);
+          if (itemProductId && resolvedCost === null) {
+            missingCostCount += 1;
+            console.warn("[TEST MAIL] Missing cost price for product:", {
+              transactionId: tx?._id?.toString?.() || tx?._id,
+              location: tx?.location || "Unknown",
+              productId: itemProductId,
+              itemName: item?.name || "Unnamed item",
+            });
+          }
+          const itemCost = Number(resolvedCost ?? 0);
+          totalCogsToday += itemQty * itemCost;
         });
       }
 
@@ -374,6 +423,8 @@ export default async function handler(req, res) {
       (sum, l) => sum + l.totalCostValue,
       0,
     );
+    const grossProfitToday = totalSales - totalCogsToday;
+    const netProfitToday = grossProfitToday - totalExpenses;
 
     expiringSoonProducts.sort(
       (a, b) => a.expiryDate - b.expiryDate || a.quantity - b.quantity,
@@ -753,8 +804,8 @@ export default async function handler(req, res) {
             <!-- Net Profit -->
             <div style="background: rgba(255, 255, 255, 0.15); padding: 18px; border-radius: 8px; border-left: 4px solid rgba(255, 255, 255, 0.4); backdrop-filter: blur(10px);">
               <p style="margin: 0; opacity: 0.85; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">📊 Net Profit</p>
-              <p style="margin: 12px 0 0 0; font-size: 28px; font-weight: bold; line-height: 1;">${formatMoney(totalSales - totalExpenses)}</p>
-              <p style="margin: 8px 0 0 0; opacity: 0.7; font-size: 11px;">Sales minus expenses</p>
+              <p style="margin: 12px 0 0 0; font-size: 28px; font-weight: bold; line-height: 1;">${formatMoney(netProfitToday)}</p>
+              <p style="margin: 8px 0 0 0; opacity: 0.7; font-size: 11px;">Sales minus COGS and expenses</p>
             </div>
 
             <!-- Cash Variance -->
@@ -786,9 +837,18 @@ export default async function handler(req, res) {
             <!-- Profit Margin -->
             <div style="text-align: center; padding: 12px;">
               <p style="margin: 0; opacity: 0.8; font-size: 28px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">Profit Margin</p>
-              <p style="margin: 8px 0 0 0; font-size: 18px; font-weight: bold;">${totalSales > 0 ? (((totalSales - totalStockCost - totalExpenses) / totalSales) * 100).toFixed(1) : "0"}%</p>
+              <p style="margin: 8px 0 0 0; font-size: 18px; font-weight: bold;">${totalSales > 0 ? ((netProfitToday / totalSales) * 100).toFixed(1) : "0"}%</p>
             </div>
           </div>
+        </div>
+
+        <!-- DATA QUALITY -->
+        <div style="background: #f8fafc; padding: 16px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #94a3b8;">
+          <h3 style="margin: 0 0 8px 0; color: #334155; font-size: 14px;">Data Quality</h3>
+          <p style="margin: 0; color: #475569; font-size: 12px;">
+            Missing productId on items: <strong>${missingProductIdCount}</strong> |
+            Missing cost price on items: <strong>${missingCostCount}</strong>
+          </p>
         </div>
 
         <!-- FOOTER -->
@@ -855,7 +915,8 @@ export default async function handler(req, res) {
         totalSales,
         totalTransactions: totalTransactionCount,
         totalExpenses,
-        netPosition: totalSales - totalExpenses,
+        totalCogs: totalCogsToday,
+        netPosition: netProfitToday,
         stockValue: totalStockValue,
         variance: totalVariance,
         locationsCount: allLocations.length,

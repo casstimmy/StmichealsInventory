@@ -21,19 +21,19 @@ export default async function handler(req, res) {
         key === process.env.CRON_SECRET ||
         auth === `Bearer ${process.env.CRON_SECRET}`
       ) {
-        console.log("[TEST MAIL] ✅ Authorized via CRON_SECRET");
+        console.log("[Daily Mail] ✅ Authorized via CRON_SECRET");
       } else if (auth && auth.startsWith("Bearer ")) {
         // Verify JWT token for admin users
         try {
           const token = auth.substring(7);
           jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
-          console.log("[TEST MAIL] ✅ Authorized via JWT token");
+          console.log("[Daily Mail] ✅ Authorized via JWT token");
         } catch (tokenErr) {
-          console.log("[TEST MAIL] ❌ Invalid JWT token:", tokenErr.message);
+          console.log("[Daily Mail] ❌ Invalid JWT token:", tokenErr.message);
           return res.status(401).json({ error: "Unauthorized" });
         }
       } else {
-        console.log("[TEST MAIL] ❌ No valid authorization");
+        console.log("[Daily Mail] ❌ No valid authorization");
         return res.status(401).json({ error: "Unauthorized" });
       }
     }
@@ -42,13 +42,13 @@ export default async function handler(req, res) {
       return res.status(405).json({ error: "Method not allowed" });
     }
 
-    console.log("[TEST MAIL] Generating comprehensive daily report...");
+    console.log("[Daily Mail] Generating comprehensive daily report...");
 
     const { FROM_EMAIL, EMAIL_USER, EMAIL_PASS } = process.env;
-    console.log("[TEST MAIL] ENV:", { FROM_EMAIL, EMAIL_USER });
+    console.log("[Daily Mail] ENV:", { FROM_EMAIL, EMAIL_USER });
 
     if (!EMAIL_USER || !EMAIL_PASS) {
-      console.log("[TEST MAIL] Missing email credentials");
+      console.log("[Daily Mail] Missing email credentials");
       return res.status(500).json({
         error: "Missing EMAIL_USER or EMAIL_PASS in .env",
         hint: "Check your Gmail credentials and app password",
@@ -57,7 +57,7 @@ export default async function handler(req, res) {
 
     // Connect to database
     await mongooseConnect();
-    console.log("[TEST MAIL] Connected to MongoDB");
+    console.log("[Daily Mail] Connected to MongoDB");
 
     // Get today's date range
     const today = new Date();
@@ -94,14 +94,14 @@ export default async function handler(req, res) {
     const eodReports = await EndOfDayReport.find({
       closedAt: { $gte: today, $lt: tomorrow },
     }).lean();
-    console.log(`[TEST MAIL] Found ${eodReports.length} EOD reports`);
+    console.log(`[Daily Mail] Found ${eodReports.length} EOD reports`);
 
     // 3. Get transactions for today
     const transactions = await Transaction.find({
       createdAt: { $gte: today, $lt: tomorrow },
       status: "completed",
     }).lean();
-    console.log(`[TEST MAIL] Found ${transactions.length} transactions`);
+    console.log(`[Daily Mail] Found ${transactions.length} transactions`);
 
     // 4. Get expenses for today
     const expenses = await Expense.find({
@@ -110,11 +110,11 @@ export default async function handler(req, res) {
         { expenseDate: { $gte: today, $lt: tomorrow } },
       ],
     }).lean();
-    console.log(`[TEST MAIL] Found ${expenses.length} expenses`);
+    console.log(`[Daily Mail] Found ${expenses.length} expenses`);
 
     // 5. Get all products for stock report
     const allProducts = await Product.find().lean();
-    console.log(`[TEST MAIL] Found ${allProducts.length} products`);
+    console.log(`[Daily Mail] Found ${allProducts.length} products`);
 
     const productCostById = {};
     allProducts.forEach((product) => {
@@ -215,7 +215,7 @@ export default async function handler(req, res) {
           if (!itemProductId) {
             missingProductIdCount += 1;
             console.warn(
-              "[TEST MAIL] Missing productId for transaction item:",
+              "[Daily Mail] Missing productId for transaction item:",
               {
                 transactionId: tx?._id?.toString?.() || tx?._id,
                 location: tx?.location || "Unknown",
@@ -235,7 +235,7 @@ export default async function handler(req, res) {
             (hasCostFromCatalog ? productCostById[itemProductId] : null);
           if (itemProductId && resolvedCost === null) {
             missingCostCount += 1;
-            console.warn("[TEST MAIL] Missing cost price for product:", {
+            console.warn("[Daily Mail] Missing cost price for product:", {
               transactionId: tx?._id?.toString?.() || tx?._id,
               location: tx?.location || "Unknown",
               productId: itemProductId,
@@ -893,7 +893,7 @@ export default async function handler(req, res) {
         });
       }
     } catch (logoErr) {
-      console.log("[TEST MAIL] Logo not found, sending without embedded image");
+      console.log("[Daily Mail] Logo not found, sending without embedded image");
     }
 
     const emailResponse = await transporter.sendMail({

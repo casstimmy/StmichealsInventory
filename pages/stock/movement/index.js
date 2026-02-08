@@ -2,8 +2,9 @@ import Layout from "@/components/Layout";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlus, faSearch, faFilter, faCheckCircle, faClock, faTimes } from "@fortawesome/free-solid-svg-icons";
+import { faPlus, faSearch, faFilter, faCheckCircle, faClock, faTimes, faXmark, faBox, faArrowRight, faCalendar, faUser } from "@fortawesome/free-solid-svg-icons";
 import Loader from "@/components/Loader";
+import { formatCurrency } from "@/lib/format";
 
 const reasons = [
   "* All Reasons",
@@ -26,6 +27,7 @@ export default function StockMovement() {
   const [barcode, setBarcode] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedMovement, setSelectedMovement] = useState(null);
 
   // Fetch locations on mount
   useEffect(() => {
@@ -302,7 +304,11 @@ export default function StockMovement() {
                     </thead>
                     <tbody>
                       {filteredMovements.map((item, index) => (
-                        <tr key={index}>
+                        <tr 
+                          key={index} 
+                          onClick={() => setSelectedMovement(item)}
+                          className="cursor-pointer hover:bg-sky-50 transition-colors"
+                        >
                           <td className="font-mono font-medium text-gray-900">{item.transRef}</td>
                           <td className="text-gray-700">{item.fromLocation || "Vendor"}</td>
                           <td className="text-gray-700">{item.toLocation || "Unknown"}</td>
@@ -335,6 +341,168 @@ export default function StockMovement() {
               )}
             </div>
           </>
+        )}
+
+        {/* Movement Details Modal */}
+        {selectedMovement && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedMovement(null)}>
+            <div 
+              className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-sky-600 to-sky-700 text-white">
+                <div>
+                  <h2 className="text-xl font-bold">Movement Details</h2>
+                  <p className="text-sky-100 text-sm font-mono">{selectedMovement.transRef}</p>
+                </div>
+                <button 
+                  onClick={() => setSelectedMovement(null)}
+                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                >
+                  <FontAwesomeIcon icon={faXmark} className="text-xl" />
+                </button>
+              </div>
+
+              {/* Modal Content - Scrollable */}
+              <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
+                {/* Movement Info */}
+                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4 border-b bg-gray-50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-sky-100 rounded-lg flex items-center justify-center">
+                      <FontAwesomeIcon icon={faArrowRight} className="text-sky-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide">From → To</p>
+                      <p className="font-semibold text-gray-900">
+                        {selectedMovement.fromLocation || "Vendor"} → {selectedMovement.toLocation || "Unknown"}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                      <FontAwesomeIcon icon={faCheckCircle} className="text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide">Status</p>
+                      <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(selectedMovement.status)}`}>
+                        {getStatusIcon(selectedMovement.status)}
+                        {selectedMovement.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                      <FontAwesomeIcon icon={faCalendar} className="text-amber-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide">Date Sent</p>
+                      <p className="font-semibold text-gray-900">
+                        {selectedMovement.dateSent ? new Date(selectedMovement.dateSent).toLocaleString("en-NG") : "N/A"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <FontAwesomeIcon icon={faUser} className="text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide">Staff</p>
+                      <p className="font-semibold text-gray-900">{selectedMovement.staffName || "N/A"}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <FontAwesomeIcon icon={faBox} className="text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide">Reason</p>
+                      <span className="inline-block bg-sky-100 text-gray-900 px-3 py-1 rounded-full text-xs font-semibold">
+                        {selectedMovement.reason}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                      <span className="text-emerald-600 font-bold text-sm">₦</span>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide">Total Cost</p>
+                      <p className="font-bold text-lg text-gray-900">{formatCurrency(selectedMovement.totalCostPrice || 0)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Products Table */}
+                <div className="p-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <FontAwesomeIcon icon={faBox} className="text-sky-600" />
+                    Products ({selectedMovement.products?.length || 0} items, {selectedMovement.totalQuantity || 0} units)
+                  </h3>
+                  
+                  {selectedMovement.products && selectedMovement.products.length > 0 ? (
+                    <div className="overflow-x-auto rounded-lg border">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-100">
+                          <tr>
+                            <th className="text-left p-3 font-semibold text-gray-700">Product Name</th>
+                            <th className="text-right p-3 font-semibold text-gray-700">Quantity</th>
+                            <th className="text-right p-3 font-semibold text-gray-700">Unit Cost</th>
+                            <th className="text-right p-3 font-semibold text-gray-700">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {selectedMovement.products.map((product, idx) => (
+                            <tr key={idx} className="hover:bg-gray-50">
+                              <td className="p-3 font-medium text-gray-900">{product.productName || "Unknown"}</td>
+                              <td className="p-3 text-right text-gray-700">{product.quantity || 0}</td>
+                              <td className="p-3 text-right text-gray-700">{formatCurrency(product.costPrice || 0)}</td>
+                              <td className="p-3 text-right font-semibold text-gray-900">
+                                {formatCurrency((product.quantity || 0) * (product.costPrice || 0))}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot className="bg-gray-50 border-t-2">
+                          <tr>
+                            <td colSpan="3" className="p-3 text-right font-bold text-gray-700">Total:</td>
+                            <td className="p-3 text-right font-bold text-lg text-sky-700">
+                              {formatCurrency(selectedMovement.totalCostPrice || 0)}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <FontAwesomeIcon icon={faBox} className="text-4xl mb-2 text-gray-300" />
+                      <p>No products in this movement</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Modal Footer */}
+                <div className="p-4 border-t bg-gray-50 flex justify-between items-center">
+                  <Link href={`/stock/movement/${selectedMovement._id}`}>
+                    <button className="btn-action btn-action-secondary">
+                      View Full Details
+                    </button>
+                  </Link>
+                  <button 
+                    onClick={() => setSelectedMovement(null)}
+                    className="btn-action btn-action-primary"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
         </div>
       </div>

@@ -205,11 +205,11 @@ export default function HeldTransactions() {
 
         {/* TRANSACTIONS TABLE */}
         <div className="content-card overflow-hidden">
-          {loading  (
+          {loading ? (
             <div className="p-8 text-center text-gray-500">Loading...</div>
-          ) : transactions.length === 0  (
+          ) : transactions.length === 0 ? (
             <div className="p-8 text-center">
-              <p className="text-gray-500 text-lg"> No held transactions found</p>
+              <p className="text-gray-500 text-lg">No held transactions found</p>
             </div>
           ) : (
             <div className="overflow-x-auto">

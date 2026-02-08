@@ -1,10 +1,12 @@
 // pages/api/stock-movement/batches-with-expiry.js
+// Optimized: Pre-cached categories, filtered query, no N+1 queries
+
 import mongoose from "mongoose";
 import { mongooseConnect, withRetry } from "@/lib/mongodb";
 import StockMovement from "@/models/StockMovement";
 import Product from "@/models/Product";
 import { Category } from "@/models/Category";
-import { buildLocationCache, resolveLocationName } from "@/lib/serverLocationHelper";
+import { buildLocationCache } from "@/lib/serverLocationHelper";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
@@ -13,122 +15,83 @@ export default async function handler(req, res) {
 
   try {
     const batches = await withRetry(async () => {
-      // Build location cache ONCE at the start
-      const locationCache = await buildLocationCache();
-      console.log(`✅ Location cache built with ${Object.keys(locationCache).length} entries`);
+      // Build caches ONCE at the start (parallel fetch)
+      const [locationCache, allCategories] = await Promise.all([
+        buildLocationCache(),
+        Category.find({}).select('_id name').lean()
+      ]);
 
-      // Fetch all stock movements with products that have expiry dates
-      const stockMovements = await StockMovement.find({})
+      // Build category cache map
+      const categoryCache = {};
+      allCategories.forEach(cat => {
+        categoryCache[cat._id.toString()] = cat.name;
+      });
+
+      // Fetch only movements that have products with expiry dates
+      // Use aggregation for better performance
+      const stockMovements = await StockMovement.find({
+        'products.expiryDate': { $exists: true, $ne: null }
+      })
+        .select('transRef toLocationId fromLocationId reason status dateReceived dateSent products')
         .populate({
           path: "products.productId",
           model: Product,
-          select: "+expiryDate category name",
+          select: "name category expiryDate _id",
         })
         .lean();
 
-      console.log(`Fetched ${stockMovements.length} stock movements from database`);
-
-      // Transform stock movements into batch entries with expiry information
+      // Process batches efficiently
       const batchList = [];
-      let productsProcessed = 0;
-      let productsWithExpiryDates = 0;
 
       for (const movement of stockMovements) {
-        if (!movement.products || movement.products.length === 0) {
-          continue;
-        }
+        if (!movement.products?.length) continue;
 
-        // Get location name using the centralized helper
+        // Resolve location name from cache
         let locationName = "Unknown";
-        
         if (movement.toLocationId) {
-          locationName = await resolveLocationName(movement.toLocationId, locationCache);
+          locationName = locationCache[movement.toLocationId.toString()] || "Unknown";
         } else if (movement.reason === "Restock") {
           locationName = "Vendor";
         } else if (movement.fromLocationId) {
-          locationName = await resolveLocationName(movement.fromLocationId, locationCache);
+          locationName = locationCache[movement.fromLocationId.toString()] || "Vendor";
         }
 
-        // Process each product in the batch
+        // Process each product
         for (const productItem of movement.products) {
           const product = productItem.productId;
-          productsProcessed++;
-          
-          if (!product) {
-            console.warn(`Null product in batch ${movement.transRef}, item:`, productItem);
-            continue;
-          }
+          if (!product) continue;
 
-          // Fetch category name if category is stored as ID
+          // Get expiry date (batch item takes priority)
+          const expiryDate = productItem.expiryDate || product.expiryDate;
+          if (!expiryDate || productItem.quantity <= 0) continue;
+
+          // Get category name from cache (no DB call!)
           let categoryName = "Top Level";
           if (product.category && product.category !== "Top Level") {
-            try {
-              if (mongoose.Types.ObjectId.isValid(product.category)) {
-                const categoryDoc = await Category.findById(product.category).lean();
-                if (categoryDoc) {
-                  categoryName = categoryDoc.name;
-                } else {
-                  categoryName = product.category;
-                }
-              } else {
-                categoryName = product.category;
-              }
-            } catch (err) {
-              console.error(`Error fetching category ${product.category}:`, err);
-              categoryName = product.category || "Top Level";
-            }
+            const catId = product.category.toString();
+            categoryName = categoryCache[catId] || product.category;
           }
 
-          // Check for expiry date
-          let expiryDate = null;
-          if (productItem.expiryDate) {
-            expiryDate = productItem.expiryDate;
-          } else if (product.expiryDate) {
-            expiryDate = product.expiryDate;
-          }
-
-          const hasExpiryDate = expiryDate && expiryDate !== null;
-          if (hasExpiryDate) {
-            productsWithExpiryDates++;
-          }
-
-          // Only include products with expiry dates in batch report
-          if (hasExpiryDate && productItem.quantity > 0) {
-            batchList.push({
-              batchId: movement.transRef || movement._id.toString(),
-              transRef: movement.transRef,
-              productId: product._id,
-              productName: product.name || "Unknown Product",
-              category: categoryName,
-              locationId: movement.toLocationId,
-              locationName: locationName,
-              expiryDate: expiryDate,
-              quantity: productItem.quantity || 0,
-              costPrice: productItem.costPrice || 0,
-              dateReceived: movement.dateReceived || movement.dateSent,
-              status: movement.status,
-              reason: movement.reason,
-            });
-
-            console.log(
-              `✅ Batch: ${movement.transRef}, Product: ${product.name}, Location: ${locationName}, Expiry: ${expiryDate}, Qty: ${productItem.quantity}`
-            );
-          } else if (!hasExpiryDate) {
-            console.log(
-              `ℹ️ Product ${product.name} (Batch: ${movement.transRef}) has no expiry date`
-            );
-          }
+          batchList.push({
+            batchId: movement.transRef || movement._id.toString(),
+            transRef: movement.transRef,
+            productId: product._id,
+            productName: product.name || "Unknown Product",
+            category: categoryName,
+            locationId: movement.toLocationId,
+            locationName,
+            expiryDate,
+            quantity: productItem.quantity || 0,
+            costPrice: productItem.costPrice || 0,
+            dateReceived: movement.dateReceived || movement.dateSent,
+            status: movement.status,
+            reason: movement.reason,
+          });
         }
       }
 
       // Sort by expiry date (earliest first)
-      batchList.sort((a, b) => {
-        const dateA = new Date(a.expiryDate);
-        const dateB = new Date(b.expiryDate);
-        return dateA - dateB;
-      });
-
-      console.log(`Found ${batchList.length} batches with expiry dates (${productsWithExpiryDates}/${productsProcessed} products have expiry dates)`);
+      batchList.sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
 
       return batchList;
     });

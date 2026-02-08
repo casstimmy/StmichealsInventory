@@ -1,6 +1,6 @@
 import Layout from "@/components/Layout";
 import { formatCurrency } from "@/lib/format";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/router";
 import { Loader } from "@/components/ui";
 
@@ -14,48 +14,49 @@ export default function StockManagement() {
   const [categoryMap, setCategoryMap] = useState({});
 
   useEffect(() => {
-
-    async function fetchProducts() {
+    // Fetch products and categories in parallel for faster loading
+    async function fetchData() {
       try {
         setLoading(true);
         setError(null);
-        const res = await fetch("/api/products");
-        if (!res.ok) {
-          const errorData = await res.json();
+        
+        // Use minimal mode for faster loading - only fetches essential fields
+        const [productsRes, categoriesRes] = await Promise.all([
+          fetch("/api/products?minimal=true"),
+          fetch("/api/categories")
+        ]);
+
+        if (!productsRes.ok) {
+          const errorData = await productsRes.json();
           throw new Error(errorData.message || "Failed to fetch products");
         }
-        const data = await res.json();
-        // Handle both response formats
-        const productList = data.data || data;
+
+        const [productsData, categoriesData] = await Promise.all([
+          productsRes.json(),
+          categoriesRes.json()
+        ]);
+
+        // Handle products
+        const productList = productsData.data || productsData;
         setProducts(Array.isArray(productList) ? productList : []);
+
+        // Handle categories
+        const categories = Array.isArray(categoriesData) ? categoriesData : categoriesData.categories || [];
+        const map = {};
+        categories.forEach(cat => {
+          map[cat._id] = cat.name;
+        });
+        setCategoryMap(map);
       } catch (error) {
-        console.error("Error fetching products:", error);
-        setError(error.message || "Failed to load products");
+        console.error("Error fetching data:", error);
+        setError(error.message || "Failed to load data");
         setProducts([]);
       } finally {
         setLoading(false);
       }
     }
 
-    async function fetchCategories() {
-      try {
-        const res = await fetch("/api/categories");
-        const data = await res.json();
-        const categories = Array.isArray(data) ? data : data.categories || [];
-        
-        // Create a map of category ID to name
-        const map = {};
-        categories.forEach(cat => {
-          map[cat._id] = cat.name;
-        });
-        setCategoryMap(map);
-      } catch (err) {
-        console.error("Error fetching categories:", err);
-      }
-    }
-
-    fetchProducts();
-    fetchCategories();
+    fetchData();
   }, []);
 
   const filteredItems = products.filter(

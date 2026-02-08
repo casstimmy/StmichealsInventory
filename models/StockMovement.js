@@ -88,10 +88,13 @@ const StockMovementSchema = new Schema(
   { timestamps: true }
 );
 
-// Index for common queries
+// Indexes for common queries and performance
+StockMovementSchema.index({ createdAt: -1 }); // For sorting by newest
 StockMovementSchema.index({ dateSent: -1, status: 1 });
 StockMovementSchema.index({ fromLocationId: 1, toLocationId: 1 });
 StockMovementSchema.index({ reason: 1 });
+StockMovementSchema.index({ 'products.expiryDate': 1 }); // For expiry queries
+StockMovementSchema.index({ status: 1, createdAt: -1 }); // For filtered lists
 
 export default models.StockMovement || 
   mongoose.model("StockMovement", StockMovementSchema);

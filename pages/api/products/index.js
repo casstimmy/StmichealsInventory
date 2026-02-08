@@ -49,10 +49,13 @@ export default async function handler(req, res) {
        GET PRODUCTS
     ===================== */
     if (method === "GET") {
-      await disableExpiredPromotions();
-      await markExpiredProducts();
+      const { id, search, expired, minimal, page, limit: limitParam } = req.query;
 
-      const { id, search, expired } = req.query;
+      // Skip maintenance tasks for minimal/fast queries
+      if (!minimal) {
+        await disableExpiredPromotions();
+        await markExpiredProducts();
+      }
 
       if (id) {
         const product = await Product.findById(id);
@@ -77,13 +80,36 @@ export default async function handler(req, res) {
       if (expired === "true") filter.isExpired = true;
       if (expired === "false") filter.isExpired = false;
 
-      // Always include expiryDate in the response
-      const products = await Product.find(filter)
-        .select('+expiryDate') // Explicitly select expiryDate field
-        .sort({ createdAt: -1 })
-        .lean(); // Use lean() for better performance when not modifying documents
+      // Minimal mode for stock management - only essential fields
+      if (minimal === "true") {
+        const products = await Product.find(filter)
+          .select('name quantity minStock category barcode costPrice salePriceIncTax')
+          .sort({ name: 1 })
+          .lean();
+        return res.json({ success: true, data: products });
+      }
+
+      // Pagination support
+      const pageNum = Math.max(1, parseInt(page) || 1);
+      const limit = Math.min(200, Math.max(1, parseInt(limitParam) || 100));
+      const skip = (pageNum - 1) * limit;
+
+      // Full query with pagination
+      const [products, total] = await Promise.all([
+        Product.find(filter)
+          .select('+expiryDate')
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean(),
+        Product.countDocuments(filter)
+      ]);
+
+      res.setHeader('X-Total-Count', total);
+      res.setHeader('X-Page', pageNum);
+      res.setHeader('X-Total-Pages', Math.ceil(total / limit));
       
-      return res.json({ success: true, data: products });
+      return res.json({ success: true, data: products, total });
     }
 
     /* =====================

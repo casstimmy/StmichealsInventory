@@ -1,5 +1,7 @@
 import { mongooseConnect } from "@/lib/mongodb";
 import Promotion from "@/models/Promotion";
+import "@/models/Category";
+import "@/models/Product";
 
 export default async function handler(req, res) {
   if (req.method === "GET") {

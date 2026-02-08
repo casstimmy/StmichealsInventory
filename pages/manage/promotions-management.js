@@ -3,17 +3,23 @@
 import Layout from "@/components/Layout";
 import { Loader } from "@/components/ui";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 export default function PromotionsManagementPage() {
   const [promotions, setPromotions] = useState([]);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingRefs, setLoadingRefs] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [productSearch, setProductSearch] = useState("");
+  const [categorySearch, setCategorySearch] = useState("");
+  const [showAllProducts, setShowAllProducts] = useState(false);
+  const [showAllCategories, setShowAllCategories] = useState(false);
+  const [visiblePromotions, setVisiblePromotions] = useState(30);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -34,11 +40,38 @@ export default function PromotionsManagementPage() {
     priority: 0,
   });
 
+  const filteredCategories = useMemo(() => {
+    const query = categorySearch.trim().toLowerCase();
+    const list = query
+      ? categories.filter((cat) => cat.name?.toLowerCase().includes(query))
+      : categories;
+    return showAllCategories ? list : list.slice(0, 150);
+  }, [categories, categorySearch, showAllCategories]);
+
+  const filteredProducts = useMemo(() => {
+    const query = productSearch.trim().toLowerCase();
+    const list = query
+      ? products.filter((prod) => prod.name?.toLowerCase().includes(query))
+      : products;
+    return showAllProducts ? list : list.slice(0, 200);
+  }, [products, productSearch, showAllProducts]);
+
+  const visiblePromoList = useMemo(
+    () => promotions.slice(0, visiblePromotions),
+    [promotions, visiblePromotions]
+  );
+
   useEffect(() => {
-    fetchData();
+    fetchPromotions();
   }, []);
 
-  async function fetchData() {
+  useEffect(() => {
+    if (!showForm) return;
+    if (products.length && categories.length) return;
+    loadReferenceData();
+  }, [showForm, products.length, categories.length]);
+
+  async function fetchPromotions() {
     try {
       setLoading(true);
       
@@ -48,35 +81,49 @@ export default function PromotionsManagementPage() {
         const data = await promoRes.json();
         setPromotions(data.promotions || []);
       }
-
-      // Fetch products - products endpoint returns { success: true, data: [...] }
-      const prodRes = await fetch("/api/products");
-      if (prodRes.ok) {
-        const data = await prodRes.json();
-        // Handle products response format
-        const productsList = Array.isArray(data) ? data : (data.data || []);
-        console.log(" Products loaded:", productsList.length, productsList.slice(0, 3));
-        setProducts(productsList);
-      } else {
-        console.error(" Failed to fetch products:", prodRes.status);
-      }
-
-      // Fetch categories - categories endpoint returns array directly
-      const catRes = await fetch("/api/categories");
-      if (catRes.ok) {
-        const data = await catRes.json();
-        // Categories are returned as direct array
-        const categoriesList = Array.isArray(data) ? data : (data.categories || []);
-        console.log(" Categories loaded:", categoriesList.length, categoriesList.slice(0, 3));
-        setCategories(categoriesList);
-      } else {
-        console.error(" Failed to fetch categories:", catRes.status);
-      }
     } catch (err) {
       console.error("Error fetching data:", err);
       setError("Failed to load data");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadReferenceData() {
+    try {
+      setLoadingRefs(true);
+
+      const cachedProducts = sessionStorage.getItem("promo-products-cache");
+      const cachedCategories = sessionStorage.getItem("promo-categories-cache");
+      if (cachedProducts && cachedCategories) {
+        setProducts(JSON.parse(cachedProducts));
+        setCategories(JSON.parse(cachedCategories));
+        return;
+      }
+
+      const [prodRes, catRes] = await Promise.all([
+        fetch("/api/products"),
+        fetch("/api/categories"),
+      ]);
+
+      if (prodRes.ok) {
+        const data = await prodRes.json();
+        const productsList = Array.isArray(data) ? data : (data.data || []);
+        setProducts(productsList);
+        sessionStorage.setItem("promo-products-cache", JSON.stringify(productsList));
+      }
+
+      if (catRes.ok) {
+        const data = await catRes.json();
+        const categoriesList = Array.isArray(data) ? data : (data.categories || []);
+        setCategories(categoriesList);
+        sessionStorage.setItem("promo-categories-cache", JSON.stringify(categoriesList));
+      }
+    } catch (err) {
+      console.error("Error fetching reference data:", err);
+      setError("Failed to load products or categories");
+    } finally {
+      setLoadingRefs(false);
     }
   }
 
@@ -157,7 +204,7 @@ export default function PromotionsManagementPage() {
 
       setSuccess(`Promotion ${editing ? "updated" : "created"} successfully!`);
       resetForm();
-      fetchData();
+      fetchPromotions();
     } catch (err) {
       setError(err.message);
     }
@@ -442,8 +489,23 @@ export default function PromotionsManagementPage() {
                 {formData.applicationType === "CATEGORY" && (
                   <div>
                     <h3 className="text-lg font-bold text-gray-900 mb-3">Select Categories *</h3>
+                    <div className="mb-3">
+                      <input
+                        type="text"
+                        value={categorySearch}
+                        onChange={(e) => {
+                          setCategorySearch(e.target.value);
+                          setShowAllCategories(false);
+                        }}
+                        className="search-input"
+                        placeholder="Search categories..."
+                      />
+                    </div>
+                    {loadingRefs ? (
+                      <div className="text-sm text-gray-500">Loading categories...</div>
+                    ) : (
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-60 overflow-y-auto">
-                      {categories.map((cat) => (
+                      {filteredCategories.map((cat) => (
                         <label key={cat._id} className="flex items-center p-2 border-2 border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
                           <input
                             type="checkbox"
@@ -455,6 +517,16 @@ export default function PromotionsManagementPage() {
                         </label>
                       ))}
                     </div>
+                    )}
+                    {!showAllCategories && filteredCategories.length < categories.length && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllCategories(true)}
+                        className="btn-action btn-action-secondary btn-sm mt-2"
+                      >
+                        Show all categories
+                      </button>
+                    )}
                   </div>
                 )}
 
@@ -462,8 +534,23 @@ export default function PromotionsManagementPage() {
                 {formData.applicationType === "ONE_PRODUCT" && (
                   <div>
                     <h3 className="text-lg font-bold text-gray-900 mb-3">Select Products *</h3>
+                    <div className="mb-3">
+                      <input
+                        type="text"
+                        value={productSearch}
+                        onChange={(e) => {
+                          setProductSearch(e.target.value);
+                          setShowAllProducts(false);
+                        }}
+                        className="search-input"
+                        placeholder="Search products..."
+                      />
+                    </div>
+                    {loadingRefs ? (
+                      <div className="text-sm text-gray-500">Loading products...</div>
+                    ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto">
-                      {products.map((prod) => (
+                      {filteredProducts.map((prod) => (
                         <label key={prod._id} className="flex items-center p-2 border-2 border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
                           <input
                             type="checkbox"
@@ -475,6 +562,16 @@ export default function PromotionsManagementPage() {
                         </label>
                       ))}
                     </div>
+                    )}
+                    {!showAllProducts && filteredProducts.length < products.length && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllProducts(true)}
+                        className="btn-action btn-action-secondary btn-sm mt-2"
+                      >
+                        Show all products
+                      </button>
+                    )}
                   </div>
                 )}
 
@@ -608,7 +705,7 @@ export default function PromotionsManagementPage() {
                 <p className="text-lg text-gray-600">No promotions yet. Create one to get started!</p>
               </div>
             ) : (
-              promotions.map((promo) => (
+              visiblePromoList.map((promo) => (
                 <div key={promo._id} className="bg-white rounded-lg shadow-lg p-6 border-l-4" style={{
                   borderColor: promo.active ? "#06b6d4" : "#ccc"
                 }}>
@@ -686,6 +783,17 @@ export default function PromotionsManagementPage() {
               ))
             )}
           </div>
+          {promotions.length > visiblePromotions && (
+            <div className="mt-4 flex justify-center">
+              <button
+                type="button"
+                onClick={() => setVisiblePromotions((prev) => prev + 30)}
+                className="btn-action btn-action-secondary"
+              >
+                Load more promotions
+              </button>
+            </div>
+          )}
         </div>
         </div>
       </div>

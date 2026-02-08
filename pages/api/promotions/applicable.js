@@ -1,5 +1,7 @@
 import { mongooseConnect } from "@/lib/mongodb";
 import Promotion from "@/models/Promotion";
+import "@/models/Category";
+import "@/models/Product";
 
 /**
  * GET /api/promotions/applicable?customerType=VIP&productId=xxx&categoryId=xxx
@@ -60,7 +62,9 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log(`📊 Found ${promotions.length} applicable promotions for ${customerType}${productId ? ` on product ${productId}` : ""}${categoryId ? ` in category ${categoryId}` : ""}`);
+    console.log(
+      `Found ${promotions.length} applicable promotions for ${customerType}${productId ? ` on product ${productId}` : ""}${categoryId ? ` in category ${categoryId}` : ""}`
+    );
 
     return res.status(200).json({
       success: true,

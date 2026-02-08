@@ -33,7 +33,7 @@ export default function HeldTransactions() {
       filtered.forEach(tx => {
         if (tx.location) locSet.add(tx.location);
         if (tx.staffName) staffSet.add(tx.staffName);
-        else if (tx.staff.name) staffSet.add(tx.staff.name);
+        else if (tx.staff?.name) staffSet.add(tx.staff.name);
       });
 
       setLocations(Array.from(locSet).sort());
@@ -46,7 +46,7 @@ export default function HeldTransactions() {
       
       // Apply staff filter
       if (staffFilter !== "All") {
-        filtered = filtered.filter(tx => (tx.staffName || tx.staff.name) === staffFilter);
+        filtered = filtered.filter(tx => (tx.staffName || tx.staff?.name) === staffFilter);
       }
       
       // Apply time range filter
@@ -107,7 +107,7 @@ export default function HeldTransactions() {
         : "N/A";
       return [
         tx._id,
-        tx.staffName || tx.staff.name || "N/A",
+        tx.staffName || tx.staff?.name || "N/A",
         tx.location || "Online",
         heldTime,
         `${tx.total.toFixed(2)}`,

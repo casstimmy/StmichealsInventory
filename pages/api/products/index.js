@@ -1,4 +1,4 @@
-import { mongooseConnect } from "@/lib/mongodb";
+import { mongooseConnect, withRetry } from "@/lib/mongodb";
 import Product from "@/models/Product";
 
 /* =====================

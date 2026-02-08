@@ -1,4 +1,4 @@
-import { mongooseConnect } from "@/lib/mongodb";
+import { mongooseConnect, withRetry } from "@/lib/mongodb";
 import Store from "@/models/Store";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
@@ -7,22 +7,25 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     // GET - Retrieve store configuration
     try {
-      await mongooseConnect();
-      const store = await Store.findOne({});
-      const user = await User.findOne({ role: "admin" });
+      const { storeData, userData } = await withRetry(async () => {
+        const store = await Store.findOne({});
+        const user = await User.findOne({ role: "admin" });
 
-      if (store) {
-        console.log("✅ Store found:", {
-          storeName: store.storeName,
-          locationsCount: store.locations?.length || 0,
-          locations: store.locations?.map((loc) => ({ id: loc._id, name: loc.name })) || [],
-        });
-      } else {
-        console.log("⚠️ Store not found in database");
-      }
+        if (store) {
+          console.log("✅ Store found:", {
+            storeName: store.storeName,
+            locationsCount: store.locations?.length || 0,
+            locations: store.locations?.map((loc) => ({ id: loc._id, name: loc.name })) || [],
+          });
+        } else {
+          console.log("⚠️ Store not found in database");
+        }
 
-      const storeData = store ? store.toObject() : null;
-      const userData = user ? user.toObject() : null;
+        return {
+          storeData: store ? store.toObject() : null,
+          userData: user ? user.toObject() : null
+        };
+      });
 
       return res.status(200).json({ 
         success: true,

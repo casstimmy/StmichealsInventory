@@ -248,7 +248,7 @@ export default function HeldTransactions() {
                               onClick={() => toggleDetails(tx._id)}
                               className="btn-action btn-action-secondary btn-sm"
                             >
-                              {expandedTxId === tx._id  "Hide" : "View"}
+                              {expandedTxId === tx._id ? "Hide" : "View"}
                             </button>
                             <button 
                               onClick={() => handleVoidTransaction(tx._id)}
@@ -276,7 +276,7 @@ export default function HeldTransactions() {
                                   </thead>
                                   <tbody>
                                     {tx.items.map((item, i) => (
-                                      <tr key={i} className={i % 2 === 0  "bg-white" : "bg-gray-50"}>
+                                      <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                                         <td className="px-3 py-2">{item.name}</td>
                                         <td className="px-3 py-2 text-right">{formatNumber(item.qty || 0)}</td>
                                         <td className="px-3 py-2 text-right">{formatCurrency(item.salePriceIncTax || 0)}</td>

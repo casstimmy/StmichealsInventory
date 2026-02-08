@@ -65,18 +65,18 @@ export default function OrderInventoryPage() {
       await axios.put(`/api/orders/${orderId}`, { status: newStatus });
       setOrders((prev) =>
         prev.map((order) =>
-          order._id === orderId - { ...order, status: newStatus } : order
+          order._id === orderId ? { ...order, status: newStatus } : order
         )
       );
     } catch (error) {
-      console.error("Failed to update status:", error.response-.data || error);
-      alert(`Failed to update status: ${error.response-.data-.error || "Unknown error"}`);
+      console.error("Failed to update status:", error.response?.data || error);
+      alert(`Failed to update status: ${error.response?.data?.error || "Unknown error"}`);
     }
     setUpdatingStatus(false);
   };
 
   const handleSendEmail = async () => {
-    if (!selectedOrder-.customer-.email) return;
+    if (!selectedOrder?.customer?.email) return;
 
     const status = selectedOrder.nextStatus || selectedOrder.status;
 
@@ -94,12 +94,12 @@ export default function OrderInventoryPage() {
       status,
       total: selectedOrder.total,
       products: (selectedOrder.cartProducts || []).map((p) => ({
-        name: p.name.length > 25 - p.name.slice(0, 25) + "..." : p.name,
+        name: p.name.length > 25 ? p.name.slice(0, 25) + "..." : p.name,
         quantity: p.quantity,
         price: p.price,
       })),
       shippingDetails: selectedOrder.shippingDetails || {},
-      ...(status === "Shipped" || status === "Delivered" - {
+      ...(status === "Shipped" || status === "Delivered" ? {
         deliveryPerson: { name: deliveryPersonName, phone: deliveryPersonPhone },
       } : {}),
     };
@@ -164,20 +164,20 @@ export default function OrderInventoryPage() {
                 </tr>
               </thead>
               <tbody>
-                {loading - (
+                {loading ? (
                   <tr>
                     <td colSpan={5} className="text-center py-8 text-gray-500 italic">Loading orders...</td>
                   </tr>
-                ) : orders.length === 0 - (
+                ) : orders.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="text-center py-8 italic text-gray-400">No orders found.</td>
                   </tr>
                 ) : (
                   orders.map((order, idx) => (
-                    <tr key={order._id} className={idx % 2 === 0 - 'bg-white' : 'bg-gray-50'}>
+                    <tr key={order._id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                       <td className="font-mono text-sky-700 font-semibold">{order._id.slice(-8)}</td>
-                      <td className="text-gray-900">{order.customer-.name || "N/A"}</td>
-                      <td className="font-bold text-gray-900">{currency.format(order.total -- 0)}</td>
+                      <td className="text-gray-900">{order.customer?.name || "N/A"}</td>
+                      <td className="font-bold text-gray-900">{currency.format(order.total || 0)}</td>
                       <td>
                         <select
                           value={order.status}
@@ -230,31 +230,31 @@ export default function OrderInventoryPage() {
               
               <h3 className="text-2xl font-bold text-gray-900 mb-6">
                 {selectedOrder.nextStatus === "Shipped" || selectedOrder.nextStatus === "Delivered"
-                  - `${selectedOrder.nextStatus} Confirmation`
+                  ? `${selectedOrder.nextStatus} Confirmation`
                   : `${selectedOrder.nextStatus} Status Update`}
               </h3>
 
               <div className="space-y-3 text-sm text-gray-700 mb-6 bg-gray-50 p-4 rounded-lg">
                 <div><strong className="text-gray-900">Order ID:</strong> <span className="font-mono text-cyan-700">{selectedOrder._id}</span></div>
-                <div><strong className="text-gray-900">Customer:</strong> {selectedOrder.customer-.name}</div>
-                <div><strong className="text-gray-900">Email:</strong> {selectedOrder.customer-.email}</div>
+                <div><strong className="text-gray-900">Customer:</strong> {selectedOrder.customer?.name}</div>
+                <div><strong className="text-gray-900">Email:</strong> {selectedOrder.customer?.email}</div>
                 <div><strong className="text-gray-900">Order Date:</strong> {new Date(selectedOrder.createdAt).toLocaleString("en-NG")}</div>
 
                 <div className="border-t border-gray-200 pt-3 mt-3">
                   <p className="font-bold text-gray-900 mb-2">Items:</p>
                   <ul className="list-disc list-inside space-y-1">
                     {(selectedOrder.cartProducts || []).map((item, i) => (
-                      <li key={i} className="text-gray-700">{item.name.length > 25 - item.name.slice(0, 25) + "..." : item.name}  {item.quantity}x {item.price.toLocaleString()}</li>
+                      <li key={i} className="text-gray-700">{item.name.length > 25 ? item.name.slice(0, 25) + "..." : item.name}  {item.quantity}x {item.price.toLocaleString()}</li>
                     ))}
                   </ul>
                   <div className="mt-2 pt-2 border-t border-gray-200">
-                    <p className="font-bold text-gray-900">Total: {currency.format(selectedOrder.total -- 0)}</p>
+                    <p className="font-bold text-gray-900">Total: {currency.format(selectedOrder.total || 0)}</p>
                   </div>
                 </div>
 
                 <div className="border-t border-gray-200 pt-3 mt-3">
                   <p className="font-bold text-gray-900 mb-2">Delivery Details:</p>
-                  <p className="text-gray-700">{selectedOrder.shippingDetails-.address || "No address"}<br />{selectedOrder.shippingDetails-.city || ""}<br />Phone: {selectedOrder.shippingDetails-.phone || "N/A"}</p>
+                  <p className="text-gray-700">{selectedOrder.shippingDetails?.address || "No address"}<br />{selectedOrder.shippingDetails?.city || ""}<br />Phone: {selectedOrder.shippingDetails?.phone || "N/A"}</p>
                 </div>
               </div>
 
@@ -289,7 +289,7 @@ export default function OrderInventoryPage() {
                 onClick={handleSendEmail}
                 className="w-full bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-400 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition"
               >
-                <Mail size={18} /> {sendingEmail - "Sending..." : `Send ${selectedOrder.nextStatus} Email`}
+                <Mail size={18} /> {sendingEmail ? "Sending..." : `Send ${selectedOrder.nextStatus} Email`}
               </button>
             </div>
           </div>

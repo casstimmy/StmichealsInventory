@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Search } from "lucide-react";
+import { formatCurrency } from "@/lib/format";
 
 export default function PromotionManagement() {
   const [promotions, setPromotions] = useState([]);
@@ -198,7 +199,7 @@ export default function PromotionManagement() {
                       className="border p-1 rounded w-20"
                     />
                   ) : (
-                    `₦${promo.promoPrice}`
+                    formatCurrency(promo.promoPrice || 0)
                   )}
                 </td>
 

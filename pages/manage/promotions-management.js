@@ -55,10 +55,10 @@ export default function PromotionsManagementPage() {
         const data = await prodRes.json();
         // Handle products response format
         const productsList = Array.isArray(data) ? data : (data.data || []);
-        console.log("📦 Products loaded:", productsList.length, productsList.slice(0, 3));
+        console.log(" Products loaded:", productsList.length, productsList.slice(0, 3));
         setProducts(productsList);
       } else {
-        console.error("❌ Failed to fetch products:", prodRes.status);
+        console.error(" Failed to fetch products:", prodRes.status);
       }
 
       // Fetch categories - categories endpoint returns array directly
@@ -67,10 +67,10 @@ export default function PromotionsManagementPage() {
         const data = await catRes.json();
         // Categories are returned as direct array
         const categoriesList = Array.isArray(data) ? data : (data.categories || []);
-        console.log("📂 Categories loaded:", categoriesList.length, categoriesList.slice(0, 3));
+        console.log(" Categories loaded:", categoriesList.length, categoriesList.slice(0, 3));
         setCategories(categoriesList);
       } else {
-        console.error("❌ Failed to fetch categories:", catRes.status);
+        console.error(" Failed to fetch categories:", catRes.status);
       }
     } catch (err) {
       console.error("Error fetching data:", err);
@@ -328,7 +328,7 @@ export default function PromotionsManagementPage() {
                         onChange={(e) => setFormData({ ...formData, valueType: e.target.value })}
                         className="w-4 h-4"
                       />
-                      <span className="ml-2 font-semibold text-gray-700">🔽 Discount (Reduce Price)</span>
+                      <span className="ml-2 font-semibold text-gray-700"> Discount (Reduce Price)</span>
                     </label>
                     <label className="flex-1 flex items-center p-3 border-2 rounded-lg cursor-pointer" style={{
                       borderColor: formData.valueType === "INCREMENT" ? "#06b6d4" : "#e5e7eb",
@@ -342,7 +342,7 @@ export default function PromotionsManagementPage() {
                         onChange={(e) => setFormData({ ...formData, valueType: e.target.value })}
                         className="w-4 h-4"
                       />
-                      <span className="ml-2 font-semibold text-gray-700">🔼 Increment (Increase Price)</span>
+                      <span className="ml-2 font-semibold text-gray-700"> Increment (Increase Price)</span>
                     </label>
                   </div>
 
@@ -358,7 +358,7 @@ export default function PromotionsManagementPage() {
                         className="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-cyan-600 focus:outline-none"
                       >
                         <option value="PERCENTAGE">Percentage (%)</option>
-                        <option value="FIXED">Fixed Amount (₦)</option>
+                        <option value="FIXED">Fixed Amount ()</option>
                       </select>
                     </div>
                     <div>
@@ -372,7 +372,7 @@ export default function PromotionsManagementPage() {
                         className="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-cyan-600 focus:outline-none"
                         required
                         min="0"
-                        placeholder={formData.discountType === "PERCENTAGE" ? "Enter 0-100" : "Enter amount in ₦"}
+                        placeholder={formData.discountType === "PERCENTAGE" ? "Enter 0-100" : "Enter amount in "}
                       />
                     </div>
                     <div>
@@ -494,7 +494,7 @@ export default function PromotionsManagementPage() {
                         onChange={(e) => setFormData({ ...formData, indefinite: e.target.checked })}
                         className="w-4 h-4"
                       />
-                      <span className="ml-2 font-semibold text-gray-700">♾️ Indefinite (Never Expires)</span>
+                      <span className="ml-2 font-semibold text-gray-700"> Indefinite (Never Expires)</span>
                     </label>
                   </div>
 
@@ -532,7 +532,7 @@ export default function PromotionsManagementPage() {
                   {formData.indefinite && (
                     <div className="p-4 bg-cyan-50 border-2 border-cyan-300 rounded-lg text-center">
                       <p className="text-cyan-900 font-semibold">
-                        ✓ This promotion will run indefinitely starting from today
+                         This promotion will run indefinitely starting from today
                       </p>
                     </div>
                   )}
@@ -619,12 +619,12 @@ export default function PromotionsManagementPage() {
                     </div>
                     <div className="text-right">
                       <div className={`text-2xl font-bold ${promo.valueType === "DISCOUNT" ? (promo.discountType === "PERCENTAGE" ? "text-green-600" : "text-green-600") : (promo.discountType === "PERCENTAGE" ? "text-orange-600" : "text-orange-600")}`}>
-                        {promo.valueType === "DISCOUNT" ? "-" : "+"}{promo.discountValue}{promo.discountType === "PERCENTAGE" ? "%" : "₦"}
+                        {promo.valueType === "DISCOUNT" ? "-" : "+"}{promo.discountValue}{promo.discountType === "PERCENTAGE" ? "%" : ""}
                       </div>
                       <span className={`text-xs font-semibold px-2 py-1 rounded-full ${promo.active ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}>
                         {promo.active ? "Active" : "Inactive"}
                       </span>
-                      <div className="text-xs text-gray-600 mt-1">{promo.valueType === "DISCOUNT" ? "🔽 Discount" : "🔼 Increment"}</div>
+                      <div className="text-xs text-gray-600 mt-1">{promo.valueType === "DISCOUNT" ? " Discount" : " Increment"}</div>
                     </div>
                   </div>
 
@@ -640,7 +640,7 @@ export default function PromotionsManagementPage() {
                     <div>
                       <p className="text-gray-600">Period</p>
                       <p className="font-semibold text-gray-900">
-                        {new Date(promo.startDate).toLocaleDateString()} {promo.indefinite ? "- ♾️ Never expires" : `- ${new Date(promo.endDate).toLocaleDateString()}`}
+                        {new Date(promo.startDate).toLocaleDateString()} {promo.indefinite ? "-  Never expires" : `- ${new Date(promo.endDate).toLocaleDateString()}`}
                       </p>
                     </div>
                     <div>
@@ -655,7 +655,7 @@ export default function PromotionsManagementPage() {
                     <div>
                       <p className="text-gray-600">Display Above Price</p>
                       <p className="font-semibold text-cyan-600">
-                        {promo.displayAbovePrice ? "✓ Yes" : "✗ No"}
+                        {promo.displayAbovePrice ? " Yes" : " No"}
                       </p>
                     </div>
                     <div>

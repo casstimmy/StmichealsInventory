@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { formatCurrency, formatNumber } from "@/lib/format";
 import { useState, useEffect } from "react";
 import Loader from "@/components/Loader";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -26,28 +27,28 @@ export default function TaxAnalysisPage() {
     setLoading(true);
     setError(null);
     try {
-      console.log("🔄 Fetching tax data for period:", period);
+      console.log(" Fetching tax data for period:", period);
       const response = await fetch(`/api/taxes/analysis?period=${period}`);
-      console.log("📋 Response status:", response.status);
+      console.log(" Response status:", response.status);
       
       if (!response.ok) {
         let errorMessage = "Failed to fetch tax data";
         try {
           const errorData = await response.json();
-          console.error("❌ API error response:", errorData);
+          console.error(" API error response:", errorData);
           errorMessage = errorData.message || errorData.details || errorMessage;
         } catch (e) {
-          console.error("❌ Could not parse error response");
+          console.error(" Could not parse error response");
         }
         throw new Error(errorMessage);
       }
       
       const data = await response.json();
-      console.log("✅ Tax data received:", data);
+      console.log(" Tax data received:", data);
       setTaxData(data);
     } catch (err) {
       const errorMsg = err?.message || "Unknown error occurred";
-      console.error("❌ Error fetching tax data:", errorMsg);
+      console.error(" Error fetching tax data:", errorMsg);
       setError(errorMsg);
     } finally {
       setLoading(false);
@@ -146,7 +147,7 @@ export default function TaxAnalysisPage() {
                 <StatBox
                   icon={faMoneyBillWave}
                   label="Total Tax Liability"
-                  value={`₦${(taxData.totalTaxLiability || 0).toLocaleString()}`}
+                  value={`${(taxData.totalTaxLiability || 0).toLocaleString()}`}
                   bgColor="from-rose-50 to-rose-100"
                   borderColor="border-rose-200"
                   iconColor="text-rose-600"
@@ -162,25 +163,25 @@ export default function TaxAnalysisPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                   <DetailBox
                     label="Total Revenue"
-                    value={`₦${(taxData.totalRevenue || 0).toLocaleString()}`}
+                    value={`${(taxData.totalRevenue || 0).toLocaleString()}`}
                     icon={faMoneyBillWave}
                     iconColor="text-cyan-600"
                   />
                   <DetailBox
                     label="Total Expenses"
-                    value={`₦${(taxData.totalExpenses || 0).toLocaleString()}`}
+                    value={`${(taxData.totalExpenses || 0).toLocaleString()}`}
                     icon={faMoneyBillWave}
                     iconColor="text-orange-600"
                   />
                   <DetailBox
                     label="Net Profit"
-                    value={`₦${(taxData.netProfit || 0).toLocaleString()}`}
+                    value={`${(taxData.netProfit || 0).toLocaleString()}`}
                     icon={faMoneyBillWave}
                     iconColor="text-green-600"
                   />
                   <DetailBox
                     label="Company Income Tax"
-                    value={`₦${(taxData.companyIncomeTax || 0).toLocaleString()}`}
+                    value={`${(taxData.companyIncomeTax || 0).toLocaleString()}`}
                     icon={faMoneyBillWave}
                     iconColor="text-purple-600"
                   />
@@ -196,7 +197,7 @@ export default function TaxAnalysisPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <DetailBox
                     label="National Health Insurance Levy (0.5%)"
-                    value={`₦${(taxData.nhlAmount || 0).toLocaleString()}`}
+                    value={`${(taxData.nhlAmount || 0).toLocaleString()}`}
                     icon={faCheckCircle}
                     iconColor="text-teal-600"
                   />
@@ -227,11 +228,11 @@ export default function TaxAnalysisPage() {
                       <thead className="bg-gradient-to-r from-gray-800 to-gray-700 text-white">
                         <tr>
                           <th className="px-6 py-4 text-left text-sm font-semibold">Period</th>
-                          <th className="px-6 py-4 text-right text-sm font-semibold">Revenue (₦)</th>
-                          <th className="px-6 py-4 text-right text-sm font-semibold">Expenses (₦)</th>
-                          <th className="px-6 py-4 text-right text-sm font-semibold">VAT (₦)</th>
-                          <th className="px-6 py-4 text-right text-sm font-semibold">CIT (₦)</th>
-                          <th className="px-6 py-4 text-right text-sm font-semibold">NHL (₦)</th>
+                          <th className="px-6 py-4 text-right text-sm font-semibold">Revenue (NGN)</th>
+                          <th className="px-6 py-4 text-right text-sm font-semibold">Expenses (NGN)</th>
+                          <th className="px-6 py-4 text-right text-sm font-semibold">VAT (NGN)</th>
+                          <th className="px-6 py-4 text-right text-sm font-semibold">CIT (NGN)</th>
+                          <th className="px-6 py-4 text-right text-sm font-semibold">NHL (NGN)</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
@@ -239,11 +240,11 @@ export default function TaxAnalysisPage() {
                           taxData.breakdown.map((item, index) => (
                             <tr key={index} className={`transition-colors ${index % 2 === 0 ? 'bg-gray-50 hover:bg-gray-100' : 'bg-white hover:bg-gray-50'}`}>
                               <td className="px-6 py-4 text-sm font-medium text-gray-900">{item.month}</td>
-                              <td className="px-6 py-4 text-sm text-right text-gray-700 font-mono">{(item.income || 0).toLocaleString()}</td>
-                              <td className="px-6 py-4 text-sm text-right text-gray-700 font-mono">{(item.expenses || 0).toLocaleString()}</td>
-                              <td className="px-6 py-4 text-sm text-right text-gray-700 font-mono">{(item.vat || 0).toLocaleString()}</td>
-                              <td className="px-6 py-4 text-sm text-right text-gray-700 font-mono font-semibold">{(item.cit || 0).toLocaleString()}</td>
-                              <td className="px-6 py-4 text-sm text-right text-gray-700 font-mono">{(item.nhl || 0).toLocaleString()}</td>
+                              <td className="px-6 py-4 text-sm text-right text-gray-700 font-mono">{formatNumber(item.income || 0)}</td>
+                              <td className="px-6 py-4 text-sm text-right text-gray-700 font-mono">{formatNumber(item.expenses || 0)}</td>
+                              <td className="px-6 py-4 text-sm text-right text-gray-700 font-mono">{formatNumber(item.vat || 0)}</td>
+                              <td className="px-6 py-4 text-sm text-right text-gray-700 font-mono font-semibold">{formatNumber(item.cit || 0)}</td>
+                              <td className="px-6 py-4 text-sm text-right text-gray-700 font-mono">{formatNumber(item.nhl || 0)}</td>
                             </tr>
                           ))
                         ) : (
@@ -260,7 +261,7 @@ export default function TaxAnalysisPage() {
                 </div>
                 <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
                   <p className="text-xs text-gray-900 font-medium">
-                    📋 <strong>Tax Calculation Basis:</strong> Nigeria Finance Act 2023 - CIT exemption up to ₦25M (0%), ₦25M-₦100M (20%), above ₦100M (30%). VAT at 7.5%, NHL at 0.5%.
+                     <strong>Tax Calculation Basis:</strong> Nigeria Finance Act 2023 - CIT exemption up to NGN 25M (0%), NGN 25M-NGN 100M (20%), above NGN 100M (30%). VAT at 7.5%, NHL at 0.5%.
                   </p>
                 </div>
               </div>

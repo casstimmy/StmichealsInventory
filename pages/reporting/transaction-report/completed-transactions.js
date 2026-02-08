@@ -3,6 +3,7 @@ import Layout from "@/components/Layout";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { saveAs } from "file-saver";
+import { formatCurrency, formatNumber } from "@/lib/format";
 
 export default function CompletedTransactions() {
   const [transactions, setTransactions] = useState([]);
@@ -105,6 +106,50 @@ async function fetchTransactions() {
 
   const handlePrint = () => window.print();
 
+  const formatTenderLabel = (value) => {
+    if (!value) return "Unknown";
+    const cleaned = String(value).replace(/[_-]+/g, " ").trim();
+    return cleaned.replace(/\s+/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+  };
+
+  const getTenderBadgeClass = (value) => {
+    const normalized = String(value || "").toLowerCase();
+    if (normalized.includes("cash")) return "badge-success";
+    if (normalized.includes("card") || normalized.includes("pos")) return "badge-primary";
+    if (normalized.includes("transfer") || normalized.includes("bank")) return "badge-warning";
+    if (normalized.includes("online")) return "badge-secondary";
+    return "badge";
+  };
+
+  const getTenderDisplay = (tx) => {
+    const hasSplit = Array.isArray(tx.tenderPayments) && tx.tenderPayments.length > 1;
+    if (hasSplit) {
+      const details = tx.tenderPayments
+        .map((payment) => {
+          const name = formatTenderLabel(payment?.tenderName || payment?.tenderType || "Tender");
+          return `${name}: ${formatCurrency(payment?.amount || 0)}`;
+        })
+        .join(" | ");
+      return {
+        label: "Split",
+        title: details,
+        className: "badge-secondary",
+      };
+    }
+
+    const tenderName =
+      Array.isArray(tx.tenderPayments) && tx.tenderPayments.length === 1
+        ? tx.tenderPayments[0]?.tenderName || tx.tenderPayments[0]?.tenderType
+        : tx.tenderType;
+
+    const label = formatTenderLabel(tenderName || "Unknown");
+    return {
+      label,
+      title: label,
+      className: getTenderBadgeClass(tenderName),
+    };
+  };
+
   // Calendar utility functions
   const getDaysInMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
   
@@ -133,7 +178,7 @@ async function fetchTransactions() {
     }
 
     // Next month days (greyed out)
-    const remainingDays = 42 - days.length; // 6 rows × 7 days
+    const remainingDays = 42 - days.length; // 6 rows x 7 days
     for (let i = 1; i <= remainingDays; i++) {
       days.push({
         day: i,
@@ -165,24 +210,25 @@ async function fetchTransactions() {
 
   return (
     <Layout title="Completed Transactions">
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-6 text-gray-900 font-sans">
-        {/* Breadcrumb */}
-        <div className="mb-6 text-sm text-gray-600">
-          <Link href="/" className="text-cyan-600 hover:text-cyan-700">Home</Link>
-          <span className="mx-2">›</span>
-          <Link href="/reporting/transaction-report" className="text-cyan-600 hover:text-cyan-700">Transaction Reports</Link>
-          <span className="mx-2">›</span>
-          <span className="text-gray-800 font-medium">Completed Transactions</span>
-        </div>
+      <div className="page-container">
+        <div className="page-content">
+          {/* Breadcrumb */}
+          <div className="mb-6 text-sm text-gray-600">
+            <Link href="/" className="text-cyan-600 hover:text-cyan-700">Home</Link>
+            <span className="mx-2 text-gray-400">{">"}</span>
+            <Link href="/reporting/transaction-report" className="text-cyan-600 hover:text-cyan-700">Transaction Reports</Link>
+            <span className="mx-2 text-gray-400">{">"}</span>
+            <span className="text-gray-800 font-medium">Completed Transactions</span>
+          </div>
 
-        <div className="mb-6">
-          <h1 className="text-4xl font-bold text-gray-800">Completed Transactions</h1>
-          <p className="text-gray-600 mt-1">View and manage transaction records with advanced filtering</p>
+        <div className="page-header">
+          <h1 className="page-title">Completed Transactions</h1>
+          <p className="page-subtitle">View and manage transaction records with advanced filtering</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
           {/* Calendar Filter */}
-          <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4 h-fit">
+          <div className="content-card h-fit">
             <div className="mb-4">
               <div className="flex items-center justify-between mb-4">
                 <button
@@ -190,7 +236,7 @@ async function fetchTransactions() {
                   className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
                   aria-label="Previous month"
                 >
-                  <span className="text-lg">‹</span>
+                  <span className="text-lg">{"<"}</span>
                 </button>
                 <h2 className="text-sm font-semibold text-gray-800">
                   {formatMonthYear(calendarMonth)}
@@ -200,7 +246,7 @@ async function fetchTransactions() {
                   className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
                   aria-label="Next month"
                 >
-                  <span className="text-lg">›</span>
+                  <span className="text-lg">{">"}</span>
                 </button>
               </div>
 
@@ -248,7 +294,7 @@ async function fetchTransactions() {
           {/* Filters Panel */}
           <div className="lg:col-span-3 space-y-4">
             {/* Location Filter */}
-            <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
+            <div className="content-card">
               <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
                 <span className="w-1 h-4 bg-emerald-500 rounded"></span>
                 Location Filter
@@ -256,7 +302,7 @@ async function fetchTransactions() {
               <select
                 value={locationFilter}
                 onChange={(e) => setLocationFilter(e.target.value)}
-                className="w-full border border-gray-300 px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-600 bg-white text-gray-800 transition-all"
+                className="form-select"
               >
                 <option value="">All Locations</option>
                 {locations.map((loc) => (
@@ -268,7 +314,7 @@ async function fetchTransactions() {
             </div>
 
             {/* Status Filter */}
-            <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
+            <div className="content-card">
               <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
                 <span className="w-1 h-4 bg-amber-500 rounded"></span>
                 Transaction Status
@@ -276,12 +322,12 @@ async function fetchTransactions() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full border border-gray-300 px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-600 bg-white text-gray-800 transition-all"
+                className="form-select"
               >
                 <option value="">All Status</option>
-                <option value="completed">✓ Completed</option>
-                <option value="held">⏸ Held</option>
-                <option value="refunded">↩ Refunded</option>
+                <option value="completed">Completed</option>
+                <option value="held">Held</option>
+                <option value="refunded">Refunded</option>
               </select>
             </div>
 
@@ -293,13 +339,13 @@ async function fetchTransactions() {
                   setStatusFilter("completed");
                   setSelectedDate(null);
                 }}
-                className="flex-1 bg-white border border-gray-300 text-gray-700 px-4 py-2.5 rounded-lg font-medium hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
+                className="flex-1 btn-action btn-action-secondary flex items-center justify-center gap-2"
               >
-                <span>↺</span> Reset All Filters
+                Reset All Filters
               </button>
               <button
                 onClick={() => setLocationFilter("")}
-                className="flex-1 bg-white border border-gray-300 text-gray-700 px-4 py-2.5 rounded-lg font-medium hover:bg-gray-50 transition-all"
+                className="flex-1 btn-action btn-action-secondary"
               >
                 All Locations
               </button>
@@ -308,12 +354,12 @@ async function fetchTransactions() {
         </div>
 
         {/* Export and Results Summary */}
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4 mb-6">
+        <div className="content-card mb-6">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
               <p className="text-sm font-semibold text-gray-700 mb-1">Results Summary</p>
               <p className="text-2xl font-bold text-cyan-600">
-                {transactions.length}
+                {formatNumber(transactions.length)}
                 <span className="text-sm font-normal text-gray-600 ml-2">transactions found</span>
               </p>
             </div>
@@ -322,25 +368,25 @@ async function fetchTransactions() {
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={exportCSV}
-                  className="bg-gradient-to-r from-cyan-600 to-cyan-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:shadow-lg transition-all"
+                  className="btn-action btn-action-primary"
                 >
-                  📊 Export CSV
+                  Export CSV
                 </button>
                 <button
-                  className="bg-white border border-gray-400 text-cyan-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-all"
+                  className="btn-action btn-action-secondary"
                 >
-                  📄 Export Word
+                  Export Word
                 </button>
                 <button
-                  className="bg-white border border-green-300 text-green-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-50 transition-all"
+                  className="btn-action btn-action-secondary"
                 >
-                  📈 Export Excel
+                  Export Excel
                 </button>
                 <button
                   onClick={handlePrint}
-                  className="bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:shadow-lg transition-all"
+                  className="btn-action btn-action-success"
                 >
-                  🖨 Print
+                  Print
                 </button>
               </div>
             </div>
@@ -348,11 +394,11 @@ async function fetchTransactions() {
         </div>
 
         {/* Data Table */}
-        <div id="print-section" className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+        <div id="print-section" className="data-table-container">
           {transactions.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gradient-to-r from-cyan-600 to-cyan-700 text-white sticky top-0">
+              <table className="data-table">
+                <thead className="sticky top-0">
                   <tr>
                     <th className="px-4 py-3 text-left font-semibold">Staff</th>
                     <th className="px-4 py-3 text-left font-semibold">Location</th>
@@ -373,29 +419,30 @@ async function fetchTransactions() {
                       <tr key={tx._id} className={`transition-colors ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-gray-50`}>
                         <td className="px-4 py-3 font-medium text-gray-800">{tx.staff?.name || tx.staff || "N/A"}</td>
                         <td className="px-4 py-3">
-                          <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-medium">
+                          <span className="badge badge-success">
                             {tx.location || "N/A"}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-gray-600">{tx.device || "Till 1"}</td>
-                        <td className="px-4 py-3 text-gray-600 text-xs">{new Date(tx.createdAt).toLocaleString()}</td>
+                        <td className="px-4 py-3 text-gray-600 text-xs">{new Date(tx.createdAt).toLocaleString("en-NG")}</td>
                         <td className="px-4 py-3 text-gray-800">{tx.customerName || "Walk-in"}</td>
-                        <td className="px-4 py-3 text-right font-medium text-gray-800">₦{tx.discount?.toFixed(2) || "0.00"}</td>
+                        <td className="px-4 py-3 text-right font-medium text-gray-800">{formatCurrency(tx.discount || 0)}</td>
                         <td className="px-4 py-3 text-gray-600 text-xs">{tx.discountReason || "-"}</td>
-                        <td className="px-4 py-3 text-right font-bold text-cyan-600">₦{tx.total?.toFixed(2)}</td>
+                        <td className="px-4 py-3 text-right font-bold text-cyan-600">{formatCurrency(tx.total || 0)}</td>
                         <td className="px-4 py-3">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            tx.tenderType === "cash" ? "bg-green-100 text-green-700" :
-                            tx.tenderType === "card" ? "bg-cyan-100 text-cyan-700" :
-                            "bg-gray-100 text-gray-700"
-                          }`}>
-                            {tx.tenderType}
-                          </span>
+                          {(() => {
+                            const tenderInfo = getTenderDisplay(tx);
+                            return (
+                              <span className={`badge ${tenderInfo.className}`} title={tenderInfo.title}>
+                                {tenderInfo.label}
+                              </span>
+                            );
+                          })()}
                         </td>
-                        <td className="px-4 py-3 text-right font-medium text-gray-800">₦{tx.change?.toFixed(2) || "0.00"}</td>
+                        <td className="px-4 py-3 text-right font-medium text-gray-800">{formatCurrency(tx.change || 0)}</td>
                         <td className="px-4 py-3 text-center">
                           <button
-                            className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-sm"
+                            className="btn-action btn-action-success btn-sm"
                             onClick={() => toggleDetails(tx._id)}
                           >
                             {expandedTxId === tx._id ? "Hide" : "Show"}
@@ -422,9 +469,9 @@ async function fetchTransactions() {
                                     {tx.items?.map((item, idx) => (
                                       <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                                         <td className="px-3 py-2 font-medium text-gray-800">{item.name}</td>
-                                        <td className="px-3 py-2 text-right font-medium">{item.qty}</td>
-                                        <td className="px-3 py-2 text-right text-gray-600">₦{item.salePriceIncTax?.toFixed(2)}</td>
-                                        <td className="px-3 py-2 text-right font-semibold text-cyan-600">₦{(item.qty * item.salePriceIncTax).toFixed(2)}</td>
+                                        <td className="px-3 py-2 text-right font-medium">{formatNumber(item.qty || 0)}</td>
+                                        <td className="px-3 py-2 text-right text-gray-600">{formatCurrency(item.salePriceIncTax || 0)}</td>
+                                        <td className="px-3 py-2 text-right font-semibold text-cyan-600">{formatCurrency((item.qty || 0) * (item.salePriceIncTax || 0))}</td>
                                         {showBarcode && <td className="px-3 py-2 text-right text-gray-600">{item.barcode || "-"}</td>}
                                       </tr>
                                     ))}
@@ -442,13 +489,15 @@ async function fetchTransactions() {
             </div>
           ) : (
             <div className="p-8 text-center">
-              <p className="text-gray-500 text-lg font-medium">📭 No transactions found</p>
+              <p className="text-gray-500 text-lg font-medium">No transactions found</p>
               <p className="text-gray-400 text-sm mt-1">Try adjusting your filters to see results</p>
             </div>
           )}
+        </div>
         </div>
       </div>
     </Layout>
   );
 }
+
 

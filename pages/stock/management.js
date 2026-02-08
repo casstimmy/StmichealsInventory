@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { formatCurrency } from "@/lib/format";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { Loader } from "@/components/ui";
@@ -155,7 +156,7 @@ console.log("Filtered Items:", filteredItems);
                             {qty}
                           </td>
                           <td className="px-6 py-4 text-gray-700">{product.minStock ?? 10}</td>
-                          <td className="px-6 py-4">₦{(product.costPrice || 0).toLocaleString()}</td>
+                          <td className="px-6 py-4">{formatCurrency(product.costPrice || 0, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
                           <td
                             className={`px-6 py-4 font-semibold ${
                               status === "In Stock"

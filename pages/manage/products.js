@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Search } from "lucide-react";
 import Layout from "@/components/Layout";
+import { formatCurrency as formatCurrencyValue } from "@/lib/format";
 import axios from "axios";
 import Link from "next/link";
 import useSWR, { mutate } from "swr";
@@ -149,7 +150,7 @@ export default function Products() {
     setEditIndex(null);
     setEditableProduct({});
     setProperties([]);
-    // keep highlight (helpful) — comment out to clear highlight on cancel
+    // keep highlight (helpful)  comment out to clear highlight on cancel
     // setHighlightedId(null);
   };
 
@@ -237,13 +238,9 @@ export default function Products() {
   const calculateSalePrice = (cost, margin, tax) =>
     (cost * (1 + margin / 100) * (1 + tax / 100)).toFixed(2);
 
-  const formatCurrency = (num) =>
-    `₦${new Intl.NumberFormat("en-NG", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(num || 0)}`;
+  const formatCurrency = (num) => formatCurrencyValue(num || 0);
 
-  // Lazy loading (Load more) — visible slice
+  // Lazy loading (Load more)  visible slice
   const visibleProducts = Array.isArray(filteredProducts)
     ? filteredProducts.slice(0, visibleCount)
     : [];
@@ -298,7 +295,7 @@ export default function Products() {
               className="btn-action-secondary flex items-center gap-2"
               title="Refresh products from server"
             >
-              🔄 Refresh
+               Refresh
             </button>
             <Link
               href="../products/new"
@@ -474,10 +471,10 @@ export default function Products() {
                       <td className="p-2 hidden lg:table-cell text-gray-600 text-xs">
                         {p.properties?.length > 0
                           ? p.properties.map((pr) => `${pr.propName}: ${pr.propValue}`).join(", ")
-                          : "—"}
+                          : ""}
                       </td>
 
-                      <td className="p-2 text-xs md:text-sm">{categoryMap[p.category] || "—"}</td>
+                      <td className="p-2 text-xs md:text-sm">{categoryMap[p.category] || ""}</td>
 
                       <td className="p-2 hidden sm:table-cell text-xs">
                         {p.isPromotion ? (
@@ -516,7 +513,7 @@ export default function Products() {
               Load more ({(filteredProducts?.length || 0) - visibleCount} remaining)
             </button>
           ) : (
-            <div className="text-sm text-gray-500 py-2">— End of list —</div>
+            <div className="text-sm text-gray-500 py-2"> End of list </div>
           )}
         </div>
         </div>

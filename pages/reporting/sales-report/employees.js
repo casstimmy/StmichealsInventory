@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { formatCurrency } from "@/lib/format";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
@@ -204,9 +205,9 @@ export default function EmployeesSales() {
       <div className="min-h-screen bg-gray-50 p-8">
         <div className="mb-6 text-sm">
           <Link href="/" className="text-cyan-600 hover:text-cyan-700">Home</Link>
-          <span className="mx-2 text-gray-400">›</span>
+          <span className="mx-2 text-gray-400"></span>
           <Link href="/reporting" className="text-cyan-600 hover:text-cyan-700">Reporting</Link>
-          <span className="mx-2 text-gray-400">›</span>
+          <span className="mx-2 text-gray-400"></span>
           <span className="text-gray-600">Employees</span>
         </div>
 
@@ -352,18 +353,18 @@ export default function EmployeesSales() {
                     <td className="px-4 py-3 text-gray-700">{row.mainLocation}</td>
                     <td className="px-4 py-3 text-right text-gray-700">{row.transactionQty}</td>
                     <td className="px-4 py-3 text-right text-gray-700">{row.refundQty}</td>
-                    <td className="px-4 py-3 text-right text-gray-500">₦{row.refundValue.toLocaleString('en-NG')}</td>
+                    <td className="px-4 py-3 text-right text-gray-500">{row.refundValue.toLocaleString('en-NG')}</td>
                     <td className="px-4 py-3 text-right text-gray-700">{row.noSaleQty}</td>
                     <td className="px-4 py-3 text-right text-gray-700">{row.voidedQty}</td>
-                    <td className="px-4 py-3 text-right text-gray-500">₦{row.voidedValue.toLocaleString('en-NG')}</td>
+                    <td className="px-4 py-3 text-right text-gray-500">{row.voidedValue.toLocaleString('en-NG')}</td>
                     <td className="px-4 py-3 text-right text-gray-700">{row.itemQty}</td>
-                    <td className="px-4 py-3 text-right text-gray-700">₦{row.salesIncTax.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
-                    <td className="px-4 py-3 text-right text-gray-500">₦{row.discounts.toLocaleString('en-NG')}</td>
-                    <td className="px-4 py-3 text-right text-gray-700">₦{row.avgTransaction.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
-                    <td className="px-4 py-3 text-right text-gray-700">₦{row.netSalesIncVat.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
-                    <td className="px-4 py-3 text-right text-gray-700">₦{row.netSalesExcTax.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
-                    <td className="px-4 py-3 text-right text-gray-700">₦{row.avgMargin.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
-                    <td className="px-4 py-3 text-right text-gray-700">₦{row.grossMargin.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
+                    <td className="px-4 py-3 text-right text-gray-700">{row.salesIncTax.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
+                    <td className="px-4 py-3 text-right text-gray-500">{row.discounts.toLocaleString('en-NG')}</td>
+                    <td className="px-4 py-3 text-right text-gray-700">{row.avgTransaction.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
+                    <td className="px-4 py-3 text-right text-gray-700">{row.netSalesIncVat.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
+                    <td className="px-4 py-3 text-right text-gray-700">{row.netSalesExcTax.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
+                    <td className="px-4 py-3 text-right text-gray-700">{row.avgMargin.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
+                    <td className="px-4 py-3 text-right text-gray-700">{row.grossMargin.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
                     <td className="px-4 py-3 text-right text-gray-700">{row.marginPercent.toFixed(2)}%</td>
                   </tr>
                 ))}
@@ -373,18 +374,18 @@ export default function EmployeesSales() {
                   <td className="px-4 py-3 text-gray-800"></td>
                   <td className="px-4 py-3 text-right text-gray-800">{totals.transactionQty}</td>
                   <td className="px-4 py-3 text-right text-gray-800">{totals.refundQty}</td>
-                  <td className="px-4 py-3 text-right text-gray-800">₦{totals.refundValue.toLocaleString('en-NG')}</td>
+                  <td className="px-4 py-3 text-right text-gray-800">{totals.refundValue.toLocaleString('en-NG')}</td>
                   <td className="px-4 py-3 text-right text-gray-800">{totals.noSaleQty}</td>
                   <td className="px-4 py-3 text-right text-gray-800">{totals.voidedQty}</td>
-                  <td className="px-4 py-3 text-right text-gray-800">₦{totals.voidedValue.toLocaleString('en-NG')}</td>
+                  <td className="px-4 py-3 text-right text-gray-800">{totals.voidedValue.toLocaleString('en-NG')}</td>
                   <td className="px-4 py-3 text-right text-gray-800">{totals.itemQty}</td>
-                  <td className="px-4 py-3 text-right text-gray-800">₦{totals.salesIncTax.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
-                  <td className="px-4 py-3 text-right text-gray-800">₦{totals.discounts.toLocaleString('en-NG')}</td>
-                  <td className="px-4 py-3 text-right text-gray-800">₦{totals.avgTransaction.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
-                  <td className="px-4 py-3 text-right text-gray-800">₦{totals.netSalesIncVat.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
-                  <td className="px-4 py-3 text-right text-gray-800">₦{totals.netSalesExcTax.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
-                  <td className="px-4 py-3 text-right text-gray-800">₦0.00</td>
-                  <td className="px-4 py-3 text-right text-gray-800">₦0.00</td>
+                  <td className="px-4 py-3 text-right text-gray-800">{totals.salesIncTax.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
+                  <td className="px-4 py-3 text-right text-gray-800">{totals.discounts.toLocaleString('en-NG')}</td>
+                  <td className="px-4 py-3 text-right text-gray-800">{totals.avgTransaction.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
+                  <td className="px-4 py-3 text-right text-gray-800">{totals.netSalesIncVat.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
+                  <td className="px-4 py-3 text-right text-gray-800">{totals.netSalesExcTax.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
+                  <td className="px-4 py-3 text-right text-gray-800">0.00</td>
+                  <td className="px-4 py-3 text-right text-gray-800">0.00</td>
                   <td className="px-4 py-3 text-right text-gray-800">0.00%</td>
                 </tr>
               </tbody>

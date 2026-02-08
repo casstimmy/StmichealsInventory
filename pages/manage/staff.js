@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Layout from "@/components/Layout";
+import { formatCurrency, formatNumber } from "@/lib/format";
 import { Printer, Mail } from "lucide-react";
 import { useRouter } from "next/router";
 
@@ -319,7 +320,10 @@ export default function StaffPage() {
   const handlePrintSalaryTable = () => {
     const printWindow = window.open('', '', 'width=900,height=600');
     const tableHTML = document.querySelector('.overflow-x-auto table')?.outerHTML || '';
-    const totalAmount = calculateGrandTotal().toLocaleString();
+    const totalAmount = formatCurrency(calculateGrandTotal() || 0, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
     
     const content = `
       <html>
@@ -341,7 +345,7 @@ export default function StaffPage() {
         <h1>Staff Salary Report</h1>
         <div class="date">Generated on: ${new Date().toLocaleDateString()}</div>
         ${tableHTML}
-        <div class="total-section">Grand Total: ₦${totalAmount}</div>
+        <div class="total-section">Grand Total: ${totalAmount}</div>
         <p style="text-align: center; margin-top: 40px; color: #999; font-size: 11px; page-break-after: avoid;">---End of Report---</p>
       </body>
       </html>
@@ -571,7 +575,7 @@ export default function StaffPage() {
                         </div>
                         <div className="flex-1">
                           <div className="text-lg font-semibold text-gray-800">{staff.name}</div>
-                          <div className="text-sm text-gray-600 mb-2">📍 {staff.location}</div>
+                          <div className="text-sm text-gray-600 mb-2"> {staff.location}</div>
                           <span
                             className={`text-xs font-medium px-2 py-1 rounded-full inline-block ${
                               staff.role === "admin" || staff.role === "Senior staff"
@@ -662,7 +666,7 @@ export default function StaffPage() {
                         <ul className="space-y-2 pl-4 border-l-2 border-blue-100">
                           {staff.penalty.map((p, i) => (
                             <li key={i} className="text-sm text-gray-800">
-                              <span className="font-medium text-red-700">₦{p.amount}</span> – <span className="italic">{p.reason}</span>{" "}
+                              <span className="font-medium text-red-700">{p.amount}</span>  <span className="italic">{p.reason}</span>{" "}
                               <span className="text-gray-500">({new Date(p.date).toLocaleDateString()})</span>
                             </li>
                           ))}
@@ -762,7 +766,7 @@ export default function StaffPage() {
                         <td className="px-6 py-3 text-gray-700">{s.accountNumber || "-"}</td>
                         <td className="px-6 py-3 text-gray-700">{s.bankName || "-"}</td>
                         <td className="px-6 py-3 text-right font-medium text-gray-900">
-                          ₦{(parseFloat(s.salary) || 0).toLocaleString()}
+                          {(parseFloat(s.salary) || 0).toLocaleString()}
                         </td>
                       </tr>
                     ))}
@@ -773,7 +777,7 @@ export default function StaffPage() {
               {/* Grand Total */}
               <div className="flex justify-between items-center mt-8 bg-blue-100 px-6 py-4 rounded-lg border-2 border-blue-400 mb-6">
                 <span className="text-xl font-bold text-blue-900">T-Total</span>
-                <span className="text-xl font-bold text-blue-900">₦{calculateGrandTotal().toLocaleString()}</span>
+                <span className="text-xl font-bold text-blue-900">{calculateGrandTotal().toLocaleString()}</span>
               </div>
 
               {/* Action Buttons */}

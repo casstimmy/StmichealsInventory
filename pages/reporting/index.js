@@ -2,6 +2,7 @@ import Layout from "@/components/Layout";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Line } from "react-chartjs-2";
+import { formatCurrency, formatNumber } from "@/lib/format";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -71,13 +72,13 @@ export default function Reporting() {
         <div className="page-content">
         <div className="mb-6 text-sm">
           <Link href="/" className="text-sky-600 hover:text-sky-700">Home</Link>
-          <span className="mx-2 text-gray-400">›</span>
+          <span className="mx-2 text-gray-400"></span>
           <span className="text-gray-600">Reporting</span>
         </div>
 
         <div className="page-header flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="page-title">📅 Time Period Analysis</h1>
+            <h1 className="page-title"> Time Period Analysis</h1>
             <p className="page-subtitle">Sales performance across different time periods</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
@@ -85,13 +86,13 @@ export default function Reporting() {
               href="/reporting/reporting"
               className="btn-action-primary text-center"
             >
-              📈 Sales Report
+               Sales Report
             </Link>
             <Link 
               href="/reporting/end-of-day-report"
               className="btn-action bg-cyan-600 text-white hover:bg-cyan-700 focus:ring-cyan-400 text-center"
             >
-              📊 EOD Reports
+               EOD Reports
             </Link>
           </div>
         </div>
@@ -117,10 +118,10 @@ export default function Reporting() {
 
         {/* SUMMARY CARDS */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <MetricCard title="Total Sales" value={`₦${(totalSales || 0).toLocaleString('en-NG', {maximumFractionDigits: 0})}`} icon="💰" color="sky" />
-          <MetricCard title="Transactions" value={data?.summary?.totalTransactions || 0} icon="💳" color="emerald" />
-          <MetricCard title="Avg/Period" value={`₦${(avgDaily).toLocaleString('en-NG', {maximumFractionDigits: 0})}`} icon="📊" color="amber" />
-          <MetricCard title="Periods" value={data?.dates?.length || 0} icon="📅" color="purple" />
+          <MetricCard title="Total Sales" value={`${(totalSales || 0).toLocaleString('en-NG', {maximumFractionDigits: 0})}`} icon="" color="sky" />
+          <MetricCard title="Transactions" value={data?.summary?.totalTransactions || 0} icon="" color="emerald" />
+          <MetricCard title="Avg/Period" value={`${(avgDaily).toLocaleString('en-NG', {maximumFractionDigits: 0})}`} icon="" color="amber" />
+          <MetricCard title="Periods" value={data?.dates?.length || 0} icon="" color="purple" />
         </div>
 
         {/* TREND CHART */}
@@ -131,7 +132,7 @@ export default function Reporting() {
               data={{
                 labels: data?.dates || [],
                 datasets: [{
-                  label: "Sales (₦)",
+                  label: "Sales ()",
                   data: data?.salesData || [],
                   borderColor: "#06B6D4",
                   backgroundColor: "rgba(6, 182, 212, 0.1)",

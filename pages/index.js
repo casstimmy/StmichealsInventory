@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Bar } from "react-chartjs-2";
 import { useEffect, useState, useMemo } from "react";
@@ -6,7 +6,8 @@ import { useRouter } from "next/router";
 import { apiClient } from "@/lib/api-client";
 import { motion } from "framer-motion";
 import { Loader } from "@/components/ui";
-import { getCachedSetup, refreshSetupCache } from "@/lib/setupCache";
+import { getCachedSetup } from "@/lib/setupCache";
+import { formatCurrency, formatNumber } from "@/lib/format";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -29,13 +30,6 @@ ChartJS.register(
   Tooltip,
   Legend
 );
-
-/* =======================
-   FORMAT HELPERS
-======================= */
-const formatNumber = (value = 0) => Number(value).toLocaleString("en-NG");
-
-const formatMoney = (value = 0) => `₦${Number(value).toLocaleString("en-NG")}`;
 
 export default function Home() {
   const router = useRouter();
@@ -382,14 +376,14 @@ export default function Home() {
           <>
             {/* KPIs */}
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-              <KpiCard label="Sales" value={formatMoney(kpis.sales)} />
+              <KpiCard label="Sales" value={formatCurrency(kpis.sales)} />
               <KpiCard
                 label="Transactions"
                 value={formatNumber(kpis.transactions)}
               />
               <KpiCard
                 label="Avg Tx Value"
-                value={formatMoney(kpis.avg.toFixed(2))}
+                value={formatCurrency(kpis.avg.toFixed(2))}
               />
             </section>
 
@@ -410,7 +404,7 @@ export default function Home() {
                 title="Recent Orders"
                 items={filteredOrders.slice(0, 10).map((o) => ({
                   label: o.customer?.name || "Unknown",
-                  meta: formatMoney(o.total),
+                  meta: formatCurrency(o.total),
                 }))}
               />
 
@@ -418,7 +412,7 @@ export default function Home() {
                 title="Top Staff"
                 items={topStaff.map((s) => ({
                   label: s.staff,
-                  meta: formatMoney(s.total),
+                  meta: formatCurrency(s.total),
                 }))}
               />
 
@@ -426,7 +420,7 @@ export default function Home() {
                 title="Expenses"
                 items={filteredExpenses.map((e) => ({
                   label: e.title,
-                  meta: formatMoney(e.amount),
+                  meta: formatCurrency(e.amount),
                 }))}
               />
             </section>
@@ -479,4 +473,6 @@ function ListCard({ title, items }) {
     </motion.div>
   );
 }
+
+
 

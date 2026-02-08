@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { formatNumber } from "@/lib/format";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Bar } from "react-chartjs-2";
@@ -88,14 +89,14 @@ export default function ProductsSales() {
       <div className="min-h-screen bg-gray-50 p-8">
         <div className="mb-6 text-sm">
           <Link href="/" className="text-cyan-600 hover:text-cyan-700">Home</Link>
-          <span className="mx-2 text-gray-400">›</span>
+          <span className="mx-2 text-gray-400"></span>
           <Link href="/reporting" className="text-cyan-600 hover:text-cyan-700">Reporting</Link>
-          <span className="mx-2 text-gray-400">›</span>
+          <span className="mx-2 text-gray-400"></span>
           <span className="text-gray-600">Sales by Product</span>
         </div>
 
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">📦 Sales by Products</h1>
+          <h1 className="text-4xl font-bold text-gray-800 mb-2"> Sales by Products</h1>
           <p className="text-gray-600">Top performing products and their sales metrics</p>
         </div>
 
@@ -129,9 +130,9 @@ export default function ProductsSales() {
 
         {/* SUMMARY */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <StatCard title="Total Products" value={products.length} icon="📦" color="pink" />
-          <StatCard title="Total Units Sold" value={totalQty.toLocaleString()} icon="📊" color="rose" />
-          <StatCard title="Top Product" value={topProducts[0]?.[0] || "N/A"} icon="🏆" color="amber" />
+          <StatCard title="Total Products" value={products.length} icon="" color="pink" />
+          <StatCard title="Total Units Sold" value={formatNumber(totalQty)} icon="" color="rose" />
+          <StatCard title="Top Product" value={topProducts[0]?.[0] || "N/A"} icon="" color="amber" />
         </div>
 
         {/* PRODUCTS CHART */}

@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { formatCurrency, formatNumber } from "@/lib/format";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Bar, Doughnut } from "react-chartjs-2";
@@ -310,14 +311,14 @@ export default function CategoriesSales() {
       <div className="min-h-screen bg-gray-50 p-8">
         <div className="mb-6 text-sm">
           <Link href="/" className="text-cyan-600 hover:text-cyan-700">Home</Link>
-          <span className="mx-2 text-gray-400">›</span>
+          <span className="mx-2 text-gray-400"></span>
           <Link href="/reporting" className="text-cyan-600 hover:text-cyan-700">Reporting</Link>
-          <span className="mx-2 text-gray-400">›</span>
+          <span className="mx-2 text-gray-400"></span>
           <span className="text-gray-600">Categories</span>
         </div>
 
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">🏷 Sales by Categories</h1>
+          <h1 className="text-4xl font-bold text-gray-800 mb-2"> Sales by Categories</h1>
           <p className="text-gray-600">Category-wise performance and trends</p>
         </div>
 
@@ -397,10 +398,10 @@ export default function CategoriesSales() {
 
         {/* SUMMARY */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <StatCard title="Total Categories" value={categories.length} icon="🏷" color="red" />
-          <StatCard title="Total Sales" value={`₦${(totalSales).toLocaleString('en-NG', {maximumFractionDigits: 0})}`} icon="💰" color="pink" />
-          <StatCard title="Top Category" value={topCategory?.name} icon="🏆" color="rose" />
-          <StatCard title="Total Units" value={categories.reduce((sum, c) => sum + c.units, 0).toLocaleString()} icon="📦" color="orange" />
+          <StatCard title="Total Categories" value={categories.length} icon="" color="red" />
+          <StatCard title="Total Sales" value={`${(totalSales).toLocaleString('en-NG', {maximumFractionDigits: 0})}`} icon="" color="pink" />
+          <StatCard title="Top Category" value={topCategory?.name} icon="" color="rose" />
+          <StatCard title="Total Units" value={categories.reduce((sum, c) => sum + c.units, 0).toLocaleString()} icon="" color="orange" />
         </div>
 
         {/* DOUGHNUT CHART */}
@@ -436,7 +437,7 @@ export default function CategoriesSales() {
               data={{
                 labels: categories.map(c => c.name),
                 datasets: [{
-                  label: "Sales (₦)",
+                  label: "Sales ()",
                   data: categories.map(c => c.sales),
                   backgroundColor: "#06B6D4",
                   borderRadius: 8,
@@ -472,10 +473,10 @@ export default function CategoriesSales() {
                 <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                   <td className="px-6 py-3 font-bold text-red-600">#{idx + 1}</td>
                   <td className="px-6 py-3 font-medium text-gray-800">{category.name}</td>
-                  <td className="px-6 py-3 text-right font-semibold">₦{category.sales.toLocaleString('en-NG')}</td>
-                  <td className="px-6 py-3 text-right">{category.units.toLocaleString()}</td>
+                  <td className="px-6 py-3 text-right font-semibold">{category.sales.toLocaleString('en-NG')}</td>
+                  <td className="px-6 py-3 text-right">{formatNumber(category.units || 0)}</td>
                   <td className="px-6 py-3 text-right text-gray-600">{((category.sales / totalSales) * 100).toFixed(1)}%</td>
-                  <td className="px-6 py-3 text-right text-gray-600">₦{(category.sales / category.units).toLocaleString('en-NG', {maximumFractionDigits: 0})}</td>
+                  <td className="px-6 py-3 text-right text-gray-600">{(category.sales / category.units).toLocaleString('en-NG', {maximumFractionDigits: 0})}</td>
                 </tr>
               ))}
             </tbody>
@@ -523,14 +524,14 @@ export default function CategoriesSales() {
                           <div key={catIdx} className="text-xs">
                             <div className="font-semibold text-gray-800">{cat.category}</div>
                             <div className="text-gray-600">
-                              {cat.units} unit{cat.units !== 1 ? 's' : ''} • ₦{cat.sales.toLocaleString('en-NG', {maximumFractionDigits: 0})}
+                              {cat.units} unit{cat.units !== 1 ? 's' : ''}  {cat.sales.toLocaleString('en-NG', {maximumFractionDigits: 0})}
                             </div>
                           </div>
                         ))}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right font-bold text-gray-900">
-                      ₦{tx.total.toLocaleString('en-NG', {maximumFractionDigits: 0})}
+                      {tx.total.toLocaleString('en-NG', {maximumFractionDigits: 0})}
                     </td>
                   </tr>
                 )) : (

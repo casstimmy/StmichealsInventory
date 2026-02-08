@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { formatCurrency } from "@/lib/format";
 import { useEffect, useState } from "react";
 import {
   Download,
@@ -212,7 +213,7 @@ export default function ExpenseAnalysis() {
             </div>
           ) : filteredExpenses.length === 0 ? (
             <div className="empty-state-container">
-              <div className="empty-state-icon">📊</div>
+              <div className="empty-state-icon"></div>
               <p className="empty-state-text">No expenses match the selected filters.</p>
             </div>
           ) : (
@@ -222,7 +223,7 @@ export default function ExpenseAnalysis() {
                   Total Amount Spent
                 </h2>
                 <p className="stat-card-value text-red-600">
-                  ₦{totalSpent.toLocaleString()}
+                  {totalSpent.toLocaleString()}
                 </p>
               </div>
 
@@ -257,7 +258,7 @@ export default function ExpenseAnalysis() {
                       <YAxis />
                       <Tooltip
                         formatter={(value) =>
-                          `₦${Number(value).toLocaleString()}`
+                          `${Number(value).toLocaleString()}`
                         }
                       />
                       <Legend />
@@ -290,7 +291,7 @@ export default function ExpenseAnalysis() {
                       </Pie>
                       <Tooltip
                         formatter={(value) =>
-                          `₦${Number(value).toLocaleString()}`
+                          `${Number(value).toLocaleString()}`
                         }
                       />
                       <Legend />
@@ -316,7 +317,7 @@ export default function ExpenseAnalysis() {
                           {exp.title}
                         </span>
                         <span className="text-sm text-gray-600">
-                          ₦{Number(exp.amount).toLocaleString()} -{" "}
+                          {Number(exp.amount).toLocaleString()} -{" "}
                           {exp.categoryName || "Uncategorized"}{" "}
                           {exp.locationName && `- ${exp.locationName}`}
                         </span>
@@ -345,10 +346,10 @@ export default function ExpenseAnalysis() {
                     const body = encodeURIComponent(
                       `Expense Report Summary\n\n` +
                       `Date: ${new Date().toLocaleDateString()}\n` +
-                      `Total Expenses: ₦${totalSpent.toLocaleString()}\n` +
+                      `Total Expenses: ${totalSpent.toLocaleString()}\n` +
                       `Number of Expenses: ${filteredExpenses.length}\n\n` +
                       `Category Breakdown:\n` +
-                      chartData.map(c => `• ${c.category}: ₦${c.amount.toLocaleString()}`).join('\n') +
+                      chartData.map(c => ` ${c.category}: ${c.amount.toLocaleString()}`).join('\n') +
                       `\n\nGenerated from St. Micheals Inventory System`
                     );
                     window.open(`mailto:?subject=${subject}&body=${body}`);
@@ -361,7 +362,7 @@ export default function ExpenseAnalysis() {
                 <button
                   onClick={() => {
                     // Build date range information
-                    let dateRangeText = `📅 Report Generated: ${new Date().toLocaleDateString()}`;
+                    let dateRangeText = ` Report Generated: ${new Date().toLocaleDateString()}`;
                     if (filters.startDate || filters.endDate) {
                       const startDate = filters.startDate 
                         ? new Date(filters.startDate).toLocaleDateString() 
@@ -369,22 +370,22 @@ export default function ExpenseAnalysis() {
                       const endDate = filters.endDate 
                         ? new Date(filters.endDate).toLocaleDateString() 
                         : "End";
-                      dateRangeText += `\n📆 Date Range: ${startDate} to ${endDate}`;
+                      dateRangeText += `\n Date Range: ${startDate} to ${endDate}`;
                     }
 
                     // Build expense details with dates
                     const expenseDetails = filteredExpenses
                       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-                      .map(exp => `• ${exp.title}: ₦${Number(exp.amount).toLocaleString()} (${new Date(exp.createdAt).toLocaleDateString()})`)
+                      .map(exp => ` ${exp.title}: ${Number(exp.amount).toLocaleString()} (${new Date(exp.createdAt).toLocaleDateString()})`)
                       .join('\n');
 
                     const message = encodeURIComponent(
-                      `📊 *Expense Report Summary*\n\n` +
+                      ` *Expense Report Summary*\n\n` +
                       `${dateRangeText}\n` +
-                      `💰 Total Expenses: ₦${totalSpent.toLocaleString()}\n` +
-                      `📝 Number of Expenses: ${filteredExpenses.length}\n\n` +
+                      ` Total Expenses: ${totalSpent.toLocaleString()}\n` +
+                      ` Number of Expenses: ${filteredExpenses.length}\n\n` +
                       `*Category Breakdown:*\n` +
-                      chartData.map(c => `• ${c.category}: ₦${c.amount.toLocaleString()}`).join('\n') +
+                      chartData.map(c => ` ${c.category}: ${c.amount.toLocaleString()}`).join('\n') +
                       `\n\n*Expense Details:*\n` +
                       expenseDetails +
                       `\n\n_Generated from St. Micheals Inventory System_`

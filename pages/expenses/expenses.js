@@ -1,5 +1,6 @@
 import ExpenseForm from "@/components/ExpenseForm";
 import Layout from "@/components/Layout";
+import { formatCurrency } from "@/lib/format";
 import { useEffect, useState } from "react";
 import { CalendarDays, CircleDollarSign, MapPin, User, Pencil, Trash2, X } from "lucide-react";
 
@@ -197,7 +198,7 @@ export default function ManageExpenses() {
                         <h3 className="text-lg font-bold text-gray-900 flex-1">{exp.title}</h3>
                       </div>
                       <span className="text-xl font-bold text-green-600 whitespace-nowrap ml-2">
-                        ₦{exp.amount?.toLocaleString()}
+                        {formatCurrency(exp.amount || 0, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                       </span>
                     </div>
 
@@ -293,7 +294,7 @@ export default function ManageExpenses() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Amount (₦)</label>
+                <label className="form-label">Amount (NGN)</label>
                 <input
                   type="number"
                   name="amount"

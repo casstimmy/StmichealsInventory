@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { formatCurrency } from "@/lib/format";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Pie, Bar } from "react-chartjs-2";
@@ -84,14 +85,14 @@ export default function LocationsSales() {
       <div className="min-h-screen bg-gray-50 p-8">
         <div className="mb-6 text-sm">
           <Link href="/" className="text-cyan-600 hover:text-cyan-700">Home</Link>
-          <span className="mx-2 text-gray-400">›</span>
+          <span className="mx-2 text-gray-400"></span>
           <Link href="/reporting" className="text-cyan-600 hover:text-cyan-700">Reporting</Link>
-          <span className="mx-2 text-gray-400">›</span>
+          <span className="mx-2 text-gray-400"></span>
           <span className="text-gray-600">Locations</span>
         </div>
 
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">🏪 Sales by Location</h1>
+          <h1 className="text-4xl font-bold text-gray-800 mb-2"> Sales by Location</h1>
           <p className="text-gray-600">Branch and store performance analysis</p>
         </div>
 
@@ -161,10 +162,10 @@ export default function LocationsSales() {
 
         {/* SUMMARY */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <StatCard title="Total Locations" value={locationArray.length} icon="🏪" color="orange" />
-          <StatCard title="Total Sales" value={`₦${(totalSales).toLocaleString('en-NG', {maximumFractionDigits: 0})}`} icon="💰" color="amber" />
-          <StatCard title="Top Location" value={locationArray[0]?.name || "N/A"} icon="🏆" color="yellow" />
-          <StatCard title="Avg/Location" value={`₦${(totalSales / locationArray.length).toLocaleString('en-NG', {maximumFractionDigits: 0})}`} icon="📊" color="red" />
+          <StatCard title="Total Locations" value={locationArray.length} icon="" color="orange" />
+          <StatCard title="Total Sales" value={`${(totalSales).toLocaleString('en-NG', {maximumFractionDigits: 0})}`} icon="" color="amber" />
+          <StatCard title="Top Location" value={locationArray[0]?.name || "N/A"} icon="" color="yellow" />
+          <StatCard title="Avg/Location" value={`${(totalSales / locationArray.length).toLocaleString('en-NG', {maximumFractionDigits: 0})}`} icon="" color="red" />
         </div>
 
         {/* PIE CHART */}
@@ -200,7 +201,7 @@ export default function LocationsSales() {
               data={{
                 labels: locationArray.map(l => l.name),
                 datasets: [{
-                  label: "Sales (₦)",
+                  label: "Sales ()",
                   data: locationArray.map(l => l.sales),
                   backgroundColor: "#06B6D4",
                   borderRadius: 8,
@@ -233,7 +234,7 @@ export default function LocationsSales() {
                 <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                   <td className="px-6 py-3 font-bold text-orange-600">#{idx + 1}</td>
                   <td className="px-6 py-3 font-medium text-gray-800">{location.name}</td>
-                  <td className="px-6 py-3 text-right font-semibold">₦{location.sales.toLocaleString('en-NG')}</td>
+                  <td className="px-6 py-3 text-right font-semibold">{location.sales.toLocaleString('en-NG')}</td>
                   <td className="px-6 py-3 text-right text-gray-600">{((location.sales / totalSales) * 100).toFixed(1)}%</td>
                 </tr>
               ))}

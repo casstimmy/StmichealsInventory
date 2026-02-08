@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash } from "@fortawesome/free-solid-svg-icons";
 import Loader from "./Loader";
+import { formatCurrency } from "@/lib/format";
 
 function toDateInputValue(v) {
   if (!v) return "";
@@ -285,7 +286,7 @@ export default function ProductForm(props) {
         />
         <div className="mt-4 p-4 bg-gray-50 border rounded-lg">
           <p className="text-sm text-gray-700">
-            <span className="font-semibold">Profit:</span> ₦{profit}
+            <span className="font-semibold">Profit:</span> {formatCurrency(Number(profit) || 0)}
           </p>
           <p className="text-sm text-gray-700">
             <span className="font-semibold">Margin:</span> {calcMargin}%

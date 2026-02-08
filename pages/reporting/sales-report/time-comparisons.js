@@ -227,9 +227,9 @@ export default function TimeComparisons() {
       <div className="min-h-screen bg-gray-50 p-8">
         <div className="mb-6 text-sm">
           <Link href="/" className="text-cyan-600 hover:text-cyan-700">Home</Link>
-          <span className="mx-2 text-gray-400">›</span>
+          <span className="mx-2 text-gray-400"></span>
           <Link href="/reporting" className="text-cyan-600 hover:text-cyan-700">Reporting</Link>
-          <span className="mx-2 text-gray-400">›</span>
+          <span className="mx-2 text-gray-400"></span>
           <span className="text-gray-600">Sales By Time</span>
         </div>
 
@@ -250,7 +250,7 @@ export default function TimeComparisons() {
             {/* Row 1: Metric & Interval */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-3">📊 Metric</label>
+                <label className="block text-sm font-semibold text-gray-800 mb-3"> Metric</label>
                 <select 
                   value={metric} 
                   onChange={(e) => setMetric(e.target.value)}
@@ -263,7 +263,7 @@ export default function TimeComparisons() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-3">📈 Interval</label>
+                <label className="block text-sm font-semibold text-gray-800 mb-3"> Interval</label>
                 <select 
                   value={interval} 
                   onChange={(e) => setInterval(e.target.value)}
@@ -282,7 +282,7 @@ export default function TimeComparisons() {
             {/* Row 2: Date Range & Compare To */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-3">📅 Date Range</label>
+                <label className="block text-sm font-semibold text-gray-800 mb-3"> Date Range</label>
                 <p className="text-xs text-gray-600 mb-3">Current period to analyze</p>
                 <select 
                   value={dateRange} 
@@ -306,7 +306,7 @@ export default function TimeComparisons() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-3">🔄 Compare To</label>
+                <label className="block text-sm font-semibold text-gray-800 mb-3"> Compare To</label>
                 <p className="text-xs text-gray-600 mb-3">Period to compare against</p>
                 <select 
                   value={compareTo} 
@@ -329,7 +329,7 @@ export default function TimeComparisons() {
             <div className="mt-6 pt-6 border-t border-gray-200">
               <div className="bg-gradient-to-r from-cyan-50 to-blue-50 rounded-lg p-4 border border-cyan-200">
                 <p className="text-sm text-gray-700">
-                  <span className="font-semibold text-cyan-700">📋 Comparing:</span>
+                  <span className="font-semibold text-cyan-700"> Comparing:</span>
                   <span className="ml-2 text-gray-800">
                     <strong>{metrics[metric].label}</strong> over <strong>{dateRange.replace(/([A-Z])/g, ' $1').toLowerCase()}</strong> (by <strong>{interval}</strong>) 
                     vs <strong>{compareTo.replace(/([A-Z])/g, ' $1').toLowerCase()}</strong>

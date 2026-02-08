@@ -12,6 +12,7 @@ import {
 } from "chart.js";
 import { Line, Bar, Pie } from "react-chartjs-2";
 import Layout from "@/components/Layout";
+import { formatCurrency } from "@/lib/format";
 import Loader from "@/components/Loader";
 
 ChartJS.register(
@@ -102,7 +103,7 @@ export default function Reporting() {
               href="/reporting/end-of-day-report"
               className="btn-action-primary whitespace-nowrap"
             >
-              📊 EOD Reports
+               EOD Reports
             </a>
           </div>
 
@@ -177,26 +178,26 @@ export default function Reporting() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
           <Card 
             title="Total Sales" 
-            value={`₦${((summary?.totalSales || 0)).toLocaleString()}`}
-            icon="📊"
+            value={`${((summary?.totalSales || 0)).toLocaleString()}`}
+            icon=""
             color="blue"
           />
           <Card 
             title="Transactions" 
             value={summary?.totalTransactions || 0}
-            icon="💳"
+            icon=""
             color="green"
           />
           <Card 
             title="Gross Margin" 
-            value={`₦${((summary?.grossMargin || 0)).toLocaleString()}`}
-            icon="💰"
+            value={`${((summary?.grossMargin || 0)).toLocaleString()}`}
+            icon=""
             color="purple"
           />
           <Card 
             title="Operating Margin" 
             value={`${Math.round(summary?.operatingMargin || 0)}%`}
-            icon="📈"
+            icon=""
             color="orange"
           />
         </div>
@@ -210,7 +211,7 @@ export default function Reporting() {
                 labels: dates || [],
                 datasets: [
                   {
-                    label: "Sales (₦)",
+                    label: "Sales ()",
                     data: salesData || [],
                     borderColor: "#06B6D4",
                     backgroundColor: "rgba(8,145,178,0.1)",
@@ -251,7 +252,7 @@ export default function Reporting() {
                 scales: {
                   y: { 
                     beginAtZero: true,
-                    title: { display: true, text: "Sales (₦)" },
+                    title: { display: true, text: "Sales ()" },
                   },
                   y1: { 
                     position: "right", 
@@ -338,10 +339,10 @@ function PieChart({ title, data }) {
 
   // Format labels for display
   const displayLabels = labels.map(l => {
-    if (l === "online" || l === "web") return "🌐 Web Payment";
-    if (l === "cash") return "💵 Cash";
-    if (l === "card") return "💳 Card";
-    if (l === "transfer") return "💸 Transfer";
+    if (l === "online" || l === "web") return " Web Payment";
+    if (l === "cash") return " Cash";
+    if (l === "card") return " Card";
+    if (l === "transfer") return " Transfer";
     return l.charAt(0).toUpperCase() + l.slice(1);
   });
 
@@ -395,7 +396,7 @@ function BarChart({ title, data }) {
 
   // Format labels for display (capitalize first letter, add emoji for online)
   const displayLabels = labels.map(l => {
-    if (l === "online") return "🌐 Online";
+    if (l === "online") return " Online";
     return l.charAt(0).toUpperCase() + l.slice(1);
   });
 
@@ -410,7 +411,7 @@ function BarChart({ title, data }) {
           data={{ 
             labels: displayLabels.length > 0 ? displayLabels : ["No Data"], 
             datasets: [{ 
-              label: "Sales (₦)",
+              label: "Sales ()",
               data: sortedValues.length > 0 ? sortedValues : [0],
               backgroundColor: "#06B6D4",
               borderRadius: 8,

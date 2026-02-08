@@ -1,6 +1,7 @@
 "use client";
 
 import Layout from "@/components/Layout";
+import { formatCurrency, formatNumber } from "@/lib/format";
 import { Loader } from "@/components/ui";
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -54,7 +55,7 @@ export default function EndOfDayReporting() {
       const res = await fetch(`/api/reporting/end-of-day-summary?period=${period}${locationParam}`);
       const data = await res.json();
 
-      console.log("📊 EOD Report Data:", data); // Debug log
+      console.log(" EOD Report Data:", data); // Debug log
 
       if (data.success) {
         setSummary(data.summary);
@@ -75,10 +76,10 @@ export default function EndOfDayReporting() {
           setLocationMap(map);
         }
       } else {
-        console.error("❌ API Error:", data.message);
+        console.error(" API Error:", data.message);
       }
     } catch (err) {
-      console.error("❌ Error fetching EOD data:", err);
+      console.error(" Error fetching EOD data:", err);
     } finally {
       setLoading(false);
     }
@@ -110,7 +111,7 @@ export default function EndOfDayReporting() {
     labels: dailyData.map((d) => d.date),
     datasets: [
       {
-        label: "Daily Sales (₦)",
+        label: "Daily Sales ()",
         data: dailyData.map((d) => d.sales),
         borderColor: "#06B6D4",
         backgroundColor: "rgba(6, 182, 212, 0.1)",
@@ -133,7 +134,7 @@ export default function EndOfDayReporting() {
     labels: summary.byLocation.map((l) => l.location),
     datasets: [
       {
-        label: "Sales by Location (₦)",
+        label: "Sales by Location ()",
         data: summary.byLocation.map((l) => l.totalSales),
         backgroundColor: "#06B6D4",
       },
@@ -177,7 +178,7 @@ export default function EndOfDayReporting() {
               href="/reporting"
               className="btn-action-secondary"
             >
-              ← Back to Reporting
+               Back to Reporting
             </Link>
           </div>
 
@@ -223,26 +224,26 @@ export default function EndOfDayReporting() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
             <SummaryCard
               title="Total Reports"
-              value={summary.totals.reports}
-              icon="📋"
+              value={formatNumber(summary.totals.reports)}
+              icon=""
             />
             <SummaryCard
               title="Total Sales"
-              value={`₦${summary.totals.sales.toLocaleString("en-NG", {
+              value={`${summary.totals.sales.toLocaleString("en-NG", {
                 maximumFractionDigits: 0,
               })}`}
-              icon="💰"
+              icon=""
             />
             <SummaryCard
               title="Total Transactions"
-              value={summary.totals.transactions}
-              icon="🔄"
+              value={formatNumber(summary.totals.transactions)}
+              icon=""
             />
             <SummaryCard
               title="Reconciled Tills"
-              value={summary.status.reconciled}
+              value={formatNumber(summary.status.reconciled)}
               subtext={`${summary.status.varianceNoted} with variance`}
-              icon="✅"
+              icon=""
             />
           </div>
 
@@ -257,7 +258,7 @@ export default function EndOfDayReporting() {
                   responsive: true,
                   interaction: { mode: "index", intersect: false },
                   scales: {
-                    y: { title: { display: true, text: "Sales (₦)" } },
+                    y: { title: { display: true, text: "Sales ()" } },
                     y1: {
                       type: "linear",
                       position: "right",
@@ -311,12 +312,12 @@ export default function EndOfDayReporting() {
                       <div>
                         <p className="font-medium text-gray-900">{staff.staff}</p>
                         <p className="text-sm text-gray-600">
-                          {staff.reports} reports • {staff.transactions} transactions
+                          {staff.reports} reports  {staff.transactions} transactions
                         </p>
                       </div>
                       <div className="text-right">
                         <p className="font-semibold text-sky-600">
-                          ₦{staff.totalSales.toLocaleString("en-NG", {
+                          {staff.totalSales.toLocaleString("en-NG", {
                             maximumFractionDigits: 0,
                           })}
                         </p>
@@ -325,7 +326,7 @@ export default function EndOfDayReporting() {
                             staff.variance >= 0 ? "text-emerald-600" : "text-red-600"
                           }`}
                         >
-                          Variance: ₦{staff.variance.toLocaleString()}
+                          Variance: {staff.variance.toLocaleString()}
                         </p>
                       </div>
                     </div>
@@ -363,7 +364,7 @@ export default function EndOfDayReporting() {
                       >
                         <td className="text-center w-8">
                           <span className={`inline-block transition-transform ${expandedReportId === (report._id || idx) ? "rotate-90" : ""}`}>
-                            ▶
+                            
                           </span>
                         </td>
                         <td>
@@ -374,19 +375,19 @@ export default function EndOfDayReporting() {
                         </td>
                         <td>{report.staffName || "N/A"}</td>
                         <td className="text-right font-medium">
-                          ₦{(report.totalSales || 0).toLocaleString("en-NG", {
+                          {(report.totalSales || 0).toLocaleString("en-NG", {
                             maximumFractionDigits: 0,
                           })}
                         </td>
                         <td className="text-right">
-                          {report.transactionCount || 0}
+                          {formatNumber(report.transactionCount || 0)}
                         </td>
                         <td
                           className={`text-right font-medium ${
                             (report.variance || 0) >= 0 ? "text-emerald-600" : "text-red-600"
                           }`}
                         >
-                          ₦{(report.variance || 0).toLocaleString()}
+                          {(report.variance || 0).toLocaleString()}
                         </td>
                         <td className="text-center">
                           <span
@@ -396,7 +397,7 @@ export default function EndOfDayReporting() {
                                 : "bg-yellow-100 text-yellow-800"
                             }`}
                           >
-                            {report.status === "RECONCILED" ? "✅ Reconciled" : "⚠️ Variance"}
+                            {report.status === "RECONCILED" ? " Reconciled" : " Variance"}
                           </span>
                         </td>
                       </tr>
@@ -408,8 +409,8 @@ export default function EndOfDayReporting() {
                               <div>
                                 <h4 className="font-semibold text-gray-800 mb-2">Opening Info</h4>
                                 <div className="space-y-1 text-sm">
-                                  <p><span className="text-gray-500">Opened At:</span> {report.openedAt ? new Date(report.openedAt).toLocaleString() : "N/A"}</p>
-                                  <p><span className="text-gray-500">Opening Balance:</span> ₦{(report.openingBalance || 0).toLocaleString()}</p>
+                                  <p><span className="text-gray-500">Opened At:</span> {report.openedAt ? new Date(report.openedAt).toLocaleString("en-NG") : "N/A"}</p>
+                                  <p><span className="text-gray-500">Opening Balance:</span> {(report.openingBalance || 0).toLocaleString()}</p>
                                 </div>
                               </div>
                               
@@ -417,9 +418,9 @@ export default function EndOfDayReporting() {
                               <div>
                                 <h4 className="font-semibold text-gray-800 mb-2">Closing Info</h4>
                                 <div className="space-y-1 text-sm">
-                                  <p><span className="text-gray-500">Closed At:</span> {report.closedAt ? new Date(report.closedAt).toLocaleString() : "N/A"}</p>
-                                  <p><span className="text-gray-500">Physical Count:</span> ₦{(report.physicalCount || 0).toLocaleString()}</p>
-                                  <p><span className="text-gray-500">Expected Balance:</span> ₦{(report.expectedClosingBalance || 0).toLocaleString()}</p>
+                                  <p><span className="text-gray-500">Closed At:</span> {report.closedAt ? new Date(report.closedAt).toLocaleString("en-NG") : "N/A"}</p>
+                                  <p><span className="text-gray-500">Physical Count:</span> {(report.physicalCount || 0).toLocaleString()}</p>
+                                  <p><span className="text-gray-500">Expected Balance:</span> {(report.expectedClosingBalance || 0).toLocaleString()}</p>
                                 </div>
                               </div>
                               
@@ -430,7 +431,7 @@ export default function EndOfDayReporting() {
                                   {report.tenderBreakdown && Object.entries(report.tenderBreakdown).length > 0 ? (
                                     Object.entries(report.tenderBreakdown).map(([tender, amount]) => (
                                       <p key={tender}>
-                                        <span className="text-gray-500">{tender}:</span> ₦{(amount || 0).toLocaleString()}
+                                        <span className="text-gray-500">{tender}:</span> {(amount || 0).toLocaleString()}
                                       </p>
                                     ))
                                   ) : (

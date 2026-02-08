@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Layout from "@/components/Layout";
+import { formatCurrency } from "@/lib/format";
 import { Loader } from "@/components/ui";
 
 export default function StockMovementAdd() {
@@ -158,7 +159,7 @@ export default function StockMovementAdd() {
       })),
     };
 
-    console.log("📤 Sending payload:", payload);
+    console.log(" Sending payload:", payload);
 
     const res = await fetch("/api/stock-movement/stock-movement", {
       method: "POST",
@@ -166,16 +167,16 @@ export default function StockMovementAdd() {
       body: JSON.stringify(payload),
     });
 
-    console.log("📥 Response status:", res.status);
+    console.log(" Response status:", res.status);
     const result = await res.json();
-    console.log("📥 Response body:", result);
+    console.log(" Response body:", result);
     
     if (!res.ok) {
-      console.error("❌ API Error:", result);
+      console.error(" API Error:", result);
       throw new Error(result?.message || result?.error || `Server error: ${res.status}`);
     }
 
-    console.log("✅ Stock movement saved successfully");
+    console.log(" Stock movement saved successfully");
     alert("Stock movement added successfully!");
     
     // Reset form
@@ -191,11 +192,11 @@ export default function StockMovementAdd() {
     
     // Redirect after a short delay to show success message
     setTimeout(() => {
-      console.log("🔄 Redirecting to /stock/movement");
+      console.log(" Redirecting to /stock/movement");
       router.push("/stock/movement");
     }, 1500);
   } catch (err) {
-    console.error("❌ Stock movement error:", err.message);
+    console.error(" Stock movement error:", err.message);
     alert("Error saving stock movement: " + err.message);
   } finally {
     setIsSubmitting(false);
@@ -230,7 +231,7 @@ export default function StockMovementAdd() {
                 label="From Location"
                 value={fromLocation}
                 onChange={setFromLocation}
-                options={[{ _id: "vendor", name: "🏭 Vendor" }, ...locations]}
+                options={[{ _id: "vendor", name: " Vendor" }, ...locations]}
                 required
               />
 
@@ -297,7 +298,7 @@ export default function StockMovementAdd() {
                       >
                         <div className="flex justify-between items-center">
                           <span className="font-medium text-gray-900">{product.name}</span>
-                          <span className="text-sm text-gray-600">₦{(product.salePriceIncTax || 0).toLocaleString()}</span>
+                          <span className="text-sm text-gray-600">{(product.salePriceIncTax || 0).toLocaleString()}</span>
                         </div>
                         <div className="text-xs text-gray-500 mt-1">Stock: {product.quantity || 0} units</div>
                       </li>
@@ -317,7 +318,7 @@ export default function StockMovementAdd() {
                         Available Stock: <span className="font-semibold text-gray-900">{selectedProduct.quantity || 0} units</span>
                       </p>
                       <p className="text-sm text-gray-600">
-                        Cost Price: <span className="font-semibold text-cyan-700">₦{(selectedProduct.costPrice || 0).toLocaleString()}</span>
+                        Cost Price: <span className="font-semibold text-cyan-700">{(selectedProduct.costPrice || 0).toLocaleString()}</span>
                       </p>
                     </div>
                     <button
@@ -341,7 +342,7 @@ export default function StockMovementAdd() {
                       onClick={() => setQuantityInput((q) => Math.max(q - 1, 1))}
                       className="bg-gray-100 hover:bg-gray-200 text-lg w-10 h-10 flex items-center justify-center transition"
                     >
-                      −
+                      
                     </button>
                     <input
                       type="number"
@@ -413,7 +414,7 @@ export default function StockMovementAdd() {
                   >
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-gray-900 text-sm md:text-base">{product.name}</p>
-                      <p className="text-xs md:text-sm text-gray-600">Cost: ₦{(product.costPrice || 0).toLocaleString()}</p>
+                      <p className="text-xs md:text-sm text-gray-600">Cost: {(product.costPrice || 0).toLocaleString()}</p>
                       {product.expiryDate && (
                         <p className="text-xs md:text-sm text-amber-600 font-medium">Expires: {new Date(product.expiryDate).toLocaleDateString()}</p>
                       )}
@@ -424,7 +425,7 @@ export default function StockMovementAdd() {
                           onClick={() => updateProductQuantity(product._id, product.quantity - 1)}
                           className="bg-gray-50 hover:bg-gray-100 w-8 h-8 flex items-center justify-center transition"
                         >
-                          −
+                          
                         </button>
                         <span className="w-12 text-center font-semibold text-gray-900">{product.quantity}</span>
                         <button
@@ -435,7 +436,7 @@ export default function StockMovementAdd() {
                         </button>
                       </div>
                       <span className="font-semibold text-gray-900 min-w-fit">
-                        ₦{(product.costPrice * product.quantity).toLocaleString()}
+                        {(product.costPrice * product.quantity).toLocaleString()}
                       </span>
                       <button
                         onClick={() => removeProduct(product._id)}
@@ -459,7 +460,7 @@ export default function StockMovementAdd() {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
                     <p className="text-xs md:text-sm text-gray-600 mb-1">Total Cost Price</p>
-                    <p className="text-2xl md:text-3xl font-bold text-gray-900">₦{totalCost.toLocaleString()}</p>
+                    <p className="text-2xl md:text-3xl font-bold text-gray-900">{totalCost.toLocaleString()}</p>
                   </div>
                   <div className="text-left sm:text-right">
                     <p className="text-xs md:text-sm text-gray-600 mb-1">Total Items</p>

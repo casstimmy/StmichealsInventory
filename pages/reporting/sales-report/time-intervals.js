@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { formatCurrency } from "@/lib/format";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
@@ -246,9 +247,9 @@ export default function TimeIntervals() {
         {/* BREADCRUMB */}
         <div className="mb-6 text-sm">
           <Link href="/" className="text-cyan-600 hover:text-cyan-700">Home</Link>
-          <span className="mx-2 text-gray-400">›</span>
+          <span className="mx-2 text-gray-400"></span>
           <Link href="/reporting" className="text-cyan-600 hover:text-cyan-700">Reporting</Link>
-          <span className="mx-2 text-gray-400">›</span>
+          <span className="mx-2 text-gray-400"></span>
           <span className="text-gray-600">Time Intervals</span>
         </div>
 
@@ -407,15 +408,15 @@ export default function TimeIntervals() {
                     <td className="px-4 py-3 font-medium text-gray-800">{row.date}</td>
                     <td className="px-4 py-3 text-right text-gray-700">{row.transactions}</td>
                     <td className="px-4 py-3 text-right text-gray-700">{row.refunds}</td>
-                    <td className="px-4 py-3 text-right text-gray-500">₦{row.refundValue.toLocaleString('en-NG')}</td>
+                    <td className="px-4 py-3 text-right text-gray-500">{row.refundValue.toLocaleString('en-NG')}</td>
                     <td className="px-4 py-3 text-right text-gray-700">{row.noSale}</td>
                     <td className="px-4 py-3 text-right text-gray-700">{row.voided}</td>
-                    <td className="px-4 py-3 text-right text-gray-500">₦{row.voidedValue.toLocaleString('en-NG')}</td>
+                    <td className="px-4 py-3 text-right text-gray-500">{row.voidedValue.toLocaleString('en-NG')}</td>
                     <td className="px-4 py-3 text-right text-gray-700">{row.itemQty}</td>
-                    <td className="px-4 py-3 text-right text-gray-700">₦{row.salesIncTax.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
-                    <td className="px-4 py-3 text-right text-gray-500">₦{row.discounts.toLocaleString('en-NG')}</td>
-                    <td className="px-4 py-3 text-right text-gray-700">₦{row.avgTransaction.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
-                    <td className="px-4 py-3 text-right text-gray-700">₦{row.netSales.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
+                    <td className="px-4 py-3 text-right text-gray-700">{row.salesIncTax.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
+                    <td className="px-4 py-3 text-right text-gray-500">{row.discounts.toLocaleString('en-NG')}</td>
+                    <td className="px-4 py-3 text-right text-gray-700">{row.avgTransaction.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
+                    <td className="px-4 py-3 text-right text-gray-700">{row.netSales.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
                   </tr>
                 ))}
                 {/* TOTAL ROW */}
@@ -423,15 +424,15 @@ export default function TimeIntervals() {
                   <td className="px-4 py-3 text-gray-800">TOTAL</td>
                   <td className="px-4 py-3 text-right text-gray-800">{totals.transactions}</td>
                   <td className="px-4 py-3 text-right text-gray-800">{totals.refunds}</td>
-                  <td className="px-4 py-3 text-right text-gray-800">₦{totals.refundValue.toLocaleString('en-NG')}</td>
+                  <td className="px-4 py-3 text-right text-gray-800">{totals.refundValue.toLocaleString('en-NG')}</td>
                   <td className="px-4 py-3 text-right text-gray-800">{totals.noSale}</td>
                   <td className="px-4 py-3 text-right text-gray-800">{totals.voided}</td>
-                  <td className="px-4 py-3 text-right text-gray-800">₦{totals.voidedValue.toLocaleString('en-NG')}</td>
+                  <td className="px-4 py-3 text-right text-gray-800">{totals.voidedValue.toLocaleString('en-NG')}</td>
                   <td className="px-4 py-3 text-right text-gray-800">{totals.itemQty}</td>
-                  <td className="px-4 py-3 text-right text-gray-800">₦{totals.salesIncTax.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
-                  <td className="px-4 py-3 text-right text-gray-800">₦{totals.discounts.toLocaleString('en-NG')}</td>
-                  <td className="px-4 py-3 text-right text-gray-800">₦{totals.avgTransaction.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
-                  <td className="px-4 py-3 text-right text-gray-800">₦{totals.netSales.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
+                  <td className="px-4 py-3 text-right text-gray-800">{totals.salesIncTax.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
+                  <td className="px-4 py-3 text-right text-gray-800">{totals.discounts.toLocaleString('en-NG')}</td>
+                  <td className="px-4 py-3 text-right text-gray-800">{totals.avgTransaction.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
+                  <td className="px-4 py-3 text-right text-gray-800">{totals.netSales.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
                 </tr>
               </tbody>
             </table>

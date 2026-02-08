@@ -2,6 +2,7 @@ import Layout from "@/components/Layout";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { saveAs } from "file-saver";
+import { formatCurrency, formatNumber } from "@/lib/format";
 
 export default function HeldTransactions() {
   const [transactions, setTransactions] = useState([]);
@@ -32,7 +33,7 @@ export default function HeldTransactions() {
       filtered.forEach(tx => {
         if (tx.location) locSet.add(tx.location);
         if (tx.staffName) staffSet.add(tx.staffName);
-        else if (tx.staff?.name) staffSet.add(tx.staff.name);
+        else if (tx.staff.name) staffSet.add(tx.staff.name);
       });
 
       setLocations(Array.from(locSet).sort());
@@ -45,7 +46,7 @@ export default function HeldTransactions() {
       
       // Apply staff filter
       if (staffFilter !== "All") {
-        filtered = filtered.filter(tx => (tx.staffName || tx.staff?.name) === staffFilter);
+        filtered = filtered.filter(tx => (tx.staffName || tx.staff.name) === staffFilter);
       }
       
       // Apply time range filter
@@ -77,11 +78,11 @@ export default function HeldTransactions() {
   }
 
   const toggleDetails = (id) => {
-    setExpandedTxId(expandedTxId === id ? null : id);
+    setExpandedTxId(expandedTxId === id  null : id);
   };
 
   const handleVoidTransaction = async (txId) => {
-    if (!confirm("Are you sure you want to void this held transaction?")) return;
+    if (!confirm("Are you sure you want to void this held transaction")) return;
     
     try {
       const res = await fetch(`/api/transactions/${txId}`, {
@@ -101,14 +102,16 @@ export default function HeldTransactions() {
   const exportCSV = () => {
     const headers = ["ID", "Staff", "Location", "Date", "Amount", "Items", "Status"];
     const rows = transactions.map(tx => {
-      const heldTime = tx.createdAt ? new Date(tx.createdAt).toLocaleString() : "N/A";
+      const heldTime = tx.createdAt
+        ? new Date(tx.createdAt).toLocaleString("en-NG")
+        : "N/A";
       return [
         tx._id,
-        tx.staffName || tx.staff?.name || "N/A",
+        tx.staffName || tx.staff.name || "N/A",
         tx.location || "Online",
         heldTime,
-        `₦${tx.total?.toFixed(2)}`,
-        tx.items?.length || 0,
+        `${tx.total.toFixed(2)}`,
+        tx.items.length || 0,
         "Held"
       ].join(",");
     });
@@ -125,24 +128,24 @@ export default function HeldTransactions() {
         {/* BREADCRUMB */}
         <div className="mb-6 text-sm">
           <Link href="/" className="text-cyan-600 hover:text-cyan-700">Home</Link>
-          <span className="mx-2 text-gray-400">›</span>
+          <span className="mx-2 text-gray-400"></span>
           <Link href="/reporting/transaction-report" className="text-cyan-600 hover:text-cyan-700">Transaction Reports</Link>
-          <span className="mx-2 text-gray-400">›</span>
+          <span className="mx-2 text-gray-400"></span>
           <span className="text-gray-600">Held Transactions</span>
         </div>
 
         {/* HEADER */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">⏸ Held Transactions</h1>
+          <h1 className="text-4xl font-bold text-gray-800 mb-2"> Held Transactions</h1>
           <p className="text-gray-600">View and manage all transactions placed on hold</p>
         </div>
 
         {/* SUMMARY CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <SummaryCard title="Total Held" value={transactions.length} icon="📝" color="cyan" />
-          <SummaryCard title="Total Value" value={`₦${totalValue.toLocaleString('en-NG', {minimumFractionDigits: 2})}`} icon="💰" color="blue" />
-          <SummaryCard title="Locations" value={locations.length} icon="🏪" color="cyan" />
-          <SummaryCard title="Staff" value={staffList.length} icon="👥" color="cyan" />
+          <SummaryCard title="Total Held" value={formatNumber(transactions.length)} icon="" color="cyan" />
+          <SummaryCard title="Total Value" value={formatCurrency(totalValue)} icon="" color="blue" />
+          <SummaryCard title="Locations" value={formatNumber(locations.length)} icon="" color="cyan" />
+          <SummaryCard title="Staff" value={formatNumber(staffList.length)} icon="" color="cyan" />
         </div>
 
         {/* FILTERS */}
@@ -153,7 +156,7 @@ export default function HeldTransactions() {
               <select 
                 value={timeRange} 
                 onChange={(e) => setTimeRange(e.target.value)}
-                className="border-2 border-gray-300 px-4 py-2 rounded-lg focus:border-cyan-600 focus:outline-none text-sm font-medium"
+                className="form-select"
               >
                 <option value="all">All Time</option>
                 <option value="today">Today</option>
@@ -168,7 +171,7 @@ export default function HeldTransactions() {
               <select 
                 value={locationFilter} 
                 onChange={(e) => setLocationFilter(e.target.value)}
-                className="border-2 border-gray-300 px-4 py-2 rounded-lg focus:border-cyan-600 focus:outline-none text-sm font-medium"
+                className="form-select"
               >
                 <option value="All">All Locations</option>
                 {locations.map(loc => (
@@ -182,7 +185,7 @@ export default function HeldTransactions() {
               <select 
                 value={staffFilter} 
                 onChange={(e) => setStaffFilter(e.target.value)}
-                className="border-2 border-gray-300 px-4 py-2 rounded-lg focus:border-cyan-600 focus:outline-none text-sm font-medium"
+                className="form-select"
               >
                 <option value="All">All Staff</option>
                 {staffList.map(staff => (
@@ -193,20 +196,20 @@ export default function HeldTransactions() {
 
             <button 
               onClick={exportCSV}
-              className="bg-gradient-to-r from-cyan-600 to-cyan-700 text-white px-4 py-2 rounded-lg font-medium hover:shadow-lg transition ml-auto"
+              className="btn-action btn-action-primary ml-auto"
             >
-              📊 Export CSV
+              Export CSV
             </button>
           </div>
         </div>
 
         {/* TRANSACTIONS TABLE */}
         <div className="content-card overflow-hidden">
-          {loading ? (
+          {loading  (
             <div className="p-8 text-center text-gray-500">Loading...</div>
-          ) : transactions.length === 0 ? (
+          ) : transactions.length === 0  (
             <div className="p-8 text-center">
-              <p className="text-gray-500 text-lg">📭 No held transactions found</p>
+              <p className="text-gray-500 text-lg"> No held transactions found</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -224,27 +227,27 @@ export default function HeldTransactions() {
                 <tbody className="divide-y divide-gray-200">
                   {transactions.map((tx, idx) => (
                     <>
-                      <tr key={tx._id} className={`${idx % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-cyan-50 transition`}>
-                        <td className="px-4 py-3 font-medium text-gray-800">{tx.staffName || tx.staff?.name || "N/A"}</td>
+                      <tr key={tx._id} className={`${idx % 2 === 0  "bg-white" : "bg-gray-50"} hover:bg-cyan-50 transition`}>
+                        <td className="px-4 py-3 font-medium text-gray-800">{tx.staffName || tx.staff.name || "N/A"}</td>
                         <td className="px-4 py-3">
-                          <span className="bg-cyan-100 text-cyan-700 px-2 py-1 rounded text-xs font-medium">
+                          <span className="badge badge-secondary">
                             {tx.location || "Online"}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-gray-600 text-xs">{new Date(tx.createdAt).toLocaleString()}</td>
-                        <td className="px-4 py-3 text-right text-gray-600">{tx.items?.length || 0}</td>
-                        <td className="px-4 py-3 text-right font-bold text-cyan-600">₦{tx.total?.toFixed(2)}</td>
+                        <td className="px-4 py-3 text-gray-600 text-xs">{new Date(tx.createdAt).toLocaleString("en-NG")}</td>
+                        <td className="px-4 py-3 text-right text-gray-600">{formatNumber(tx.items?.length || 0)}</td>
+                        <td className="px-4 py-3 text-right font-bold text-cyan-600">{formatCurrency(tx.total || 0)}</td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex gap-2 justify-center">
                             <button 
                               onClick={() => toggleDetails(tx._id)}
-                              className="bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition"
+                              className="btn-action btn-action-secondary btn-sm"
                             >
-                              {expandedTxId === tx._id ? "Hide" : "View"}
+                              {expandedTxId === tx._id  "Hide" : "View"}
                             </button>
                             <button 
                               onClick={() => handleVoidTransaction(tx._id)}
-                              className="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition"
+                              className="btn-action btn-action-danger btn-sm"
                             >
                               Void
                             </button>
@@ -255,7 +258,7 @@ export default function HeldTransactions() {
                         <tr className="bg-gray-100">
                           <td colSpan={6} className="px-6 py-4">
                             <div className="bg-white rounded-lg p-4 border border-gray-200">
-                              <p className="text-sm font-semibold text-gray-700 mb-3">Items ({tx.items?.length || 0})</p>
+                              <p className="text-sm font-semibold text-gray-700 mb-3">Items ({tx.items.length || 0})</p>
                               <div className="overflow-x-auto">
                                 <table className="w-full text-xs">
                                   <thead className="bg-cyan-50 border-b">
@@ -267,12 +270,12 @@ export default function HeldTransactions() {
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {tx.items?.map((item, i) => (
-                                      <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                                    {tx.items.map((item, i) => (
+                                      <tr key={i} className={i % 2 === 0  "bg-white" : "bg-gray-50"}>
                                         <td className="px-3 py-2">{item.name}</td>
-                                        <td className="px-3 py-2 text-right">{item.qty}</td>
-                                        <td className="px-3 py-2 text-right">₦{item.salePriceIncTax?.toFixed(2)}</td>
-                                        <td className="px-3 py-2 text-right font-semibold">₦{(item.qty * item.salePriceIncTax)?.toFixed(2)}</td>
+                                        <td className="px-3 py-2 text-right">{formatNumber(item.qty || 0)}</td>
+                                        <td className="px-3 py-2 text-right">{formatCurrency(item.salePriceIncTax || 0)}</td>
+                                        <td className="px-3 py-2 text-right font-semibold">{formatCurrency((item.qty || 0) * (item.salePriceIncTax || 0))}</td>
                                       </tr>
                                     ))}
                                   </tbody>
@@ -312,4 +315,5 @@ function SummaryCard({ title, value, icon, color }) {
     </div>
   );
 }
+
 

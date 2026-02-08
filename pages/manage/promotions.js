@@ -6,6 +6,7 @@ import Layout from "@/components/Layout";
 import axios from "axios";
 import Link from "next/link";
 import useSWR, { mutate } from "swr";
+import { formatCurrency } from "@/lib/format";
 
 const entriesPerPageDefault = 20;
 
@@ -371,7 +372,7 @@ export default function Promotions() {
                           className="border border-gray-300 rounded px-2 py-1 w-full"
                         />
                       ) : (
-                        `₦${(promo.promoPrice || 0).toLocaleString()}`
+                        formatCurrency(promo.promoPrice || 0)
                       )}
                     </td>
                     <td className="px-6 py-4 text-center">
@@ -389,7 +390,7 @@ export default function Promotions() {
                           className="w-4 h-4"
                         />
                       ) : promo.mixAndMatch ? (
-                        <span className="text-green-600 font-bold">✓</span>
+                        <span className="text-green-600 font-bold"></span>
                       ) : (
                         <span className="text-gray-400">-</span>
                       )}
@@ -409,7 +410,7 @@ export default function Promotions() {
                           className="w-4 h-4"
                         />
                       ) : promo.notUsedInConjunction ? (
-                        <span className="text-green-600 font-bold">✓</span>
+                        <span className="text-green-600 font-bold"></span>
                       ) : (
                         <span className="text-gray-400">-</span>
                       )}
@@ -494,7 +495,7 @@ export default function Promotions() {
                               onClick={() => handleDeleteClick(promo._id)}
                               className="border border-red-600 text-red-600 hover:bg-red-50 px-3 py-1 rounded text-xs font-semibold transition-colors"
                             >
-                              ✕
+                              
                             </button>
                           </>
                         )}

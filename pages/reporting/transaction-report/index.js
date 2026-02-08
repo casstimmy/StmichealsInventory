@@ -7,7 +7,7 @@ export default function TransactionReportHub() {
       id: "held-transactions",
       title: "Held Transactions",
       description: "View all transactions placed on hold pending completion or cancellation.",
-      icon: "⏸",
+      icon: "",
       color: "from-amber-500 to-orange-500",
       href: "/reporting/transaction-report/held-transactions",
     },
@@ -15,7 +15,7 @@ export default function TransactionReportHub() {
       id: "completed-transactions",
       title: "Completed Transactions",
       description: "Review completed transactions with detailed filtering by location, status, and date.",
-      icon: "✓",
+      icon: "",
       color: "from-emerald-500 to-green-500",
       href: "/reporting/transaction-report/completed-transactions",
     },
@@ -27,9 +27,9 @@ export default function TransactionReportHub() {
         {/* Breadcrumb */}
         <div className="mb-6 text-sm text-gray-600">
           <Link href="/" className="text-cyan-600 hover:text-cyan-700">Home</Link>
-          <span className="mx-2">›</span>
+          <span className="mx-2"></span>
           <Link href="/reporting" className="text-cyan-600 hover:text-cyan-700">Reporting</Link>
-          <span className="mx-2">›</span>
+          <span className="mx-2"></span>
           <span className="text-gray-800 font-medium">Transaction Reports</span>
         </div>
 
@@ -59,7 +59,7 @@ export default function TransactionReportHub() {
                   {/* Action Button */}
                   <div className="flex items-center justify-between">
                     <span className="text-cyan-600 font-semibold text-sm">View Report</span>
-                    <span className="text-lg">→</span>
+                    <span className="text-lg"></span>
                   </div>
                 </div>
               </div>
@@ -74,19 +74,19 @@ export default function TransactionReportHub() {
             <StatCard
               label="Held Transactions"
               value="Monitor"
-              icon="📋"
+              icon=""
               description="View transactions awaiting completion"
             />
             <StatCard
               label="Completed Sales"
               value="Analyze"
-              icon="✅"
+              icon=""
               description="Detailed breakdown of completed transactions"
             />
             <StatCard
               label="Transaction History"
               value="Track"
-              icon="📊"
+              icon=""
               description="Full audit trail with filtering options"
             />
           </div>

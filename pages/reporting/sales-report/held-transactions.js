@@ -2,6 +2,7 @@ import Layout from "@/components/Layout";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { saveAs } from "file-saver";
+import { formatCurrency, formatNumber } from "@/lib/format";
 
 export default function HeldTransactions() {
   const [transactions, setTransactions] = useState([]);
@@ -65,7 +66,7 @@ export default function HeldTransactions() {
         tx.staff?.name || tx.staff || "N/A",
         tx.location || "Online",
         heldTime,
-        `₦${tx.total?.toFixed(2)}`,
+        `${tx.total?.toFixed(2)}`,
         tx.items?.length || 0,
         "Pending"
       ].join(",");
@@ -89,16 +90,16 @@ export default function HeldTransactions() {
 
         {/* HEADER */}
         <div className="page-header">
-          <h1 className="page-title">⏸ Held Transactions</h1>
+          <h1 className="page-title"> Held Transactions</h1>
           <p className="page-subtitle">View and manage all transactions placed on hold</p>
         </div>
 
         {/* SUMMARY CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <SummaryCard title="Total Held" value={transactions.length} icon="📝" color="cyan" />
-          <SummaryCard title="Total Value" value={`₦${totalValue.toLocaleString('en-NG', {minimumFractionDigits: 2})}`} icon="💰" color="blue" />
-          <SummaryCard title="Locations" value={locations.length} icon="🏪" color="cyan" />
-          <SummaryCard title="Staff" value={staffList.length} icon="👥" color="cyan" />
+          <SummaryCard title="Total Held" value={transactions.length} icon="" color="cyan" />
+          <SummaryCard title="Total Value" value={`${totalValue.toLocaleString('en-NG', {minimumFractionDigits: 2})}`} icon="" color="blue" />
+          <SummaryCard title="Locations" value={locations.length} icon="" color="cyan" />
+          <SummaryCard title="Staff" value={staffList.length} icon="" color="cyan" />
         </div>
 
         {/* FILTERS */}
@@ -129,9 +130,9 @@ export default function HeldTransactions() {
 
             <button 
               onClick={exportCSV}
-              className="btn-action-primary ml-auto"
+              className="btn-action btn-action-primary ml-auto"
             >
-              📊 Export CSV
+               Export CSV
             </button>
           </div>
         </div>
@@ -152,12 +153,12 @@ export default function HeldTransactions() {
             </div>
           ) : transactions.length === 0 ? (
             <div className="p-8 text-center">
-              <p className="text-gray-500 text-lg">📭 No held transactions found</p>
+              <p className="text-gray-500 text-lg">No held transactions found</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gradient-to-r from-cyan-600 to-cyan-700 text-white sticky top-0">
+              <table className="data-table">
+                <thead className="sticky top-0">
                   <tr>
                     <th className="px-4 py-3 text-left font-semibold">Staff</th>
                     <th className="px-4 py-3 text-left font-semibold">Location</th>
@@ -173,17 +174,17 @@ export default function HeldTransactions() {
                       <tr key={tx._id} className={`${idx % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-cyan-50 transition`}>
                         <td className="px-4 py-3 font-medium text-gray-800">{tx.staff?.name || tx.staff || "N/A"}</td>
                         <td className="px-4 py-3">
-                          <span className="bg-cyan-100 text-cyan-700 px-2 py-1 rounded text-xs font-medium">
+                          <span className="badge badge-secondary">
                             {tx.location || "Online"}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-gray-600 text-xs">{new Date(tx.createdAt).toLocaleString()}</td>
-                        <td className="px-4 py-3 text-right text-gray-600">{tx.items?.length || 0}</td>
-                        <td className="px-4 py-3 text-right font-bold text-cyan-600">₦{tx.total?.toFixed(2)}</td>
+                        <td className="px-4 py-3 text-gray-600 text-xs">{new Date(tx.createdAt).toLocaleString("en-NG")}</td>
+                        <td className="px-4 py-3 text-right text-gray-600">{formatNumber(tx.items?.length || 0)}</td>
+                        <td className="px-4 py-3 text-right font-bold text-cyan-600">{formatCurrency(tx.total || 0)}</td>
                         <td className="px-4 py-3 text-center">
                           <button 
                             onClick={() => toggleDetails(tx._id)}
-                            className="bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition"
+                            className="btn-action btn-action-secondary btn-sm"
                           >
                             {expandedTxId === tx._id ? "Hide" : "View"}
                           </button>
@@ -208,9 +209,9 @@ export default function HeldTransactions() {
                                     {tx.items?.map((item, i) => (
                                       <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                                         <td className="px-3 py-2">{item.name}</td>
-                                        <td className="px-3 py-2 text-right">{item.qty}</td>
-                                        <td className="px-3 py-2 text-right">₦{item.salePriceIncTax?.toFixed(2)}</td>
-                                        <td className="px-3 py-2 text-right font-semibold">₦{(item.qty * item.salePriceIncTax)?.toFixed(2)}</td>
+                                        <td className="px-3 py-2 text-right">{formatNumber(item.qty || 0)}</td>
+                                        <td className="px-3 py-2 text-right">{formatCurrency(item.salePriceIncTax || 0)}</td>
+                                        <td className="px-3 py-2 text-right font-semibold">{formatCurrency((item.qty || 0) * (item.salePriceIncTax || 0))}</td>
                                       </tr>
                                     ))}
                                   </tbody>
@@ -250,4 +251,5 @@ function SummaryCard({ title, value, icon, color }) {
     </div>
   );
 }
+
 

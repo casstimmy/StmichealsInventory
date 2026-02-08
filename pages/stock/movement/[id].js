@@ -1,6 +1,7 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
+import { formatCurrency } from "@/lib/format";
 
 export default function MovementDetails() {
   const router = useRouter();
@@ -70,12 +71,7 @@ if (!movement)
     </Layout>
   );
 
-  const totalCost =
-    typeof movement.totalCostPrice === "number"
-      ? movement.totalCostPrice.toLocaleString(undefined, {
-          minimumFractionDigits: 2,
-        })
-      : "0.00";
+  const totalCost = formatCurrency(movement.totalCostPrice || 0);
 
   const products = Array.isArray(movement.products) ? movement.products : [];
 
@@ -118,7 +114,7 @@ if (!movement)
               </div>
               <div>
                 <strong>Date Sent:</strong>{" "}
-                {new Date(movement.dateSent).toLocaleString()}
+                {new Date(movement.dateSent).toLocaleString("en-NG")}
               </div>
               <div>
                 <strong>Status:</strong> {movement.status}
@@ -129,11 +125,11 @@ if (!movement)
               <div>
                 <strong>Date Received:</strong>{" "}
                 {movement.dateReceived
-                  ? new Date(movement.dateReceived).toLocaleString()
+                  ? new Date(movement.dateReceived).toLocaleString("en-NG")
                   : "---"}
               </div>
               <div>
-                <strong>Note:</strong> —
+                <strong>Note:</strong> 
               </div>
             </div>
           </div>
@@ -159,11 +155,11 @@ if (!movement)
                   return (
                     <tr key={idx}>
                       <td>{name}</td>
-                      <td>₦{cost.toLocaleString()}</td>
+                      <td>{cost.toLocaleString()}</td>
                       <td>{qty}</td>
                       <td>{qty}</td>
                       <td className="font-medium">
-                        ₦{subtotal.toLocaleString()}
+                        {subtotal.toLocaleString()}
                       </td>
                     </tr>
                   );
@@ -172,7 +168,7 @@ if (!movement)
                   <td colSpan={4}>
                     Total:
                   </td>
-                  <td>₦{totalCost}</td>
+                  <td>{totalCost}</td>
                 </tr>
               </tbody>
             </table>

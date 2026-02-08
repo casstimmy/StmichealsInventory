@@ -78,7 +78,7 @@ export default function HeldTransactions() {
   }
 
   const toggleDetails = (id) => {
-    setExpandedTxId(expandedTxId === id  null : id);
+    setExpandedTxId(expandedTxId === id ? null : id);
   };
 
   const handleVoidTransaction = async (txId) => {

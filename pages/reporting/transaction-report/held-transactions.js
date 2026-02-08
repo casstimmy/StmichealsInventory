@@ -227,8 +227,13 @@ export default function HeldTransactions() {
                 <tbody className="divide-y divide-gray-200">
                   {transactions.map((tx, idx) => (
                     <>
-                      <tr key={tx._id} className={`${idx % 2 === 0  "bg-white" : "bg-gray-50"} hover:bg-cyan-50 transition`}>
-                        <td className="px-4 py-3 font-medium text-gray-800">{tx.staffName || tx.staff.name || "N/A"}</td>
+                      <tr
+                        key={tx._id}
+                        className={`${idx % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-cyan-50 transition`}
+                      >
+                        <td className="px-4 py-3 font-medium text-gray-800">
+                          {tx.staffName || tx.staff?.name || "N/A"}
+                        </td>
                         <td className="px-4 py-3">
                           <span className="badge badge-secondary">
                             {tx.location || "Online"}

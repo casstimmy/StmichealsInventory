@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { saveAs } from "file-saver";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { isInDateRange } from "@/lib/dateFilter";
+import useProgress from "@/lib/useProgress";
 
 export default function CompletedTransactions() {
   const [transactions, setTransactions] = useState([]);
@@ -20,6 +21,7 @@ export default function CompletedTransactions() {
   const [showBarcode, setShowBarcode] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [loading, setLoading] = useState(true);
+  const { progress, start, onFetch, onProcess, complete } = useProgress();
 
   // Fetch once, filter client-side
   useEffect(() => {
@@ -34,9 +36,12 @@ export default function CompletedTransactions() {
 async function fetchTransactions() {
   try {
     setLoading(true);
+    start();
     const res = await fetch("/api/transactions/transactions");
     if (!res.ok) throw new Error("Failed to fetch transactions");
+    onFetch();
     const data = await res.json();
+    onProcess();
     const all = data.transactions || [];
 
     // Extract unique locations
@@ -53,8 +58,10 @@ async function fetchTransactions() {
       .map((name) => ({ id: name, name }));
     setLocations(uniqueLocations);
     setAllTransactions(all);
+    complete();
   } catch (err) {
     console.error(err);
+    complete();
   } finally {
     setLoading(false);
   }
@@ -301,8 +308,8 @@ function applyFilters() {
           <p className="page-subtitle">View and manage transaction records with advanced filtering</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
-          {/* Calendar Filter */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* Calendar & Date Range Card */}
           <div className="content-card h-fit">
             <div className="mb-4">
               <div className="flex items-center justify-between mb-4">
@@ -360,40 +367,40 @@ function applyFilters() {
 
             <button
               onClick={() => setSelectedDate(null)}
-              className="w-full text-xs font-medium text-cyan-600 hover:text-cyan-700 py-2 px-3 rounded-lg hover:bg-gray-50 transition-colors"
+              className="w-full text-xs font-medium text-cyan-600 hover:text-cyan-700 py-2 px-3 rounded-lg hover:bg-gray-50 transition-colors mb-4"
             >
               Clear Date Filter
             </button>
-          </div>
 
-          {/* Date Range Filter */}
-          <div className="content-card">
-            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-              <span className="w-1 h-4 bg-sky-500 rounded"></span>
-              Date Range
-            </label>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Start Date</label>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => { setStartDate(e.target.value); setSelectedDate(null); }}
-                  className="form-input text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">End Date</label>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => { setEndDate(e.target.value); setSelectedDate(null); }}
-                  className="form-input text-sm"
-                />
+            {/* Date Range - same card */}
+            <div className="border-t border-gray-200 pt-4">
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
+                <span className="w-1 h-4 bg-sky-500 rounded"></span>
+                Date Range
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Start Date</label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => { setStartDate(e.target.value); setSelectedDate(null); }}
+                    className="form-input text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">End Date</label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => { setEndDate(e.target.value); setSelectedDate(null); }}
+                    className="form-input text-sm"
+                  />
+                </div>
               </div>
               <button
                 onClick={() => { setStartDate(""); setEndDate(""); }}
-                className="w-full text-xs font-medium text-cyan-600 hover:text-cyan-700 py-2 px-3 rounded-lg hover:bg-gray-50 transition-colors"
+                className="w-full text-xs font-medium text-cyan-600 hover:text-cyan-700 py-2 px-3 rounded-lg hover:bg-gray-50 transition-colors mt-2"
               >
                 Clear Date Range
               </button>
@@ -401,7 +408,7 @@ function applyFilters() {
           </div>
 
           {/* Filters Panel */}
-          <div className="lg:col-span-3 space-y-4">
+          <div className="space-y-4">
             {/* Location Filter */}
             <div className="content-card">
               <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
@@ -513,7 +520,7 @@ function applyFilters() {
         <div id="print-section" className="data-table-container">
           {loading ? (
             <div className="p-8">
-              <Loader size="md" text="Loading transactions..." />
+              <Loader size="md" text="Loading transactions..." progress={progress} />
             </div>
           ) : transactions.length > 0 ? (
             <div className="overflow-x-auto">

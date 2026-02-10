@@ -394,7 +394,6 @@ export default function Sidebar() {
 
                 {/* Transaction Report */}
                 {renderSubMenu([
-                  { href: "/reporting/transaction-report/held-transactions", label: "Held Transactions", indent: true },
                   { href: "/reporting/transaction-report/completed-transactions", label: "Completed Transactions", indent: true },
                 ])}
               </ul>

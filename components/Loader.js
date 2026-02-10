@@ -1,6 +1,7 @@
 /**
  * Unified Loader Component - Consistent across all pages
  * Uses store logo from store data, cached permanently in localStorage
+ * Supports real progress tracking via useProgress hook
  */
 
 import { useState, useEffect } from "react";
@@ -29,6 +30,15 @@ export default function Loader({
 
   const sizeClass = sizeClasses[size];
 
+  const getPhaseLabel = (pct) => {
+    if (pct <= 0) return "Initializing...";
+    if (pct < 15) return "Connecting...";
+    if (pct < 50) return "Fetching data...";
+    if (pct < 85) return "Processing...";
+    if (pct < 100) return "Almost done...";
+    return "Complete!";
+  };
+
   const loaderContent = (
     <div className="flex flex-col items-center justify-center gap-4">
       <div className={`${sizeClass}`} style={{ perspective: '1000px' }}>
@@ -40,17 +50,22 @@ export default function Loader({
           />
         </div>
       </div>
-      {text && <p className="text-gray-600 font-medium text-center">{text}</p>}
+      {text && progress === null && <p className="text-gray-600 font-medium text-center">{text}</p>}
       {progress !== null && (
         <div className="w-48 sm:w-64">
-          <div className="flex justify-between text-xs text-gray-500 mb-1">
-            <span>Loading...</span>
-            <span>{Math.round(progress)}%</span>
+          <div className="flex justify-between text-xs mb-1">
+            <span className="text-gray-500 font-medium">{getPhaseLabel(progress)}</span>
+            <span className="text-cyan-600 font-bold tabular-nums">{Math.round(progress)}%</span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
             <div
-              className="bg-cyan-500 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+              className="h-2.5 rounded-full transition-all duration-300 ease-out"
+              style={{
+                width: `${Math.min(100, Math.max(0, progress))}%`,
+                background: progress >= 100
+                  ? "linear-gradient(90deg, #10b981, #34d399)"
+                  : "linear-gradient(90deg, #06b6d4, #0ea5e9)",
+              }}
             />
           </div>
         </div>

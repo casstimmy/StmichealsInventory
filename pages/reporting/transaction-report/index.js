@@ -4,14 +4,6 @@ import Link from "next/link";
 export default function TransactionReportHub() {
   const reports = [
     {
-      id: "held-transactions",
-      title: "Held Transactions",
-      description: "View all transactions placed on hold pending completion or cancellation.",
-      icon: "",
-      color: "from-amber-500 to-orange-500",
-      href: "/reporting/transaction-report/held-transactions",
-    },
-    {
       id: "completed-transactions",
       title: "Completed Transactions",
       description: "Review completed transactions with detailed filtering by location, status, and date.",
@@ -70,13 +62,7 @@ export default function TransactionReportHub() {
         {/* Quick Stats Section */}
         <div className="mt-16 bg-white rounded-lg shadow-lg border border-gray-200 p-8">
           <h2 className="text-2xl font-bold text-gray-800 mb-6">Quick Stats</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <StatCard
-              label="Held Transactions"
-              value="Monitor"
-              icon=""
-              description="View transactions awaiting completion"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <StatCard
               label="Completed Sales"
               value="Analyze"

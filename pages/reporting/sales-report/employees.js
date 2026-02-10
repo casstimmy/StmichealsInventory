@@ -2,6 +2,7 @@ import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { isInTimeRange } from "@/lib/dateFilter";
+import useProgress from "@/lib/useProgress";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
@@ -14,6 +15,7 @@ export default function EmployeesSales() {
   const [device, setDevice] = useState("All");
   const [staff, setStaff] = useState("All");
   const [loading, setLoading] = useState(true);
+  const { progress, start, onFetch, onProcess, complete } = useProgress();
 
   useEffect(() => { fetchAllFilters(); }, []);
   useEffect(() => { if (allLocations.length > 0) fetchData(); }, [timeRange, location, device, staff, allLocations]);
@@ -38,10 +40,13 @@ export default function EmployeesSales() {
   async function fetchData() {
     try {
       setLoading(true);
+      start();
       const res = await fetch("/api/transactions/transactions");
+      onFetch();
       const txRes = await res.json();
-      if (!txRes.success || !txRes.transactions) { setData(null); setLoading(false); return; }
+      if (!txRes.success || !txRes.transactions) { setData(null); setLoading(false); complete(); return; }
 
+      onProcess();
       const filteredTx = txRes.transactions.filter((tx) => {
         return isInTimeRange(tx.createdAt, timeRange)
           && (location === "All" || (tx.location || "online") === location)
@@ -82,10 +87,10 @@ export default function EmployeesSales() {
         };
       }).sort((a, b) => b.salesIncTax - a.salesIncTax);
 
-      const end = new Date().toISOString().split("T")[0];
-      const start = cutoffDate.toISOString().split("T")[0];
-      setData({ employees: staffData, dateRange: `${start} - ${end}` });
-    } catch (err) { console.error("Error fetching data:", err); }
+      const rangeLabels = { today: "Today", yesterday: "Yesterday", last7: "Last 7 Days", last14: "Last 14 Days", last30: "Last 30 Days", last90: "Last 90 Days", thisMonth: "This Month", lastMonth: "Last Month", thisYear: "This Year", all: "All Time" };
+      setData({ employees: staffData, dateRange: rangeLabels[timeRange] || timeRange });
+      complete();
+    } catch (err) { console.error("Error fetching data:", err); complete(); }
     finally { setLoading(false); }
   }
 
@@ -172,7 +177,7 @@ export default function EmployeesSales() {
           {/* Table */}
           {loading ? (
             <div className="content-card">
-              <Loader size="md" text="Loading employee data..." />
+              <Loader size="md" text="Loading employee data..." progress={progress} />
             </div>
           ) : tableData.length === 0 ? (
             <div className="content-card text-center py-12">

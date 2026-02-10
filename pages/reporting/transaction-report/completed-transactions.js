@@ -1,5 +1,6 @@
 // Completed Transactions Report
 import Layout from "@/components/Layout";
+import Loader from "@/components/Loader";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { saveAs } from "file-saver";
@@ -7,6 +8,7 @@ import { formatCurrency, formatNumber } from "@/lib/format";
 
 export default function CompletedTransactions() {
   const [transactions, setTransactions] = useState([]);
+  const [allTransactions, setAllTransactions] = useState([]);
   const [expandedTxId, setExpandedTxId] = useState(null);
   const [locationFilter, setLocationFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("completed");
@@ -14,26 +16,31 @@ export default function CompletedTransactions() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [showBarcode, setShowBarcode] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const [loading, setLoading] = useState(true);
 
+  // Fetch once, filter client-side
   useEffect(() => {
     fetchTransactions();
-  }, [locationFilter, statusFilter, selectedDate]);
+  }, []);
+
+  // Apply filters when they change
+  useEffect(() => {
+    applyFilters();
+  }, [locationFilter, statusFilter, selectedDate, allTransactions]);
 
 async function fetchTransactions() {
   try {
+    setLoading(true);
     const res = await fetch("/api/transactions/transactions");
     if (!res.ok) throw new Error("Failed to fetch transactions");
     const data = await res.json();
-    let filtered = data.transactions || [];
+    const all = data.transactions || [];
 
-    // Extract unique locations (now as strings from API)
+    // Extract unique locations
     const locationSet = new Set();
-    filtered.forEach((tx) => {
-      if (tx.location) {
-        locationSet.add(tx.location);
-      }
+    all.forEach((tx) => {
+      if (tx.location) locationSet.add(tx.location);
     });
-    // Sort locations: "online" first, then others alphabetically
     const uniqueLocations = Array.from(locationSet)
       .sort((a, b) => {
         if (a === "online") return -1;
@@ -42,13 +49,23 @@ async function fetchTransactions() {
       })
       .map((name) => ({ id: name, name }));
     setLocations(uniqueLocations);
+    setAllTransactions(all);
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+}
+
+function applyFilters() {
+    let filtered = [...allTransactions];
 
     // Filter by status
     if (statusFilter) {
       filtered = filtered.filter((tx) => tx.status === statusFilter);
     }
 
-    // Filter by location (location is a string from API)
+    // Filter by location
     if (locationFilter) {
       filtered = filtered.filter((tx) => tx.location === locationFilter);
     }
@@ -71,9 +88,6 @@ async function fetchTransactions() {
     }
 
     setTransactions(filtered);
-  } catch (err) {
-    console.error(err);
-  }
 }
 
 
@@ -124,16 +138,13 @@ async function fetchTransactions() {
   const getTenderDisplay = (tx) => {
     const hasSplit = Array.isArray(tx.tenderPayments) && tx.tenderPayments.length > 1;
     if (hasSplit) {
-      const details = tx.tenderPayments
-        .map((payment) => {
-          const name = formatTenderLabel(payment?.tenderName || payment?.tenderType || "Tender");
-          return `${name}: ${formatCurrency(payment?.amount || 0)}`;
-        })
-        .join(" | ");
       return {
-        label: "Split",
-        title: details,
-        className: "badge-secondary",
+        isSplit: true,
+        payments: tx.tenderPayments.map((payment) => ({
+          label: formatTenderLabel(payment?.tenderName || payment?.tenderType || "Tender"),
+          amount: payment?.amount || 0,
+          className: getTenderBadgeClass(payment?.tenderName || payment?.tenderType),
+        })),
       };
     }
 
@@ -144,6 +155,7 @@ async function fetchTransactions() {
 
     const label = formatTenderLabel(tenderName || "Unknown");
     return {
+      isSplit: false,
       label,
       title: label,
       className: getTenderBadgeClass(tenderName),
@@ -395,7 +407,11 @@ async function fetchTransactions() {
 
         {/* Data Table */}
         <div id="print-section" className="data-table-container">
-          {transactions.length > 0 ? (
+          {loading ? (
+            <div className="p-8">
+              <Loader size="md" text="Loading transactions..." />
+            </div>
+          ) : transactions.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="data-table">
                 <thead className="sticky top-0">
@@ -432,6 +448,17 @@ async function fetchTransactions() {
                         <td className="px-4 py-3">
                           {(() => {
                             const tenderInfo = getTenderDisplay(tx);
+                            if (tenderInfo.isSplit) {
+                              return (
+                                <div className="flex flex-col gap-1">
+                                  {tenderInfo.payments.map((p, i) => (
+                                    <span key={i} className={`badge ${p.className} text-xs`}>
+                                      {p.label}: {formatCurrency(p.amount)}
+                                    </span>
+                                  ))}
+                                </div>
+                              );
+                            }
                             return (
                               <span className={`badge ${tenderInfo.className}`} title={tenderInfo.title}>
                                 {tenderInfo.label}

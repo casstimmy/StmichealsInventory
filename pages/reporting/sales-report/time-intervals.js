@@ -1,7 +1,9 @@
 import Layout from "@/components/Layout";
-import { formatCurrency } from "@/lib/format";
+import Loader from "@/components/Loader";
+import { formatCurrency, formatNumber } from "@/lib/format";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { saveAs } from "file-saver";
 
 export default function TimeIntervals() {
   const [data, setData] = useState(null);
@@ -11,433 +13,287 @@ export default function TimeIntervals() {
   const [location, setLocation] = useState("All");
   const [device, setDevice] = useState("All");
   const [staff, setStaff] = useState("All");
-  const [timeInterval, setTimeInterval] = useState("daily");
+  const [intervalType, setIntervalType] = useState("daily");
   const [loading, setLoading] = useState(true);
 
   const getTimeRangeDays = (rangeKey) => {
     const today = new Date();
     const ranges = {
-      today: 0,
-      yesterday: 1,
+      today: 0, yesterday: 1,
       thisWeek: Math.floor((today.getDay() + 6) % 7),
       thisMonth: today.getDate() - 1,
-      thisYear: Math.floor((today - new Date(today.getFullYear(), 0, 1)) / (1000 * 60 * 60 * 24)),
+      thisYear: Math.floor((today - new Date(today.getFullYear(), 0, 1)) / 86400000),
       lastWeek: Math.floor((today.getDay() + 6) % 7) + 7,
-      lastMonth: 30,
-      lastYear: 365,
-      last7: 7,
-      last14: 14,
-      last30: 30,
-      last60: 60,
-      last90: 90,
+      lastMonth: 30, lastYear: 365,
+      last7: 7, last14: 14, last30: 30, last60: 60, last90: 90,
     };
     return ranges[rangeKey] || 7;
   };
 
-  const getTimeIntervalLabel = () => {
-    const labels = {
-      daily: "DAY COMMENCING",
-      weekly: "WEEK COMMENCING",
-      monthly: "MONTH COMMENCING",
-      quarterly: "QUARTER COMMENCING",
-      yearly: "YEAR",
-      hourly: "HOUR",
-      halfHourly: "TIME",
-    };
-    return labels[timeInterval] || "DATE";
-  };
+  useEffect(() => { fetchFilters(); }, []);
+  useEffect(() => { if (allLocations.length >= 0) fetchData(); }, [timeRange, location, device, staff, intervalType]);
 
-  useEffect(() => {
-    fetchAllFilters();
-  }, []);
-
-  useEffect(() => {
-    if (allLocations.length > 0) {
-      fetchData();
-    }
-  }, [timeRange, location, device, staff, timeInterval, allLocations]);
-
-  async function fetchAllFilters() {
+  async function fetchFilters() {
     try {
-      const res = await fetch(`/api/transactions/transactions`);
+      const res = await fetch("/api/transactions/transactions");
       const txRes = await res.json();
-      
       if (txRes.success && txRes.transactions) {
-        // Extract all unique locations
-        const locationSet = new Set();
-        const staffSet = new Set();
+        const locSet = new Set(); const staffSet = new Set();
         txRes.transactions.forEach((tx) => {
-          if (tx.location && tx.location !== "online") {
-            locationSet.add(tx.location);
-          }
-          if (tx.staff?.name) {
-            staffSet.add(tx.staff.name);
-          }
+          if (tx.location && tx.location !== "online") locSet.add(tx.location);
+          if (tx.staff?.name) staffSet.add(tx.staff.name);
         });
-        locationSet.add("online");
-        
-        let locNames = Array.from(locationSet);
-        locNames = locNames.sort((a, b) => {
-          if (a === "online") return -1;
-          if (b === "online") return 1;
-          return a.localeCompare(b);
-        });
-        
-        let staffNames = Array.from(staffSet).sort();
-        
-        setAllLocations(locNames);
-        setAllStaff(staffNames);
+        locSet.add("online");
+        setAllLocations(Array.from(locSet).sort((a, b) => a === "online" ? -1 : b === "online" ? 1 : a.localeCompare(b)));
+        setAllStaff(Array.from(staffSet).sort());
       }
-    } catch (err) {
-      console.error("Error fetching filters:", err);
-    }
+    } catch (err) { console.error("Error fetching filters:", err); }
   }
 
   async function fetchData() {
     try {
       setLoading(true);
-      const res = await fetch(`/api/transactions/transactions`);
+      const res = await fetch("/api/transactions/transactions");
       const txRes = await res.json();
-      
-      if (!txRes.success || !txRes.transactions) {
-        setData(null);
-        setLoading(false);
-        return;
-      }
+      if (!txRes.success || !txRes.transactions) { setData(null); setLoading(false); return; }
 
-      // Calculate cutoff date based on timeRange
       const cutoffDate = new Date();
-      const days = getTimeRangeDays(timeRange);
-      cutoffDate.setDate(cutoffDate.getDate() - days);
+      cutoffDate.setDate(cutoffDate.getDate() - getTimeRangeDays(timeRange));
 
-      // Filter transactions by all criteria
-      let filteredTransactions = txRes.transactions.filter((tx) => {
+      const filteredTx = txRes.transactions.filter((tx) => {
         const txDate = new Date(tx.createdAt);
-        const isInDateRange = txDate >= cutoffDate;
-        
-        const txLocation = tx.location || "online";
-        const isMatchingLocation = location === "All" || txLocation === location;
-        
-        const txDevice = tx.device || "POS";
-        const isMatchingDevice = device === "All" || txDevice === device;
-        
-        const txStaff = tx.staff?.name || "Unknown";
-        const isMatchingStaff = staff === "All" || txStaff === staff;
-        
-        return isInDateRange && isMatchingLocation && isMatchingDevice && isMatchingStaff;
+        return txDate >= cutoffDate
+          && (location === "All" || (tx.location || "online") === location)
+          && (device === "All" || (tx.device || "POS") === device)
+          && (staff === "All" || (tx.staff?.name || "Unknown") === staff);
       });
 
-      // Group transactions by time interval
-      const dateMap = {};
-      
-      filteredTransactions.forEach((tx) => {
-        let groupKey;
-        const txDate = new Date(tx.createdAt);
-        
-        if (timeInterval === "daily") {
-          groupKey = txDate.toISOString().split("T")[0];
-        } else if (timeInterval === "weekly") {
-          // ISO week start (Monday)
-          const d = new Date(txDate);
-          const day = d.getDay();
-          const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-          const weekStart = new Date(d.setDate(diff));
-          groupKey = weekStart.toISOString().split("T")[0] + " (Week)";
-        } else if (timeInterval === "monthly") {
-          groupKey = txDate.toISOString().slice(0, 7);
-        } else if (timeInterval === "quarterly") {
-          const quarter = Math.floor(txDate.getMonth() / 3);
-          const year = txDate.getFullYear();
-          groupKey = `${year}-Q${quarter + 1}`;
-        } else if (timeInterval === "yearly") {
-          groupKey = txDate.getFullYear().toString();
-        } else if (timeInterval === "hourly") {
-          groupKey = txDate.toISOString().slice(0, 13) + ":00:00";
-        } else if (timeInterval === "halfHourly") {
-          const minutes = Math.floor(txDate.getMinutes() / 30) * 30;
-          const d = new Date(txDate);
-          d.setMinutes(minutes, 0, 0);
-          groupKey = d.toISOString().slice(0, 16);
+      const buckets = {};
+      filteredTx.forEach((tx) => {
+        const d = new Date(tx.createdAt);
+        let key;
+        switch (intervalType) {
+          case "yearly": key = `${d.getFullYear()}`; break;
+          case "monthly": key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; break;
+          case "weekly": {
+            const ws = new Date(d); ws.setDate(d.getDate() - d.getDay());
+            key = ws.toISOString().split("T")[0]; break;
+          }
+          case "hourly": key = `${d.toISOString().split("T")[0]} ${String(d.getHours()).padStart(2, "0")}:00`; break;
+          case "halfHourly": {
+            const half = d.getMinutes() < 30 ? "00" : "30";
+            key = `${d.toISOString().split("T")[0]} ${String(d.getHours()).padStart(2, "0")}:${half}`; break;
+          }
+          default: key = d.toISOString().split("T")[0]; break;
         }
-        
-        if (!dateMap[groupKey]) {
-          dateMap[groupKey] = {
-            completed: [],
-            refunded: [],
-            held: [],
+
+        if (!buckets[key]) {
+          buckets[key] = {
+            date: key, transactionQty: 0, refundQty: 0, refundValue: 0,
+            noSale: 0, voidedQty: 0, voidedValue: 0, itemQty: 0,
+            salesIncTax: 0, discounts: 0, netSales: 0,
           };
         }
-        
-        if (tx.status === "completed") dateMap[groupKey].completed.push(tx);
-        else if (tx.status === "refunded") dateMap[groupKey].refunded.push(tx);
-        else if (tx.status === "held") dateMap[groupKey].held.push(tx);
+        if (tx.status === "completed") {
+          buckets[key].transactionQty += 1;
+          buckets[key].itemQty += tx.items?.reduce((s, i) => s + (i.qty || 0), 0) || 0;
+          buckets[key].salesIncTax += tx.total || 0;
+          buckets[key].discounts += tx.discount || 0;
+        } else if (tx.status === "refunded") {
+          buckets[key].refundQty += 1;
+          buckets[key].refundValue += tx.total || 0;
+        }
       });
 
-      // Build table data
-      const aggregatedData = Object.entries(dateMap)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([date, dayData]) => {
-          const completed = dayData.completed;
-          const refunded = dayData.refunded;
+      const rows = Object.values(buckets)
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .map((r) => ({
+          ...r,
+          avgTransaction: r.transactionQty > 0 ? (r.salesIncTax - r.discounts) / r.transactionQty : 0,
+          netSales: r.salesIncTax - r.discounts,
+        }));
 
-          const transactions = completed.length;
-          const refunds = refunded.length;
-          const refundValue = refunded.reduce((sum, tx) => sum + (tx.total || 0), 0);
-          const itemQty = completed.reduce((sum, tx) => {
-            return sum + (tx.items?.reduce((isum, item) => isum + (item.qty || 0), 0) || 0);
-          }, 0);
-          const salesIncTax = completed.reduce((sum, tx) => sum + (tx.total || 0), 0);
-          const discounts = completed.reduce((sum, tx) => sum + (tx.discount || 0), 0);
-          const netSales = salesIncTax - discounts;
-          const avgTransaction = transactions > 0 ? netSales / transactions : 0;
-
-          return {
-            date,
-            transactions,
-            refunds,
-            refundValue,
-            noSale: 0,
-            voided: 0,
-            voidedValue: 0,
-            itemQty,
-            salesIncTax,
-            discounts,
-            avgTransaction,
-            netSales,
-          };
-        });
-
-      setData({
-        dates: aggregatedData.map((d) => d.date),
-        byDate: aggregatedData,
-      });
-    } catch (err) {
-      console.error("Error fetching data:", err);
-    } finally {
-      setLoading(false);
-    }
+      setData(rows);
+    } catch (err) { console.error("Error fetching data:", err); }
+    finally { setLoading(false); }
   }
 
-  const getDateRange = () => {
-    if (!data?.dates || data.dates.length === 0) return "";
-    const start = data.dates[0];
-    const end = data.dates[data.dates.length - 1];
-    return `${start} - ${end}`;
-  };
-
-  const tableData = data?.byDate || [];
-
+  const tableData = data || [];
   const totals = {
-    transactions: tableData.reduce((sum, row) => sum + row.transactions, 0),
-    refunds: tableData.reduce((sum, row) => sum + row.refunds, 0),
-    refundValue: tableData.reduce((sum, row) => sum + row.refundValue, 0),
-    noSale: tableData.reduce((sum, row) => sum + row.noSale, 0),
-    voided: tableData.reduce((sum, row) => sum + row.voided, 0),
-    voidedValue: tableData.reduce((sum, row) => sum + row.voidedValue, 0),
-    itemQty: tableData.reduce((sum, row) => sum + row.itemQty, 0),
-    salesIncTax: tableData.reduce((sum, row) => sum + row.salesIncTax, 0),
-    discounts: tableData.reduce((sum, row) => sum + row.discounts, 0),
-    avgTransaction: tableData.length > 0 ? tableData.reduce((sum, row) => sum + row.avgTransaction, 0) / tableData.length : 0,
-    netSales: tableData.reduce((sum, row) => sum + row.netSales, 0),
+    transactionQty: tableData.reduce((s, r) => s + r.transactionQty, 0),
+    refundQty: tableData.reduce((s, r) => s + r.refundQty, 0),
+    refundValue: tableData.reduce((s, r) => s + r.refundValue, 0),
+    noSale: tableData.reduce((s, r) => s + r.noSale, 0),
+    voidedQty: tableData.reduce((s, r) => s + r.voidedQty, 0),
+    voidedValue: tableData.reduce((s, r) => s + r.voidedValue, 0),
+    itemQty: tableData.reduce((s, r) => s + r.itemQty, 0),
+    salesIncTax: tableData.reduce((s, r) => s + r.salesIncTax, 0),
+    discounts: tableData.reduce((s, r) => s + r.discounts, 0),
+    avgTransaction: 0, netSales: 0,
   };
+  totals.netSales = totals.salesIncTax - totals.discounts;
+  totals.avgTransaction = totals.transactionQty > 0 ? totals.netSales / totals.transactionQty : 0;
+
+  function exportCSV() {
+    if (!tableData.length) return;
+    const headers = ["Date", "Txn Qty", "Refund Qty", "Refund Value", "No Sale", "Voided Qty", "Voided Value", "Item Qty", "Sales Inc Tax", "Discounts", "Avg Transaction", "Net Sales"];
+    const csvRows = [headers.join(",")];
+    tableData.forEach((r) => {
+      csvRows.push([
+        r.date, r.transactionQty, r.refundQty, r.refundValue.toFixed(2),
+        r.noSale, r.voidedQty, r.voidedValue.toFixed(2), r.itemQty,
+        r.salesIncTax.toFixed(2), r.discounts.toFixed(2), r.avgTransaction.toFixed(2), r.netSales.toFixed(2),
+      ].join(","));
+    });
+    const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
+    saveAs(blob, `time-intervals-${new Date().toISOString().split("T")[0]}.csv`);
+  }
 
   return (
-    <Layout title="Sales Breakdown">
-      <div className="min-h-screen bg-gray-50 p-8">
-        {/* BREADCRUMB */}
-        <div className="mb-6 text-sm">
-          <Link href="/" className="text-cyan-600 hover:text-cyan-700">Home</Link>
-          <span className="mx-2 text-gray-400"></span>
-          <Link href="/reporting" className="text-cyan-600 hover:text-cyan-700">Reporting</Link>
-          <span className="mx-2 text-gray-400"></span>
-          <span className="text-gray-600">Time Intervals</span>
-        </div>
-
-        {/* HEADER */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Sales Breakdown <span className="text-xs bg-cyan-100 text-cyan-700 px-2 py-1 rounded ml-2">HELP</span></h1>
-        </div>
-
-        {/* SHOW DATA FROM */}
-        <div className="bg-white rounded p-4 mb-4 border border-gray-200">
-          <label className="text-sm font-medium text-gray-700 block mb-2">Show data from</label>
-          <select 
-            value={timeRange} 
-            onChange={(e) => setTimeRange(e.target.value)}
-            className="w-full border-2 border-gray-300 px-3 py-2 rounded focus:border-cyan-600 bg-white"
-          >
-            <option value="today">Today</option>
-            <option value="yesterday">Yesterday</option>
-            <option value="last7">Last 7 days</option>
-            <option value="last14">Last 14 days</option>
-            <option value="last30">Last 30 days</option>
-            <option value="last60">Last 60 days</option>
-            <option value="last90">Last 90 days</option>
-            <option value="thisWeek">This Week</option>
-            <option value="thisMonth">This Month</option>
-            <option value="thisYear">This Year</option>
-            <option value="lastWeek">Last Week</option>
-            <option value="lastMonth">Last Month</option>
-            <option value="lastYear">Last Year</option>
-          </select>
-          <p className="text-sm text-gray-600 mt-2">{getDateRange()}</p>
-        </div>
-
-        {/* FILTERS */}
-        <div className="bg-white rounded p-4 mb-4 border border-gray-200">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="text-sm font-medium text-gray-700 block mb-2">Filter by Location</label>
-              <select 
-                value={location} 
-                onChange={(e) => setLocation(e.target.value)}
-                className="w-full border-2 border-gray-300 px-3 py-2 rounded focus:border-cyan-600"
-              >
-                <option value="All">All Locations</option>
-                <option value="online">Online</option>
-                {allLocations.map((l) => (
-                  l !== "online" && <option key={l} value={l}>{l || "Unknown"}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-gray-700 block mb-2">Filter by Device</label>
-              <select 
-                value={device} 
-                onChange={(e) => setDevice(e.target.value)}
-                className="w-full border-2 border-gray-300 px-3 py-2 rounded focus:border-cyan-600"
-              >
-                <option value="All">All Devices</option>
-                <option value="POS">POS</option>
-                <option value="Mobile">Mobile</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-gray-700 block mb-2">Filter by Staff</label>
-              <select 
-                value={staff} 
-                onChange={(e) => setStaff(e.target.value)}
-                className="w-full border-2 border-gray-300 px-3 py-2 rounded focus:border-cyan-600"
-              >
-                <option value="All">All Staff</option>
-                {allStaff.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-            </div>
+    <Layout title="Time Intervals">
+      <div className="page-container">
+        <div className="page-content">
+          {/* Breadcrumb */}
+          <div className="mb-6 text-sm text-gray-600">
+            <Link href="/" className="text-cyan-600 hover:text-cyan-700">Home</Link>
+            <span className="mx-2 text-gray-400">{">"}</span>
+            <Link href="/reporting" className="text-cyan-600 hover:text-cyan-700">Reporting</Link>
+            <span className="mx-2 text-gray-400">{">"}</span>
+            <span className="text-gray-800 font-medium">Time Intervals</span>
           </div>
-        </div>
 
-        {/* TIME INTERVAL */}
-        <div className="bg-white rounded p-4 mb-6 border border-gray-200">
-          <label className="text-sm font-medium text-gray-700 block mb-2">Show by Time Interval</label>
-          <select 
-            value={timeInterval} 
-            onChange={(e) => setTimeInterval(e.target.value)}
-            className="w-full border-2 border-gray-300 px-3 py-2 rounded focus:border-cyan-600"
-          >
-            <option value="yearly">Yearly</option>
-            <option value="quarterly">Quarterly</option>
-            <option value="monthly">Monthly</option>
-            <option value="weekly">Weekly</option>
-            <option value="daily">Daily</option>
-            <option value="hourly">Hourly</option>
-            <option value="halfHourly">Half Hourly</option>
-          </select>
-        </div>
+          <div className="page-header">
+            <h1 className="page-title">Sales By Time Interval</h1>
+            <p className="page-subtitle">Breakdown of sales across time intervals</p>
+          </div>
 
-        {/* ACTION BUTTONS */}
-        <div className="flex gap-2 mb-6">
-          <button className="px-4 py-2 bg-gray-50 text-cyan-700 border-2 border-cyan-600 rounded font-medium hover:bg-cyan-100">
-            EXPORT TO CSV
-          </button>
-          <button className="px-4 py-2 bg-gray-50 text-cyan-700 border-2 border-cyan-600 rounded font-medium hover:bg-cyan-100">
-            EXPORT TO WORD
-          </button>
-          <button className="px-4 py-2 bg-gray-50 text-cyan-700 border-2 border-cyan-600 rounded font-medium hover:bg-cyan-100">
-            EXPORT TO EXCEL
-          </button>
-          <button className="px-4 py-2 bg-gray-50 text-cyan-700 border-2 border-cyan-600 rounded font-medium hover:bg-cyan-100">
-            PRINT
-          </button>
-          <button className="ml-auto px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded font-medium hover:bg-gray-200">
-            RESET
-          </button>
-          <button className="px-4 py-2 bg-cyan-600 text-white rounded font-medium hover:bg-cyan-700">
-            APPLY
-          </button>
-        </div>
-
-        {/* TABLE */}
-        {loading ? (
-          <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-8 flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <div className="inline-block">
-                <svg className="animate-spin h-12 w-12 text-cyan-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
+          {/* Filters */}
+          <div className="content-card mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Time Range</label>
+                <select value={timeRange} onChange={(e) => setTimeRange(e.target.value)} className="form-select">
+                  <option value="today">Today</option>
+                  <option value="yesterday">Yesterday</option>
+                  <option value="last7">Last 7 days</option>
+                  <option value="last14">Last 14 days</option>
+                  <option value="last30">Last 30 days</option>
+                  <option value="last60">Last 60 days</option>
+                  <option value="last90">Last 90 days</option>
+                  <option value="thisWeek">This Week</option>
+                  <option value="thisMonth">This Month</option>
+                  <option value="thisYear">This Year</option>
+                  <option value="lastWeek">Last Week</option>
+                  <option value="lastMonth">Last Month</option>
+                  <option value="lastYear">Last Year</option>
+                </select>
               </div>
-              <p className="mt-4 text-gray-600 font-medium">Loading sales data...</p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Interval</label>
+                <select value={intervalType} onChange={(e) => setIntervalType(e.target.value)} className="form-select">
+                  <option value="yearly">Yearly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="daily">Daily</option>
+                  <option value="hourly">Hourly</option>
+                  <option value="halfHourly">Half Hourly</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                <select value={location} onChange={(e) => setLocation(e.target.value)} className="form-select">
+                  <option value="All">All Locations</option>
+                  {allLocations.map((l) => (<option key={l} value={l}>{l}</option>))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Device</label>
+                <select value={device} onChange={(e) => setDevice(e.target.value)} className="form-select">
+                  <option value="All">All Devices</option>
+                  <option value="POS">POS</option>
+                  <option value="Mobile">Mobile</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Staff</label>
+                <select value={staff} onChange={(e) => setStaff(e.target.value)} className="form-select">
+                  <option value="All">All Staff</option>
+                  {allStaff.map((s) => (<option key={s} value={s}>{s}</option>))}
+                </select>
+              </div>
             </div>
           </div>
-        ) : (
-          <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gradient-to-r from-cyan-600 to-cyan-700 text-white sticky top-0">
-                <tr>
-                  <th className="px-4 py-3 text-left font-bold text-white">{getTimeIntervalLabel()}</th>
-                  <th className="px-4 py-3 text-right font-bold text-white">TRANSACTION QTY</th>
-                  <th className="px-4 py-3 text-right font-bold text-white">REFUND QTY</th>
-                  <th className="px-4 py-3 text-right font-bold text-white">REFUND VALUE</th>
-                  <th className="px-4 py-3 text-right font-bold text-white">NO SALE QTY</th>
-                  <th className="px-4 py-3 text-right font-bold text-white">VOIDED QTY</th>
-                  <th className="px-4 py-3 text-right font-bold text-white">DELETED/VOIDED VALUE</th>
-                  <th className="px-4 py-3 text-right font-bold text-white">ITEM QTY</th>
-                  <th className="px-4 py-3 text-right font-bold text-white">SALES INC TAX</th>
-                  <th className="px-4 py-3 text-right font-bold text-white">DISCOUNTS</th>
-                  <th className="px-4 py-3 text-right font-bold text-white">AVERAGE TRANSACTION</th>
-                  <th className="px-4 py-3 text-right font-bold text-white">NET SALES</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tableData.map((row, idx) => (
-                  <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-800">{row.date}</td>
-                    <td className="px-4 py-3 text-right text-gray-700">{row.transactions}</td>
-                    <td className="px-4 py-3 text-right text-gray-700">{row.refunds}</td>
-                    <td className="px-4 py-3 text-right text-gray-500">{row.refundValue.toLocaleString('en-NG')}</td>
-                    <td className="px-4 py-3 text-right text-gray-700">{row.noSale}</td>
-                    <td className="px-4 py-3 text-right text-gray-700">{row.voided}</td>
-                    <td className="px-4 py-3 text-right text-gray-500">{row.voidedValue.toLocaleString('en-NG')}</td>
-                    <td className="px-4 py-3 text-right text-gray-700">{row.itemQty}</td>
-                    <td className="px-4 py-3 text-right text-gray-700">{row.salesIncTax.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
-                    <td className="px-4 py-3 text-right text-gray-500">{row.discounts.toLocaleString('en-NG')}</td>
-                    <td className="px-4 py-3 text-right text-gray-700">{row.avgTransaction.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
-                    <td className="px-4 py-3 text-right text-gray-700">{row.netSales.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
-                  </tr>
-                ))}
-                {/* TOTAL ROW */}
-                <tr className="bg-cyan-100 font-bold border-t-2 border-gray-300">
-                  <td className="px-4 py-3 text-gray-800">TOTAL</td>
-                  <td className="px-4 py-3 text-right text-gray-800">{totals.transactions}</td>
-                  <td className="px-4 py-3 text-right text-gray-800">{totals.refunds}</td>
-                  <td className="px-4 py-3 text-right text-gray-800">{totals.refundValue.toLocaleString('en-NG')}</td>
-                  <td className="px-4 py-3 text-right text-gray-800">{totals.noSale}</td>
-                  <td className="px-4 py-3 text-right text-gray-800">{totals.voided}</td>
-                  <td className="px-4 py-3 text-right text-gray-800">{totals.voidedValue.toLocaleString('en-NG')}</td>
-                  <td className="px-4 py-3 text-right text-gray-800">{totals.itemQty}</td>
-                  <td className="px-4 py-3 text-right text-gray-800">{totals.salesIncTax.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
-                  <td className="px-4 py-3 text-right text-gray-800">{totals.discounts.toLocaleString('en-NG')}</td>
-                  <td className="px-4 py-3 text-right text-gray-800">{totals.avgTransaction.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
-                  <td className="px-4 py-3 text-right text-gray-800">{totals.netSales.toLocaleString('en-NG', {maximumFractionDigits: 2})}</td>
-                </tr>
-              </tbody>
-            </table>
+
+          {/* Export Buttons */}
+          <div className="flex flex-wrap gap-3 mb-6">
+            <button onClick={exportCSV} className="btn-action btn-action-primary">
+              Export CSV
+            </button>
           </div>
-        )}
+
+          {/* Table */}
+          {loading ? (
+            <div className="content-card">
+              <Loader size="md" text="Loading time interval data..." />
+            </div>
+          ) : (
+            <div className="data-table-container">
+              <div className="overflow-x-auto">
+                <table className="data-table">
+                  <thead className="sticky top-0">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-semibold">Date</th>
+                      <th className="px-4 py-3 text-right font-semibold">Txn Qty</th>
+                      <th className="px-4 py-3 text-right font-semibold">Refund Qty</th>
+                      <th className="px-4 py-3 text-right font-semibold">Refund Value</th>
+                      <th className="px-4 py-3 text-right font-semibold">No Sale</th>
+                      <th className="px-4 py-3 text-right font-semibold">Voided Qty</th>
+                      <th className="px-4 py-3 text-right font-semibold">Voided Value</th>
+                      <th className="px-4 py-3 text-right font-semibold">Item Qty</th>
+                      <th className="px-4 py-3 text-right font-semibold">Sales Inc Tax</th>
+                      <th className="px-4 py-3 text-right font-semibold">Discounts</th>
+                      <th className="px-4 py-3 text-right font-semibold">Avg Transaction</th>
+                      <th className="px-4 py-3 text-right font-semibold">Net Sales</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {tableData.map((row, idx) => (
+                      <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                        <td className="px-4 py-3 font-medium text-gray-800">{row.date}</td>
+                        <td className="px-4 py-3 text-right">{formatNumber(row.transactionQty)}</td>
+                        <td className="px-4 py-3 text-right">{formatNumber(row.refundQty)}</td>
+                        <td className="px-4 py-3 text-right text-gray-500">{formatCurrency(row.refundValue)}</td>
+                        <td className="px-4 py-3 text-right">{formatNumber(row.noSale)}</td>
+                        <td className="px-4 py-3 text-right">{formatNumber(row.voidedQty)}</td>
+                        <td className="px-4 py-3 text-right text-gray-500">{formatCurrency(row.voidedValue)}</td>
+                        <td className="px-4 py-3 text-right">{formatNumber(row.itemQty)}</td>
+                        <td className="px-4 py-3 text-right">{formatCurrency(row.salesIncTax)}</td>
+                        <td className="px-4 py-3 text-right text-gray-500">{formatCurrency(row.discounts)}</td>
+                        <td className="px-4 py-3 text-right">{formatCurrency(row.avgTransaction)}</td>
+                        <td className="px-4 py-3 text-right font-medium">{formatCurrency(row.netSales)}</td>
+                      </tr>
+                    ))}
+                    {/* Total Row */}
+                    <tr className="bg-sky-50 font-bold border-t-2 border-gray-300">
+                      <td className="px-4 py-3 text-gray-800">TOTAL</td>
+                      <td className="px-4 py-3 text-right">{formatNumber(totals.transactionQty)}</td>
+                      <td className="px-4 py-3 text-right">{formatNumber(totals.refundQty)}</td>
+                      <td className="px-4 py-3 text-right">{formatCurrency(totals.refundValue)}</td>
+                      <td className="px-4 py-3 text-right">{formatNumber(totals.noSale)}</td>
+                      <td className="px-4 py-3 text-right">{formatNumber(totals.voidedQty)}</td>
+                      <td className="px-4 py-3 text-right">{formatCurrency(totals.voidedValue)}</td>
+                      <td className="px-4 py-3 text-right">{formatNumber(totals.itemQty)}</td>
+                      <td className="px-4 py-3 text-right">{formatCurrency(totals.salesIncTax)}</td>
+                      <td className="px-4 py-3 text-right">{formatCurrency(totals.discounts)}</td>
+                      <td className="px-4 py-3 text-right">{formatCurrency(totals.avgTransaction)}</td>
+                      <td className="px-4 py-3 text-right">{formatCurrency(totals.netSales)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </Layout>
   );

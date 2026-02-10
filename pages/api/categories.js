@@ -1,13 +1,29 @@
 import { mongooseConnect } from "@/lib/mongodb";
 import { Category } from "@/models/Category";
 
+// Simple in-memory cache for categories (cleared on mutations)
+let categoriesCache = null;
+let categoriesCacheTime = 0;
+const CACHE_TTL = 60 * 1000; // 1 minute
+
+function invalidateCache() {
+  categoriesCache = null;
+  categoriesCacheTime = 0;
+}
+
 export default async function handler(req, res) {
   const { method } = req;
   await mongooseConnect();
 
   try {
     if (method === "GET") {
-      const categories = await Category.find().populate("parent");
+      const now = Date.now();
+      if (categoriesCache && (now - categoriesCacheTime) < CACHE_TTL) {
+        return res.json(categoriesCache);
+      }
+      const categories = await Category.find().populate("parent").lean();
+      categoriesCache = categories;
+      categoriesCacheTime = now;
       return res.json(categories);
     }
 
@@ -29,6 +45,7 @@ export default async function handler(req, res) {
         images,
       });
 
+      invalidateCache();
       const populatedCategory = await Category.findById(category._id).populate("parent");
       return res.json(populatedCategory);
     }
@@ -54,6 +71,7 @@ export default async function handler(req, res) {
         { new: true }
       ).populate("parent");
 
+      invalidateCache();
       return res.json(updatedCategory);
     }
 
@@ -62,6 +80,7 @@ export default async function handler(req, res) {
       if (!id) return res.status(400).json({ success: false, message: "Category ID required" });
 
       await Category.deleteOne({ _id: id });
+      invalidateCache();
       return res.json({ success: true });
     }
 

@@ -45,6 +45,7 @@ export default function ProductForm(props) {
   const [expiryDate, setExpiryDate] = useState(toDateInputValue(props.expiryDate || ""));
 
   const [loading, setLoading] = useState(false);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [goToProducts, setGoToProducts] = useState(false);
@@ -69,9 +70,20 @@ export default function ProductForm(props) {
     setExpiryDate(toDateInputValue(props.expiryDate || ""));
   }, [props]);
 
-  // Load categories
+  // Load categories with caching
   useEffect(() => {
-    axios.get("/api/categories").then((res) => setCategories(res.data || []));
+    const cached = sessionStorage.getItem("_categories_cache");
+    if (cached) {
+      try {
+        setCategories(JSON.parse(cached));
+        setCategoriesLoading(false);
+      } catch { /* ignore */ }
+    }
+    axios.get("/api/categories").then((res) => {
+      const data = res.data || [];
+      setCategories(data);
+      sessionStorage.setItem("_categories_cache", JSON.stringify(data));
+    }).finally(() => setCategoriesLoading(false));
   }, []);
 
   // Reset promo fields if unchecked
@@ -183,6 +195,16 @@ export default function ProductForm(props) {
   useEffect(() => {
     if (goToProducts) router.push("/manage/products");
   }, [goToProducts, router]);
+
+  if (categoriesLoading && !categories.length) {
+    return (
+      <div className="page-container !p-0">
+        <div className="content-card">
+          <Loader size="md" text="Loading product form..." />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form

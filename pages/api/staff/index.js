@@ -6,29 +6,28 @@ let staffIndexesSynced = false;
 
 async function ensureStaffIndexes() {
   if (staffIndexesSynced) return;
-  await Staff.syncIndexes();
+  // Only sync if not already done - fire and forget to not block the request
   staffIndexesSynced = true;
+  Staff.syncIndexes().catch((err) => {
+    console.error("Staff index sync error (background):", err);
+    staffIndexesSynced = false; // retry next time
+  });
 }
 
 export default async function handler(req, res) {
   try {
-
     await mongooseConnect();
   } catch (err) {
     console.error("MongoDB connection error:", err);
     return res.status(500).json({ error: "Failed to connect to DB", details: err.message });
   }
 
-  try {
-    await ensureStaffIndexes();
-  } catch (err) {
-    console.error("Staff index sync error:", err);
-    return res.status(500).json({ error: "Failed to sync staff indexes", details: err.message });
-  }
+  // Fire and forget - don't block the request
+  ensureStaffIndexes();
 
   if (req.method === "GET") {
     try {
-      const staff = await Staff.find();
+      const staff = await Staff.find().lean();
       return res.status(200).json(staff);
     } catch (error) {
       console.error("Error fetching staff:", error);

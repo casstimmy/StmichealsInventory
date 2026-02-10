@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Layout from "@/components/Layout";
+import Loader from "@/components/Loader";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { Printer, Mail } from "lucide-react";
 import { useRouter } from "next/router";
@@ -466,8 +467,7 @@ export default function StaffPage() {
 
             {loadingStaffList ? (
               <div className="flex justify-center items-center py-10">
-                <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                <span className="ml-3 text-sm text-gray-500">Loading staff list...</span>
+                <Loader size="md" text="Loading staff list..." />
               </div>
             ) : staffList.length === 0 ? (
               <p className="text-gray-500">No staff created yet.</p>

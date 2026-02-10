@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import Loader from "@/components/Loader";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { saveAs } from "file-saver";
@@ -6,6 +7,7 @@ import { formatCurrency, formatNumber } from "@/lib/format";
 
 export default function HeldTransactions() {
   const [transactions, setTransactions] = useState([]);
+  const [allHeld, setAllHeld] = useState([]);
   const [expandedTxId, setExpandedTxId] = useState(null);
   const [locationFilter, setLocationFilter] = useState("All");
   const [staffFilter, setStaffFilter] = useState("All");
@@ -14,9 +16,15 @@ export default function HeldTransactions() {
   const [staffList, setStaffList] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Fetch once
   useEffect(() => {
     fetchHeldTransactions();
-  }, [locationFilter, staffFilter, timeRange]);
+  }, []);
+
+  // Apply filters locally
+  useEffect(() => {
+    applyFilters();
+  }, [locationFilter, staffFilter, timeRange, allHeld]);
 
   async function fetchHeldTransactions() {
     try {
@@ -25,12 +33,12 @@ export default function HeldTransactions() {
       if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
       
-      let filtered = (data.transactions || []).filter(tx => tx.status === "held");
+      const held = (data.transactions || []).filter(tx => tx.status === "held");
 
       // Extract locations and staff for dropdowns
       const locSet = new Set();
       const staffSet = new Set();
-      filtered.forEach(tx => {
+      held.forEach(tx => {
         if (tx.location) locSet.add(tx.location);
         if (tx.staffName) staffSet.add(tx.staffName);
         else if (tx.staff?.name) staffSet.add(tx.staff.name);
@@ -38,43 +46,48 @@ export default function HeldTransactions() {
 
       setLocations(Array.from(locSet).sort());
       setStaffList(Array.from(staffSet).sort());
-
-      // Apply location filter
-      if (locationFilter !== "All") {
-        filtered = filtered.filter(tx => tx.location === locationFilter);
-      }
-      
-      // Apply staff filter
-      if (staffFilter !== "All") {
-        filtered = filtered.filter(tx => (tx.staffName || tx.staff?.name) === staffFilter);
-      }
-      
-      // Apply time range filter
-      if (timeRange !== "all") {
-        const now = new Date();
-        now.setHours(0, 0, 0, 0);
-        
-        filtered = filtered.filter(tx => {
-          const txDate = new Date(tx.createdAt);
-          txDate.setHours(0, 0, 0, 0);
-          const daysDiff = Math.floor((now - txDate) / (1000 * 60 * 60 * 24));
-          
-          switch (timeRange) {
-            case "today": return daysDiff === 0;
-            case "yesterday": return daysDiff === 1;
-            case "last7": return daysDiff <= 7;
-            case "last30": return daysDiff <= 30;
-            default: return true;
-          }
-        });
-      }
-
-      setTransactions(filtered);
+      setAllHeld(held);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
+  }
+
+  function applyFilters() {
+    let filtered = [...allHeld];
+
+    // Apply location filter
+    if (locationFilter !== "All") {
+      filtered = filtered.filter(tx => tx.location === locationFilter);
+    }
+    
+    // Apply staff filter
+    if (staffFilter !== "All") {
+      filtered = filtered.filter(tx => (tx.staffName || tx.staff?.name) === staffFilter);
+    }
+    
+    // Apply time range filter
+    if (timeRange !== "all") {
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      
+      filtered = filtered.filter(tx => {
+        const txDate = new Date(tx.createdAt);
+        txDate.setHours(0, 0, 0, 0);
+        const daysDiff = Math.floor((now - txDate) / (1000 * 60 * 60 * 24));
+        
+        switch (timeRange) {
+          case "today": return daysDiff === 0;
+          case "yesterday": return daysDiff === 1;
+          case "last7": return daysDiff <= 7;
+          case "last30": return daysDiff <= 30;
+          default: return true;
+        }
+      });
+    }
+
+    setTransactions(filtered);
   }
 
   const toggleDetails = (id) => {
@@ -206,7 +219,9 @@ export default function HeldTransactions() {
         {/* TRANSACTIONS TABLE */}
         <div className="content-card overflow-hidden">
           {loading ? (
-            <div className="p-8 text-center text-gray-500">Loading...</div>
+            <div className="p-8">
+              <Loader size="md" text="Loading held transactions..." />
+            </div>
           ) : transactions.length === 0 ? (
             <div className="p-8 text-center">
               <p className="text-gray-500 text-lg">No held transactions found</p>

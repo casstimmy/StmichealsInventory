@@ -4,6 +4,7 @@ import Layout from "@/components/Layout";
 import { Loader } from "@/components/ui";
 import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
+import useProgress from "@/lib/useProgress";
 
 export default function PromotionsManagementPage() {
   const [promotions, setPromotions] = useState([]);
@@ -20,6 +21,7 @@ export default function PromotionsManagementPage() {
   const [showAllProducts, setShowAllProducts] = useState(false);
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [visiblePromotions, setVisiblePromotions] = useState(30);
+  const { progress, start, onFetch, onProcess, complete } = useProgress();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -74,17 +76,21 @@ export default function PromotionsManagementPage() {
   async function fetchPromotions() {
     try {
       setLoading(true);
+      start();
       
       // Fetch promotions
       const promoRes = await fetch("/api/promotions");
+      onFetch();
       if (promoRes.ok) {
         const data = await promoRes.json();
+        onProcess();
         setPromotions(data.promotions || []);
       }
     } catch (err) {
       console.error("Error fetching data:", err);
       setError("Failed to load data");
     } finally {
+      complete();
       setLoading(false);
     }
   }
@@ -287,7 +293,7 @@ export default function PromotionsManagementPage() {
   if (loading) {
     return (
       <Layout>
-        <Loader size="lg" text="Loading promotions..." />
+        <Loader size="lg" text="Loading promotions..." progress={progress} />
       </Layout>
     );
   }

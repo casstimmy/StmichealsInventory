@@ -8,6 +8,7 @@ import {
   Filter,
   BarChart2,
   PieChart as PieIcon,
+  Calendar,
 } from "lucide-react";
 import {
   PieChart,
@@ -21,6 +22,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import Loader from "@/components/Loader";
+import useProgress from "@/lib/useProgress";
 
 const COLORS = [
   "#3B82F6",
@@ -37,6 +40,8 @@ export default function ExpenseAnalysis() {
   const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showBarChart, setShowBarChart] = useState(false);
+  const { progress, start, onFetch, onProcess, complete } = useProgress();
+  const [activePeriod, setActivePeriod] = useState("");
   const [filters, setFilters] = useState({
     category: "",
     minAmount: "",
@@ -46,14 +51,84 @@ export default function ExpenseAnalysis() {
     location: "",
   });
 
+  // Quick period date helpers
+  const getDateRange = (period) => {
+    const today = new Date();
+    const yyyy = (d) => d.getFullYear();
+    const mm = (d) => String(d.getMonth() + 1).padStart(2, "0");
+    const dd = (d) => String(d.getDate()).padStart(2, "0");
+    const fmt = (d) => `${yyyy(d)}-${mm(d)}-${dd(d)}`;
+
+    switch (period) {
+      case "today": {
+        const s = fmt(today);
+        return { startDate: s, endDate: s };
+      }
+      case "yesterday": {
+        const d = new Date(today);
+        d.setDate(d.getDate() - 1);
+        const s = fmt(d);
+        return { startDate: s, endDate: s };
+      }
+      case "this-week": {
+        const d = new Date(today);
+        const day = d.getDay();
+        const diff = day === 0 ? 6 : day - 1; // Monday start
+        d.setDate(d.getDate() - diff);
+        return { startDate: fmt(d), endDate: fmt(today) };
+      }
+      case "last-week": {
+        const d = new Date(today);
+        const day = d.getDay();
+        const diff = day === 0 ? 6 : day - 1;
+        const weekStart = new Date(d);
+        weekStart.setDate(d.getDate() - diff - 7);
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        return { startDate: fmt(weekStart), endDate: fmt(weekEnd) };
+      }
+      case "this-month": {
+        const s = new Date(today.getFullYear(), today.getMonth(), 1);
+        return { startDate: fmt(s), endDate: fmt(today) };
+      }
+      case "last-month": {
+        const s = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const e = new Date(today.getFullYear(), today.getMonth(), 0);
+        return { startDate: fmt(s), endDate: fmt(e) };
+      }
+      case "this-year": {
+        const s = new Date(today.getFullYear(), 0, 1);
+        return { startDate: fmt(s), endDate: fmt(today) };
+      }
+      default:
+        return {};
+    }
+  };
+
+  const handlePeriodSelect = (period) => {
+    if (activePeriod === period) {
+      // Toggle off — clear dates
+      setActivePeriod("");
+      setFilters((prev) => ({ ...prev, startDate: "", endDate: "" }));
+      return;
+    }
+    setActivePeriod(period);
+    const { startDate, endDate } = getDateRange(period);
+    setFilters((prev) => ({ ...prev, startDate, endDate }));
+  };
+
   useEffect(() => {
     async function fetchExpenses() {
+      start();
       const res = await fetch("/api/expenses");
+      onFetch();
       if (res.ok) {
         const data = await res.json();
+        onProcess();
         // API returns { success: true, expenses: [...] }
         setExpenses(Array.isArray(data) ? data : (data.expenses || []));
       }
+      complete();
       setLoading(false);
     }
 
@@ -132,6 +207,36 @@ export default function ExpenseAnalysis() {
             </p>
           </div>
 
+          {/* Period Quick Filters */}
+          <div className="content-card">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-3">
+              <Calendar className="w-5 h-5 text-sky-600" /> Quick Date Filter
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { key: "today", label: "Today" },
+                { key: "yesterday", label: "Yesterday" },
+                { key: "this-week", label: "This Week" },
+                { key: "last-week", label: "Last Week" },
+                { key: "this-month", label: "This Month" },
+                { key: "last-month", label: "Last Month" },
+                { key: "this-year", label: "This Year" },
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => handlePeriodSelect(key)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    activePeriod === key
+                      ? "bg-sky-600 text-white shadow-md"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Filters */}
           <div className="content-card space-y-4">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
@@ -190,26 +295,27 @@ export default function ExpenseAnalysis() {
               <input
                 type="date"
                 value={filters.startDate}
-                onChange={(e) =>
-                  setFilters({ ...filters, startDate: e.target.value })
-                }
+                onChange={(e) => {
+                  setActivePeriod("");
+                  setFilters({ ...filters, startDate: e.target.value });
+                }}
                 className="form-input"
               />
               <input
                 type="date"
                 value={filters.endDate}
-                onChange={(e) =>
-                  setFilters({ ...filters, endDate: e.target.value })
-                }
+                onChange={(e) => {
+                  setActivePeriod("");
+                  setFilters({ ...filters, endDate: e.target.value });
+                }}
                 className="form-input"
               />
             </div>
           </div>
 
           {loading ? (
-            <div className="content-card text-center py-16">
-              <div className="skeleton h-8 w-48 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading expenses...</p>
+            <div className="content-card flex items-center justify-center py-16">
+              <Loader size="md" text="Loading expenses..." progress={progress} />
             </div>
           ) : filteredExpenses.length === 0 ? (
             <div className="empty-state-container">

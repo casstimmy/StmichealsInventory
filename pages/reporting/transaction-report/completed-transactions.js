@@ -134,18 +134,18 @@ function applyFilters() {
     }
   }
 
-  // Handle void held transaction
+  // Handle void held transaction — sets status to "refunded"
   async function handleVoidTransaction(txId) {
     if (!confirm("Are you sure you want to void this held transaction? It will be marked as refunded.")) return;
     try {
       const res = await fetch(`/api/transactions/${txId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "voided" }),
+        body: JSON.stringify({ status: "refunded" }),
       });
       if (res.ok) {
         setAllTransactions((prev) =>
-          prev.map((tx) => tx._id === txId ? { ...tx, status: "voided" } : tx)
+          prev.map((tx) => tx._id === txId ? { ...tx, status: "refunded" } : tx)
         );
       }
     } catch (err) {

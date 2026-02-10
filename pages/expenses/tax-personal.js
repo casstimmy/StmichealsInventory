@@ -23,8 +23,7 @@ const DEDUCTION_OPTIONS = [
 const THRESHOLD_RELIEF = 800000;
 
 const TAX_BANDS = [
-  { limit: 800000, rate: 0.0, label: "First ₦800,000" },
-  { limit: 2200000, rate: 0.15, label: "Next ₦2,200,000" },
+  { limit: 2200000, rate: 0.15, label: "First ₦2,200,000" },
   { limit: 7000000, rate: 0.18, label: "Next ₦7,000,000" },
   { limit: 15000000, rate: 0.21, label: "Next ₦15,000,000" },
   { limit: 25000000, rate: 0.23, label: "Next ₦25,000,000" },

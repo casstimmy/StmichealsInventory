@@ -6,6 +6,7 @@ import { useRouter } from "next/router";
 import { apiClient } from "@/lib/api-client";
 import { motion } from "framer-motion";
 import { Loader } from "@/components/ui";
+import useProgress from "@/lib/useProgress";
 import { getCachedSetup } from "@/lib/setupCache";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import {
@@ -35,6 +36,7 @@ export default function Home() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
+  const { progress, start, onFetch, onProcess, complete } = useProgress();
   const [lastRefresh, setLastRefresh] = useState(null);
 
   const [storeInfo, setStoreInfo] = useState({});
@@ -57,6 +59,7 @@ export default function Home() {
   async function fetchDashboardData() {
     try {
       setLoading(true);
+      start();
 
       // Use cached setup (24-hour TTL) to avoid unnecessary API call
       const setupData = await getCachedSetup();
@@ -64,12 +67,14 @@ export default function Home() {
       setSelectedUser(setupData?.user?.name || "Admin");
 
       // Fetch transactional data in parallel (cannot cache - changes frequently)
+      onFetch();
       const [txRes, expenseRes, orderRes] = await Promise.all([
         apiClient.get("/api/transactions/transactions"),
         apiClient.get("/api/expenses"),
         apiClient.get("/api/orders"),
       ]);
 
+      onProcess();
       setAllTransactions(txRes.data.transactions || []);
       setAllExpenses(expenseRes.data.expenses || []);
       setAllOrders(
@@ -88,6 +93,7 @@ export default function Home() {
         });
       }
     } finally {
+      complete();
       setLoading(false);
     }
   }
@@ -371,7 +377,7 @@ export default function Home() {
         </div>
 
         {loading ? (
-          <Loader size="md" text="Loading dashboard..." />
+          <Loader size="md" text="Loading dashboard..." progress={progress} />
         ) : (
           <>
             {/* KPIs */}

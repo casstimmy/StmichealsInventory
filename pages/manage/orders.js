@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Search, X, Mail } from "lucide-react";
 import clsx from "clsx";
 import Layout from "@/components/Layout";
+import Loader from "@/components/Loader";
+import useProgress from "@/lib/useProgress";
 import { formatCurrency } from "@/lib/format";
 import axios from "axios";
 
@@ -13,7 +15,9 @@ export default function OrderInventoryPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
+  const { progress, start, onFetch, onProcess, complete } = useProgress();
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [deliveryPersonName, setDeliveryPersonName] = useState("");
@@ -36,18 +40,24 @@ export default function OrderInventoryPage() {
 
   const fetchOrders = async (page = 1, searchTerm = "") => {
     setLoading(true);
+    start();
+    onFetch();
     try {
       const { data } = await axios.get("/api/orders", {
         params: { page, limit: entriesPerPage, search: searchTerm },
       });
+      onProcess();
       setOrders(data.orders || []);
       setTotalPages(data.totalPages || 1);
     } catch (error) {
       console.error("Failed to fetch orders:", error);
       setOrders([]);
       setTotalPages(1);
+    } finally {
+      setLoading(false);
+      setInitialLoad(false);
+      complete();
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -128,6 +138,11 @@ export default function OrderInventoryPage() {
 
   return (
     <Layout>
+    {initialLoad && loading ? (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader size="lg" text="Loading orders..." progress={progress} />
+      </div>
+    ) : (
     <div className="page-container">
         <div className="page-content">
           {/* Header */}
@@ -295,6 +310,7 @@ export default function OrderInventoryPage() {
           </div>
         )}
       </div>
+    )}
     </Layout>
   );
 }

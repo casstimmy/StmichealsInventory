@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash } from "@fortawesome/free-solid-svg-icons";
 import Loader from "./Loader";
+import useProgress from "@/lib/useProgress";
 import { formatCurrency } from "@/lib/format";
 
 function toDateInputValue(v) {
@@ -46,6 +47,7 @@ export default function ProductForm(props) {
 
   const [loading, setLoading] = useState(false);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const { progress, start, onFetch, onProcess, complete } = useProgress();
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [goToProducts, setGoToProducts] = useState(false);
@@ -72,18 +74,25 @@ export default function ProductForm(props) {
 
   // Load categories with caching
   useEffect(() => {
+    start();
     const cached = sessionStorage.getItem("_categories_cache");
     if (cached) {
       try {
         setCategories(JSON.parse(cached));
         setCategoriesLoading(false);
+        complete();
       } catch { /* ignore */ }
     }
+    onFetch();
     axios.get("/api/categories").then((res) => {
+      onProcess();
       const data = res.data || [];
       setCategories(data);
       sessionStorage.setItem("_categories_cache", JSON.stringify(data));
-    }).finally(() => setCategoriesLoading(false));
+    }).finally(() => {
+      setCategoriesLoading(false);
+      complete();
+    });
   }, []);
 
   // Reset promo fields if unchecked
@@ -200,7 +209,7 @@ export default function ProductForm(props) {
     return (
       <div className="page-container !p-0">
         <div className="content-card">
-          <Loader size="md" text="Loading product form..." />
+          <Loader size="md" text="Loading product form..." progress={progress} />
         </div>
       </div>
     );

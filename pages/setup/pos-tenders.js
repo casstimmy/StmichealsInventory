@@ -3,11 +3,13 @@
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
+import useProgress from "@/lib/useProgress";
 
 export default function PosTenders() {
   const [tenders, setTenders] = useState([]);
   const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { progress, start, onFetch, onProcess, complete } = useProgress();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -30,6 +32,7 @@ export default function PosTenders() {
   const initializeAndFetch = async () => {
     try {
       setLoading(true);
+      start();
       
       // First, try to seed default tenders if database is empty
       try {
@@ -38,6 +41,7 @@ export default function PosTenders() {
         console.warn("Seed attempt failed, proceeding with fetch:", seedErr);
       }
 
+      onFetch();
       // Then fetch tenders
       fetchTenders();
       fetchLocations();
@@ -50,6 +54,7 @@ export default function PosTenders() {
   const fetchTenders = async () => {
     try {
       setLoading(true);
+      onProcess();
       // Fetch tenders from API
       const res = await fetch("/api/setup/tenders");
       const data = await res.json();
@@ -68,6 +73,7 @@ export default function PosTenders() {
       setError("Failed to load tenders. Please refresh the page.");
       setTenders([]);
     } finally {
+      complete();
       setLoading(false);
     }
   };
@@ -195,7 +201,7 @@ export default function PosTenders() {
     return (
       <Layout>
         <div className="min-h-screen flex items-center justify-center">
-          <Loader size="lg" text="Loading tenders..." />
+          <Loader size="lg" text="Loading tenders..." progress={progress} />
         </div>
       </Layout>
     );

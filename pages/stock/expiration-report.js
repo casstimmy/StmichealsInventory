@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import Layout from '@/components/Layout';
 import { Loader } from '@/components/ui';
+import useProgress from '@/lib/useProgress';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faCalendarAlt, 
@@ -15,6 +16,7 @@ import {
 export default function ExpirationReport() {
   const [batches, setBatches] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { progress, start, onFetch, onProcess, complete } = useProgress();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'critical', 'warning', 'ok'
   const [sortBy, setSortBy] = useState('daysRemaining'); // 'daysRemaining', 'expiryDate', 'name'
@@ -24,6 +26,8 @@ export default function ExpirationReport() {
     const fetchBatches = async () => {
       try {
         setLoading(true);
+        start();
+        onFetch();
         const res = await fetch('/api/stock-movement/batches-with-expiry');
         if (!res.ok) throw new Error('Failed to fetch batches');
         
@@ -66,6 +70,7 @@ export default function ExpirationReport() {
         });
         
         // Filter to only include batches with expiry dates
+        onProcess();
         const expiringBatches = allBatches.filter(b => b.expiryDate);
         console.log(`Found ${expiringBatches.length} batches with expiry dates out of ${allBatches.length} total`);
         
@@ -74,6 +79,7 @@ export default function ExpirationReport() {
         console.error('Error fetching batches:', err);
         setBatches([]);
       } finally {
+        complete();
         setLoading(false);
       }
     };
@@ -218,7 +224,7 @@ export default function ExpirationReport() {
   return (
     <Layout>
       {loading ? (
-        <Loader size="lg" text="Loading expiration report..." />
+        <Loader size="lg" text="Loading expiration report..." progress={progress} />
       ) : (
         <div className="page-container">
           <div className="page-content">

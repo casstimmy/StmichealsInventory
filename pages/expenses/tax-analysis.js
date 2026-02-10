@@ -2,6 +2,7 @@ import Layout from "@/components/Layout";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { useState, useEffect } from "react";
 import Loader from "@/components/Loader";
+import useProgress from "@/lib/useProgress";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faScaleBalanced,
@@ -16,6 +17,7 @@ import { theme } from "@/styles/theme";
 export default function TaxAnalysisPage() {
   const [taxData, setTaxData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { progress, start, onFetch, onProcess, complete } = useProgress();
   const [period, setPeriod] = useState("last-month");
   const [error, setError] = useState(null);
 
@@ -25,9 +27,11 @@ export default function TaxAnalysisPage() {
 
   const fetchTaxData = async () => {
     setLoading(true);
+    start();
     setError(null);
     try {
       console.log(" Fetching tax data for period:", period);
+      onFetch();
       const response = await fetch(`/api/taxes/analysis?period=${period}`);
       console.log(" Response status:", response.status);
       
@@ -45,12 +49,14 @@ export default function TaxAnalysisPage() {
       
       const data = await response.json();
       console.log(" Tax data received:", data);
+      onProcess();
       setTaxData(data);
     } catch (err) {
       const errorMsg = err?.message || "Unknown error occurred";
       console.error(" Error fetching tax data:", errorMsg);
       setError(errorMsg);
     } finally {
+      complete();
       setLoading(false);
     }
   };
@@ -109,7 +115,7 @@ export default function TaxAnalysisPage() {
           {/* Loading State */}
           {loading ? (
             <div className="content-card flex items-center justify-center min-h-96">
-              <Loader size="md" text="Calculating tax analysis..." />
+              <Loader size="md" text="Calculating tax analysis..." progress={progress} />
             </div>
           ) : !taxData ? (
             <div className="empty-state-container">

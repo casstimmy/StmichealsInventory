@@ -1,5 +1,6 @@
 import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
+import useProgress from "@/lib/useProgress";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { isInTimeRange } from "@/lib/dateFilter";
 import { useEffect, useState } from "react";
@@ -33,17 +34,21 @@ export default function ProductsSales() {
   const [data, setData] = useState(null);
   const [timeRange, setTimeRange] = useState("last7");
   const [loading, setLoading] = useState(true);
+  const { progress, start, onFetch, onProcess, complete } = useProgress();
 
   useEffect(() => { fetchData(); }, [timeRange]);
 
   async function fetchData() {
     try {
       setLoading(true);
+      start();
+      onFetch();
       const res = await fetch("/api/transactions/transactions");
       const txRes = await res.json();
       if (!txRes.success || !txRes.transactions) { setData(null); setLoading(false); return; }
 
       const filteredTx = txRes.transactions.filter((tx) => {
+        onProcess();
         return tx.status === "completed" && isInTimeRange(tx.createdAt, timeRange);
       });
 
@@ -69,7 +74,7 @@ export default function ProductsSales() {
         avgPerProduct: products.length > 0 ? totalSales / products.length : 0,
       });
     } catch (err) { console.error("Error fetching data:", err); }
-    finally { setLoading(false); }
+    finally { complete(); setLoading(false); }
   }
 
   const chartColors = [
@@ -132,7 +137,7 @@ export default function ProductsSales() {
 
           {loading ? (
             <div className="content-card">
-              <Loader size="md" text="Loading product data..." />
+              <Loader size="md" text="Loading product data..." progress={progress} />
             </div>
           ) : data ? (
             <>

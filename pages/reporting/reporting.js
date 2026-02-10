@@ -14,6 +14,7 @@ import { Line, Bar, Pie } from "react-chartjs-2";
 import Layout from "@/components/Layout";
 import { formatCurrency } from "@/lib/format";
 import Loader from "@/components/Loader";
+import useProgress from "@/lib/useProgress";
 
 ChartJS.register(
   BarElement,
@@ -28,6 +29,8 @@ ChartJS.register(
 
 export default function Reporting() {
   const [report, setReport] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const { progress, start, onFetch, onProcess, complete } = useProgress();
   const [location, setLocation] = useState("All");
   const [period, setPeriod] = useState("DAY");
   const [timeRange, setTimeRange] = useState("Last 14 days");
@@ -53,17 +56,23 @@ export default function Reporting() {
 
   useEffect(() => {
     async function load() {
+      setLoading(true);
+      start();
       const days = getTimeDays(timeRange);
       const periodLower = period.toLowerCase();
+      onFetch();
       const res = await fetch(
         `/api/reporting/reporting-data?location=${location}&period=${periodLower}&days=${days}`
       );
+      onProcess();
       setReport(await res.json());
+      complete();
+      setLoading(false);
     }
     load();
   }, [location, period, timeRange]);
 
-  if (!report) return <Layout><div className="min-h-screen flex items-center justify-center"><Loader size="md" text="Loading report data..." /></div></Layout>;
+  if (loading) return <Layout><div className="min-h-screen flex items-center justify-center"><Loader size="md" text="Loading report data..." progress={progress} /></div></Layout>;
 
   const { 
     dates = [], 

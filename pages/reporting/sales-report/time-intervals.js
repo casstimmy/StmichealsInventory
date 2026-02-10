@@ -1,5 +1,6 @@
 import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
+import useProgress from "@/lib/useProgress";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { isInTimeRange } from "@/lib/dateFilter";
 import { useEffect, useState } from "react";
@@ -16,6 +17,7 @@ export default function TimeIntervals() {
   const [staff, setStaff] = useState("All");
   const [intervalType, setIntervalType] = useState("daily");
   const [loading, setLoading] = useState(true);
+  const { progress, start, onFetch, onProcess, complete } = useProgress();
 
   useEffect(() => { fetchFilters(); }, []);
   useEffect(() => { if (allLocations.length >= 0) fetchData(); }, [timeRange, location, device, staff, intervalType]);
@@ -40,6 +42,8 @@ export default function TimeIntervals() {
   async function fetchData() {
     try {
       setLoading(true);
+      start();
+      onFetch();
       const res = await fetch("/api/transactions/transactions");
       const txRes = await res.json();
       if (!txRes.success || !txRes.transactions) { setData(null); setLoading(false); return; }
@@ -52,6 +56,7 @@ export default function TimeIntervals() {
       });
 
       const buckets = {};
+      onProcess();
       filteredTx.forEach((tx) => {
         const d = new Date(tx.createdAt);
         let key;
@@ -98,7 +103,7 @@ export default function TimeIntervals() {
 
       setData(rows);
     } catch (err) { console.error("Error fetching data:", err); }
-    finally { setLoading(false); }
+    finally { complete(); setLoading(false); }
   }
 
   const tableData = data || [];
@@ -217,7 +222,7 @@ export default function TimeIntervals() {
           {/* Table */}
           {loading ? (
             <div className="content-card">
-              <Loader size="md" text="Loading time interval data..." />
+              <Loader size="md" text="Loading time interval data..." progress={progress} />
             </div>
           ) : tableData.length === 0 ? (
             <div className="content-card text-center py-12">

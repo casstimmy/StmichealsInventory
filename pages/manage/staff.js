@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
+import useProgress from "@/lib/useProgress";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { Printer, Mail } from "lucide-react";
 import { useRouter } from "next/router";
@@ -27,6 +28,7 @@ export default function StaffPage() {
   const [editingId, setEditingId] = useState(null);
   const [isSending, setIsSending] = useState(false);
   const [loadingStaffList, setLoadingStaffList] = useState(true);
+  const { progress, start, onFetch, onProcess, complete } = useProgress();
   const [locations, setLocations] = useState([]);
 
   const [formData, setFormData] = useState({
@@ -60,8 +62,11 @@ export default function StaffPage() {
 
   const fetchStaff = async () => {
     setLoadingStaffList(true);
+    start();
     try {
+      onFetch();
       const res = await axios.get("/api/staff");
+      onProcess();
       const staff = Array.isArray(res.data) ? res.data : res.data?.data || [];
       setStaffList(staff);
       calculateSalaries(staff);
@@ -69,6 +74,7 @@ export default function StaffPage() {
       console.error("API Error:", err.response?.data || err.message);
       setStaffList([]);
     } finally {
+      complete();
       setLoadingStaffList(false);
     }
   };
@@ -467,7 +473,7 @@ export default function StaffPage() {
 
             {loadingStaffList ? (
               <div className="flex justify-center items-center py-10">
-                <Loader size="md" text="Loading staff list..." />
+                <Loader size="md" text="Loading staff list..." progress={progress} />
               </div>
             ) : staffList.length === 0 ? (
               <p className="text-gray-500">No staff created yet.</p>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus, faSearch, faFilter, faCheckCircle, faClock, faTimes, faXmark, faBox, faArrowRight, faCalendar, faUser } from "@fortawesome/free-solid-svg-icons";
 import Loader from "@/components/Loader";
+import useProgress from "@/lib/useProgress";
 import { formatCurrency } from "@/lib/format";
 
 const reasons = [
@@ -26,6 +27,7 @@ export default function StockMovement() {
   const [status, setStatus] = useState("All Statuses");
   const [barcode, setBarcode] = useState("");
   const [loading, setLoading] = useState(true);
+  const { progress, start, onFetch, onProcess, complete } = useProgress();
   const [error, setError] = useState(null);
   const [selectedMovement, setSelectedMovement] = useState(null);
 
@@ -59,7 +61,9 @@ export default function StockMovement() {
     async function fetchStockMovements() {
       try {
         setLoading(true);
+        start();
         setError(null);
+        onFetch();
         const res = await fetch("/api/stock-movement/get");
         const data = await res.json();
 
@@ -86,6 +90,7 @@ export default function StockMovement() {
         }
 
         // Additional validation - ensure all items are objects
+        onProcess();
         if (!Array.isArray(movementsArray) || !movementsArray.every(item => typeof item === 'object' && item !== null)) {
           console.error("Data validation failed - not all items are valid objects");
           setError("Invalid data format received");
@@ -100,6 +105,7 @@ export default function StockMovement() {
         setError(err.message || "Failed to fetch stock movements");
         setMovements([]);
       } finally {
+        complete();
         setLoading(false);
       }
     }
@@ -181,7 +187,7 @@ export default function StockMovement() {
 
         {loading ? (
           <div className="content-card flex items-center justify-center min-h-96">
-            <Loader size="md" text="Loading stock movements..." />
+            <Loader size="md" text="Loading stock movements..." progress={progress} />
           </div>
         ) : (
           <>

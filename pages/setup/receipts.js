@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
+import useProgress from "@/lib/useProgress";
 
 export default function Receipts() {
   const [companyName, setCompanyName] = useState("");
@@ -25,6 +26,7 @@ export default function Receipts() {
   const [locations, setLocations] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState("");
   const [loading, setLoading] = useState(true);
+  const { progress, start, onFetch, onProcess, complete } = useProgress();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -38,9 +40,12 @@ export default function Receipts() {
   const fetchSetupData = async () => {
     try {
       setLoading(true);
+      start();
+      onFetch();
       const res = await fetch("/api/setup/get");
       const data = await res.json();
       
+      onProcess();
       if (data.store) {
         setCompanyName(data.store.companyName || "");
         setStoreName(data.store.storeName || "");
@@ -83,6 +88,7 @@ export default function Receipts() {
       console.error("Error fetching setup data:", err);
       setError("Failed to load receipt settings");
     } finally {
+      complete();
       setLoading(false);
     }
   };
@@ -162,7 +168,7 @@ export default function Receipts() {
     return (
       <Layout>
         <div className="min-h-screen flex items-center justify-center">
-          <Loader size="lg" text="Loading receipt settings..." />
+          <Loader size="lg" text="Loading receipt settings..." progress={progress} />
         </div>
       </Layout>
     );

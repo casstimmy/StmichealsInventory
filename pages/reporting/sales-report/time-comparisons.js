@@ -1,5 +1,6 @@
 import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
+import useProgress from "@/lib/useProgress";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -58,6 +59,7 @@ export default function TimeComparisons() {
   const [interval, setInterval] = useState("daily");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { progress, start, onFetch, onProcess, complete } = useProgress();
 
   useEffect(() => { fetchData(); }, [metric, dateRange1Start, dateRange1End, dateRange2Start, dateRange2End, interval]);
 
@@ -103,11 +105,14 @@ export default function TimeComparisons() {
   async function fetchData() {
     try {
       setLoading(true);
+      start();
+      onFetch();
       const res = await fetch("/api/transactions/transactions");
       const txRes = await res.json();
       if (!txRes.success || !txRes.transactions) { setData(null); setLoading(false); return; }
 
       const period1 = aggregateByInterval(txRes.transactions, dateRange1Start, dateRange1End, interval);
+      onProcess();
       const period2 = aggregateByInterval(txRes.transactions, dateRange2Start, dateRange2End, interval);
 
       const p1Total = period1.reduce((s, b) => s + (b[metric] || 0), 0);
@@ -117,7 +122,7 @@ export default function TimeComparisons() {
 
       setData({ period1, period2, p1Total, p2Total, diff, diffPercent });
     } catch (err) { console.error("Error fetching data:", err); }
-    finally { setLoading(false); }
+    finally { complete(); setLoading(false); }
   }
 
   const metricLabel = METRICS.find((m) => m.value === metric)?.label || metric;
@@ -237,7 +242,7 @@ export default function TimeComparisons() {
 
           {loading ? (
             <div className="content-card">
-              <Loader size="md" text="Loading comparison data..." />
+              <Loader size="md" text="Loading comparison data..." progress={progress} />
             </div>
           ) : data ? (
             <>

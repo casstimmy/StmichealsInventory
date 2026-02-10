@@ -2,12 +2,14 @@
 
 import Layout from "@/components/Layout";
 import { Loader } from "@/components/ui";
+import useProgress from "@/lib/useProgress";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { progress, start, onFetch, onProcess, complete } = useProgress();
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ name: "", email: "", phone: "", address: "", type: "REGULAR" });
   const [editing, setEditing] = useState(null);
@@ -22,13 +24,17 @@ export default function CustomersPage() {
   async function fetchCustomers() {
     try {
       setLoading(true);
+      start();
+      onFetch();
       const res = await fetch("/api/customers");
       const data = await res.json();
+      onProcess();
       setCustomers(data.customers || []);
     } catch (err) {
       console.error("Error fetching customers:", err);
       setError("Failed to load customers");
     } finally {
+      complete();
       setLoading(false);
     }
   }
@@ -96,7 +102,9 @@ export default function CustomersPage() {
   if (loading) {
     return (
       <Layout>
-        <Loader size="lg" text="Loading customers..." />
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader size="lg" text="Loading customers..." progress={progress} />
+        </div>
       </Layout>
     );
   }

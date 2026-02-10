@@ -1,5 +1,6 @@
 import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
+import useProgress from "@/lib/useProgress";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -21,6 +22,7 @@ export default function CategoriesSales() {
   const [categories, setCategories] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { progress, start, onFetch, onProcess, complete } = useProgress();
   const [timeRange, setTimeRange] = useState("last30");
   const [location, setLocation] = useState("All");
   const [device, setDevice] = useState("All");
@@ -65,6 +67,8 @@ export default function CategoriesSales() {
   async function fetchCategoryData() {
     try {
       setLoading(true);
+      start();
+      onFetch();
       const [transRes, prodRes, catRes] = await Promise.all([
         fetch("/api/transactions/transactions"),
         fetch("/api/products"),
@@ -74,6 +78,7 @@ export default function CategoriesSales() {
       const prodData = await prodRes.json();
       const catData = await catRes.json();
 
+      onProcess();
       let allTx = transData.transactions || [];
       const products = prodData.data || prodData || [];
       const catsRaw = catData.data || catData || [];
@@ -154,14 +159,14 @@ export default function CategoriesSales() {
       });
       setCategories(Object.values(catMap).sort((a, b) => b.sales - a.sales));
     } catch (err) { console.error(err); }
-    finally { setLoading(false); }
+    finally { complete(); setLoading(false); }
   }
 
   if (loading) return (
     <Layout>
       <div className="page-container">
         <div className="page-content">
-          <Loader size="lg" text="Loading category data..." />
+          <Loader size="lg" text="Loading category data..." progress={progress} />
         </div>
       </div>
     </Layout>

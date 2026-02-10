@@ -182,45 +182,9 @@ export function StatCard({ label, value, highlight = false, className = "" }) {
   );
 }
 
-// components/ui/Loader.js - Uses dynamic store logo with localStorage cache
-export function Loader({ size = "md", fullScreen = false, text = "Loading...", className = "" }) {
-  const sizeClass = {
-    sm: "h-12 w-12",
-    md: "h-20 w-20",
-    lg: "h-32 w-32",
-  }[size];
-
-  // Get cached logo from localStorage, fallback to default
-  const getLogoUrl = () => {
-    if (typeof window === "undefined") return "/images/st-micheals-logo.png";
-    return localStorage.getItem("_store_logo_url") || "/images/st-micheals-logo.png";
-  };
-
-  const loaderContent = (
-    <div className="flex flex-col items-center justify-center gap-4">
-      <div className={`${sizeClass}`} style={{ perspective: '1000px' }}>
-        <div className={`animate-spin-y ${sizeClass} ${className}`}>
-          <img 
-            src={getLogoUrl()} 
-            alt="Loading" 
-            className="w-full h-full rounded-full object-cover filter drop-shadow-lg"
-          />
-        </div>
-      </div>
-      {text && <p className="text-gray-600 font-medium text-center">{text}</p>}
-    </div>
-  );
-
-  if (fullScreen) {
-    return (
-      <div className="fixed inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50">
-        {loaderContent}
-      </div>
-    );
-  }
-
-  return loaderContent;
-}
+// components/ui/Loader.js - Re-export unified Loader with progress bar support
+// All pages now use the same Loader from @/components/Loader
+export { default as Loader } from "@/components/Loader";
 
 // components/ui/PageHeader.js
 export function PageHeader({ title, description, className = "" }) {

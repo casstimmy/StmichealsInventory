@@ -3,6 +3,7 @@
 import Layout from "@/components/Layout";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { Loader } from "@/components/ui";
+import useProgress from "@/lib/useProgress";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Line, Bar, Pie } from "react-chartjs-2";
@@ -37,6 +38,7 @@ export default function EndOfDayReporting() {
   const [summary, setSummary] = useState(null);
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { progress, start, onFetch, onProcess, complete } = useProgress();
   const [period, setPeriod] = useState("thisMonth");
   const [selectedLocation, setSelectedLocation] = useState("All");
   const [locations, setLocations] = useState([]);
@@ -50,11 +52,14 @@ export default function EndOfDayReporting() {
   async function fetchData() {
     try {
       setLoading(true);
+      start();
       const locationId = selectedLocation !== "All" ? locationMap[selectedLocation] : "";
       const locationParam = locationId ? `&locationId=${locationId}` : "";
+      onFetch();
       const res = await fetch(`/api/reporting/end-of-day-summary?period=${period}${locationParam}`);
       const data = await res.json();
 
+      onProcess();
       console.log(" EOD Report Data:", data); // Debug log
 
       if (data.success) {
@@ -81,6 +86,7 @@ export default function EndOfDayReporting() {
     } catch (err) {
       console.error(" Error fetching EOD data:", err);
     } finally {
+      complete();
       setLoading(false);
     }
   }
@@ -88,7 +94,9 @@ export default function EndOfDayReporting() {
   if (loading) {
     return (
       <Layout>
-        <Loader size="lg" text="Loading end of day report..." />
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader size="lg" text="Loading end of day report..." progress={progress} />
+        </div>
       </Layout>
     );
   }
@@ -166,9 +174,7 @@ export default function EndOfDayReporting() {
 
   return (
     <Layout>
-      {loading ? (
-        <Loader size="lg" text="Loading end of day report..." />
-      ) : (
+      {
         <div className="page-container">
         <div className="page-content">
           {/* Header */}
@@ -466,7 +472,7 @@ export default function EndOfDayReporting() {
           </div>
         </div>
       </div>
-      )}
+      }
     </Layout>
   );
 }

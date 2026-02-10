@@ -3,6 +3,7 @@ import { formatCurrency } from "@/lib/format";
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/router";
 import { Loader } from "@/components/ui";
+import useProgress from "@/lib/useProgress";
 
 export default function StockManagement() {
   const router = useRouter();
@@ -10,6 +11,7 @@ export default function StockManagement() {
   const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
+  const { progress, start, onFetch, onProcess, complete } = useProgress();
   const [error, setError] = useState(null);
   const [categoryMap, setCategoryMap] = useState({});
 
@@ -18,9 +20,11 @@ export default function StockManagement() {
     async function fetchData() {
       try {
         setLoading(true);
+        start();
         setError(null);
         
         // Use minimal mode for faster loading - only fetches essential fields
+        onFetch();
         const [productsRes, categoriesRes] = await Promise.all([
           fetch("/api/products?minimal=true"),
           fetch("/api/categories")
@@ -36,6 +40,7 @@ export default function StockManagement() {
           categoriesRes.json()
         ]);
 
+        onProcess();
         // Handle products
         const productList = productsData.data || productsData;
         setProducts(Array.isArray(productList) ? productList : []);
@@ -52,6 +57,7 @@ export default function StockManagement() {
         setError(error.message || "Failed to load data");
         setProducts([]);
       } finally {
+        complete();
         setLoading(false);
       }
     }
@@ -96,7 +102,7 @@ console.log("Filtered Items:", filteredItems);
 
         {loading ? (
           <div className="flex items-center justify-center h-64">
-            <Loader size="md" text="Loading stock data..." />
+            <Loader size="md" text="Loading stock data..." progress={progress} />
           </div>
         ) : (
           <>

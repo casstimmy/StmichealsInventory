@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
+import useProgress from "@/lib/useProgress";
 
 export default function LocationItemsManager() {
   const [locations, setLocations] = useState([]);
@@ -13,6 +14,7 @@ export default function LocationItemsManager() {
   const [locationTenders, setLocationTenders] = useState([]);
   const [locationCategories, setLocationCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { progress, start, onFetch, onProcess, complete } = useProgress();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -32,9 +34,11 @@ export default function LocationItemsManager() {
   const fetchInitialData = async () => {
     try {
       setLoading(true);
+      start();
       setError("");
 
       // Fetch store data with locations
+      onFetch();
       const storeRes = await fetch("/api/setup/setup");
       const storeData = await storeRes.json();
 
@@ -48,6 +52,7 @@ export default function LocationItemsManager() {
       }
 
       // Fetch all tenders
+      onProcess();
       const tendersRes = await fetch("/api/setup/tenders");
       const tendersData = await tendersRes.json();
       if (tendersData.success && tendersData.tenders) {
@@ -94,6 +99,7 @@ export default function LocationItemsManager() {
       console.error("Error fetching data:", err);
       setError("Failed to load initial data");
     } finally {
+      complete();
       setLoading(false);
     }
   };
@@ -329,7 +335,7 @@ export default function LocationItemsManager() {
     return (
       <Layout>
         <div className="min-h-screen flex items-center justify-center">
-          <Loader size="lg" text="Loading location items..." />
+          <Loader size="lg" text="Loading location items..." progress={progress} />
         </div>
       </Layout>
     );

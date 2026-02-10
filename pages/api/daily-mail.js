@@ -11,12 +11,12 @@ import { buildLocationCache, resolveLocationName } from "@/lib/serverLocationHel
 
 export default async function handler(req, res) {
   try {
-    // Auth check - Allow JWT or CRON_SECRET
+    // Auth check - Allow JWT, CRON_SECRET, or Vercel Cron
     if (process.env.NODE_ENV === "production") {
       const key = req.query.key;
       const auth = req.headers.authorization;
 
-      // Check for CRON_SECRET in query or header
+      // Vercel Cron sends Authorization: Bearer <CRON_SECRET>
       if (
         key === process.env.CRON_SECRET ||
         auth === `Bearer ${process.env.CRON_SECRET}`

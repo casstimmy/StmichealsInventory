@@ -308,9 +308,9 @@ function applyFilters() {
           <p className="page-subtitle">View and manage transaction records with advanced filtering</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 lg:items-stretch">
           {/* Calendar & Date Range Card */}
-          <div className="content-card h-fit">
+          <div className="content-card flex flex-col">
             <div className="mb-4">
               <div className="flex items-center justify-between mb-4">
                 <button
@@ -373,7 +373,7 @@ function applyFilters() {
             </button>
 
             {/* Date Range - same card */}
-            <div className="border-t border-gray-200 pt-4">
+            <div className="border-t border-gray-200 pt-4 mt-auto">
               <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
                 <span className="w-1 h-4 bg-sky-500 rounded"></span>
                 Date Range
@@ -408,7 +408,7 @@ function applyFilters() {
           </div>
 
           {/* Filters Panel */}
-          <div className="space-y-4">
+          <div className="flex flex-col space-y-4">
             {/* Location Filter */}
             <div className="content-card">
               <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
@@ -448,8 +448,8 @@ function applyFilters() {
               </select>
             </div>
 
-            {/* Filter Actions */}
-            <div className="flex gap-2">
+            {/* Filter Actions - pushed to bottom */}
+            <div className="flex gap-2 mt-auto pt-2">
               <button
                 onClick={() => {
                   setLocationFilter("");

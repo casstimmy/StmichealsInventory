@@ -5,15 +5,18 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { saveAs } from "file-saver";
 import { formatCurrency, formatNumber } from "@/lib/format";
+import { isInDateRange } from "@/lib/dateFilter";
 
 export default function CompletedTransactions() {
   const [transactions, setTransactions] = useState([]);
   const [allTransactions, setAllTransactions] = useState([]);
   const [expandedTxId, setExpandedTxId] = useState(null);
   const [locationFilter, setLocationFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("completed");
+  const [statusFilter, setStatusFilter] = useState("");
   const [locations, setLocations] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [showBarcode, setShowBarcode] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [loading, setLoading] = useState(true);
@@ -26,7 +29,7 @@ export default function CompletedTransactions() {
   // Apply filters when they change
   useEffect(() => {
     applyFilters();
-  }, [locationFilter, statusFilter, selectedDate, allTransactions]);
+  }, [locationFilter, statusFilter, selectedDate, startDate, endDate, allTransactions]);
 
 async function fetchTransactions() {
   try {
@@ -60,9 +63,13 @@ async function fetchTransactions() {
 function applyFilters() {
     let filtered = [...allTransactions];
 
-    // Filter by status
+    // Filter by status (voided is treated as refunded)
     if (statusFilter) {
-      filtered = filtered.filter((tx) => tx.status === statusFilter);
+      if (statusFilter === "refunded") {
+        filtered = filtered.filter((tx) => tx.status === "refunded" || tx.status === "voided");
+      } else {
+        filtered = filtered.filter((tx) => tx.status === statusFilter);
+      }
     }
 
     // Filter by location
@@ -70,7 +77,7 @@ function applyFilters() {
       filtered = filtered.filter((tx) => tx.location === locationFilter);
     }
 
-    // Filter by selected date
+    // Filter by selected date (calendar)
     if (selectedDate) {
       const target = new Date(selectedDate);
       const year = target.getFullYear();
@@ -87,8 +94,64 @@ function applyFilters() {
       });
     }
 
+    // Filter by date range
+    if (startDate && endDate) {
+      filtered = filtered.filter((tx) => isInDateRange(tx.createdAt, startDate, endDate));
+    } else if (startDate) {
+      filtered = filtered.filter((tx) => new Date(tx.createdAt) >= new Date(startDate));
+    } else if (endDate) {
+      filtered = filtered.filter((tx) => new Date(tx.createdAt) <= new Date(endDate + "T23:59:59"));
+    }
+
+    // Sort by newest first
+    filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
     setTransactions(filtered);
 }
+
+  // Get display status (voided → Refunded)
+  function getDisplayStatus(status) {
+    if (status === "voided") return "Refunded";
+    if (!status) return "Unknown";
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  }
+
+  function getStatusBadgeClass(status) {
+    switch (status) {
+      case "completed": return "bg-emerald-100 text-emerald-800";
+      case "held": return "bg-amber-100 text-amber-800";
+      case "refunded":
+      case "voided": return "bg-red-100 text-red-800";
+      case "edited": return "bg-blue-100 text-blue-800";
+      default: return "bg-gray-100 text-gray-800";
+    }
+  }
+
+  // Handle void held transaction
+  async function handleVoidTransaction(txId) {
+    if (!confirm("Are you sure you want to void this held transaction? It will be marked as refunded.")) return;
+    try {
+      const res = await fetch(`/api/transactions/${txId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "voided" }),
+      });
+      if (res.ok) {
+        setAllTransactions((prev) =>
+          prev.map((tx) => tx._id === txId ? { ...tx, status: "voided" } : tx)
+        );
+      }
+    } catch (err) {
+      console.error("Error voiding transaction:", err);
+    }
+  }
+
+  // Compute sales total excluding refunded/voided
+  function getSalesTotalExcludingRefunded(txList) {
+    return txList
+      .filter((tx) => tx.status !== "voided" && tx.status !== "refunded")
+      .reduce((sum, tx) => sum + (tx.total || 0), 0);
+  }
 
 
   const toggleDetails = (id) => {
@@ -303,6 +366,40 @@ function applyFilters() {
             </button>
           </div>
 
+          {/* Date Range Filter */}
+          <div className="content-card">
+            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
+              <span className="w-1 h-4 bg-sky-500 rounded"></span>
+              Date Range
+            </label>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Start Date</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => { setStartDate(e.target.value); setSelectedDate(null); }}
+                  className="form-input text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">End Date</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => { setEndDate(e.target.value); setSelectedDate(null); }}
+                  className="form-input text-sm"
+                />
+              </div>
+              <button
+                onClick={() => { setStartDate(""); setEndDate(""); }}
+                className="w-full text-xs font-medium text-cyan-600 hover:text-cyan-700 py-2 px-3 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Clear Date Range
+              </button>
+            </div>
+          </div>
+
           {/* Filters Panel */}
           <div className="lg:col-span-3 space-y-4">
             {/* Location Filter */}
@@ -340,6 +437,7 @@ function applyFilters() {
                 <option value="completed">Completed</option>
                 <option value="held">Held</option>
                 <option value="refunded">Refunded</option>
+                <option value="edited">Edited</option>
               </select>
             </div>
 
@@ -348,8 +446,10 @@ function applyFilters() {
               <button
                 onClick={() => {
                   setLocationFilter("");
-                  setStatusFilter("completed");
+                  setStatusFilter("");
                   setSelectedDate(null);
+                  setStartDate("");
+                  setEndDate("");
                 }}
                 className="flex-1 btn-action btn-action-secondary flex items-center justify-center gap-2"
               >
@@ -373,6 +473,10 @@ function applyFilters() {
               <p className="text-2xl font-bold text-cyan-600">
                 {formatNumber(transactions.length)}
                 <span className="text-sm font-normal text-gray-600 ml-2">transactions found</span>
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                Sales Total: <span className="font-semibold text-emerald-600">{formatCurrency(getSalesTotalExcludingRefunded(transactions))}</span>
+                <span className="text-xs text-gray-400 ml-1">(excl. refunded)</span>
               </p>
             </div>
             <div>
@@ -418,15 +522,12 @@ function applyFilters() {
                   <tr>
                     <th className="px-4 py-3 text-left font-semibold">Staff</th>
                     <th className="px-4 py-3 text-left font-semibold">Location</th>
-                    <th className="px-4 py-3 text-left font-semibold">Device</th>
                     <th className="px-4 py-3 text-left font-semibold">Date/Time</th>
                     <th className="px-4 py-3 text-left font-semibold">Customer</th>
-                    <th className="px-4 py-3 text-right font-semibold">Discount</th>
-                    <th className="px-4 py-3 text-left font-semibold">Reason</th>
+                    <th className="px-4 py-3 text-center font-semibold">Status</th>
                     <th className="px-4 py-3 text-right font-semibold">Total</th>
                     <th className="px-4 py-3 text-left font-semibold">Tender</th>
-                    <th className="px-4 py-3 text-right font-semibold">Change</th>
-                    <th className="px-4 py-3 text-center font-semibold">Items</th>
+                    <th className="px-4 py-3 text-center font-semibold">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -439,12 +540,16 @@ function applyFilters() {
                             {tx.location || "N/A"}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-gray-600">{tx.device || "Till 1"}</td>
                         <td className="px-4 py-3 text-gray-600 text-xs">{new Date(tx.createdAt).toLocaleString("en-NG")}</td>
                         <td className="px-4 py-3 text-gray-800">{tx.customerName || "Walk-in"}</td>
-                        <td className="px-4 py-3 text-right font-medium text-gray-800">{formatCurrency(tx.discount || 0)}</td>
-                        <td className="px-4 py-3 text-gray-600 text-xs">{tx.discountReason || "-"}</td>
-                        <td className="px-4 py-3 text-right font-bold text-cyan-600">{formatCurrency(tx.total || 0)}</td>
+                        <td className="px-4 py-3 text-center">
+                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadgeClass(tx.status)}`}>
+                            {getDisplayStatus(tx.status)}
+                          </span>
+                        </td>
+                        <td className={`px-4 py-3 text-right font-bold ${(tx.status === "voided" || tx.status === "refunded") ? "text-red-400 line-through" : "text-cyan-600"}`}>
+                          {formatCurrency(tx.total || 0)}
+                        </td>
                         <td className="px-4 py-3">
                           {(() => {
                             const tenderInfo = getTenderDisplay(tx);
@@ -466,19 +571,28 @@ function applyFilters() {
                             );
                           })()}
                         </td>
-                        <td className="px-4 py-3 text-right font-medium text-gray-800">{formatCurrency(tx.change || 0)}</td>
                         <td className="px-4 py-3 text-center">
-                          <button
-                            className="btn-action btn-action-success btn-sm"
-                            onClick={() => toggleDetails(tx._id)}
-                          >
-                            {expandedTxId === tx._id ? "Hide" : "Show"}
-                          </button>
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              className="btn-action btn-action-success btn-sm"
+                              onClick={() => toggleDetails(tx._id)}
+                            >
+                              {expandedTxId === tx._id ? "Hide" : "View"}
+                            </button>
+                            {tx.status === "held" && (
+                              <button
+                                className="btn-action btn-action-danger btn-sm"
+                                onClick={() => handleVoidTransaction(tx._id)}
+                              >
+                                Void
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                       {expandedTxId === tx._id && (
                         <tr className="bg-gray-100">
-                          <td colSpan={11} className="px-6 py-4">
+                          <td colSpan={8} className="px-6 py-4">
                             <div className="bg-white rounded-lg p-4 border border-gray-200">
                               <p className="text-sm font-semibold text-gray-700 mb-3">Order Items ({tx.items?.length || 0} items)</p>
                               <div className="overflow-x-auto">

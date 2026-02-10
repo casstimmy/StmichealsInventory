@@ -37,7 +37,7 @@ export default function EndOfDayReporting() {
   const [summary, setSummary] = useState(null);
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState("month");
+  const [period, setPeriod] = useState("thisMonth");
   const [selectedLocation, setSelectedLocation] = useState("All");
   const [locations, setLocations] = useState([]);
   const [locationMap, setLocationMap] = useState({}); // Map location names to IDs
@@ -353,7 +353,14 @@ export default function EndOfDayReporting() {
                   </tr>
                 </thead>
                 <tbody>
-                  {reports.slice(0, 20).map((report, idx) => (
+                  {reports.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-4 py-12 text-center text-gray-500">
+                        <p className="text-lg font-medium">No reports found</p>
+                        <p className="text-sm mt-1">Try adjusting your period or location filter</p>
+                      </td>
+                    </tr>
+                  ) : reports.slice(0, 20).map((report, idx) => (
                     <>
                       <tr
                         key={report._id || idx}

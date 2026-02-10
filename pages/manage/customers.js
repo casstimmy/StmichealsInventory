@@ -13,6 +13,7 @@ export default function CustomersPage() {
   const [editing, setEditing] = useState(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     fetchCustomers();
@@ -119,18 +120,35 @@ export default function CustomersPage() {
             </button>
           </div>
 
+          {/* Search Bar */}
+          <div className="content-card mb-6">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search by name, email, or phone..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="form-input w-full pl-10"
+              />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">🔍</span>
+            </div>
+            {searchQuery && (
+              <p className="text-sm text-gray-500 mt-2">
+                Found {customers.filter(c =>
+                  c.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  c.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  c.phone?.includes(searchQuery)
+                ).length} result(s)
+              </p>
+            )}
+          </div>
+
           {/* Navigation Links */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
             <Link href="/manage/customers">
               <div className="content-card hover:shadow-md cursor-pointer border-l-4 border-l-sky-600 transition-shadow">
                 <p className="font-bold text-gray-900 text-sm md:text-base">📋 Customers</p>
                 <p className="text-xs md:text-sm text-gray-600 mt-1">Manage all customers</p>
-              </div>
-            </Link>
-            <Link href="/manage/customer-search">
-              <div className="content-card hover:shadow-md cursor-pointer border-l-4 border-l-sky-600 transition-shadow">
-                <p className="font-bold text-gray-900 text-sm md:text-base">🔍 Customer Search</p>
-                <p className="text-xs md:text-sm text-gray-600 mt-1">Find customers quickly</p>
               </div>
             </Link>
             <Link href="/manage/campaigns">
@@ -232,7 +250,19 @@ export default function CustomersPage() {
                 <p className="empty-state-title">No customers found</p>
                 <p className="empty-state-description">Create one to get started!</p>
               </div>
-            ) : (
+            ) : (() => {
+              const filtered = customers.filter(c =>
+                !searchQuery ||
+                c.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                c.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                c.phone?.includes(searchQuery)
+              );
+              return filtered.length === 0 ? (
+                <div className="p-8 text-center">
+                  <p className="text-gray-500 text-lg font-medium">No customers match &quot;{searchQuery}&quot;</p>
+                  <p className="text-gray-400 text-sm mt-1">Try a different search term</p>
+                </div>
+              ) : (
               <table className="data-table">
                 <thead>
                   <tr>
@@ -245,7 +275,7 @@ export default function CustomersPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {customers.map((customer) => (
+                  {filtered.map((customer) => (
                     <tr key={customer._id}>
                       <td className="font-semibold text-gray-900">{customer.name}</td>
                       <td className="hidden sm:table-cell">{customer.email}</td>
@@ -280,7 +310,8 @@ export default function CustomersPage() {
                   ))}
                 </tbody>
               </table>
-            )}
+              );
+            })()}
         </div>
       </div>
       </div>

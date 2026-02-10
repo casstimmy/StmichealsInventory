@@ -1,13 +1,20 @@
 import Head from 'next/head';
 import '../styles/globals.css';
 import { useRouter } from 'next/router';
+import { useEffect } from 'react';
 import Layout from '@/components/Layout';
+import { fetchAndCacheLogo } from '@/lib/storeLogo';
 
 export default function App({
   Component,
   pageProps,
 }) {
   const router = useRouter();
+  
+  // Prime the store logo cache on first load
+  useEffect(() => {
+    fetchAndCacheLogo();
+  }, []);
   
   // Don't show layout on login and register pages
   const showLayout = !router.pathname.includes('/login') && !router.pathname.includes('/register');

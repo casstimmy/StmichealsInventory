@@ -124,25 +124,32 @@ export default function TimeComparisons() {
   const isCurrency = ["totalSales", "avgTransaction", "discounts", "refundValue", "netSales"].includes(metric);
   const fmt = (v) => (isCurrency ? formatCurrency(v) : formatNumber(v));
 
-  const chartData = data ? {
-    labels: data.period1.length >= data.period2.length
-      ? data.period1.map((_, i) => `Point ${i + 1}`)
-      : data.period2.map((_, i) => `Point ${i + 1}`),
-    datasets: [
-      {
-        label: `Period 1 (${dateRange1Start} to ${dateRange1End})`,
-        data: data.period1.map((b) => b[metric] || 0),
-        borderColor: "#0ea5e9", backgroundColor: "rgba(14,165,233,0.1)",
-        fill: true, tension: 0.4, pointRadius: 4,
-      },
-      {
-        label: `Period 2 (${dateRange2Start} to ${dateRange2End})`,
-        data: data.period2.map((b) => b[metric] || 0),
-        borderColor: "#8b5cf6", backgroundColor: "rgba(139,92,246,0.1)",
-        fill: true, tension: 0.4, pointRadius: 4,
-      },
-    ],
-  } : null;
+  const chartData = data ? (() => {
+    const maxLen = Math.max(data.period1.length, data.period2.length);
+    const labels = [];
+    for (let i = 0; i < maxLen; i++) {
+      const l1 = data.period1[i]?.label || "";
+      const l2 = data.period2[i]?.label || "";
+      labels.push(l1 && l2 ? `${l1} / ${l2}` : l1 || l2 || `Point ${i + 1}`);
+    }
+    return {
+      labels,
+      datasets: [
+        {
+          label: `Period 1 (${dateRange1Start} to ${dateRange1End})`,
+          data: data.period1.map((b) => b[metric] || 0),
+          borderColor: "#0ea5e9", backgroundColor: "rgba(14,165,233,0.1)",
+          fill: true, tension: 0.4, pointRadius: 4,
+        },
+        {
+          label: `Period 2 (${dateRange2Start} to ${dateRange2End})`,
+          data: data.period2.map((b) => b[metric] || 0),
+          borderColor: "#8b5cf6", backgroundColor: "rgba(139,92,246,0.1)",
+          fill: true, tension: 0.4, pointRadius: 4,
+        },
+      ],
+    };
+  })() : null;
 
   const maxLen = data ? Math.max(data.period1.length, data.period2.length) : 0;
   const comparisonRows = [];

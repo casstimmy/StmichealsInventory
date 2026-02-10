@@ -1,6 +1,7 @@
 import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
 import { formatCurrency, formatNumber } from "@/lib/format";
+import { isInTimeRange } from "@/lib/dateFilter";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Bar } from "react-chartjs-2";
@@ -33,20 +34,6 @@ export default function ProductsSales() {
   const [timeRange, setTimeRange] = useState("last7");
   const [loading, setLoading] = useState(true);
 
-  const getTimeRangeDays = (rangeKey) => {
-    const today = new Date();
-    const ranges = {
-      today: 0, yesterday: 1,
-      thisWeek: Math.floor((today.getDay() + 6) % 7),
-      thisMonth: today.getDate() - 1,
-      thisYear: Math.floor((today - new Date(today.getFullYear(), 0, 1)) / 86400000),
-      lastWeek: Math.floor((today.getDay() + 6) % 7) + 7,
-      lastMonth: 30, lastYear: 365,
-      last7: 7, last14: 14, last30: 30, last60: 60, last90: 90,
-    };
-    return ranges[rangeKey] || 7;
-  };
-
   useEffect(() => { fetchData(); }, [timeRange]);
 
   async function fetchData() {
@@ -56,11 +43,8 @@ export default function ProductsSales() {
       const txRes = await res.json();
       if (!txRes.success || !txRes.transactions) { setData(null); setLoading(false); return; }
 
-      const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - getTimeRangeDays(timeRange));
-
       const filteredTx = txRes.transactions.filter((tx) => {
-        return tx.status === "completed" && new Date(tx.createdAt) >= cutoffDate;
+        return tx.status === "completed" && isInTimeRange(tx.createdAt, timeRange);
       });
 
       const productMap = {};
@@ -68,7 +52,7 @@ export default function ProductsSales() {
         (tx.items || []).forEach((item) => {
           const name = item.name || "Unknown";
           if (!productMap[name]) productMap[name] = { name, totalSales: 0, unitsSold: 0 };
-          productMap[name].totalSales += (item.price || 0) * (item.qty || 0);
+          productMap[name].totalSales += (item.salePriceIncTax || item.price || 0) * (item.qty || 0);
           productMap[name].unitsSold += item.qty || 0;
         });
       });
@@ -136,8 +120,11 @@ export default function ProductsSales() {
                   <option value="last60">Last 60 days</option>
                   <option value="last90">Last 90 days</option>
                   <option value="thisWeek">This Week</option>
+                  <option value="lastWeek">Last Week</option>
                   <option value="thisMonth">This Month</option>
+                  <option value="lastMonth">Last Month</option>
                   <option value="thisYear">This Year</option>
+                  <option value="lastYear">Last Year</option>
                 </select>
               </div>
             </div>
@@ -189,7 +176,12 @@ export default function ProductsSales() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {data.products.map((prod, idx) => (
+                    {data.products.length === 0 ? (
+                      <tr><td colSpan={5} className="px-4 py-12 text-center text-gray-500">
+                        <p className="text-lg font-medium">No products found</p>
+                        <p className="text-sm mt-1">Try adjusting your time range filter</p>
+                      </td></tr>
+                    ) : data.products.map((prod, idx) => (
                       <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                         <td className="px-4 py-3 font-medium text-gray-800">#{idx + 1}</td>
                         <td className="px-4 py-3 font-medium text-gray-800">{prod.name}</td>

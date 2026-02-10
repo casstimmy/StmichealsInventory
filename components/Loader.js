@@ -1,15 +1,25 @@
 /**
  * Unified Loader Component - Consistent across all pages
- * Supports multiple variants and sizes
+ * Uses store logo from store data, cached permanently in localStorage
  */
+
+import { useState, useEffect } from "react";
+import { getCachedLogo, fetchAndCacheLogo } from "@/lib/storeLogo";
 
 export default function Loader({ 
   size = "md", 
   text = "Loading", 
   fullScreen = false,
   variant = "spin",
-  color = "sky"
+  color = "sky",
+  progress = null, // optional 0-100 for determinate progress
 }) {
+  const [logoUrl, setLogoUrl] = useState(getCachedLogo());
+
+  useEffect(() => {
+    fetchAndCacheLogo().then((url) => setLogoUrl(url));
+  }, []);
+
   // Size configurations - responsive to parent container
   const sizeClasses = {
     sm: "w-8 h-8 sm:w-10 sm:h-10",
@@ -24,13 +34,27 @@ export default function Loader({
       <div className={`${sizeClass}`} style={{ perspective: '1000px' }}>
         <div className={`animate-spin-y ${sizeClass}`}>
           <img 
-            src="/images/st-micheals-logo.png" 
+            src={logoUrl} 
             alt="Loading" 
             className="w-full h-full rounded-full object-cover filter drop-shadow-lg"
           />
         </div>
       </div>
       {text && <p className="text-gray-600 font-medium text-center">{text}</p>}
+      {progress !== null && (
+        <div className="w-48 sm:w-64">
+          <div className="flex justify-between text-xs text-gray-500 mb-1">
+            <span>Loading...</span>
+            <span>{Math.round(progress)}%</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div
+              className="bg-cyan-500 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 

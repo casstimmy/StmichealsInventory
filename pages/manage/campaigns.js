@@ -12,6 +12,9 @@ export default function CampaignsPage() {
     description: "",
     discount: 0,
     targetCustomers: "all",
+    targetCategories: "all",
+    targetProducts: "all",
+    targetLocations: "all",
     startDate: "",
     endDate: "",
   });
@@ -66,6 +69,9 @@ export default function CampaignsPage() {
       description: "",
       discount: 0,
       targetCustomers: "all",
+      targetCategories: "all",
+      targetProducts: "all",
+      targetLocations: "all",
       startDate: "",
       endDate: "",
     });
@@ -105,6 +111,9 @@ export default function CampaignsPage() {
                   description: "",
                   discount: 0,
                   targetCustomers: "all",
+                  targetCategories: "all",
+                  targetProducts: "all",
+                  targetLocations: "all",
                   startDate: "",
                   endDate: "",
                 });
@@ -142,15 +151,18 @@ export default function CampaignsPage() {
                   className="form-input"
                   required
                 />
-                <input
-                  type="number"
-                  placeholder="Discount (%)"
-                  value={formData.discount}
-                  onChange={(e) => setFormData({ ...formData, discount: parseFloat(e.target.value) })}
-                  className="form-input"
-                  min="0"
-                  max="100"
-                />
+                <div className="relative">
+                  <input
+                    type="number"
+                    placeholder="Discount"
+                    value={formData.discount}
+                    onChange={(e) => setFormData({ ...formData, discount: parseFloat(e.target.value) || 0 })}
+                    className="form-input pr-10"
+                    min="0"
+                    max="100"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 font-semibold text-lg">%</span>
+                </div>
                 <textarea
                   placeholder="Description"
                   value={formData.description}
@@ -158,17 +170,68 @@ export default function CampaignsPage() {
                   className="form-input md:col-span-2"
                   rows="3"
                 />
-                <select
-                  value={formData.targetCustomers}
-                  onChange={(e) => setFormData({ ...formData, targetCustomers: e.target.value })}
-                  className="form-select"
-                >
-                  <option value="all">All Customers</option>
-                  <option value="vip">VIP Customers</option>
-                  <option value="new">New Customers</option>
-                  <option value="inactive">Inactive Customers</option>
-                </select>
-                <div></div>
+
+                {/* Target Scope */}
+                <div className="md:col-span-2">
+                  <p className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    <span className="w-1 h-4 bg-sky-500 rounded"></span>
+                    Campaign Targets
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Target Customers</label>
+                  <select
+                    value={formData.targetCustomers}
+                    onChange={(e) => setFormData({ ...formData, targetCustomers: e.target.value })}
+                    className="form-select"
+                  >
+                    <option value="all">All Customers</option>
+                    <option value="vip">VIP Customers</option>
+                    <option value="new">New Customers</option>
+                    <option value="inactive">Inactive Customers</option>
+                    <option value="bulk_buyer">Bulk Buyers</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Target Categories</label>
+                  <select
+                    value={formData.targetCategories}
+                    onChange={(e) => setFormData({ ...formData, targetCategories: e.target.value })}
+                    className="form-select"
+                  >
+                    <option value="all">All Categories</option>
+                    <option value="electronics">Electronics</option>
+                    <option value="clothing">Clothing</option>
+                    <option value="food">Food & Beverages</option>
+                    <option value="accessories">Accessories</option>
+                    <option value="home">Home & Living</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Target Products</label>
+                  <select
+                    value={formData.targetProducts}
+                    onChange={(e) => setFormData({ ...formData, targetProducts: e.target.value })}
+                    className="form-select"
+                  >
+                    <option value="all">All Products</option>
+                    <option value="selected">Selected Products Only</option>
+                    <option value="new_arrivals">New Arrivals</option>
+                    <option value="clearance">Clearance Items</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Target Locations</label>
+                  <select
+                    value={formData.targetLocations}
+                    onChange={(e) => setFormData({ ...formData, targetLocations: e.target.value })}
+                    className="form-select"
+                  >
+                    <option value="all">All Locations</option>
+                    <option value="online">Online Only</option>
+                    <option value="instore">In-Store Only</option>
+                  </select>
+                </div>
                 <input
                   type="date"
                   value={formData.startDate}
@@ -199,8 +262,9 @@ export default function CampaignsPage() {
                         name: "",
                         description: "",
                         discount: 0,
-                        targetCustomers: "all",
-                        startDate: "",
+                        targetCustomers: "all",                        targetCategories: "all",
+                        targetProducts: "all",
+                        targetLocations: "all",                        startDate: "",
                         endDate: "",
                       });
                     }}
@@ -224,9 +288,16 @@ export default function CampaignsPage() {
                 <div key={campaign.id} className="content-card border-l-4 border-sky-600">
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">{campaign.name}</h3>
                   <p className="text-sm text-gray-600 mb-3">{campaign.description}</p>
+                  <div className="mb-3">
+                    <span className="inline-block bg-sky-100 text-sky-800 text-xl font-bold px-3 py-1 rounded-lg">
+                      {campaign.discount}% OFF
+                    </span>
+                  </div>
                   <div className="space-y-2 mb-4 text-sm">
-                    <p><span className="font-medium">Discount:</span> {campaign.discount}%</p>
-                    <p><span className="font-medium">Target:</span> {campaign.targetCustomers}</p>
+                    <p><span className="font-medium">Customers:</span> <span className="capitalize">{campaign.targetCustomers || "all"}</span></p>
+                    <p><span className="font-medium">Categories:</span> <span className="capitalize">{campaign.targetCategories || "all"}</span></p>
+                    <p><span className="font-medium">Products:</span> <span className="capitalize">{campaign.targetProducts || "all"}</span></p>
+                    <p><span className="font-medium">Locations:</span> <span className="capitalize">{campaign.targetLocations || "all"}</span></p>
                     <p><span className="font-medium">Period:</span> {campaign.startDate} to {campaign.endDate}</p>
                   </div>
                   <div className="flex gap-2 pt-4 border-t border-gray-200">

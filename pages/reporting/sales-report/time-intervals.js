@@ -1,6 +1,7 @@
 import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
 import { formatCurrency, formatNumber } from "@/lib/format";
+import { isInTimeRange } from "@/lib/dateFilter";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { saveAs } from "file-saver";
@@ -15,20 +16,6 @@ export default function TimeIntervals() {
   const [staff, setStaff] = useState("All");
   const [intervalType, setIntervalType] = useState("daily");
   const [loading, setLoading] = useState(true);
-
-  const getTimeRangeDays = (rangeKey) => {
-    const today = new Date();
-    const ranges = {
-      today: 0, yesterday: 1,
-      thisWeek: Math.floor((today.getDay() + 6) % 7),
-      thisMonth: today.getDate() - 1,
-      thisYear: Math.floor((today - new Date(today.getFullYear(), 0, 1)) / 86400000),
-      lastWeek: Math.floor((today.getDay() + 6) % 7) + 7,
-      lastMonth: 30, lastYear: 365,
-      last7: 7, last14: 14, last30: 30, last60: 60, last90: 90,
-    };
-    return ranges[rangeKey] || 7;
-  };
 
   useEffect(() => { fetchFilters(); }, []);
   useEffect(() => { if (allLocations.length >= 0) fetchData(); }, [timeRange, location, device, staff, intervalType]);
@@ -57,12 +44,8 @@ export default function TimeIntervals() {
       const txRes = await res.json();
       if (!txRes.success || !txRes.transactions) { setData(null); setLoading(false); return; }
 
-      const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - getTimeRangeDays(timeRange));
-
       const filteredTx = txRes.transactions.filter((tx) => {
-        const txDate = new Date(tx.createdAt);
-        return txDate >= cutoffDate
+        return isInTimeRange(tx.createdAt, timeRange)
           && (location === "All" || (tx.location || "online") === location)
           && (device === "All" || (tx.device || "POS") === device)
           && (staff === "All" || (tx.staff?.name || "Unknown") === staff);
@@ -235,6 +218,11 @@ export default function TimeIntervals() {
           {loading ? (
             <div className="content-card">
               <Loader size="md" text="Loading time interval data..." />
+            </div>
+          ) : tableData.length === 0 ? (
+            <div className="content-card text-center py-12">
+              <p className="text-lg font-medium text-gray-500">No interval data found</p>
+              <p className="text-sm text-gray-400 mt-1">Try adjusting your time range or filters</p>
             </div>
           ) : (
             <div className="data-table-container">

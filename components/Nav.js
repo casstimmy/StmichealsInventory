@@ -291,7 +291,6 @@ export default function Sidebar() {
                   { href: "/manage/orders", label: "Orders" },
                   { href: "/manage/staff", label: "Staff" },
                   { href: "/manage/customers", label: "Customers", indent: false },
-                  { href: "/manage/customer-search", label: "Customer Search", indent: true },
                   { href: "/manage/campaigns", label: "Campaigns", indent: true },
                 ])}
               </ul>
@@ -578,11 +577,6 @@ export default function Sidebar() {
                   <li onClick={closeMenu}>
                     <Link href="/manage/customers" className={`block px-8 py-3 text-sm transition-all ${pathname === "/manage/customers" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Customers
-                    </Link>
-                  </li>
-                  <li onClick={closeMenu}>
-                    <Link href="/manage/customer-search" className={`block px-12 py-3 text-sm transition-all ${pathname === "/manage/customer-search" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
-                      Customer Search
                     </Link>
                   </li>
                   <li onClick={closeMenu}>

@@ -1,6 +1,7 @@
 import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
 import { formatCurrency, formatNumber } from "@/lib/format";
+import { isInTimeRange } from "@/lib/dateFilter";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Pie, Bar } from "react-chartjs-2";
@@ -32,27 +33,12 @@ function MetricCard({ title, value, icon, color }) {
 export default function LocationsSales() {
   const [data, setData] = useState(null);
   const [allLocations, setAllLocations] = useState([]);
-  const [period, setPeriod] = useState("last7");
   const [timeRange, setTimeRange] = useState("last7");
   const [location, setLocation] = useState("All");
   const [loading, setLoading] = useState(true);
 
-  const getTimeRangeDays = (rangeKey) => {
-    const today = new Date();
-    const ranges = {
-      today: 0, yesterday: 1,
-      thisWeek: Math.floor((today.getDay() + 6) % 7),
-      thisMonth: today.getDate() - 1,
-      thisYear: Math.floor((today - new Date(today.getFullYear(), 0, 1)) / 86400000),
-      lastWeek: Math.floor((today.getDay() + 6) % 7) + 7,
-      lastMonth: 30, lastYear: 365,
-      last7: 7, last14: 14, last30: 30, last60: 60, last90: 90,
-    };
-    return ranges[rangeKey] || 7;
-  };
-
   useEffect(() => { fetchAllLocations(); }, []);
-  useEffect(() => { fetchData(); }, [period, timeRange, location]);
+  useEffect(() => { fetchData(); }, [timeRange, location]);
 
   async function fetchAllLocations() {
     try {
@@ -76,13 +62,10 @@ export default function LocationsSales() {
       const txRes = await res.json();
       if (!txRes.success || !txRes.transactions) { setData(null); setLoading(false); return; }
 
-      const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - getTimeRangeDays(timeRange));
-
       const filteredTx = txRes.transactions.filter((tx) => {
         const txDate = new Date(tx.createdAt);
         return tx.status === "completed"
-          && txDate >= cutoffDate
+          && isInTimeRange(tx.createdAt, timeRange)
           && (location === "All" || (tx.location || "online") === location);
       });
 
@@ -151,15 +134,7 @@ export default function LocationsSales() {
 
           {/* Filters */}
           <div className="content-card mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Period</label>
-                <select value={period} onChange={(e) => setPeriod(e.target.value)} className="form-select">
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                </select>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Show data from</label>
                 <select value={timeRange} onChange={(e) => setTimeRange(e.target.value)} className="form-select">
@@ -171,8 +146,11 @@ export default function LocationsSales() {
                   <option value="last60">Last 60 days</option>
                   <option value="last90">Last 90 days</option>
                   <option value="thisWeek">This Week</option>
+                  <option value="lastWeek">Last Week</option>
                   <option value="thisMonth">This Month</option>
+                  <option value="lastMonth">Last Month</option>
                   <option value="thisYear">This Year</option>
+                  <option value="lastYear">Last Year</option>
                 </select>
               </div>
               <div>
@@ -229,7 +207,12 @@ export default function LocationsSales() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {data.locations.map((loc, idx) => (
+                    {data.locations.length === 0 ? (
+                      <tr><td colSpan={6} className="px-4 py-12 text-center text-gray-500">
+                        <p className="text-lg font-medium">No location data found</p>
+                        <p className="text-sm mt-1">Try adjusting your filters</p>
+                      </td></tr>
+                    ) : data.locations.map((loc, idx) => (
                       <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                         <td className="px-4 py-3 font-medium text-gray-800">#{idx + 1}</td>
                         <td className="px-4 py-3 font-medium text-gray-800">{loc.name}</td>

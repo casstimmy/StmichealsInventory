@@ -20,13 +20,15 @@ const DEDUCTION_OPTIONS = [
   "Others",
 ];
 
+const THRESHOLD_RELIEF = 800000;
+
 const TAX_BANDS = [
-  { limit: 300000, rate: 0.07, label: "First ₦300,000" },
-  { limit: 300000, rate: 0.11, label: "Next ₦300,000" },
-  { limit: 500000, rate: 0.15, label: "Next ₦500,000" },
-  { limit: 500000, rate: 0.19, label: "Next ₦500,000" },
-  { limit: 1600000, rate: 0.21, label: "Next ₦1,600,000" },
-  { limit: Infinity, rate: 0.24, label: "Above ₦3,200,000" },
+  { limit: 800000, rate: 0.0, label: "First ₦800,000" },
+  { limit: 2200000, rate: 0.15, label: "Next ₦2,200,000" },
+  { limit: 7000000, rate: 0.18, label: "Next ₦7,000,000" },
+  { limit: 15000000, rate: 0.21, label: "Next ₦15,000,000" },
+  { limit: 25000000, rate: 0.23, label: "Next ₦25,000,000" },
+  { limit: Infinity, rate: 0.25, label: "Above ₦50,000,000" },
 ];
 
 export default function PersonalTaxCalculator() {
@@ -62,9 +64,15 @@ export default function PersonalTaxCalculator() {
     const totalOtherDeductions =
       deductions.reduce((sum, d) => sum + d.amount, 0) * multiplier;
 
+    // Step 1: Deduct ₦800,000 threshold relief first (NTA 2025)
+    const afterThreshold = Math.max(0, gross - THRESHOLD_RELIEF);
+
+    // Step 2: CRA (calculated on original gross income)
     const onePercent = gross * 0.01;
     const cra = Math.max(200000, onePercent) + gross * 0.2;
-    const taxableIncome = Math.max(0, gross - pensionDeduction - totalOtherDeductions - cra);
+
+    // Step 3: Taxable income after all deductions
+    const taxableIncome = Math.max(0, afterThreshold - pensionDeduction - totalOtherDeductions - cra);
 
     let remaining = taxableIncome;
     let tax = 0;
@@ -87,6 +95,7 @@ export default function PersonalTaxCalculator() {
     setResult({
       mode,
       gross,
+      thresholdRelief: THRESHOLD_RELIEF,
       pension: pensionDeduction,
       other: totalOtherDeductions,
       cra,
@@ -119,7 +128,7 @@ export default function PersonalTaxCalculator() {
               Personal Tax Calculator
             </h1>
             <p className="page-subtitle max-w-2xl">
-              Calculate your estimated personal income tax in accordance with Nigeria&apos;s Finance Act.
+              Calculate your estimated personal income tax in accordance with Nigeria&apos;s Tax Act (NTA) 2025.
             </p>
           </div>
 
@@ -290,7 +299,7 @@ export default function PersonalTaxCalculator() {
                 <div className="bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200 rounded-xl p-6 shadow-sm hover:shadow-lg transition-all">
                   <p className="text-sm font-medium text-gray-600 mb-1">Total Deductions</p>
                   <p className="text-xl sm:text-2xl font-bold text-gray-900">
-                    {formatCurrencyValue(result.pension + result.other + result.cra)}
+                    {formatCurrencyValue(result.thresholdRelief + result.pension + result.other + result.cra)}
                   </p>
                 </div>
                 <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 rounded-xl p-6 shadow-sm hover:shadow-lg transition-all">
@@ -319,6 +328,10 @@ export default function PersonalTaxCalculator() {
                 <div className="content-card">
                   <div className="space-y-3">
                     <div className="flex justify-between items-center py-2">
+                      <span className="text-sm text-gray-700">Threshold Relief (NTA 2025)</span>
+                      <span className="text-sm font-semibold text-gray-900 font-mono">{formatCurrencyValue(result.thresholdRelief)}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2">
                       <span className="text-sm text-gray-700">Pension Contribution</span>
                       <span className="text-sm font-semibold text-gray-900 font-mono">{formatCurrencyValue(result.pension)}</span>
                     </div>
@@ -332,7 +345,7 @@ export default function PersonalTaxCalculator() {
                     </div>
                     <div className="flex justify-between items-center py-2 border-t-2 border-gray-200 font-bold">
                       <span className="text-sm text-gray-900">Total Deductions</span>
-                      <span className="text-sm text-gray-900 font-mono">{formatCurrencyValue(result.pension + result.other + result.cra)}</span>
+                      <span className="text-sm text-gray-900 font-mono">{formatCurrencyValue(result.thresholdRelief + result.pension + result.other + result.cra)}</span>
                     </div>
                   </div>
                 </div>
@@ -389,7 +402,11 @@ export default function PersonalTaxCalculator() {
                         <span className="text-sm font-semibold text-gray-900 font-mono">{formatCurrencyValue(result.gross)}</span>
                       </div>
                       <div className="flex justify-between py-2">
-                        <span className="text-sm text-gray-600">Total Deductions</span>
+                        <span className="text-sm text-gray-600">Threshold Relief (₦800K)</span>
+                        <span className="text-sm font-semibold text-red-600 font-mono">-{formatCurrencyValue(result.thresholdRelief)}</span>
+                      </div>
+                      <div className="flex justify-between py-2">
+                        <span className="text-sm text-gray-600">Other Deductions + CRA</span>
                         <span className="text-sm font-semibold text-red-600 font-mono">-{formatCurrencyValue(result.pension + result.other + result.cra)}</span>
                       </div>
                       <div className="flex justify-between py-2 border-t border-gray-200">
@@ -418,7 +435,7 @@ export default function PersonalTaxCalculator() {
               {/* Disclaimer */}
               <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
                 <p className="text-xs text-gray-900 font-medium">
-                  <strong>Disclaimer:</strong> This calculation is based on Nigeria&apos;s Finance Act personal income tax bands. Actual tax liability may vary based on specific circumstances, additional reliefs, and the latest tax regulations. Consult a qualified tax professional for personalized advice.
+                  <strong>Disclaimer:</strong> This calculation is based on Nigeria&apos;s Tax Act (NTA) 2025 personal income tax provisions, including the ₦800,000 threshold relief and updated graduated rates. Actual tax liability may vary based on specific circumstances, additional reliefs, and the latest tax regulations. Consult a qualified tax professional for personalized advice.
                 </p>
               </div>
             </>

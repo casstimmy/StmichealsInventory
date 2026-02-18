@@ -650,6 +650,46 @@ export default function Sidebar() {
                       End of Day Reports
                     </Link>
                   </li>
+                  <li onClick={closeMenu}>
+                    <Link href="/reporting/transaction-report" className={`block px-8 py-3 text-sm transition-all ${pathname === "/reporting/transaction-report" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                      Transaction Reports
+                    </Link>
+                  </li>
+                  <li onClick={closeMenu}>
+                    <Link href="/reporting/transaction-report/completed-transactions" className={`block px-10 py-3 text-sm transition-all ${pathname === "/reporting/transaction-report/completed-transactions" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                      Completed Transactions
+                    </Link>
+                  </li>
+                  <li onClick={closeMenu}>
+                    <Link href="/reporting/sales-report/time-intervals" className={`block px-10 py-3 text-sm transition-all ${pathname === "/reporting/sales-report/time-intervals" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                      Time Intervals
+                    </Link>
+                  </li>
+                  <li onClick={closeMenu}>
+                    <Link href="/reporting/sales-report/time-comparisons" className={`block px-10 py-3 text-sm transition-all ${pathname === "/reporting/sales-report/time-comparisons" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                      Time Comparisons
+                    </Link>
+                  </li>
+                  <li onClick={closeMenu}>
+                    <Link href="/reporting/sales-report/products" className={`block px-10 py-3 text-sm transition-all ${pathname === "/reporting/sales-report/products" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                      Sales by Product
+                    </Link>
+                  </li>
+                  <li onClick={closeMenu}>
+                    <Link href="/reporting/sales-report/employees" className={`block px-10 py-3 text-sm transition-all ${pathname === "/reporting/sales-report/employees" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                      Employees
+                    </Link>
+                  </li>
+                  <li onClick={closeMenu}>
+                    <Link href="/reporting/sales-report/locations" className={`block px-10 py-3 text-sm transition-all ${pathname === "/reporting/sales-report/locations" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                      Locations
+                    </Link>
+                  </li>
+                  <li onClick={closeMenu}>
+                    <Link href="/reporting/sales-report/categories" className={`block px-10 py-3 text-sm transition-all ${pathname === "/reporting/sales-report/categories" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                      Categories
+                    </Link>
+                  </li>
                 </ul>
               )}
             </li>

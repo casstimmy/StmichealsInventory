@@ -395,11 +395,17 @@ export default function Home() {
 
             {/* Charts */}
             <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-              <ChartCard title="Sales by Product">
+              <ChartCard
+                title="Sales by Product"
+                onViewMore={() => router.push("/reporting/reporting")}
+              >
                 <Bar data={salesByProductData} />
               </ChartCard>
 
-              <ChartCard title="Expenses Breakdown">
+              <ChartCard
+                title="Expenses Breakdown"
+                onViewMore={() => router.push("/expenses/analysis")}
+              >
                 <Bar data={expenseChart} />
               </ChartCard>
             </section>
@@ -449,10 +455,21 @@ function KpiCard({ label, value }) {
   );
 }
 
-function ChartCard({ title, children }) {
+function ChartCard({ title, children, onViewMore }) {
   return (
     <div className="content-card">
-      <h2 className="font-semibold mb-3 text-sm md:text-base text-gray-900">{title}</h2>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h2 className="font-semibold text-sm md:text-base text-gray-900">{title}</h2>
+        {onViewMore && (
+          <button
+            type="button"
+            className="btn-action-secondary !py-1.5 !px-3 text-xs"
+            onClick={onViewMore}
+          >
+            View More
+          </button>
+        )}
+      </div>
       <div className="h-[200px] sm:h-[250px] md:h-[300px] overflow-hidden">
         {children}
       </div>

@@ -10,6 +10,8 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import useSWR, { mutate } from "swr";
 import { useIndexedDBCache, clearCache } from "@/lib/useIndexedDBCache";
+import { getCachedCategories } from "@/lib/categoriesCache";
+import { calculateMarginPercent, calculateSalePriceIncTax } from "@/lib/pricing";
 
 const entriesPerPageDefault = 20;
 
@@ -35,13 +37,6 @@ export default function Products() {
     "products_cache",
     () => fetcher("/api/products"),
     30 // 30 minutes TTL
-  );
-
-  // Categories: IndexedDB cache with 4-hour TTL (rarely changes)
-  const { data: cachedCategories, refresh: refreshCategories } = useIndexedDBCache(
-    "categories_cache",
-    () => fetcher("/api/categories"),
-    240 // 4 hours TTL
   );
 
   // SWR for background sync with minimal disruption
@@ -93,15 +88,37 @@ export default function Products() {
     setIsInitializing(false);
   }, [cachedProducts]);
 
-  // categories -> map
+  const loadCategories = useCallback(async () => {
+    try {
+      const catList = await getCachedCategories();
+      const map = (Array.isArray(catList) ? catList : []).reduce((acc, c) => {
+        acc[c._id] = c.name;
+        return acc;
+      }, {});
+      setCategoryMap(map);
+    } catch {
+      setCategoryMap({});
+    }
+  }, []);
+
   useEffect(() => {
-    const catList = Array.isArray(cachedCategories) ? cachedCategories : cachedCategories?.data || [];
-    const map = (catList || []).reduce((acc, c) => {
-      acc[c._id] = c.name;
-      return acc;
-    }, {});
-    setCategoryMap(map);
-  }, [cachedCategories]);
+    loadCategories();
+  }, [loadCategories]);
+
+  useEffect(() => {
+    const onFocus = () => loadCategories();
+    const onStorage = (event) => {
+      if (event.key === "categories_cache_version") {
+        loadCategories();
+      }
+    };
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [loadCategories]);
 
   // Keep highlightedId in sessionStorage so it's preserved when navigating away & back
   useEffect(() => {
@@ -124,8 +141,9 @@ export default function Products() {
       await clearCache("products_cache");
       await refreshProducts();
       mutate("/api/products");
+      await loadCategories();
     })();
-  }, [refreshProducts]);
+  }, [refreshProducts, loadCategories]);
 
   // Debounced search over the cached allProducts (safe - products array guarded)
   const debouncedFilter = useCallback(
@@ -180,11 +198,16 @@ export default function Products() {
     setEditableProduct((prev) => {
       const newValue = type === "checkbox" ? checked : value;
       const updated = { ...prev, [name]: newValue };
+      const cost = parseFloat(updated.costPrice || 0);
+      const margin = parseFloat(updated.margin || 0);
+      const tax = parseFloat(updated.taxRate || 0);
+      const sale = parseFloat(updated.salePriceIncTax || 0);
+
       if (["costPrice", "margin", "taxRate"].includes(name)) {
-        const cost = parseFloat(updated.costPrice || 0);
-        const margin = parseFloat(updated.margin || 0);
-        const tax = parseFloat(updated.taxRate || 0);
-        updated.salePriceIncTax = calculateSalePrice(cost, margin, tax);
+        updated.salePriceIncTax = calculateSalePriceIncTax(cost, margin, tax, true).toFixed(2);
+      }
+      if (name === "salePriceIncTax") {
+        updated.margin = calculateMarginPercent(cost, sale, tax, true).toFixed(2);
       }
       return updated;
     });
@@ -210,6 +233,7 @@ export default function Products() {
 
       // revalidate SWR cache for /api/products
       mutate("/api/products");
+      await loadCategories();
 
       // close edit mode & highlight the updated product
       setEditIndex(null);
@@ -239,6 +263,7 @@ export default function Products() {
       await refreshProducts();
       
       mutate("/api/products");
+      await loadCategories();
       if (highlightedId === _id) setHighlightedId(null);
     } catch (err) {
       console.error("delete failed", err);
@@ -255,9 +280,6 @@ export default function Products() {
       updated[i][key] = value;
       return updated;
     });
-
-  const calculateSalePrice = (cost, margin, tax) =>
-    (cost * (1 + margin / 100) * (1 + tax / 100)).toFixed(2);
 
   const formatCurrency = (num) => formatCurrencyValue(num || 0);
 
@@ -312,7 +334,10 @@ export default function Products() {
           <h1 className="page-title">Products</h1>
           <div className="flex gap-2 flex-wrap">
             <button
-              onClick={refreshProducts}
+              onClick={async () => {
+                await refreshProducts();
+                await loadCategories();
+              }}
               className="btn-action-secondary flex items-center gap-2"
               title="Refresh products from server"
             >
@@ -451,6 +476,7 @@ export default function Products() {
                             name="costPrice"
                             value={editableProduct.costPrice || ""}
                             onChange={handleChange}
+                            onWheel={(e) => e.currentTarget.blur()}
                             type="number"
                             className="w-16 md:w-20 border p-1 rounded text-xs"
                           />
@@ -465,6 +491,7 @@ export default function Products() {
                             name="taxRate"
                             value={editableProduct.taxRate || ""}
                             onChange={handleChange}
+                            onWheel={(e) => e.currentTarget.blur()}
                             type="number"
                             className="w-14 md:w-16 border p-1 rounded text-xs"
                           />
@@ -479,6 +506,7 @@ export default function Products() {
                             name="salePriceIncTax"
                             value={editableProduct.salePriceIncTax || ""}
                             onChange={handleChange}
+                            onWheel={(e) => e.currentTarget.blur()}
                             type="number"
                             className="w-16 md:w-20 border p-1 rounded text-xs"
                           />
@@ -487,7 +515,20 @@ export default function Products() {
                         )}
                       </td>
 
-                      <td className="p-2 hidden sm:table-cell text-xs">{p.margin}</td>
+                      <td className="p-2 hidden sm:table-cell text-xs">
+                        {editIndex === realIndex ? (
+                          <input
+                            name="margin"
+                            value={editableProduct.margin || ""}
+                            onChange={handleChange}
+                            onWheel={(e) => e.currentTarget.blur()}
+                            type="number"
+                            className="w-14 md:w-16 border p-1 rounded text-xs"
+                          />
+                        ) : (
+                          p.margin
+                        )}
+                      </td>
                       <td className="p-2 hidden lg:table-cell text-xs">{p.barcode}</td>
 
                       <td className="p-2 hidden lg:table-cell text-gray-600 text-xs">

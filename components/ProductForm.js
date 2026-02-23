@@ -7,6 +7,11 @@ import Loader from "./Loader";
 import useProgress from "@/lib/useProgress";
 import { formatCurrency } from "@/lib/format";
 import { getCachedCategories } from "@/lib/categoriesCache";
+import {
+  calculateMarginPercent,
+  calculateProfit,
+  calculateSalePriceIncTax,
+} from "@/lib/pricing";
 
 function toDateInputValue(v) {
   if (!v) return "";
@@ -46,13 +51,23 @@ export default function ProductForm(props) {
   const [promoEnd, setPromoEnd] = useState(toDateInputValue(props.promoEnd));
   const [expiryDate, setExpiryDate] = useState(toDateInputValue(props.expiryDate || ""));
 
-  const [loading, setLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const { start, onFetch, onProcess, complete } = useProgress();
+  const {
+    progress: saveProgress,
+    start: startSave,
+    onFetch: onSaveFetch,
+    onProcess: onSaveProcess,
+    complete: completeSave,
+    reset: resetSave,
+  } = useProgress();
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [goToProducts, setGoToProducts] = useState(false);
   const [applyTax, setApplyTax] = useState(true);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   // Sync props to state if they change
   useEffect(() => {
@@ -108,20 +123,20 @@ export default function ProductForm(props) {
     const mg = Number(margin) || 0;
     const sp = Number(salePriceIncTax) || 0;
 
-    const base = applyTax ? cp * (1 + tr / 100) : cp;
-
     if (document.activeElement?.name === "margin") {
-      setSalePriceIncTax((base + (mg / 100) * cp).toFixed(2));
+      setSalePriceIncTax(
+        calculateSalePriceIncTax(cp, mg, tr, applyTax).toFixed(2)
+      );
     }
 
     if (document.activeElement?.name === "salePrice") {
-      if (sp === 0) setMargin("0.00");
-      else if (cp === 0) setMargin("100.00");
-      else setMargin((((sp - cp) / cp) * 100).toFixed(2));
+      setMargin(calculateMarginPercent(cp, sp, tr, applyTax).toFixed(2));
     }
 
     if (["costPrice", "taxRate"].includes(document.activeElement?.name)) {
-      setSalePriceIncTax((base + (mg / 100) * cp).toFixed(2));
+      setSalePriceIncTax(
+        calculateSalePriceIncTax(cp, mg, tr, applyTax).toFixed(2)
+      );
     }
   }, [costPrice, taxRate, margin, salePriceIncTax, applyTax]);
 
@@ -129,11 +144,10 @@ export default function ProductForm(props) {
   const { profit, margin: calcMargin } = (() => {
     const cp = Number(costPrice) || 0;
     const sp = Number(effectivePrice) || 0;
-    if (sp === 0) return { profit: 0, margin: 0 };
-    if (cp === 0) return { profit: sp.toFixed(2), margin: "100.00" };
+    if (sp === 0) return { profit: 0, margin: "0.00" };
     return {
-      profit: (sp - cp).toFixed(2),
-      margin: (((sp - cp) / cp) * 100).toFixed(2),
+      profit: calculateProfit(cp, sp, taxRate, applyTax).toFixed(2),
+      margin: calculateMarginPercent(cp, sp, taxRate, applyTax).toFixed(2),
     };
   })();
 
@@ -150,12 +164,23 @@ export default function ProductForm(props) {
   async function saveProduct(e) {
     e.preventDefault();
     setErrorMessage("");
+    setFieldErrors({});
 
-    const hasCostPrice =
-      costPrice !== "" && costPrice !== null && costPrice !== undefined;
+    const nextErrors = {};
+    if (!String(name || "").trim()) nextErrors.name = "Name is required.";
+    if (!String(description || "").trim()) {
+      nextErrors.description = "Description is required.";
+    }
+    if (costPrice === "" || costPrice === null || costPrice === undefined) {
+      nextErrors.costPrice = "Cost price is required.";
+    }
+    if (!String(category || "").trim()) {
+      nextErrors.category = "Category is required.";
+    }
 
-    if (!name || !description || !hasCostPrice || !category) {
-      setErrorMessage("Please fill in all required fields.");
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors);
+      setErrorMessage("Please fill the required fields highlighted in red.");
       return;
     }
 
@@ -179,6 +204,10 @@ export default function ProductForm(props) {
     };
 
     try {
+      setIsSaving(true);
+      startSave();
+      onSaveFetch();
+
       let savedId = props._id || null;
       if (props._id) {
         const res = await axios.put("/api/products", { ...data, _id: props._id });
@@ -189,14 +218,30 @@ export default function ProductForm(props) {
         savedId = res?.data?.data?._id || null;
         setSuccessMessage("Product added successfully!");
       }
+      onSaveProcess();
       if (typeof window !== "undefined") {
         sessionStorage.setItem("products:refresh", "1");
         if (savedId) sessionStorage.setItem("products:highlight", String(savedId));
       }
+      completeSave();
       setGoToProducts(true);
     } catch (err) {
       console.error(err);
-      setErrorMessage("Failed to save product. Try again.");
+      completeSave();
+      if (!err?.response) {
+        setErrorMessage("Could not save product. Check your network and try again.");
+      } else {
+        const apiMessage =
+          err?.response?.data?.message ||
+          err?.response?.data?.error ||
+          "Failed to save product. Please try again.";
+        setErrorMessage(apiMessage);
+      }
+    } finally {
+      setTimeout(() => {
+        resetSave();
+      }, 250);
+      setIsSaving(false);
     }
   }
 
@@ -207,8 +252,20 @@ export default function ProductForm(props) {
   return (
     <form
       onSubmit={saveProduct}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && e.target?.tagName !== "TEXTAREA") {
+          e.preventDefault();
+        }
+      }}
       className="page-container !p-0"
     >
+      {isSaving && (
+        <Loader
+          fullScreen
+          text="Saving product..."
+          progress={saveProgress}
+        />
+      )}
       <div className="content-card">
       <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-6 text-gray-800">
         {props._id ? "Edit Product" : "Add New Product"}
@@ -217,14 +274,31 @@ export default function ProductForm(props) {
       {/* Basic Info */}
       <Section title="Basic Information">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <InputField label="Name" value={name} setValue={setName} required />
+          <InputField
+            label="Name"
+            value={name}
+            setValue={(v) => {
+              setName(v);
+              if (fieldErrors.name) {
+                setFieldErrors((prev) => ({ ...prev, name: null }));
+              }
+            }}
+            required
+            error={fieldErrors.name}
+          />
           <InputField label="Barcode" value={barcode} setValue={setBarcode} />
         </div>
         <InputField
           label="Description"
           value={description}
-          setValue={setDescription}
+          setValue={(v) => {
+            setDescription(v);
+            if (fieldErrors.description) {
+              setFieldErrors((prev) => ({ ...prev, description: null }));
+            }
+          }}
           textarea
+          error={fieldErrors.description}
         />
 
         {/* Category Select */}
@@ -233,9 +307,16 @@ export default function ProductForm(props) {
             Category
           </label>
           <select
-            className="form-select"
+            className={`form-select ${
+              fieldErrors.category ? "border-red-500 ring-1 ring-red-200" : ""
+            }`}
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            onChange={(e) => {
+              setCategory(e.target.value);
+              if (fieldErrors.category) {
+                setFieldErrors((prev) => ({ ...prev, category: null }));
+              }
+            }}
           >
             {categoriesLoading && (
               <option value="" disabled>
@@ -249,6 +330,9 @@ export default function ProductForm(props) {
               </option>
             ))}
           </select>
+          {fieldErrors.category && (
+            <p className="mt-1 text-xs text-red-600">{fieldErrors.category}</p>
+          )}
         </div>
       </Section>
 
@@ -260,8 +344,14 @@ export default function ProductForm(props) {
             name="costPrice"
             type="number"
             value={costPrice}
-            setValue={setCostPrice}
+            setValue={(v) => {
+              setCostPrice(v);
+              if (fieldErrors.costPrice) {
+                setFieldErrors((prev) => ({ ...prev, costPrice: null }));
+              }
+            }}
             required
+            error={fieldErrors.costPrice}
           />
           <div className="form-group">
             <label className="form-label">
@@ -282,7 +372,17 @@ export default function ProductForm(props) {
                 <input
                   type="checkbox"
                   checked={applyTax}
-                  onChange={(e) => setApplyTax(e.target.checked)}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setApplyTax(checked);
+                    const nextMargin = calculateMarginPercent(
+                      costPrice,
+                      salePriceIncTax,
+                      taxRate,
+                      checked
+                    );
+                    setMargin(nextMargin.toFixed(2));
+                  }}
                 />{" "}
                 Apply
               </label>
@@ -422,7 +522,7 @@ export default function ProductForm(props) {
               onChange={async (e) => {
                 const files = e.target.files;
                 if (!files?.length) return;
-                setLoading(true);
+                setIsUploading(true);
                 const formData = new FormData();
                 for (const f of files) formData.append("file", f);
                 const previews = Array.from(files).map((f) => ({
@@ -441,7 +541,7 @@ export default function ProductForm(props) {
                 } catch {
                   setImages((prev) => prev.filter((img) => !img.isTemp));
                 } finally {
-                  setLoading(false);
+                  setIsUploading(false);
                 }
               }}
               className="hidden"
@@ -468,7 +568,7 @@ export default function ProductForm(props) {
             </div>
           ))}
 
-          {loading && (
+          {isUploading && (
             <div className="w-24 h-24 md:w-28 md:h-28 flex items-center justify-center">
               <Loader />
             </div>
@@ -488,11 +588,11 @@ export default function ProductForm(props) {
         <button
           type="submit"
           className={`btn-action-primary w-full sm:w-auto ${
-            loading ? "opacity-50 cursor-not-allowed" : ""
+            isSaving || isUploading ? "opacity-50 cursor-not-allowed" : ""
           }`}
-          disabled={loading}
+          disabled={isSaving || isUploading}
         >
-          {loading ? "Saving..." : "Save Product"}
+          {isSaving ? `Saving... ${Math.round(saveProgress)}%` : "Save Product"}
         </button>
       </div>
 
@@ -514,6 +614,7 @@ function InputField({
   type = "text",
   textarea,
   required,
+  error,
 }) {
   return (
     <div className="form-group">
@@ -521,7 +622,9 @@ function InputField({
       {textarea ? (
         <textarea
           name={name}
-          className="form-input min-h-[80px]"
+          className={`form-input min-h-[80px] ${
+            error ? "border-red-500 ring-1 ring-red-200" : ""
+          }`}
           value={value}
           onChange={(e) => setValue(e.target.value)}
           required={required}
@@ -530,12 +633,14 @@ function InputField({
         <input
           name={name}
           type={type}
-          className="form-input"
+          className={`form-input ${error ? "border-red-500 ring-1 ring-red-200" : ""}`}
           value={value}
           onChange={(e) => setValue(e.target.value)}
+          onWheel={type === "number" ? (e) => e.currentTarget.blur() : undefined}
           required={required}
         />
       )}
+      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
     </div>
   );
 }

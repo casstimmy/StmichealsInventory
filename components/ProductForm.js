@@ -6,6 +6,7 @@ import { faTrash } from "@fortawesome/free-solid-svg-icons";
 import Loader from "./Loader";
 import useProgress from "@/lib/useProgress";
 import { formatCurrency } from "@/lib/format";
+import { getCachedCategories } from "@/lib/categoriesCache";
 
 function toDateInputValue(v) {
   if (!v) return "";
@@ -47,7 +48,7 @@ export default function ProductForm(props) {
 
   const [loading, setLoading] = useState(false);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
-  const { progress, start, onFetch, onProcess, complete } = useProgress();
+  const { start, onFetch, onProcess, complete } = useProgress();
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [goToProducts, setGoToProducts] = useState(false);
@@ -75,25 +76,17 @@ export default function ProductForm(props) {
   // Load categories with caching
   useEffect(() => {
     start();
-    const cached = sessionStorage.getItem("_categories_cache");
-    if (cached) {
-      try {
-        setCategories(JSON.parse(cached));
+    onFetch();
+    getCachedCategories()
+      .then((data) => {
+        onProcess();
+        setCategories(Array.isArray(data) ? data : []);
+      })
+      .finally(() => {
         setCategoriesLoading(false);
         complete();
-      } catch { /* ignore */ }
-    }
-    onFetch();
-    axios.get("/api/categories").then((res) => {
-      onProcess();
-      const data = res.data || [];
-      setCategories(data);
-      sessionStorage.setItem("_categories_cache", JSON.stringify(data));
-    }).finally(() => {
-      setCategoriesLoading(false);
-      complete();
-    });
-  }, []);
+      });
+  }, [start, onFetch, onProcess, complete]);
 
   // Reset promo fields if unchecked
   useEffect(() => {
@@ -115,12 +108,6 @@ export default function ProductForm(props) {
     const mg = Number(margin) || 0;
     const sp = Number(salePriceIncTax) || 0;
 
-    if (cp === 0) {
-      setMargin(0);
-      if (sp === 0) setSalePriceIncTax(0);
-      return;
-    }
-
     const base = applyTax ? cp * (1 + tr / 100) : cp;
 
     if (document.activeElement?.name === "margin") {
@@ -128,7 +115,8 @@ export default function ProductForm(props) {
     }
 
     if (document.activeElement?.name === "salePrice") {
-      if (sp === 0) setMargin(0);
+      if (sp === 0) setMargin("0.00");
+      else if (cp === 0) setMargin("100.00");
       else setMargin((((sp - cp) / cp) * 100).toFixed(2));
     }
 
@@ -141,7 +129,8 @@ export default function ProductForm(props) {
   const { profit, margin: calcMargin } = (() => {
     const cp = Number(costPrice) || 0;
     const sp = Number(effectivePrice) || 0;
-    if (sp === 0 || cp === 0) return { profit: 0, margin: 0 };
+    if (sp === 0) return { profit: 0, margin: 0 };
+    if (cp === 0) return { profit: sp.toFixed(2), margin: "100.00" };
     return {
       profit: (sp - cp).toFixed(2),
       margin: (((sp - cp) / cp) * 100).toFixed(2),
@@ -162,7 +151,10 @@ export default function ProductForm(props) {
     e.preventDefault();
     setErrorMessage("");
 
-    if (!name || !description || !costPrice || !category) {
+    const hasCostPrice =
+      costPrice !== "" && costPrice !== null && costPrice !== undefined;
+
+    if (!name || !description || !hasCostPrice || !category) {
       setErrorMessage("Please fill in all required fields.");
       return;
     }
@@ -187,12 +179,19 @@ export default function ProductForm(props) {
     };
 
     try {
+      let savedId = props._id || null;
       if (props._id) {
-        await axios.put("/api/products", { ...data, _id: props._id });
+        const res = await axios.put("/api/products", { ...data, _id: props._id });
+        savedId = res?.data?.data?._id || props._id;
         setSuccessMessage("Product updated successfully!");
       } else {
-        await axios.post("/api/products", data);
+        const res = await axios.post("/api/products", data);
+        savedId = res?.data?.data?._id || null;
         setSuccessMessage("Product added successfully!");
+      }
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("products:refresh", "1");
+        if (savedId) sessionStorage.setItem("products:highlight", String(savedId));
       }
       setGoToProducts(true);
     } catch (err) {
@@ -204,16 +203,6 @@ export default function ProductForm(props) {
   useEffect(() => {
     if (goToProducts) router.push("/manage/products");
   }, [goToProducts, router]);
-
-  if (categoriesLoading && !categories.length) {
-    return (
-      <div className="page-container !p-0">
-        <div className="content-card">
-          <Loader size="md" text="Loading product form..." progress={progress} />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <form
@@ -248,6 +237,11 @@ export default function ProductForm(props) {
             value={category}
             onChange={(e) => setCategory(e.target.value)}
           >
+            {categoriesLoading && (
+              <option value="" disabled>
+                Loading categories...
+              </option>
+            )}
             <option value="Top Level">Top Level</option>
             {categories.map((cat) => (
               <option key={cat._id} value={cat._id}>

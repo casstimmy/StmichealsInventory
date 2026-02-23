@@ -7,6 +7,7 @@ import Layout from "@/components/Layout";
 import { formatCurrency as formatCurrencyValue } from "@/lib/format";
 import axios from "axios";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import useSWR, { mutate } from "swr";
 import { useIndexedDBCache, clearCache } from "@/lib/useIndexedDBCache";
 
@@ -25,6 +26,8 @@ function debounce(func, wait) {
 }
 
 export default function Products() {
+  const router = useRouter();
+
   // ========== SMART CACHING STRATEGY ==========
   // Products: IndexedDB cache with 30-minute TTL (frequently changes)
   // + SWR background revalidation (only if cache expired)
@@ -105,6 +108,24 @@ export default function Products() {
     if (highlightedId) sessionStorage.setItem("products:highlight", highlightedId);
     else sessionStorage.removeItem("products:highlight");
   }, [highlightedId]);
+
+  // Warm the add-product route bundle to make navigation faster.
+  useEffect(() => {
+    router.prefetch("/products/new");
+  }, [router]);
+
+  // Force refresh after add/edit flow redirects back to this page
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (sessionStorage.getItem("products:refresh") !== "1") return;
+
+    sessionStorage.removeItem("products:refresh");
+    (async () => {
+      await clearCache("products_cache");
+      await refreshProducts();
+      mutate("/api/products");
+    })();
+  }, [refreshProducts]);
 
   // Debounced search over the cached allProducts (safe - products array guarded)
   const debouncedFilter = useCallback(
@@ -298,7 +319,8 @@ export default function Products() {
                Refresh
             </button>
             <Link
-              href="../products/new"
+              href="/products/new"
+              prefetch
               className="btn-action-primary w-full sm:w-auto text-center"
             >
               + Add Product

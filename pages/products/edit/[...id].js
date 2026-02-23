@@ -11,23 +11,28 @@ export default function EditProductPage() {
   const { progress, start, onFetch, onProcess, complete } = useProgress();
   const router = useRouter();
   const { id } = router.query;
+  const productId = Array.isArray(id) ? id[0] : id;
 
   useEffect(() => {
-    if (!id) return;
+    if (!productId) return;
     let active = true;
     start();
     onFetch();
 
-    axios.get(`/api/products?id=${id}`).then((res) => {
-      onProcess();
-      if (active) setProductInfo(res.data.data);
-      complete();
-    });
+    axios
+      .get(`/api/products?id=${productId}`)
+      .then((res) => {
+        onProcess();
+        if (active) setProductInfo(res.data.data);
+      })
+      .finally(() => {
+        complete();
+      });
 
     return () => {
       active = false;
     };
-  }, [id]);
+  }, [productId, start, onFetch, onProcess, complete]);
 
   return (
     <Layout>

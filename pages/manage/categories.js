@@ -13,6 +13,7 @@ import {
   faTimes,
 } from "@fortawesome/free-solid-svg-icons";
 import Loader from "@/components/Loader";
+import { getCachedCategories, invalidateCategoriesCache } from "@/lib/categoriesCache";
 
 export default function Categories() {
   const [name, setName] = useState("");
@@ -34,8 +35,8 @@ export default function Categories() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await axios.get("/api/categories");
-        setCategories(Array.isArray(res.data) ? res.data : []);
+        const data = await getCachedCategories();
+        setCategories(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error(err);
         alert("Failed to fetch categories");
@@ -144,6 +145,7 @@ export default function Categories() {
         images: formattedImages,
         properties,
       });
+      invalidateCategoriesCache();
       setCategories((prev) => [...prev, res.data]);
       setName("");
       setParentCategory("");
@@ -184,6 +186,7 @@ export default function Categories() {
         ...editedCategory,
         images: formattedImages,
       });
+      invalidateCategoriesCache();
       setCategories((prev) =>
         prev.map((cat) => (cat._id === id ? res.data : cat))
       );
@@ -204,6 +207,7 @@ export default function Categories() {
     if (!confirm("Are you sure you want to delete this category?")) return;
     try {
       await axios.delete("/api/categories?id=" + id);
+      invalidateCategoriesCache();
       setCategories((prev) => prev.filter((c) => c._id !== id));
     } catch (err) {
       console.error(err);

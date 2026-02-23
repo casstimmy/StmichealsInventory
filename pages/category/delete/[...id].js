@@ -2,6 +2,7 @@ import Layout from "@/components/Layout";
 import axios from "axios";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import { invalidateCategoriesCache } from "@/lib/categoriesCache";
 
 export default function DeleteCategoryPage() {
   const router = useRouter();
@@ -26,6 +27,7 @@ export default function DeleteCategoryPage() {
   const handleDeleteClick = async () => {
     try {
       await axios.delete(`/api/categories?id=${id}`);
+      invalidateCategoriesCache();
       goBack();
     } catch (error) {
       console.error("Failed to delete category:", error);

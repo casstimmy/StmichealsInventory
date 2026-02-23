@@ -42,6 +42,7 @@ export default function ProductForm(props) {
   const [categories, setCategories] = useState([]);
   const [images, setImages] = useState(props.images || []);
   const [properties, setProperties] = useState(props.properties || []);
+  const [minStock, setMinStock] = useState(props.minStock ?? "");
 
   const [isPromotion, setIsPromotion] = useState(props.isPromotion || false);
   const [promoPrice, setPromoPrice] = useState(props.promoPrice ?? "");
@@ -81,6 +82,7 @@ export default function ProductForm(props) {
     setCategory(props.category || "Top Level");
     setImages(props.images || []);
     setProperties(props.properties || []);
+    setMinStock(props.minStock ?? "");
     setIsPromotion(props.isPromotion || false);
     setPromoPrice(props.promoPrice ?? "");
     setPromoStart(toDateInputValue(props.promoStart));
@@ -134,9 +136,7 @@ export default function ProductForm(props) {
     }
 
     if (["costPrice", "taxRate"].includes(document.activeElement?.name)) {
-      setSalePriceIncTax(
-        calculateSalePriceIncTax(cp, mg, tr, applyTax).toFixed(2)
-      );
+      setMargin(calculateMarginPercent(cp, sp, tr, applyTax).toFixed(2));
     }
   }, [costPrice, taxRate, margin, salePriceIncTax, applyTax]);
 
@@ -195,6 +195,7 @@ export default function ProductForm(props) {
       category,
       images,
       properties,
+      minStock,
       expiryDate,
       isPromotion,
       promoPrice: isPromotion ? promoPrice : "",
@@ -394,6 +395,13 @@ export default function ProductForm(props) {
             type="number"
             value={margin}
             setValue={setMargin}
+          />
+          <InputField
+            label="Min Stock (optional)"
+            name="minStock"
+            type="number"
+            value={minStock}
+            setValue={setMinStock}
           />
         </div>
         <InputField

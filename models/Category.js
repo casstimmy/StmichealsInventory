@@ -4,6 +4,8 @@ const CategorySchema = new Schema({
     name: {type: String, require: true},
     parent: {type: mongoose.Types.ObjectId, ref:'Category'},
     properties: [{type: Object}],
+    icon: { type: String, default: "" },
+    isStockManaged: { type: Boolean, default: true },
     images: [{
         full: {type: String},
         thumb: {type: String}

@@ -74,7 +74,7 @@ export default async function handler(req, res) {
         });
       }
 
-      const product = await Product.findById(id);
+      const product = await Product.findById(id).select("_id costPrice isStockManaged");
       if (!product) {
         return res.status(404).json({
           message: `Product not found with ID: ${id}`,
@@ -87,6 +87,7 @@ export default async function handler(req, res) {
         productId: id,
         quantity,
         expiryDate: expiryDate || null,
+        isStockManaged: product.isStockManaged !== false,
       });
     }
 
@@ -115,7 +116,9 @@ export default async function handler(req, res) {
        (ALLOW NEGATIVE STOCK)
     ========================= */
     // Process updates without negative stock restriction
-    const bulkOps = productsToCreate.map(({ productId, quantity }) => {
+    const bulkOps = productsToCreate
+      .filter(({ isStockManaged }) => isStockManaged)
+      .map(({ productId, quantity }) => {
       let qtyChange = 0;
 
       if (reason === "Restock") {
@@ -126,13 +129,13 @@ export default async function handler(req, res) {
         qtyChange = 0; // ❗ NO GLOBAL STOCK CHANGE
       }
 
-      return {
-        updateOne: {
-          filter: { _id: productId },
-          update: { $inc: { quantity: qtyChange } },
-        },
-      };
-    });
+        return {
+          updateOne: {
+            filter: { _id: productId },
+            update: { $inc: { quantity: qtyChange } },
+          },
+        };
+      });
 
     if (bulkOps.length > 0) {
       const bulkResult = await Product.bulkWrite(bulkOps);
@@ -144,7 +147,7 @@ export default async function handler(req, res) {
       });
       
       const lowStockItems = updatedProducts.filter(
-        p => p.quantity < (p.minStock || 10) && p.quantity >= 0
+        p => p.quantity < (p.minStock || 0) && p.quantity >= 0
       );
       
       if (lowStockItems.length > 0) {

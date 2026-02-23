@@ -11,7 +11,7 @@ export default function DeleteProductPage() {
   useEffect(() => {
     if (!id) return;
     axios.get("/api/products?id=" + id).then((res) => {
-      setProductInfo(res.data);
+      setProductInfo(res.data?.data || res.data);
     });
   }, [id]);
 
@@ -37,14 +37,14 @@ export default function DeleteProductPage() {
             Confirm Product Deletion
           </h1>
           <p className="text-gray-600 mb-8">
-            Are you sure you want to delete <strong>{productInfo?.name}</strong>?
+            Are you sure you want to archive <strong>{productInfo?.name}</strong>?
           </p>
           <div className="flex justify-center gap-4">
             <button
               onClick={handleDelete}
               className="py-2 px-6 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 transition duration-300"
             >
-              Yes, Delete
+              Yes, Archive
             </button>
             <button
               onClick={goBack}

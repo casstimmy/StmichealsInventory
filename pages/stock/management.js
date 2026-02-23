@@ -74,14 +74,14 @@ export default function StockManagement() {
   const totalStock = products.reduce((sum, item) => sum + (item.quantity || 0), 0);
   
   // "Incoming Stock" = products well-stocked above minimum
-  const totalIncoming = products.filter(p => (p.quantity || 0) > (p.minStock || 10)).length;
+  const totalIncoming = products.filter(p => (p.quantity || 0) > (p.minStock || 0)).length;
   
   // "Outgoing Stock" = critically low products (need urgent reordering)
   // This counts products below 50% of minimum stock threshold
-  const totalOutgoing = products.filter(p => (p.quantity || 0) < (p.minStock || 10) / 2).length;
+  const totalOutgoing = products.filter(p => (p.quantity || 0) < (p.minStock || 0) / 2).length;
   
   // Low stock = products below minimum threshold
-  const lowStockCount = products.filter((p) => p.quantity < (p.minStock || 10)).length;
+  const lowStockCount = products.filter((p) => p.quantity < (p.minStock || 0)).length;
 
 console.log("Filtered Items:", filteredItems);
 
@@ -151,7 +151,7 @@ console.log("Filtered Items:", filteredItems);
                           ? "Negative Stock"
                           : qty === 0
                           ? "Out of Stock"
-                          : qty < (product.minStock || 10)
+                          : qty < (product.minStock || 0)
                           ? "Low Stock"
                           : "In Stock";
 
@@ -162,7 +162,7 @@ console.log("Filtered Items:", filteredItems);
                           <td className={`px-6 py-4 font-semibold ${qty < 0 ? "text-red-600" : "text-gray-900"}`}>
                             {qty}
                           </td>
-                          <td className="px-6 py-4 text-gray-700">{product.minStock ?? 10}</td>
+                          <td className="px-6 py-4 text-gray-700">{product.minStock ?? 0}</td>
                           <td className="px-6 py-4">{formatCurrency(product.costPrice || 0, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
                           <td
                             className={`px-6 py-4 font-semibold ${

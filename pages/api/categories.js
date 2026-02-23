@@ -6,6 +6,17 @@ let categoriesCache = null;
 let categoriesCacheTime = 0;
 const CACHE_TTL = 60 * 1000; // 1 minute
 
+function isRoomCategory(name = "") {
+  const normalized = String(name).trim().toLowerCase();
+  return normalized === "room" || normalized === "rooms";
+}
+
+function resolveStockManaged(name, requestedValue) {
+  if (isRoomCategory(name)) return false;
+  if (typeof requestedValue === "boolean") return requestedValue;
+  return true;
+}
+
 function invalidateCache() {
   categoriesCache = null;
   categoriesCacheTime = 0;
@@ -28,12 +39,12 @@ export default async function handler(req, res) {
     }
 
     if (method === "POST") {
-      let { name, parentCategory, properties, images } = req.body;
-      if (!name || !images?.length)
-        return res.status(400).json({ success: false, message: "Name and at least one image are required" });
+      let { name, parentCategory, properties, images, icon, isStockManaged } = req.body;
+      if (!name)
+        return res.status(400).json({ success: false, message: "Name is required" });
 
       // --- FIX: Normalize images ---
-      images = images.map(img => ({
+      images = (images || []).map(img => ({
         full: typeof img.full === "string" ? img.full : img.full?.webp || img.full?.jpeg || "",
         thumb: typeof img.thumb === "string" ? img.thumb : img.thumb?.webp || img.thumb?.jpeg || "",
       }));
@@ -42,6 +53,8 @@ export default async function handler(req, res) {
         name,
         parent: parentCategory || null,
         properties: properties || [],
+        icon: String(icon || "").trim(),
+        isStockManaged: resolveStockManaged(name, isStockManaged),
         images,
       });
 
@@ -51,11 +64,11 @@ export default async function handler(req, res) {
     }
 
     if (method === "PUT") {
-      let { _id, name, parentCategory, properties, images } = req.body;
+      let { _id, name, parentCategory, properties, images, icon, isStockManaged } = req.body;
       if (!_id) return res.status(400).json({ success: false, message: "Category ID is required" });
 
       // --- FIX: Normalize images ---
-      images = images.map(img => ({
+      images = (images || []).map(img => ({
         full: typeof img.full === "string" ? img.full : img.full?.webp || img.full?.jpeg || "",
         thumb: typeof img.thumb === "string" ? img.thumb : img.thumb?.webp || img.thumb?.jpeg || "",
       }));
@@ -66,6 +79,8 @@ export default async function handler(req, res) {
           name,
           parent: parentCategory || null,
           properties: properties || [],
+          icon: String(icon || "").trim(),
+          isStockManaged: resolveStockManaged(name, isStockManaged),
           images,
         },
         { new: true }

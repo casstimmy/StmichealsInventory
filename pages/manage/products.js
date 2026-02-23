@@ -12,6 +12,7 @@ import useSWR, { mutate } from "swr";
 import { useIndexedDBCache, clearCache } from "@/lib/useIndexedDBCache";
 import { getCachedCategories } from "@/lib/categoriesCache";
 import { calculateMarginPercent, calculateSalePriceIncTax } from "@/lib/pricing";
+import { Loader } from "@/components/ui";
 
 const entriesPerPageDefault = 20;
 
@@ -33,7 +34,7 @@ export default function Products() {
   // ========== SMART CACHING STRATEGY ==========
   // Products: IndexedDB cache with 30-minute TTL (frequently changes)
   // + SWR background revalidation (only if cache expired)
-  const { data: cachedProducts, refresh: refreshProducts } = useIndexedDBCache(
+  const { data: cachedProducts, loading: productsLoading, refresh: refreshProducts } = useIndexedDBCache(
     "products_cache",
     () => fetcher("/api/products"),
     30 // 30 minutes TTL
@@ -67,6 +68,9 @@ export default function Products() {
   const [properties, setProperties] = useState([]);
   const [expandedRow, setExpandedRow] = useState(null);
   const [isInitializing, setIsInitializing] = useState(true); // Track first load
+  const [isRefreshingList, setIsRefreshingList] = useState(false);
+  const [savingProductId, setSavingProductId] = useState(null);
+  const [isOpeningAddProduct, setIsOpeningAddProduct] = useState(false);
 
   // pagination / lazy load
   const [entriesPerPage] = useState(entriesPerPageDefault);
@@ -82,11 +86,15 @@ export default function Products() {
 
   // Initialize from cache when data arrives
   useEffect(() => {
+    if (productsLoading) {
+      setIsInitializing(true);
+      return;
+    }
     const list = Array.isArray(cachedProducts) ? cachedProducts : cachedProducts?.data || [];
     setAllProducts(list);
     setFilteredProducts(list);
     setIsInitializing(false);
-  }, [cachedProducts]);
+  }, [cachedProducts, productsLoading]);
 
   const loadCategories = useCallback(async () => {
     try {
@@ -203,10 +211,10 @@ export default function Products() {
       const tax = parseFloat(updated.taxRate || 0);
       const sale = parseFloat(updated.salePriceIncTax || 0);
 
-      if (["costPrice", "margin", "taxRate"].includes(name)) {
+      if (name === "margin") {
         updated.salePriceIncTax = calculateSalePriceIncTax(cost, margin, tax, true).toFixed(2);
       }
-      if (name === "salePriceIncTax") {
+      if (["costPrice", "taxRate", "salePriceIncTax"].includes(name)) {
         updated.margin = calculateMarginPercent(cost, sale, tax, true).toFixed(2);
       }
       return updated;
@@ -218,6 +226,7 @@ export default function Products() {
 
   const handleUpdateClick = async (_id) => {
     try {
+      setSavingProductId(_id);
       const updatedProduct = { ...editableProduct, properties };
       await axios.put("/api/products", { ...updatedProduct, _id });
 
@@ -248,11 +257,13 @@ export default function Products() {
     } catch (err) {
       console.error("Failed to update product", err);
       alert("Failed to update product.");
+    } finally {
+      setSavingProductId(null);
     }
   };
 
   const handleDeleteClick = async (_id) => {
-    if (!window.confirm("Are you sure you want to delete this product?")) return;
+    if (!window.confirm("Are you sure you want to archive this product?")) return;
     try {
       await axios.delete(`/api/products?id=${_id}`);
       setFilteredProducts((prev) => prev.filter((p) => p._id !== _id));
@@ -265,9 +276,10 @@ export default function Products() {
       mutate("/api/products");
       await loadCategories();
       if (highlightedId === _id) setHighlightedId(null);
+      alert("Product archived successfully.");
     } catch (err) {
       console.error("delete failed", err);
-      alert("Delete failed.");
+      alert("Archive failed.");
     }
   };
 
@@ -316,10 +328,7 @@ export default function Products() {
     return (
       <Layout>
         <div className="p-6 text-center">
-          <div className="animate-pulse">
-            <div className="h-8 w-48 bg-gray-300 rounded mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading products from cache...</p>
-          </div>
+          <Loader size="md" text="Loading products..." />
         </div>
       </Layout>
     );
@@ -335,21 +344,31 @@ export default function Products() {
           <div className="flex gap-2 flex-wrap">
             <button
               onClick={async () => {
-                await refreshProducts();
-                await loadCategories();
+                try {
+                  setIsRefreshingList(true);
+                  await refreshProducts();
+                  await loadCategories();
+                } finally {
+                  setIsRefreshingList(false);
+                }
               }}
               className="btn-action-secondary flex items-center gap-2"
               title="Refresh products from server"
+              disabled={isRefreshingList}
             >
-               Refresh
+               {isRefreshingList ? "Refreshing..." : "Refresh"}
             </button>
-            <Link
-              href="/products/new"
-              prefetch
-              className="btn-action-primary w-full sm:w-auto text-center"
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpeningAddProduct(true);
+                router.push("/products/new");
+              }}
+              disabled={isOpeningAddProduct}
+              className="btn-action-primary w-full sm:w-auto text-center disabled:opacity-60"
             >
-              + Add Product
-            </Link>
+              {isOpeningAddProduct ? "Opening..." : "+ Add Product"}
+            </button>
           </div>
         </div>
 
@@ -382,17 +401,24 @@ export default function Products() {
                 <th>Sale</th>
                 <th className="hidden sm:table-cell">Margin</th>
                 <th className="hidden lg:table-cell">Barcode</th>
+                <th>Min Stock</th>
                 <th className="hidden lg:table-cell">Properties</th>
                 <th>Category</th>
                 <th className="hidden sm:table-cell">Promo</th>
-                <th className="!px-2">Del</th>
+                <th className="!px-2">Arch</th>
               </tr>
             </thead>
 
             <tbody className="bg-white divide-y divide-gray-100">
-              {visibleProducts.length === 0 ? (
+              {productsLoading ? (
                 <tr>
-                  <td colSpan={13} className="p-6 text-center text-gray-500 italic">
+                  <td colSpan={14} className="p-8 text-center">
+                    <Loader size="sm" text="Loading product list..." />
+                  </td>
+                </tr>
+              ) : visibleProducts.length === 0 ? (
+                <tr>
+                  <td colSpan={14} className="p-6 text-center text-gray-500 italic">
                     No products found.
                   </td>
                 </tr>
@@ -413,14 +439,17 @@ export default function Products() {
                         {editIndex === realIndex ? (
                           <div className="flex flex-col gap-1">
                             <button
+                              type="button"
                               onClick={() => handleUpdateClick(p._id)}
                               className="w-16 py-1 bg-green-600 text-white rounded text-xs"
+                              disabled={savingProductId === p._id}
                             >
-                              Save
+                              {savingProductId === p._id ? "Saving..." : "Save"}
                             </button>
                             <button
                               onClick={handleCancelClick}
                               className="w-16 py-1 bg-gray-300 text-gray-700 rounded text-xs"
+                              disabled={savingProductId === p._id}
                             >
                               Cancel
                             </button>
@@ -487,14 +516,15 @@ export default function Products() {
 
                       <td className="p-2 text-xs md:text-sm">
                         {editIndex === realIndex ? (
-                          <input
+                          <select
                             name="taxRate"
                             value={editableProduct.taxRate || ""}
                             onChange={handleChange}
-                            onWheel={(e) => e.currentTarget.blur()}
-                            type="number"
-                            className="w-14 md:w-16 border p-1 rounded text-xs"
-                          />
+                            className="w-16 md:w-20 border p-1 rounded text-xs"
+                          >
+                            <option value="4.5">4.5%</option>
+                            <option value="7.5">7.5%</option>
+                          </select>
                         ) : (
                           p.taxRate
                         )}
@@ -531,6 +561,21 @@ export default function Products() {
                       </td>
                       <td className="p-2 hidden lg:table-cell text-xs">{p.barcode}</td>
 
+                      <td className="p-2 text-xs md:text-sm">
+                        {editIndex === realIndex ? (
+                          <input
+                            name="minStock"
+                            value={editableProduct.minStock ?? ""}
+                            onChange={handleChange}
+                            onWheel={(e) => e.currentTarget.blur()}
+                            type="number"
+                            className="w-16 md:w-20 border p-1 rounded text-xs"
+                          />
+                        ) : (
+                          p.minStock ?? ""
+                        )}
+                      </td>
+
                       <td className="p-2 hidden lg:table-cell text-gray-600 text-xs">
                         {p.properties?.length > 0
                           ? p.properties.map((pr) => `${pr.propName}: ${pr.propValue}`).join(", ")
@@ -555,7 +600,7 @@ export default function Products() {
                           }}
                           className="py-1 px-2 md:px-3 bg-red-50 text-red-700 border border-red-300 hover:bg-red-600 hover:text-white rounded text-xs"
                         >
-                          X
+                          Arch
                         </button>
                       </td>
                     </tr>

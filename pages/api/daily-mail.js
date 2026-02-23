@@ -113,7 +113,10 @@ export default async function handler(req, res) {
     console.log(`[Daily Mail] Found ${expenses.length} expenses`);
 
     // 5. Get all products for stock report
-    const allProducts = await Product.find().lean();
+    const allProducts = await Product.find({
+      isArchived: { $ne: true },
+      isStockManaged: { $ne: false },
+    }).lean();
     console.log(`[Daily Mail] Found ${allProducts.length} products`);
 
     const productCostById = {};
@@ -308,7 +311,7 @@ export default async function handler(req, res) {
     for (const product of allProducts) {
       const costPrice = product.costPrice || 0;
       const salePrice = product.salePriceIncTax || 0;
-      const minStock = product.minStock || 5;
+      const minStock = product.minStock || 0;
       const productName = product.name || product.title || "Unnamed product";
       const expiryDateValue = product.expiryDate
         ? new Date(product.expiryDate)

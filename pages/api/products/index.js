@@ -1,5 +1,6 @@
 import { mongooseConnect, withRetry } from "@/lib/mongodb";
 import Product from "@/models/Product";
+import { Category } from "@/models/Category";
 
 /* =====================
    AUTO-DISABLE EXPIRED PROMOTIONS
@@ -40,6 +41,53 @@ async function markExpiredProducts() {
   );
 }
 
+async function syncRoomCategoryProductFlags() {
+  const roomCategories = await Category.find({
+    name: { $in: [/^room$/i, /^rooms$/i] },
+  })
+    .select("_id")
+    .lean();
+  const roomCategoryIds = roomCategories.map((c) => String(c._id));
+
+  await Product.updateMany(
+    {
+      $or: [
+        { category: { $in: roomCategoryIds } },
+        { category: { $in: ["room", "rooms", "Room", "Rooms"] } },
+      ],
+    },
+    {
+      $set: {
+        isStockManaged: false,
+        quantity: 0,
+      },
+    }
+  );
+}
+
+function isRoomName(value = "") {
+  const normalized = String(value).trim().toLowerCase();
+  return normalized === "room" || normalized === "rooms";
+}
+
+async function resolveStockManagedFromCategory(categoryIdOrName, requestedValue) {
+  if (!categoryIdOrName) {
+    return typeof requestedValue === "boolean" ? requestedValue : true;
+  }
+  if (isRoomName(categoryIdOrName)) return false;
+
+  try {
+    const category = await Category.findById(categoryIdOrName).select("name isStockManaged").lean();
+    if (!category) return typeof requestedValue === "boolean" ? requestedValue : true;
+    if (isRoomName(category.name)) return false;
+    if (typeof requestedValue === "boolean") return requestedValue;
+    if (typeof category.isStockManaged === "boolean") return category.isStockManaged;
+  } catch {
+    // Category lookup can fail for non-ObjectId values like "Top Level"
+  }
+  return typeof requestedValue === "boolean" ? requestedValue : true;
+}
+
 export default async function handler(req, res) {
   const { method } = req;
   await mongooseConnect();
@@ -49,7 +97,18 @@ export default async function handler(req, res) {
        GET PRODUCTS
     ===================== */
     if (method === "GET") {
-      const { id, search, expired, minimal, page, limit: limitParam } = req.query;
+      const {
+        id,
+        search,
+        expired,
+        minimal,
+        page,
+        limit: limitParam,
+        archived,
+        stockManaged,
+      } = req.query;
+
+      await syncRoomCategoryProductFlags();
 
       // Skip maintenance tasks for minimal/fast queries
       if (!minimal) {
@@ -58,7 +117,12 @@ export default async function handler(req, res) {
       }
 
       if (id) {
-        const product = await Product.findById(id);
+        const idFilter = {};
+        if (archived === "true") idFilter.isArchived = true;
+        if (archived === "false") idFilter.isArchived = false;
+        if (archived !== "true" && archived !== "false") idFilter.isArchived = { $ne: true };
+
+        const product = await Product.findOne({ _id: id, ...idFilter });
         if (!product) {
           return res.status(404).json({
             success: false,
@@ -69,6 +133,9 @@ export default async function handler(req, res) {
       }
 
       const filter = {};
+      if (archived === "true") filter.isArchived = true;
+      else if (archived === "false") filter.isArchived = false;
+      else filter.isArchived = { $ne: true };
 
       if (search) {
         filter.$or = [
@@ -79,11 +146,14 @@ export default async function handler(req, res) {
 
       if (expired === "true") filter.isExpired = true;
       if (expired === "false") filter.isExpired = false;
+      if (stockManaged === "true") filter.isStockManaged = true;
+      if (stockManaged === "false") filter.isStockManaged = false;
 
       // Minimal mode for stock management - only essential fields
       if (minimal === "true") {
+        filter.isStockManaged = true;
         const products = await Product.find(filter)
-          .select('name quantity minStock category barcode costPrice salePriceIncTax')
+          .select("name quantity minStock category barcode costPrice salePriceIncTax isStockManaged")
           .sort({ name: 1 })
           .lean();
         return res.json({ success: true, data: products });
@@ -117,6 +187,15 @@ export default async function handler(req, res) {
     ===================== */
     if (method === "POST") {
       const body = req.body;
+      body.isArchived = false;
+      body.archivedAt = null;
+      body.archivedReason = "";
+
+      body.isStockManaged = await resolveStockManagedFromCategory(
+        body.category,
+        body.isStockManaged
+      );
+      if (!body.isStockManaged) body.quantity = 0;
 
       if (body.expiryDate) {
         body.expiryDate = new Date(body.expiryDate);
@@ -138,6 +217,7 @@ export default async function handler(req, res) {
     if (method === "PUT") {
       const {
         _id,
+        restore,
         isPromotion,
         promoStart,
         promoEnd,
@@ -187,6 +267,25 @@ export default async function handler(req, res) {
         ...req.body,
       };
 
+      if (restore) {
+        updateData.isArchived = false;
+        updateData.archivedAt = null;
+        updateData.archivedReason = "";
+      } else if (updateData.isArchived) {
+        updateData.archivedAt = updateData.archivedAt || new Date();
+      }
+
+      if (
+        Object.prototype.hasOwnProperty.call(updateData, "category") ||
+        Object.prototype.hasOwnProperty.call(updateData, "isStockManaged")
+      ) {
+        updateData.isStockManaged = await resolveStockManagedFromCategory(
+          updateData.category,
+          updateData.isStockManaged
+        );
+        if (!updateData.isStockManaged) updateData.quantity = 0;
+      }
+
       if (promoStart) updateData.promoStart = new Date(promoStart);
       if (promoEnd) updateData.promoEnd = new Date(promoEnd);
 
@@ -228,7 +327,16 @@ export default async function handler(req, res) {
         });
       }
 
-      const deleted = await Product.findByIdAndDelete(id);
+      const deleted = await Product.findByIdAndUpdate(
+        id,
+        {
+          isArchived: true,
+          archivedAt: new Date(),
+          archivedReason: "manual-delete",
+          quantity: 0,
+        },
+        { new: true }
+      );
 
       if (!deleted) {
         return res.status(404).json({
@@ -239,7 +347,7 @@ export default async function handler(req, res) {
 
       return res.json({
         success: true,
-        message: "Product deleted successfully",
+        message: "Product archived successfully",
       });
     }
 

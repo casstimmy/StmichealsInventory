@@ -23,7 +23,7 @@ export default async function handler(req, res) {
 
     // Format low stock items
     const productsList = products
-      .map(p => `• ${p.name}: ${p.quantity} units (Min: ${p.minStock || 10})`)
+      .map(p => `• ${p.name}: ${p.quantity} units (Min: ${p.minStock || 0})`)
       .join("\n");
 
     const htmlContent = `

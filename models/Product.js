@@ -29,6 +29,7 @@ const ProductSchema = new Schema(
        STOCK CONTROL
     ===================== */
     quantity: { type: Number, default: 0 },
+    isStockManaged: { type: Boolean, default: true },
     minStock: { type: Number, default: 0 },
     maxStock: { type: Number, default: 0 },
 
@@ -70,6 +71,10 @@ const ProductSchema = new Schema(
         soldAt: { type: Date, default: Date.now },
       },
     ],
+
+    isArchived: { type: Boolean, default: false, index: true },
+    archivedAt: { type: Date },
+    archivedReason: { type: String, default: "" },
   },
   { timestamps: true }
 );

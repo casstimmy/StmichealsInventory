@@ -21,10 +21,14 @@ export default function Categories() {
   const [categories, setCategories] = useState([]);
   const [parentCategory, setParentCategory] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [icon, setIcon] = useState("");
+  const [isStockManaged, setIsStockManaged] = useState(true);
   const [editIndex, setEditIndex] = useState(null);
   const [editedCategory, setEditedCategory] = useState({
     name: "",
     parentCategory: "",
+    icon: "",
+    isStockManaged: true,
     images: [],
     properties: [],
   });
@@ -131,7 +135,6 @@ export default function Categories() {
   const saveCategory = async (e) => {
     e.preventDefault();
     if (!name.trim()) return alert("Category name is required");
-    if (!images.length) return alert("Please upload at least one image");
 
     const formattedImages = images.map((img) => ({
       full: img.full,
@@ -142,6 +145,8 @@ export default function Categories() {
       const res = await axios.post("/api/categories", {
         name,
         parentCategory: parentCategory || null,
+        icon: icon.trim(),
+        isStockManaged,
         images: formattedImages,
         properties,
       });
@@ -149,6 +154,8 @@ export default function Categories() {
       setCategories((prev) => [...prev, res.data]);
       setName("");
       setParentCategory("");
+      setIcon("");
+      setIsStockManaged(true);
       setImages([]);
       setProperties([]);
     } catch (err) {
@@ -164,6 +171,8 @@ export default function Categories() {
       _id: cat._id,
       name: cat.name,
       parentCategory: cat.parent?._id || "",
+      icon: cat.icon || "",
+      isStockManaged: cat.isStockManaged !== false,
       images: cat.images || [],
       properties: cat.properties || [],
     });
@@ -172,8 +181,6 @@ export default function Categories() {
   const handleUpdateClick = async (id) => {
     if (!editedCategory.name.trim())
       return alert("Category name is required");
-    if (!editedCategory.images.length)
-      return alert("Please upload at least one image");
 
     const formattedImages = editedCategory.images.map((img) => ({
       full: img.full,
@@ -194,6 +201,8 @@ export default function Categories() {
       setEditedCategory({
         name: "",
         parentCategory: "",
+        icon: "",
+        isStockManaged: true,
         images: [],
         properties: [],
       });
@@ -278,6 +287,28 @@ export default function Categories() {
                     ))}
                   </select>
                 </div>
+
+                <div className="form-group">
+                  <label className="form-label">Icon (optional)</label>
+                  <input
+                    type="text"
+                    value={icon}
+                    onChange={(e) => setIcon(e.target.value)}
+                    placeholder="faBed, room, or short code"
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="form-group flex items-end">
+                  <label className="inline-flex items-center gap-2 text-sm text-gray-700 py-2">
+                    <input
+                      type="checkbox"
+                      checked={isStockManaged}
+                      onChange={(e) => setIsStockManaged(e.target.checked)}
+                    />
+                    Track stock for this category
+                  </label>
+                </div>
               </div>
 
               {/* Image Upload */}
@@ -348,11 +379,20 @@ export default function Categories() {
                         />
                       ) : (
                         <div className="w-12 h-12 bg-gray-100 rounded-md border border-gray-200 flex items-center justify-center text-gray-400">
-                          <FontAwesomeIcon icon={faImages} />
+                          <span className="text-[10px] font-semibold text-gray-500 px-1 text-center">
+                            {cat.icon || "ICON"}
+                          </span>
                         </div>
                       )}
                     </td>
-                    <td className="p-3 font-medium text-gray-900">{cat.name}</td>
+                    <td className="p-3 font-medium text-gray-900">
+                      {cat.name}
+                      {cat.isStockManaged === false && (
+                        <span className="ml-2 text-[11px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                          Non-stock
+                        </span>
+                      )}
+                    </td>
                     <td className="p-3">{cat.parent?.name || "-"}</td>
                     <td className="p-3">
                       {(cat.properties || []).map((p, k) => (
@@ -454,6 +494,39 @@ export default function Categories() {
                               </option>
                             ))}
                         </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-cyan-700 mb-2">
+                          Icon (optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={editedCategory.icon || ""}
+                          onChange={(e) =>
+                            setEditedCategory((prev) => ({
+                              ...prev,
+                              icon: e.target.value,
+                            }))
+                          }
+                          className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-cyan-600 focus:border-transparent"
+                        />
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                          <input
+                            type="checkbox"
+                            checked={editedCategory.isStockManaged !== false}
+                            onChange={(e) =>
+                              setEditedCategory((prev) => ({
+                                ...prev,
+                                isStockManaged: e.target.checked,
+                              }))
+                            }
+                          />
+                          Track stock for this category
+                        </label>
                       </div>
                     </div>
 

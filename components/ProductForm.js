@@ -7,6 +7,7 @@ import Loader from "./Loader";
 import useProgress from "@/lib/useProgress";
 import { formatCurrency } from "@/lib/format";
 import { getCachedCategories } from "@/lib/categoriesCache";
+import { clearCache } from "@/lib/useIndexedDBCache";
 import {
   calculateMarginPercent,
   calculateProfit,
@@ -167,6 +168,7 @@ export default function ProductForm(props) {
   // --- Save product ---
   async function saveProduct(e) {
     e.preventDefault();
+    if (isSaving) return;
     setErrorMessage("");
     setFieldErrors({});
 
@@ -225,6 +227,12 @@ export default function ProductForm(props) {
         setSuccessMessage("Product added successfully!");
       }
       onSaveProcess();
+
+      await Promise.allSettled([
+        clearCache("products_cache"),
+        clearCache("stock_products_cache"),
+      ]);
+
       if (typeof window !== "undefined") {
         sessionStorage.setItem("products:refresh", "1");
         if (savedId) sessionStorage.setItem("products:highlight", String(savedId));

@@ -30,13 +30,14 @@ function debounce(func, wait) {
 
 export default function Products() {
   const router = useRouter();
+  const fetchProducts = useCallback(() => fetcher("/api/products"), []);
 
   // ========== SMART CACHING STRATEGY ==========
   // Products: IndexedDB cache with 30-minute TTL (frequently changes)
   // + SWR background revalidation (only if cache expired)
   const { data: cachedProducts, loading: productsLoading, error: productsError, refresh: refreshProducts } = useIndexedDBCache(
     "products_cache",
-    () => fetcher("/api/products"),
+    fetchProducts,
     30 // 30 minutes TTL
   );
 

@@ -1,17 +1,17 @@
 // pages/manage/products.js  (or your route file)
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Search } from "lucide-react";
 import Layout from "@/components/Layout";
 import { formatCurrency as formatCurrencyValue } from "@/lib/format";
 import axios from "axios";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import useSWR, { mutate } from "swr";
+import { mutate } from "swr";
 import { useIndexedDBCache, clearCache } from "@/lib/useIndexedDBCache";
 import { getCachedCategories } from "@/lib/categoriesCache";
-import { calculateMarginPercent, calculateSalePriceIncTax } from "@/lib/pricing";
+import { calculateMarginPercent } from "@/lib/pricing";
 import { Loader } from "@/components/ui";
 
 const entriesPerPageDefault = 20;
@@ -34,29 +34,11 @@ export default function Products() {
   // ========== SMART CACHING STRATEGY ==========
   // Products: IndexedDB cache with 30-minute TTL (frequently changes)
   // + SWR background revalidation (only if cache expired)
-  const { data: cachedProducts, loading: productsLoading, refresh: refreshProducts } = useIndexedDBCache(
+  const { data: cachedProducts, loading: productsLoading, error: productsError, refresh: refreshProducts } = useIndexedDBCache(
     "products_cache",
     () => fetcher("/api/products"),
     30 // 30 minutes TTL
   );
-
-  // SWR for background sync with minimal disruption
-  // Will only validate if explicitly triggered or cache expired
-  const { error } = useSWR("/api/products", fetcher, {
-    revalidateOnFocus: false, // Don't revalidate on every focus (we use IndexedDB)
-    revalidateOnReconnect: true, // Revalidate when connection restores
-    dedupingInterval: 180000, // 3 minutes deduping interval
-    compare: (a, b) => { // Only update SWR if data actually changed
-      return JSON.stringify(a) === JSON.stringify(b);
-    },
-    onSuccess: (newData) => {
-      // When new data arrives, refresh IndexedDB cache
-      if (newData && Array.isArray(newData)) {
-        clearCache("products_cache");
-        useIndexedDBCache("products_cache", () => Promise.resolve(newData), 30);
-      }
-    },
-  });
 
   // ========== LOCAL UI STATE ==========
   const [allProducts, setAllProducts] = useState([]); // full list (from cache)
@@ -71,6 +53,7 @@ export default function Products() {
   const [isRefreshingList, setIsRefreshingList] = useState(false);
   const [savingProductId, setSavingProductId] = useState(null);
   const [isOpeningAddProduct, setIsOpeningAddProduct] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("all");
 
   // pagination / lazy load
   const [entriesPerPage] = useState(entriesPerPageDefault);
@@ -84,6 +67,32 @@ export default function Products() {
   // refs
   const searchRef = useRef();
 
+  const categoryOptions = useMemo(() => {
+    const seen = new Set();
+    const rows = [];
+    (Array.isArray(allProducts) ? allProducts : []).forEach((p) => {
+      const id = p?.category;
+      if (!id || seen.has(id)) return;
+      seen.add(id);
+      rows.push({ id, label: categoryMap[id] || "Uncategorized" });
+    });
+    return rows.sort((a, b) => a.label.localeCompare(b.label));
+  }, [allProducts, categoryMap]);
+
+  const applyFilters = useCallback((term, categoryId) => {
+    const t = term.trim().toLowerCase();
+    const filtered = (Array.isArray(allProducts) ? allProducts : []).filter((p) => {
+      const matchesCategory = categoryId === "all" ? true : p.category === categoryId;
+      if (!matchesCategory) return false;
+      if (!t) return true;
+      return [p.name, p.barcode, p.description, categoryMap[p.category]]
+        .filter(Boolean)
+        .some((field) => String(field).toLowerCase().includes(t));
+    });
+    setFilteredProducts(filtered);
+    setVisibleCount(entriesPerPage);
+  }, [allProducts, categoryMap, entriesPerPage]);
+
   // Initialize from cache when data arrives
   useEffect(() => {
     if (productsLoading) {
@@ -92,9 +101,18 @@ export default function Products() {
     }
     const list = Array.isArray(cachedProducts) ? cachedProducts : cachedProducts?.data || [];
     setAllProducts(list);
-    setFilteredProducts(list);
+    const t = searchTerm.trim().toLowerCase();
+    const filtered = list.filter((p) => {
+      const matchesCategory = selectedCategory === "all" ? true : p.category === selectedCategory;
+      if (!matchesCategory) return false;
+      if (!t) return true;
+      return [p.name, p.barcode, p.description, categoryMap[p.category]]
+        .filter(Boolean)
+        .some((field) => String(field).toLowerCase().includes(t));
+    });
+    setFilteredProducts(filtered);
     setIsInitializing(false);
-  }, [cachedProducts, productsLoading]);
+  }, [cachedProducts, productsLoading, searchTerm, selectedCategory, categoryMap]);
 
   const loadCategories = useCallback(async () => {
     try {
@@ -156,32 +174,21 @@ export default function Products() {
   // Debounced search over the cached allProducts (safe - products array guarded)
   const debouncedFilter = useCallback(
     debounce((term) => {
-      const t = term.trim().toLowerCase();
-      if (!t) {
-        setFilteredProducts(allProducts);
-        setVisibleCount(entriesPerPage);
-        return;
-      }
-      const filtered = (Array.isArray(allProducts) ? allProducts : []).filter((p) =>
-        [
-          p.name,
-          p.barcode,
-          p.description,
-          categoryMap[p.category],
-        ]
-          .filter(Boolean)
-          .some((field) => String(field).toLowerCase().includes(t))
-      );
-      setFilteredProducts(filtered);
-      setVisibleCount(entriesPerPage);
+      applyFilters(term, selectedCategory);
     }, 250),
-    [allProducts, categoryMap, entriesPerPage]
+    [applyFilters, selectedCategory]
   );
 
   const handleSearchChange = (e) => {
     const v = e.target.value;
     setSearchTerm(v);
     debouncedFilter(v);
+  };
+
+  const handleCategoryFilterChange = (e) => {
+    const value = e.target.value;
+    setSelectedCategory(value);
+    applyFilters(searchTerm, value);
   };
 
   // Inline edit handlers
@@ -223,9 +230,6 @@ export default function Products() {
       return updated;
     });
   };
-
-  const handleCategoryChange = (value) =>
-    setEditableProduct((prev) => ({ ...prev, category: value }));
 
   const handleUpdateClick = async (_id) => {
     try {
@@ -301,13 +305,12 @@ export default function Products() {
     setVisibleCount((v) => Math.min((filteredProducts?.length || 0), v + entriesPerPage));
   };
 
-  // If SWR returns error, show basic message
-  if (error) {
+  if (productsError) {
     return (
       <Layout>
         <div className="p-6">
           <h2 className="text-xl text-red-600">Failed to load products</h2>
-          <p className="text-sm text-gray-600">{String(error)}</p>
+          <p className="text-sm text-gray-600">{String(productsError)}</p>
           <button 
             onClick={() => refreshProducts()}
             className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -370,16 +373,30 @@ export default function Products() {
 
         {/* Search */}
         <div className="mb-6">
-          <div className="search-input-wrapper max-w-md">
-            <Search className="search-input-icon" />
-            <input
-              ref={searchRef}
-              type="text"
-              placeholder="Search products..."
-              className="search-input"
-              value={searchTerm}
-              onChange={handleSearchChange}
-            />
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="search-input-wrapper max-w-md">
+              <Search className="search-input-icon" />
+              <input
+                ref={searchRef}
+                type="text"
+                placeholder="Search products..."
+                className="search-input"
+                value={searchTerm}
+                onChange={handleSearchChange}
+              />
+            </div>
+            <select
+              className="form-select max-w-xs"
+              value={selectedCategory}
+              onChange={handleCategoryFilterChange}
+            >
+              <option value="all">All Categories</option>
+              {categoryOptions.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 

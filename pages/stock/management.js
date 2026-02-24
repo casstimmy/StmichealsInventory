@@ -1,13 +1,25 @@
 import Layout from "@/components/Layout";
 import { formatCurrency } from "@/lib/format";
-import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/router";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Loader } from "@/components/ui";
 import useProgress from "@/lib/useProgress";
+import { useIndexedDBCache } from "@/lib/useIndexedDBCache";
+import { getCachedCategories } from "@/lib/categoriesCache";
 
 export default function StockManagement() {
-  const router = useRouter();
-  
+  const fetchStockProducts = useCallback(async () => {
+    const res = await fetch("/api/products?minimal=true");
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.message || "Failed to fetch products");
+    }
+    const data = await res.json();
+    return Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+  }, []);
+
+  const { data: cachedProducts, loading: productsLoading, error: productsError, refresh: refreshProducts } =
+    useIndexedDBCache("stock_products_cache", fetchStockProducts, 15);
+
   const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
@@ -16,74 +28,65 @@ export default function StockManagement() {
   const [categoryMap, setCategoryMap] = useState({});
 
   useEffect(() => {
-    // Fetch products and categories in parallel for faster loading
-    async function fetchData() {
+    async function loadCategories() {
       try {
-        setLoading(true);
-        start();
-        setError(null);
-        
-        // Use minimal mode for faster loading - only fetches essential fields
-        onFetch();
-        const [productsRes, categoriesRes] = await Promise.all([
-          fetch("/api/products?minimal=true"),
-          fetch("/api/categories")
-        ]);
-
-        if (!productsRes.ok) {
-          const errorData = await productsRes.json();
-          throw new Error(errorData.message || "Failed to fetch products");
-        }
-
-        const [productsData, categoriesData] = await Promise.all([
-          productsRes.json(),
-          categoriesRes.json()
-        ]);
-
-        onProcess();
-        // Handle products
-        const productList = productsData.data || productsData;
-        setProducts(Array.isArray(productList) ? productList : []);
-
-        // Handle categories
-        const categories = Array.isArray(categoriesData) ? categoriesData : categoriesData.categories || [];
+        const categories = await getCachedCategories();
         const map = {};
         categories.forEach(cat => {
           map[cat._id] = cat.name;
         });
         setCategoryMap(map);
       } catch (error) {
-        console.error("Error fetching data:", error);
-        setError(error.message || "Failed to load data");
-        setProducts([]);
-      } finally {
-        complete();
-        setLoading(false);
+        console.error("Error loading categories:", error);
       }
     }
 
-    fetchData();
+    loadCategories();
   }, []);
 
-  const filteredItems = products.filter(
-    (item) =>
-      item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.category && item.category.toLowerCase().includes(searchTerm.toLowerCase()))
+  useEffect(() => {
+    setLoading(productsLoading);
+    if (productsError) {
+      setError(productsError || "Failed to load data");
+      setProducts([]);
+      return;
+    }
+    setError(null);
+    start();
+    onFetch();
+    const list = Array.isArray(cachedProducts) ? cachedProducts : [];
+    setProducts(list);
+    onProcess();
+    complete();
+  }, [cachedProducts, productsLoading, productsError, start, onFetch, onProcess, complete]);
+
+  const filteredItems = useMemo(() => {
+    const term = searchTerm.toLowerCase();
+    return products.filter((item) => {
+      const categoryLabel = categoryMap[item.category] || item.category || "";
+      return (
+        item.name?.toLowerCase().includes(term) ||
+        categoryLabel.toLowerCase().includes(term)
+      );
+    });
+  }, [products, searchTerm, categoryMap]);
+
+  const totalStock = useMemo(
+    () => products.reduce((sum, item) => sum + (item.quantity || 0), 0),
+    [products]
   );
-
-  const totalStock = products.reduce((sum, item) => sum + (item.quantity || 0), 0);
-  
-  // "Incoming Stock" = products well-stocked above minimum
-  const totalIncoming = products.filter(p => (p.quantity || 0) > (p.minStock || 0)).length;
-  
-  // "Outgoing Stock" = critically low products (need urgent reordering)
-  // This counts products below 50% of minimum stock threshold
-  const totalOutgoing = products.filter(p => (p.quantity || 0) < (p.minStock || 0) / 2).length;
-  
-  // Low stock = products below minimum threshold
-  const lowStockCount = products.filter((p) => p.quantity < (p.minStock || 0)).length;
-
-console.log("Filtered Items:", filteredItems);
+  const totalIncoming = useMemo(
+    () => products.filter((p) => (p.quantity || 0) > (p.minStock || 0)).length,
+    [products]
+  );
+  const totalOutgoing = useMemo(
+    () => products.filter((p) => (p.quantity || 0) < (p.minStock || 0) / 2).length,
+    [products]
+  );
+  const lowStockCount = useMemo(
+    () => products.filter((p) => p.quantity < (p.minStock || 0)).length,
+    [products]
+  );
 
   return (
     <Layout>
@@ -92,6 +95,13 @@ console.log("Filtered Items:", filteredItems);
         <header className="page-header">
           <h1 className="page-title">Stock Management</h1>
           <p className="page-subtitle">Monitor all stock levels and alerts in real-time.</p>
+          <button
+            type="button"
+            onClick={() => refreshProducts()}
+            className="btn-action-secondary mt-3"
+          >
+            Refresh Data
+          </button>
         </header>
 
         {error && (

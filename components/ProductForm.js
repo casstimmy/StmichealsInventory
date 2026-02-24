@@ -437,6 +437,23 @@ export default function ProductForm(props) {
           value={salePriceIncTax}
           setValue={setSalePriceIncTax}
         />
+        <InputField
+          label="Expiry Date (optional)"
+          type="date"
+          value={expiryDate}
+          setValue={setExpiryDate}
+        />
+        <div className="mt-4 p-4 bg-gray-50 border rounded-lg">
+          <p className="text-sm text-gray-700">
+            <span className="font-semibold">Profit:</span> {formatCurrency(Number(profit) || 0)}
+          </p>
+          <p className="text-sm text-gray-700">
+            <span className="font-semibold">Margin:</span> {calcMargin}%
+          </p>
+        </div>
+      </Section>
+
+      <Section title="Stock & Quantity">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
           <InputField
             label="Min Stock (optional)"
@@ -452,20 +469,6 @@ export default function ProductForm(props) {
             value={quantity}
             setValue={setQuantity}
           />
-        </div>
-        <InputField
-          label="Expiry Date (optional)"
-          type="date"
-          value={expiryDate}
-          setValue={setExpiryDate}
-        />
-        <div className="mt-4 p-4 bg-gray-50 border rounded-lg">
-          <p className="text-sm text-gray-700">
-            <span className="font-semibold">Profit:</span> {formatCurrency(Number(profit) || 0)}
-          </p>
-          <p className="text-sm text-gray-700">
-            <span className="font-semibold">Margin:</span> {calcMargin}%
-          </p>
         </div>
       </Section>
 

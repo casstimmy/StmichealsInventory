@@ -133,6 +133,7 @@ export default async function handler(req, res) {
     res.setHeader('X-Total-Count', result.pagination.total);
     res.setHeader('X-Page', result.pagination.page);
     res.setHeader('X-Total-Pages', result.pagination.totalPages);
+    res.setHeader("Cache-Control", "public, s-maxage=30, stale-while-revalidate=120");
     
     return res.status(200).json(result.movements);
   } catch (error) {

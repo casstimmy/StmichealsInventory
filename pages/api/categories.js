@@ -30,11 +30,13 @@ export default async function handler(req, res) {
     if (method === "GET") {
       const now = Date.now();
       if (categoriesCache && (now - categoriesCacheTime) < CACHE_TTL) {
+        res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
         return res.json(categoriesCache);
       }
       const categories = await Category.find().populate("parent").lean();
       categoriesCache = categories;
       categoriesCacheTime = now;
+      res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
       return res.json(categories);
     }
 

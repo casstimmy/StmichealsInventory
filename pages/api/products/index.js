@@ -2,6 +2,9 @@ import { mongooseConnect, withRetry } from "@/lib/mongodb";
 import Product from "@/models/Product";
 import { Category } from "@/models/Category";
 
+let lastRoomSyncAt = 0;
+const ROOM_SYNC_INTERVAL_MS = 10 * 60 * 1000;
+
 /* =====================
    AUTO-DISABLE EXPIRED PROMOTIONS
 ===================== */
@@ -41,7 +44,10 @@ async function markExpiredProducts() {
   );
 }
 
-async function syncRoomCategoryProductFlags() {
+async function syncRoomCategoryProductFlags(force = false) {
+  const now = Date.now();
+  if (!force && now - lastRoomSyncAt < ROOM_SYNC_INTERVAL_MS) return;
+
   const roomCategories = await Category.find({
     name: { $in: [/^room$/i, /^rooms$/i] },
   })
@@ -63,6 +69,7 @@ async function syncRoomCategoryProductFlags() {
       },
     }
   );
+  lastRoomSyncAt = now;
 }
 
 function isRoomName(value = "") {
@@ -108,7 +115,9 @@ export default async function handler(req, res) {
         stockManaged,
       } = req.query;
 
-      await syncRoomCategoryProductFlags();
+      if (minimal !== "true" && !id && !search) {
+        await syncRoomCategoryProductFlags();
+      }
 
       // Skip maintenance tasks for minimal/fast queries
       if (!minimal) {
@@ -156,6 +165,7 @@ export default async function handler(req, res) {
           .select("name quantity minStock category barcode costPrice salePriceIncTax isStockManaged")
           .sort({ name: 1 })
           .lean();
+        res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
         return res.json({ success: true, data: products });
       }
 
@@ -179,6 +189,7 @@ export default async function handler(req, res) {
       res.setHeader('X-Page', pageNum);
       res.setHeader('X-Total-Pages', Math.ceil(total / limit));
       
+      res.setHeader("Cache-Control", "public, s-maxage=30, stale-while-revalidate=120");
       return res.json({ success: true, data: products, total });
     }
 

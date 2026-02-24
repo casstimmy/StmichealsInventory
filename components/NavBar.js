@@ -7,6 +7,18 @@ const TopBar = ({ user, logout }) => {
   const [expiringCount, setExpiringCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
   const [activeTab, setActiveTab] = useState('all'); // 'all', 'stock', 'expiring'
+  const [isOnline, setIsOnline] = useState(true);
+
+  useEffect(() => {
+    const updateStatus = () => setIsOnline(navigator.onLine);
+    updateStatus();
+    window.addEventListener("online", updateStatus);
+    window.addEventListener("offline", updateStatus);
+    return () => {
+      window.removeEventListener("online", updateStatus);
+      window.removeEventListener("offline", updateStatus);
+    };
+  }, []);
 
   useEffect(() => {
     // Fetch notifications data periodically
@@ -91,6 +103,22 @@ const TopBar = ({ user, logout }) => {
 
       {/* Right Section: Profile and Icons */}
       <div className="flex items-center gap-1 sm:gap-2 md:gap-6 w-auto justify-end flex-shrink-0">
+        <div
+          className={`hidden sm:flex items-center gap-2 px-2 py-1 rounded-md border text-xs font-semibold ${
+            isOnline
+              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+              : "bg-red-50 text-red-700 border-red-200"
+          }`}
+          title={isOnline ? "Internet available" : "No internet connection"}
+        >
+          <span
+            className={`w-2 h-2 rounded-full ${
+              isOnline ? "bg-emerald-500" : "bg-red-500"
+            }`}
+          />
+          {isOnline ? "Online" : "Offline"}
+        </div>
+
         {/* Unified Notification Icon */}
         {(lowStockCount > 0 || expiringCount > 0) && (
           <div className="relative">

@@ -51,6 +51,14 @@ const TillSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    floatAdjustments: [
+      {
+        amount: { type: Number, default: 0 },
+        reason: { type: String, default: "" },
+        staffId: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );
@@ -59,5 +67,9 @@ const TillSchema = new mongoose.Schema(
 TillSchema.index({ storeId: 1, locationId: 1, status: 1 });
 TillSchema.index({ staffId: 1, status: 1 });
 TillSchema.index({ openedAt: -1 });
+TillSchema.index(
+  { storeId: 1, locationId: 1, status: 1 },
+  { partialFilterExpression: { status: "OPEN" } }
+);
 
 export default mongoose.models.Till || mongoose.model('Till', TillSchema);

@@ -1,12 +1,20 @@
 import mongoose from "mongoose";
 import Tender from "@/models/Tender";
 import { mongooseConnect } from "@/lib/mongodb";
+import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 
 async function connectDB() {
   await mongooseConnect();
 }
 
 export default async function handler(req, res) {
+  const authError = authMiddleware(req, res);
+  if (authError) return authError;
+
+  if (!isStaff(req)) {
+    return res.status(403).json({ success: false, message: "Insufficient permissions" });
+  }
+
   const { id } = req.query;
 
   // Validate ObjectId format

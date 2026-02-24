@@ -1,7 +1,16 @@
 import { mongooseConnect } from "@/lib/mongoose";
 import { Transaction } from "@/models/Transactions";
+import { authMiddleware, isStaff } from "@/lib/auth-middleware";
+import { applyInventoryDelta } from "@/lib/transaction-utils";
 
 export default async function handler(req, res) {
+  const authError = authMiddleware(req, res);
+  if (authError) return authError;
+
+  if (!isStaff(req)) {
+    return res.status(403).json({ error: "Insufficient permissions" });
+  }
+
   await mongooseConnect();
 
   const { id } = req.query;
@@ -12,33 +21,51 @@ export default async function handler(req, res) {
 
   if (req.method === "PUT") {
     try {
-      const { status, refundReason } = req.body;
+      const { status, refundReason } = req.body || {};
 
-      // Validate the status
       const validStatuses = ["held", "completed", "refunded"];
       if (status && !validStatuses.includes(status)) {
-        return res.status(400).json({ error: `Invalid status. Must be one of: ${validStatuses.join(", ")}` });
+        return res
+          .status(400)
+          .json({ error: `Invalid status. Must be one of: ${validStatuses.join(", ")}` });
+      }
+
+      const transaction = await Transaction.findById(id);
+      if (!transaction) {
+        return res.status(404).json({ error: "Transaction not found" });
+      }
+
+      if (status === "completed" && transaction.status === "refunded") {
+        return res.status(400).json({
+          error: "Transition from refunded to completed is not supported",
+        });
       }
 
       const updateData = {};
       if (status) updateData.status = status;
       if (refundReason) updateData.refundReason = refundReason;
 
-      // If marking as refunded, set refundedAt timestamp
-      if (status === "refunded") {
-        updateData.refundedAt = new Date();
+      const isRefundTransition =
+        status === "refunded" &&
+        transaction.status !== "refunded" &&
+        transaction.status === "completed" &&
+        Boolean(transaction.inventoryUpdated);
+
+      if (isRefundTransition) {
+        await applyInventoryDelta(transaction.items || [], "increment");
+        updateData.inventoryRestockedAt = new Date();
       }
 
-      const transaction = await Transaction.findByIdAndUpdate(id, updateData, {
+      if (status === "refunded") {
+        updateData.refundedAt = transaction.refundedAt || new Date();
+      }
+
+      const updated = await Transaction.findByIdAndUpdate(id, updateData, {
         new: true,
         runValidators: true,
       });
 
-      if (!transaction) {
-        return res.status(404).json({ error: "Transaction not found" });
-      }
-
-      return res.status(200).json({ success: true, transaction });
+      return res.status(200).json({ success: true, transaction: updated });
     } catch (err) {
       console.error("Error updating transaction:", err);
       return res.status(500).json({ error: "Failed to update transaction" });

@@ -15,10 +15,25 @@ const itemSchema = new mongoose.Schema(
   }
 );
 
+const tenderPaymentSchema = new mongoose.Schema(
+  {
+    tenderType: { type: String },
+    tenderName: { type: String },
+    amount: { type: Number, default: 0 },
+  },
+  { _id: false }
+);
+
 const TransactionSchema = new mongoose.Schema({
   tenderType: String,
+  tenderPayments: {
+    type: [tenderPaymentSchema],
+    default: [],
+  },
   amountPaid: Number,
   total: Number,
+  subtotal: Number,
+  tax: Number,
   staff: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
   staffName: { type: String }, // Staff name for reference (redundant but useful)
   location: { type: String }, // Store location as string (location name or 'online')
@@ -41,9 +56,15 @@ const TransactionSchema = new mongoose.Schema({
   refundReason: String,
   refundBy: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
   refundedAt: Date,
+  inventoryUpdated: { type: Boolean, default: false },
+  inventoryRestockedAt: Date,
+  externalId: { type: String },
+  dedupeKey: { type: String },
   createdAt: { type: Date, default: Date.now },
 });
 
+TransactionSchema.index({ externalId: 1 }, { unique: true, sparse: true });
+TransactionSchema.index({ dedupeKey: 1 }, { unique: true, sparse: true });
 
 // Avoid re-registering the model in development
 const Transaction =

@@ -1,9 +1,18 @@
 import { mongooseConnect } from "@/lib/mongodb";
-import Product from "@/models/Product"; // default import
+import Product from "@/models/Product";
 import Order from "@/models/Order";
 import Transaction from "@/models/Transactions";
+import { authMiddleware, isStaff } from "@/lib/auth-middleware";
+import { applyInventoryDelta } from "@/lib/transaction-utils";
 
 export default async function handler(req, res) {
+  const authError = authMiddleware(req, res);
+  if (authError) return authError;
+
+  if (!isStaff(req)) {
+    return res.status(403).json({ error: "Insufficient permissions" });
+  }
+
   await mongooseConnect();
   const { id } = req.query;
 
@@ -12,78 +21,76 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { status, deliveryPerson } = req.body;
+    const { status, deliveryPerson } = req.body || {};
 
     if (!status) {
       return res.status(400).json({ error: "Status is required" });
     }
 
-    const allowedStatuses = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"];
+    const allowedStatuses = [
+      "Pending",
+      "Processing",
+      "Shipped",
+      "Delivered",
+      "Cancelled",
+    ];
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({ error: `Invalid status: ${status}` });
     }
 
-    // Fetch order
     const order = await Order.findById(id).populate("customer");
     if (!order) return res.status(404).json({ error: "Order not found" });
 
-    // Prevent re-delivery
-    if (order.status === "Delivered" && status === "Delivered") {
+    const prevStatus = order.status;
+    if (prevStatus === "Delivered" && status === "Delivered") {
       return res.status(400).json({ error: "Order already marked as Delivered" });
     }
 
-    // Update order status
-    order.status = status;
+    if (status === "Delivered" && prevStatus !== "Delivered") {
+      const externalId = `order:${order._id.toString()}`;
+      const existingTx = await Transaction.findOne({ externalId });
 
-    // Attach delivery person if provided
-    if (deliveryPerson && (status === "Shipped" || status === "Delivered")) {
-      order.deliveryPerson = deliveryPerson;
-    }
+      if (!existingTx) {
+        const items = (order.cartProducts || [])
+          .map((item) => ({
+            name: item.name,
+            qty: Number(item.quantity || 0),
+            quantity: Number(item.quantity || 0),
+            salePriceIncTax: Number(item.price || 0),
+            price: Number(item.price || 0),
+            productId: item.productId,
+          }))
+          .filter((item) => item.productId && item.qty > 0);
 
-    await order.save();
+        const transaction = await Transaction.create({
+          tenderType: "online",
+          amountPaid: Number(order.total || 0),
+          total: Number(order.total || 0),
+          subtotal: Number(order.subtotal || order.total || 0),
+          tax: 0,
+          staff: null,
+          staffName: "online",
+          location: "online",
+          device: "Web",
+          discount: 0,
+          discountReason: null,
+          customerName:
+            order.shippingDetails?.name || order.customer?.name || "Online User",
+          transactionType: "pos",
+          status: "completed",
+          change: 0,
+          items,
+          externalId,
+          dedupeKey: externalId,
+        });
 
-    // If delivered, create transaction + update stock and product metrics
-    if (status === "Delivered") {
-      const items = (order.cartProducts || [])
-        .map((item) => ({
-          name: item.name,
-          qty: item.quantity || 0,
-          salePriceIncTax: item.price,
-          productId: item.productId,
-        }))
-        .filter((item) => item.productId && item.qty > 0);
+        await applyInventoryDelta(items, "decrement");
+        transaction.inventoryUpdated = true;
+        await transaction.save();
 
-      console.log("Items in transaction:", items);
-
-      // Create transaction
-      await Transaction.create({
-        tenderType: "online",
-        amountPaid: order.total,
-        total: order.total,
-        staff: "online",
-        location: "online", // Location stored as string
-        device: "Web",
-        discount: 0,
-        discountReason: null,
-        customerName: order.shippingDetails?.name || order.customer?.name || "Online User",
-        transactionType: "pos",
-        status: "completed",
-        change: 0,
-        items,
-      });
-
-      // Update product metrics safely
-      for (const item of items) {
-        try {
-          const updated = await Product.findByIdAndUpdate(
-            item.productId,
-            {
-              $inc: {
-                quantity: -item.qty,                     // decrease stock
-                totalUnitsSold: item.qty,               // increment total units sold
-                totalRevenue: item.salePriceIncTax * item.qty, // increment total revenue
-              },
-              $set: { lastSoldAt: new Date() },
+        for (const item of items) {
+          try {
+            await Product.findByIdAndUpdate(item.productId, {
               $push: {
                 salesHistory: {
                   orderId: order._id,
@@ -92,20 +99,23 @@ export default async function handler(req, res) {
                   soldAt: new Date(),
                 },
               },
-            },
-            { new: true }
-          );
-
-          if (!updated) console.warn(`Product not found: ${item.productId}`);
-        } catch (err) {
-          console.error(`Failed to update product metrics for ${item.productId}:`, err);
+            });
+          } catch (error) {
+            console.warn("Failed to append product salesHistory:", error?.message);
+          }
         }
       }
     }
 
+    order.status = status;
+    if (deliveryPerson && (status === "Shipped" || status === "Delivered")) {
+      order.deliveryPerson = deliveryPerson;
+    }
+    await order.save();
+
     return res.status(200).json(order);
   } catch (error) {
-    console.error("❌ Order update failed:", error);
+    console.error("Order update failed:", error);
     return res.status(500).json({ error: "Internal Server Error" });
   }
 }

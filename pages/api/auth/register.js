@@ -1,6 +1,7 @@
 import User from '@/models/User';
 import bcrypt from 'bcryptjs';
 import { connectToDatabase } from '@/lib/mongodb';
+import { getTokenFromRequest, verifyToken } from '@/lib/jwt';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -21,6 +22,21 @@ export default async function handler(req, res) {
 
     await connectToDatabase();
 
+    const totalUsers = await User.countDocuments({});
+    const token = getTokenFromRequest(req);
+    const requester = token ? verifyToken(token) : null;
+    const requesterIsAdmin = requester?.role === 'admin';
+
+    if (totalUsers > 0 && !requesterIsAdmin) {
+      return res.status(403).json({
+        error: 'Only an authenticated admin can create additional users',
+      });
+    }
+
+    const allowedRoles = ['admin', 'manager', 'staff', 'viewer'];
+    const requestedRole = allowedRoles.includes(role) ? role : 'staff';
+    const safeRole = totalUsers === 0 ? 'admin' : requestedRole;
+
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
@@ -33,7 +49,7 @@ export default async function handler(req, res) {
       email: email.toLowerCase() || 'email@example.com',
       password: hashedPassword,
       name,
-      role: role || 'staff',
+      role: safeRole,
       isActive: true,
     });
 

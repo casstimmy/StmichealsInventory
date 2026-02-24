@@ -1,8 +1,21 @@
 import { mongooseConnect } from "../../../lib/mongodb";
 import EndOfDayReport from "../../../models/EndOfDayReport";
 import { buildLocationCache, resolveLocationName } from "../../../lib/serverLocationHelper";
+import { authMiddleware, isStaff } from "@/lib/auth-middleware";
+import createOrCloseHandler from "./end-of-day-create";
 
 export default async function handler(req, res) {
+  if (req.method === "POST") {
+    return createOrCloseHandler(req, res);
+  }
+
+  const authError = authMiddleware(req, res);
+  if (authError) return authError;
+
+  if (!isStaff(req)) {
+    return res.status(403).json({ success: false, message: "Insufficient permissions" });
+  }
+
   if (req.method !== "GET") {
     return res.status(405).json({ message: "Method not allowed" });
   }

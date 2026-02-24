@@ -26,7 +26,10 @@ export default async function handler(req, res) {
         // Verify JWT token for admin users
         try {
           const token = auth.substring(7);
-          jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
+          if (!process.env.JWT_SECRET) {
+            return res.status(500).json({ error: "JWT_SECRET not configured" });
+          }
+          jwt.verify(token, process.env.JWT_SECRET);
           console.log("[Daily Mail] ✅ Authorized via JWT token");
         } catch (tokenErr) {
           console.log("[Daily Mail] ❌ Invalid JWT token:", tokenErr.message);

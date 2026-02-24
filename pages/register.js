@@ -8,7 +8,7 @@ export default function Register({ locations }) {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState("admin");
+  const [role, setRole] = useState("staff");
   const [location, setLocation] = useState(locations?.[0] || "");
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
@@ -161,8 +161,9 @@ export default function Register({ locations }) {
                 onChange={(e) => setRole(e.target.value)}
                 className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
               >
-                <option value="admin">Admin</option>
+                <option value="staff">Staff</option>
                 <option value="manager">Manager</option>
+                <option value="viewer">Viewer</option>
               </select>
             </div>
 

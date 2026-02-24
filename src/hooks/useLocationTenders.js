@@ -1,14 +1,29 @@
-/**
- * useLocationTenders Hook
- * 
- * Fetches tenders assigned to a specific location
- * from the inventory management system
- * 
- * @param {string} locationId - The location ID to fetch tenders for
- * @returns {object} { tenders, loading, error }
- */
+import { useEffect, useState } from "react";
 
-import { useState, useEffect } from 'react';
+function cacheKey(locationId) {
+  return `pos_location_tenders_${locationId}`;
+}
+
+function readCachedTenders(locationId) {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(cacheKey(locationId));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeCachedTenders(locationId, tenders) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(cacheKey(locationId), JSON.stringify(tenders));
+  } catch {
+    // Ignore cache write failures.
+  }
+}
 
 export function useLocationTenders(locationId) {
   const [tenders, setTenders] = useState([]);
@@ -19,20 +34,31 @@ export function useLocationTenders(locationId) {
     if (!locationId) {
       setTenders([]);
       setLoading(false);
-      setError('No location ID provided');
+      setError("No location ID provided");
       return;
     }
 
     const fetchLocationTenders = async () => {
+      const cached = readCachedTenders(locationId);
+      if (cached.length) setTenders(cached);
+
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        setLoading(false);
+        setError(cached.length ? null : "Offline and no cached tenders");
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
 
-        console.log(`📍 Fetching tenders for location: ${locationId}`);
-
-        // Fetch location-specific tenders from inventory API
+        const token =
+          typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
         const response = await fetch(
-          `http://localhost:3000/api/setup/location-items?locationId=${locationId}`
+          `/api/setup/location-items?locationId=${locationId}`,
+          {
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          }
         );
 
         if (!response.ok) {
@@ -42,42 +68,30 @@ export function useLocationTenders(locationId) {
         }
 
         const data = await response.json();
-
         if (!data.success) {
-          throw new Error(data.message || 'Failed to fetch location data');
+          throw new Error(data.message || "Failed to fetch location data");
         }
 
-        // Extract tenders array from response
         const locationTenders = data.location?.tenders || [];
-
-        console.log(`✅ Fetched ${locationTenders.length} tenders for location`);
-        console.log('📋 Raw tender data:', locationTenders);
-
-        // Normalize tender data - convert MongoDB objects to component-friendly format
-        const normalizedTenders = locationTenders.map((tender) => {
-          // Handle both object and string formats
-          const tenderObj = typeof tender === 'string' ? { _id: tender } : tender;
-
-          return {
-            id: tenderObj._id || tenderObj.id,
-            name: tenderObj.name || 'Unknown Tender',
-            description: tenderObj.description || '',
-            classification: tenderObj.classification || 'Other',
-            buttonColor: tenderObj.buttonColor || '#A3E635',
-            tillOrder: tenderObj.tillOrder || 0,
-          };
-        });
-
-        // Sort by till order
-        normalizedTenders.sort((a, b) => a.tillOrder - b.tillOrder);
-
-        console.log('🔄 Normalized tender data:', normalizedTenders);
+        const normalizedTenders = locationTenders
+          .map((tender) => {
+            const tenderObj = typeof tender === "string" ? { _id: tender } : tender;
+            return {
+              id: tenderObj._id || tenderObj.id,
+              name: tenderObj.name || "Unknown Tender",
+              description: tenderObj.description || "",
+              classification: tenderObj.classification || "Other",
+              buttonColor: tenderObj.buttonColor || "#A3E635",
+              tillOrder: Number(tenderObj.tillOrder || 0),
+            };
+          })
+          .sort((a, b) => a.tillOrder - b.tillOrder);
 
         setTenders(normalizedTenders);
+        writeCachedTenders(locationId, normalizedTenders);
       } catch (err) {
-        console.error('❌ Error fetching tenders:', err);
-        setError(err.message || 'Failed to load tenders');
-        setTenders([]);
+        setError(err.message || "Failed to load tenders");
+        if (!cached.length) setTenders([]);
       } finally {
         setLoading(false);
       }
@@ -92,24 +106,3 @@ export function useLocationTenders(locationId) {
     error,
   };
 }
-
-/**
- * Example usage in a component:
- * 
- * import { useLocationTenders } from '../../../src/hooks/useLocationTenders';
- * 
- * function MyComponent() {
- *   const { tenders, loading, error } = useLocationTenders('locationId123');
- *   
- *   if (loading) return <div>Loading...</div>;
- *   if (error) return <div>Error: {error}</div>;
- *   
- *   return (
- *     <div>
- *       {tenders.map(tender => (
- *         <button key={tender.id}>{tender.name}</button>
- *       ))}
- *     </div>
- *   );
- * }
- */

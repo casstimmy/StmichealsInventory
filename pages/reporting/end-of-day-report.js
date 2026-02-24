@@ -42,18 +42,35 @@ export default function EndOfDayReporting() {
   const [period, setPeriod] = useState("thisMonth");
   const [selectedLocation, setSelectedLocation] = useState("All");
   const [locations, setLocations] = useState([]);
-  const [locationMap, setLocationMap] = useState({}); // Map location names to IDs
   const [expandedReportId, setExpandedReportId] = useState(null);
+
+  useEffect(() => {
+    fetchLocations();
+  }, []);
 
   useEffect(() => {
     fetchData();
   }, [period, selectedLocation]);
 
+  async function fetchLocations() {
+    try {
+      const res = await fetch("/api/setup/get");
+      const data = await res.json();
+      const locationsList = (data?.store?.locations || []).map((loc) => ({
+        id: String(loc._id),
+        name: loc.name,
+      }));
+      setLocations(locationsList);
+    } catch (err) {
+      console.error("Error fetching locations:", err);
+    }
+  }
+
   async function fetchData() {
     try {
       setLoading(true);
       start();
-      const locationId = selectedLocation !== "All" ? locationMap[selectedLocation] : "";
+      const locationId = selectedLocation !== "All" ? selectedLocation : "";
       const locationParam = locationId ? `&locationId=${locationId}` : "";
       onFetch();
       const res = await fetch(`/api/reporting/end-of-day-summary?period=${period}${locationParam}`);
@@ -66,20 +83,6 @@ export default function EndOfDayReporting() {
         setSummary(data.summary);
         const reportsList = data.reports || [];
         setReports(reportsList);
-
-        // Extract unique locations from summary.byLocation (already aggregated and enriched)
-        if (data.summary && data.summary.byLocation && data.summary.byLocation.length > 0) {
-          const locNames = data.summary.byLocation.map((loc) => loc.location).filter(Boolean);
-          setLocations(locNames);
-          
-          // Build map of location names to names for filtering
-          // (We'll filter by location name in the frontend since byLocation uses names)
-          const map = {};
-          locNames.forEach((name) => {
-            map[name] = name;
-          });
-          setLocationMap(map);
-        }
       } else {
         console.error(" API Error:", data.message);
       }
@@ -218,8 +221,8 @@ export default function EndOfDayReporting() {
               >
                 <option value="All">All Locations</option>
                 {locations.map((loc) => (
-                  <option key={loc} value={loc}>
-                    {loc}
+                  <option key={loc.id} value={loc.id}>
+                    {loc.name}
                   </option>
                 ))}
               </select>
@@ -309,9 +312,9 @@ export default function EndOfDayReporting() {
             {/* Top Staff */}
             <div className="content-card">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Top Staff Performance</h2>
-              <div className="space-y-3 max-h-96 overflow-y-auto">
+                <div className="space-y-3 max-h-96 overflow-y-auto">
                 {(summary.byStaff || [])
-                  .sort((a, b) => b.sales - a.sales)
+                  .sort((a, b) => b.totalSales - a.totalSales)
                   .slice(0, 10)
                   .map((staff, idx) => (
                     <div key={idx} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">

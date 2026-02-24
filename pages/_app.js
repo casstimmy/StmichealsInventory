@@ -4,16 +4,99 @@ import { useRouter } from 'next/router';
 import { useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { fetchAndCacheLogo } from '@/lib/storeLogo';
+import {
+  queuePosTransaction,
+  setupOfflinePosQueueSync,
+} from "@/lib/offlinePosQueue";
+
+function installGlobalApiFetchWrapper() {
+  if (typeof window === "undefined") return;
+  if (window.__inventoryFetchWrapped) return;
+
+  const originalFetch = window.fetch.bind(window);
+  window.__inventoryOriginalFetch = originalFetch;
+
+  window.fetch = async (input, init = {}) => {
+    const url = typeof input === "string" ? input : input?.url || "";
+    const method = (
+      init.method ||
+      (typeof input !== "string" ? input?.method : "GET") ||
+      "GET"
+    ).toUpperCase();
+
+    const isApiRequest = url.startsWith("/api/");
+    const headers = new Headers(
+      init.headers || (typeof input !== "string" ? input?.headers : undefined) || {}
+    );
+
+    if (isApiRequest && !headers.has("Authorization")) {
+      const token = localStorage.getItem("auth_token");
+      if (token) headers.set("Authorization", `Bearer ${token}`);
+    }
+
+    const nextInit = { ...init, headers };
+
+    if (
+      url === "/api/transactions/transactions" &&
+      method === "POST" &&
+      typeof navigator !== "undefined" &&
+      !navigator.onLine
+    ) {
+      let payload = {};
+      try {
+        payload =
+          typeof nextInit.body === "string"
+            ? JSON.parse(nextInit.body)
+            : nextInit.body || {};
+      } catch {
+        payload = {};
+      }
+
+      const queued = queuePosTransaction(payload);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          queued: true,
+          message: "Offline: transaction queued for sync",
+          transaction: {
+            ...payload,
+            status: payload?.status || "completed",
+            externalId: queued.externalId,
+          },
+        }),
+        {
+          status: 202,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    return window.__inventoryOriginalFetch(input, nextInit);
+  };
+
+  window.__inventoryFetchWrapped = true;
+}
 
 export default function App({
   Component,
   pageProps,
 }) {
   const router = useRouter();
+  installGlobalApiFetchWrapper();
   
   // Prime the store logo cache on first load
   useEffect(() => {
     fetchAndCacheLogo();
+  }, []);
+
+  // Sync queued POS transactions when connectivity returns.
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const cleanupSync = setupOfflinePosQueueSync(window.fetch);
+    return () => {
+      if (cleanupSync) cleanupSync();
+    };
   }, []);
   
   // Don't show layout on login and register pages

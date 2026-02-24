@@ -1,6 +1,20 @@
 import { mongooseConnect } from "@/lib/mongodb";
 import Store from "@/models/Store";
 import User from "@/models/User";
+import { authMiddleware, isStaff } from "@/lib/auth-middleware";
+
+function sanitizeUser(user) {
+  if (!user) return null;
+  return {
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    isActive: user.isActive,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+}
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
@@ -10,26 +24,32 @@ export default async function handler(req, res) {
   try {
     await mongooseConnect();
 
-    const store = await Store.findOne({});
-    const user = await User.findOne({ role: "admin" });
+    const [store, user] = await Promise.all([
+      Store.findOne({}),
+      User.findOne({ role: "admin" }).select(
+        "name email role isActive createdAt updatedAt"
+      ),
+    ]);
 
-    // Debug: Log what we're getting
-    console.log("Store from DB:", store ? `Found - has ${store.locations?.length || 0} locations` : "Not found");
-    if (store && store.locations) {
-      console.log("Locations:", JSON.stringify(store.locations, null, 2));
+    if (store || user) {
+      const authError = authMiddleware(req, res);
+      if (authError) return authError;
+      if (!isStaff(req)) {
+        return res
+          .status(403)
+          .json({ success: false, message: "Insufficient permissions" });
+      }
     }
 
-    // Ensure locations are included in the response
-    const storeData = store ? store.toObject() : null;
-    const userData = user ? user.toObject() : null;
-
-    return res.status(200).json({ store: storeData, user: userData });
+    return res.status(200).json({
+      store: store ? store.toObject() : null,
+      user: sanitizeUser(user),
+    });
   } catch (err) {
     console.error("Fetch setup error:", err);
-    res.status(500).json({ 
+    res.status(500).json({
       message: "Internal Server Error",
-      error: process.env.NODE_ENV === 'development' ? err.message : undefined 
+      error: process.env.NODE_ENV === "development" ? err.message : undefined,
     });
   }
 }
-

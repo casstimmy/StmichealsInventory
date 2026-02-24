@@ -539,7 +539,7 @@ function applyFilters() {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {transactions.map((tx, idx) => (
-                    <>
+                    [
                       <tr key={tx._id} className={`transition-colors ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-gray-50`}>
                         <td className="px-4 py-3 font-medium text-gray-800">{tx.staff?.name || tx.staff || "N/A"}</td>
                         <td className="px-4 py-3">
@@ -596,9 +596,9 @@ function applyFilters() {
                             )}
                           </div>
                         </td>
-                      </tr>
-                      {expandedTxId === tx._id && (
-                        <tr className="bg-gray-100">
+                      </tr>,
+                      expandedTxId === tx._id ? (
+                        <tr key={`${tx._id}-expanded`} className="bg-gray-100">
                           <td colSpan={8} className="px-6 py-4">
                             <div className="bg-white rounded-lg p-4 border border-gray-200">
                               <p className="text-sm font-semibold text-gray-700 mb-3">Order Items ({tx.items?.length || 0} items)</p>
@@ -629,8 +629,8 @@ function applyFilters() {
                             </div>
                           </td>
                         </tr>
-                      )}
-                    </>
+                      ) : null,
+                    ]
                   ))}
                 </tbody>
               </table>

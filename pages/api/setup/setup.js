@@ -1,36 +1,49 @@
-import { mongooseConnect, withRetry } from "@/lib/mongodb";
+import { mongooseConnect } from "@/lib/mongodb";
 import Store from "@/models/Store";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
+import { authMiddleware, isAdmin, isStaff } from "@/lib/auth-middleware";
+
+function sanitizeUser(user) {
+  if (!user) return null;
+  return {
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    isActive: user.isActive,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+}
 
 export default async function handler(req, res) {
   if (req.method === "GET") {
-    // GET - Retrieve store configuration
     try {
-      const { storeData, userData } = await withRetry(async () => {
-        const store = await Store.findOne({});
-        const user = await User.findOne({ role: "admin" });
+      await mongooseConnect();
 
-        if (store) {
-          console.log("✅ Store found:", {
-            storeName: store.storeName,
-            locationsCount: store.locations?.length || 0,
-            locations: store.locations?.map((loc) => ({ id: loc._id, name: loc.name })) || [],
-          });
-        } else {
-          console.log("⚠️ Store not found in database");
+      const [store, user] = await Promise.all([
+        Store.findOne({}),
+        User.findOne({ role: "admin" }).select(
+          "name email role isActive createdAt updatedAt"
+        ),
+      ]);
+
+      // Once setup exists, access requires authenticated staff.
+      if (store || user) {
+        const authError = authMiddleware(req, res);
+        if (authError) return authError;
+        if (!isStaff(req)) {
+          return res
+            .status(403)
+            .json({ success: false, message: "Insufficient permissions" });
         }
+      }
 
-        return {
-          storeData: store ? store.toObject() : null,
-          userData: user ? user.toObject() : null
-        };
-      });
-
-      return res.status(200).json({ 
+      return res.status(200).json({
         success: true,
-        store: storeData, 
-        user: userData 
+        store: store ? store.toObject() : null,
+        user: sanitizeUser(user),
       });
     } catch (error) {
       console.error("Setup GET error:", error);
@@ -39,12 +52,13 @@ export default async function handler(req, res) {
         message: "Failed to fetch setup",
       });
     }
-  } else if (req.method === "POST") {
-    // POST - Save store configuration
-    return handlePost(req, res);
-  } else {
-    return res.status(405).json({ message: "Method not allowed" });
   }
+
+  if (req.method === "POST") {
+    return handlePost(req, res);
+  }
+
+  return res.status(405).json({ message: "Method not allowed" });
 }
 
 async function handlePost(req, res) {
@@ -57,22 +71,50 @@ async function handlePost(req, res) {
     adminName,
     adminEmail,
     adminPassword,
-  } = req.body;
+  } = req.body || {};
 
   try {
     await mongooseConnect();
 
-    // Only hash password if provided
+    const [existingAdmin, existingStore] = await Promise.all([
+      User.findOne({ role: "admin" }).select("_id"),
+      Store.findOne({}).select("_id"),
+    ]);
+    const bootstrapMode = !existingAdmin || !existingStore;
+
+    if (!storeName || !storePhone || !country || !adminName || !adminEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields: storeName, storePhone, country, adminName, adminEmail",
+      });
+    }
+
+    if (bootstrapMode && !adminPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "adminPassword is required during initial setup",
+      });
+    }
+
+    // After bootstrap, only admins can mutate setup.
+    if (!bootstrapMode) {
+      const authError = authMiddleware(req, res);
+      if (authError) return authError;
+      if (!isAdmin(req)) {
+        return res.status(403).json({
+          success: false,
+          message: "Only admin users can update setup configuration",
+        });
+      }
+    }
+
     let passwordUpdate = {};
     if (adminPassword) {
       passwordUpdate.password = await bcrypt.hash(adminPassword, 10);
     }
 
-    // Get or create store first
     let store = await Store.findOne({});
-    
-    // Prepare locations array with proper schema
-    const preparedLocations = locations.map((loc) => ({
+    const preparedLocations = (Array.isArray(locations) ? locations : []).map((loc) => ({
       name: loc.name || "Unnamed Location",
       address: loc.address || "",
       phone: loc.phone || "",
@@ -82,14 +124,12 @@ async function handlePost(req, res) {
     }));
 
     if (!store) {
-      // Create new store with properly formatted locations and default arrays
       store = new Store({
         storeName,
         storePhone,
         country,
         logo: logo || "",
         locations: preparedLocations,
-        // Initialize default empty arrays for these fields
         devices: [],
         openingHours: [],
         tenderTypes: [],
@@ -97,14 +137,11 @@ async function handlePost(req, res) {
         pettyCashReasons: [],
       });
     } else {
-      // Update existing store
       store.storeName = storeName;
       store.storePhone = storePhone;
       store.country = country;
       store.locations = preparedLocations;
-      if (logo) store.logo = logo; // Update logo if provided
-      
-      // Ensure arrays exist even if undefined
+      if (logo) store.logo = logo;
       if (!store.devices) store.devices = [];
       if (!store.openingHours) store.openingHours = [];
       if (!store.tenderTypes) store.tenderTypes = [];
@@ -112,17 +149,8 @@ async function handlePost(req, res) {
       if (!store.pettyCashReasons) store.pettyCashReasons = [];
     }
 
-    // Save store with locations
     const savedStore = await store.save();
-    
-    console.log("Store saved successfully:", {
-      id: savedStore._id,
-      storeName: savedStore.storeName,
-      locationsCount: savedStore.locations.length,
-      locations: savedStore.locations.map(l => l.name),
-    });
 
-    // Update admin
     const user = await User.findOneAndUpdate(
       { email: adminEmail },
       {
@@ -132,11 +160,11 @@ async function handlePost(req, res) {
         ...passwordUpdate,
       },
       { upsert: true, new: true }
-    );
+    ).select("name email role isActive createdAt updatedAt");
 
     return res.status(200).json({
       success: true,
-      data: { store: savedStore, user },
+      data: { store: savedStore, user: sanitizeUser(user) },
     });
   } catch (error) {
     console.error("Setup POST error:", error);
@@ -147,4 +175,3 @@ async function handlePost(req, res) {
     });
   }
 }
-

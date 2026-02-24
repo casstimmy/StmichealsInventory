@@ -15,7 +15,7 @@ const EndOfDayReportSchema = new mongoose.Schema({
   openingBalance: Number,
   
   // Till Closing Info
-  closedAt: { type: Date, default: Date.now },
+  closedAt: { type: Date, default: null },
   closedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" }, // Manager who closed
   
   // Cash Reconciliation
@@ -44,13 +44,22 @@ const EndOfDayReportSchema = new mongoose.Schema({
   },
   
   // Metadata
-  date: { 
-    type: Date, 
-    default: () => new Date().setHours(0, 0, 0, 0) // Start of day
+  date: {
+    type: Date,
+    default: () => {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      return d;
+    },
   },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
+
+EndOfDayReportSchema.index(
+  { storeId: 1, locationId: 1, closedAt: 1 },
+  { partialFilterExpression: { closedAt: null } }
+);
 
 // Avoid re-registering the model in development
 const EndOfDayReport = mongoose.models.EndOfDayReport || 

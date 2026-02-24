@@ -3,12 +3,20 @@ import Store from "@/models/Store";
 import Tender from "@/models/Tender";
 import { Category } from "@/models/Category";
 import { mongooseConnect } from "@/lib/mongodb";
+import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 
 async function connectDB() {
   await mongooseConnect();
 }
 
 export default async function handler(req, res) {
+  const authError = authMiddleware(req, res);
+  if (authError) return authError;
+
+  if (!isStaff(req)) {
+    return res.status(403).json({ success: false, message: "Insufficient permissions" });
+  }
+
   try {
     await connectDB();
 
@@ -28,7 +36,7 @@ export default async function handler(req, res) {
         { "locations.$": 1 }
       ).populate({
         path: "locations.tenders",
-        select: "_id name"
+        select: "_id name description buttonColor tillOrder classification active"
       }).populate({
         path: "locations.categories",
         select: "_id name"

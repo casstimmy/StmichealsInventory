@@ -2,6 +2,7 @@ import { mongooseConnect } from "@/lib/mongodb";
 import Transaction from "@/models/Transactions";
 import Product from "@/models/Product";
 import Store from "@/models/Store";
+import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 import {
   format,
   subDays,
@@ -35,6 +36,13 @@ function setCache(key, data) {
    API HANDLER
 ---------------------------------------------- */
 export default async function handler(req, res) {
+  const authError = authMiddleware(req, res);
+  if (authError) return authError;
+
+  if (!isStaff(req)) {
+    return res.status(403).json({ error: "Insufficient permissions" });
+  }
+
   try {
     await mongooseConnect();
 
@@ -166,7 +174,7 @@ export default async function handler(req, res) {
     /* ---------------------------------------------
        LOW STOCK COUNT
     ---------------------------------------------- */
-    const lowStockItems = await Product.countDocuments({ stock: { $lte: 10 } });
+    const lowStockItems = await Product.countDocuments({ quantity: { $lte: 10 } });
 
     const response = {
       dates: periods,

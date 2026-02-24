@@ -394,6 +394,7 @@ export default function Categories() {
               <thead>
                 <tr>
                   <th>Image</th>
+                  <th>Icon</th>
                   <th>Name</th>
                   <th>Parent</th>
                   <th>Properties</th>
@@ -415,6 +416,11 @@ export default function Categories() {
                           <FontAwesomeIcon icon={resolveCategoryIcon(cat.icon)} />
                         </div>
                       )}
+                    </td>
+                    <td className="p-3">
+                      <div className="w-10 h-10 bg-gray-100 rounded-md border border-gray-200 flex items-center justify-center text-gray-500">
+                        <FontAwesomeIcon icon={resolveCategoryIcon(cat.icon)} />
+                      </div>
                     </td>
                     <td className="p-3 font-medium text-gray-900">
                       {cat.name}

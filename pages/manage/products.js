@@ -52,6 +52,7 @@ export default function Products() {
   const [expandedRow, setExpandedRow] = useState(null);
   const [isInitializing, setIsInitializing] = useState(true); // Track first load
   const [isRefreshingList, setIsRefreshingList] = useState(false);
+  const [isApplyingChanges, setIsApplyingChanges] = useState(false);
   const [savingProductId, setSavingProductId] = useState(null);
   const [isOpeningAddProduct, setIsOpeningAddProduct] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -165,10 +166,15 @@ export default function Products() {
 
     sessionStorage.removeItem("products:refresh");
     (async () => {
-      await clearCache("products_cache");
-      await refreshProducts();
-      mutate("/api/products");
-      await loadCategories();
+      try {
+        setIsApplyingChanges(true);
+        await clearCache("products_cache");
+        await refreshProducts();
+        mutate("/api/products");
+        await loadCategories();
+      } finally {
+        setIsApplyingChanges(false);
+      }
     })();
   }, [refreshProducts, loadCategories]);
 
@@ -324,11 +330,11 @@ export default function Products() {
   }
 
   // Show initial loading state
-  if (isInitializing) {
+  if (isInitializing || isApplyingChanges) {
     return (
       <Layout>
         <div className="p-6 text-center">
-          <Loader size="md" text="Loading products..." />
+          <Loader size="md" text={isApplyingChanges ? "Applying latest changes..." : "Loading products..."} />
         </div>
       </Layout>
     );

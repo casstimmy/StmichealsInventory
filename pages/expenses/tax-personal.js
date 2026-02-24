@@ -123,7 +123,6 @@ export default function PersonalTaxCalculator() {
           {/* Header Section */}
           <div className="page-header">
             <h1 className="page-title flex items-center gap-3">
-              <FontAwesomeIcon icon={faCalculator} className="text-sky-600" />
               Personal Tax Calculator
             </h1>
             <p className="page-subtitle max-w-2xl">

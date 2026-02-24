@@ -11,9 +11,38 @@ import {
   faImages,
   faSave,
   faTimes,
+  faBoxOpen,
+  faMugHot,
+  faUtensils,
+  faBed,
+  faCouch,
+  faChair,
+  faTags,
+  faScrewdriverWrench,
+  faShirt,
+  faGift,
 } from "@fortawesome/free-solid-svg-icons";
 import Loader from "@/components/Loader";
 import { getCachedCategories, invalidateCategoriesCache } from "@/lib/categoriesCache";
+
+const ICON_OPTIONS = [
+  { value: "", label: "No Icon", icon: faImages },
+  { value: "box", label: "Box", icon: faBoxOpen },
+  { value: "drink", label: "Drink", icon: faMugHot },
+  { value: "food", label: "Food", icon: faUtensils },
+  { value: "bed", label: "Bed/Room", icon: faBed },
+  { value: "lounge", label: "Lounge", icon: faCouch },
+  { value: "furniture", label: "Furniture", icon: faChair },
+  { value: "tag", label: "General", icon: faTags },
+  { value: "tools", label: "Tools", icon: faScrewdriverWrench },
+  { value: "clothing", label: "Clothing", icon: faShirt },
+  { value: "gift", label: "Gift", icon: faGift },
+];
+
+function resolveCategoryIcon(iconKey) {
+  const found = ICON_OPTIONS.find((opt) => opt.value === iconKey);
+  return found?.icon || faImages;
+}
 
 export default function Categories() {
   const [name, setName] = useState("");
@@ -289,14 +318,18 @@ export default function Categories() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Icon (optional)</label>
-                  <input
-                    type="text"
+                  <label className="form-label">Icon</label>
+                  <select
                     value={icon}
                     onChange={(e) => setIcon(e.target.value)}
-                    placeholder="faBed, room, or short code"
-                    className="form-input"
-                  />
+                    className="form-select"
+                  >
+                    {ICON_OPTIONS.map((opt) => (
+                      <option key={opt.value || "none"} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="form-group flex items-end">
@@ -379,9 +412,7 @@ export default function Categories() {
                         />
                       ) : (
                         <div className="w-12 h-12 bg-gray-100 rounded-md border border-gray-200 flex items-center justify-center text-gray-400">
-                          <span className="text-[10px] font-semibold text-gray-500 px-1 text-center">
-                            {cat.icon || "ICON"}
-                          </span>
+                          <FontAwesomeIcon icon={resolveCategoryIcon(cat.icon)} />
                         </div>
                       )}
                     </td>
@@ -498,10 +529,9 @@ export default function Categories() {
 
                       <div>
                         <label className="block text-sm font-medium text-cyan-700 mb-2">
-                          Icon (optional)
+                          Icon
                         </label>
-                        <input
-                          type="text"
+                        <select
                           value={editedCategory.icon || ""}
                           onChange={(e) =>
                             setEditedCategory((prev) => ({
@@ -510,7 +540,13 @@ export default function Categories() {
                             }))
                           }
                           className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-cyan-600 focus:border-transparent"
-                        />
+                        >
+                          {ICON_OPTIONS.map((opt) => (
+                            <option key={opt.value || "none"} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
                       </div>
 
                       <div className="md:col-span-2">

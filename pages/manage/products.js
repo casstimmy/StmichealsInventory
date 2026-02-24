@@ -212,7 +212,10 @@ export default function Products() {
       const sale = parseFloat(updated.salePriceIncTax || 0);
 
       if (name === "margin") {
-        updated.salePriceIncTax = calculateSalePriceIncTax(cost, margin, tax, true).toFixed(2);
+        const marginRatio = margin / 100;
+        const saleExTax = cost * (1 + marginRatio);
+        const saleIncTax = saleExTax * (1 + tax / 100);
+        updated.salePriceIncTax = Number.isFinite(saleIncTax) ? saleIncTax.toFixed(2) : "0.00";
       }
       if (["costPrice", "taxRate", "salePriceIncTax"].includes(name)) {
         updated.margin = calculateMarginPercent(cost, sale, tax, true).toFixed(2);
@@ -228,21 +231,14 @@ export default function Products() {
     try {
       setSavingProductId(_id);
       const updatedProduct = { ...editableProduct, properties };
-      await axios.put("/api/products", { ...updatedProduct, _id });
+      const response = await axios.put("/api/products", { ...updatedProduct, _id });
+      const saved = response?.data?.data || { ...updatedProduct, _id };
 
       // update local cached arrays immediately (optimistic update)
       setFilteredProducts((prev) =>
-        prev.map((p) => (p._id === _id ? { ...p, ...updatedProduct } : p))
+        prev.map((p) => (p._id === _id ? { ...p, ...saved } : p))
       );
-      setAllProducts((prev) => prev.map((p) => (p._id === _id ? { ...p, ...updatedProduct } : p)));
-
-      // Invalidate IndexedDB cache and refresh from server
-      await clearCache("products_cache");
-      await refreshProducts();
-
-      // revalidate SWR cache for /api/products
-      mutate("/api/products");
-      await loadCategories();
+      setAllProducts((prev) => prev.map((p) => (p._id === _id ? { ...p, ...saved } : p)));
 
       // close edit mode & highlight the updated product
       setEditIndex(null);

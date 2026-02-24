@@ -2,7 +2,7 @@ import axios from "axios";
 import { useRouter } from "next/router";
 import { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faTrash, faBarcode } from "@fortawesome/free-solid-svg-icons";
 import Loader from "./Loader";
 import useProgress from "@/lib/useProgress";
 import { formatCurrency } from "@/lib/format";
@@ -38,6 +38,7 @@ export default function ProductForm(props) {
   );
   const [margin, setMargin] = useState(props.margin ?? "");
   const [barcode, setBarcode] = useState(props.barcode || "");
+  const [quantity, setQuantity] = useState(props.quantity ?? "");
   const [category, setCategory] = useState(props.category || "Top Level");
   const [categories, setCategories] = useState([]);
   const [images, setImages] = useState(props.images || []);
@@ -69,6 +70,7 @@ export default function ProductForm(props) {
   const [goToProducts, setGoToProducts] = useState(false);
   const [applyTax, setApplyTax] = useState(true);
   const [fieldErrors, setFieldErrors] = useState({});
+  const [descriptionEdited, setDescriptionEdited] = useState(false);
 
   // Sync props to state if they change
   useEffect(() => {
@@ -79,6 +81,7 @@ export default function ProductForm(props) {
     setSalePriceIncTax(props.salePriceIncTax ?? "");
     setMargin(props.margin ?? "");
     setBarcode(props.barcode || "");
+    setQuantity(props.quantity ?? "");
     setCategory(props.category || "Top Level");
     setImages(props.images || []);
     setProperties(props.properties || []);
@@ -88,6 +91,7 @@ export default function ProductForm(props) {
     setPromoStart(toDateInputValue(props.promoStart));
     setPromoEnd(toDateInputValue(props.promoEnd));
     setExpiryDate(toDateInputValue(props.expiryDate || ""));
+    setDescriptionEdited(Boolean(props.description));
   }, [props]);
 
   // Load categories with caching
@@ -195,7 +199,8 @@ export default function ProductForm(props) {
       category,
       images,
       properties,
-      minStock,
+      minStock: minStock === "" ? undefined : Number(minStock),
+      quantity: quantity === "" ? undefined : Number(quantity),
       expiryDate,
       isPromotion,
       promoPrice: isPromotion ? promoPrice : "",
@@ -250,6 +255,11 @@ export default function ProductForm(props) {
     if (goToProducts) router.push("/manage/products");
   }, [goToProducts, router]);
 
+  function generateBarcode() {
+    const base = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
+    setBarcode(base.slice(-13));
+  }
+
   return (
     <form
       onSubmit={saveProduct}
@@ -280,6 +290,9 @@ export default function ProductForm(props) {
             value={name}
             setValue={(v) => {
               setName(v);
+              if (!descriptionEdited || !String(description || "").trim()) {
+                setDescription(v);
+              }
               if (fieldErrors.name) {
                 setFieldErrors((prev) => ({ ...prev, name: null }));
               }
@@ -287,20 +300,40 @@ export default function ProductForm(props) {
             required
             error={fieldErrors.name}
           />
-          <InputField label="Barcode" value={barcode} setValue={setBarcode} />
+          <InputField
+            label="Description"
+            value={description}
+            setValue={(v) => {
+              setDescription(v);
+              setDescriptionEdited(true);
+              if (fieldErrors.description) {
+                setFieldErrors((prev) => ({ ...prev, description: null }));
+              }
+            }}
+            textarea
+            error={fieldErrors.description}
+          />
         </div>
-        <InputField
-          label="Description"
-          value={description}
-          setValue={(v) => {
-            setDescription(v);
-            if (fieldErrors.description) {
-              setFieldErrors((prev) => ({ ...prev, description: null }));
-            }
-          }}
-          textarea
-          error={fieldErrors.description}
-        />
+        <div className="form-group">
+          <label className="form-label">Barcode</label>
+          <div className="flex gap-2">
+            <input
+              name="barcode"
+              type="text"
+              className="form-input"
+              value={barcode}
+              onChange={(e) => setBarcode(e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={generateBarcode}
+              className="btn-action-secondary whitespace-nowrap"
+            >
+              <FontAwesomeIcon icon={faBarcode} className="mr-2" />
+              Generate
+            </button>
+          </div>
+        </div>
 
         {/* Category Select */}
         <div className="form-group">
@@ -396,13 +429,6 @@ export default function ProductForm(props) {
             value={margin}
             setValue={setMargin}
           />
-          <InputField
-            label="Min Stock (optional)"
-            name="minStock"
-            type="number"
-            value={minStock}
-            setValue={setMinStock}
-          />
         </div>
         <InputField
           label="Sale Price (₦, inc. tax)"
@@ -411,6 +437,22 @@ export default function ProductForm(props) {
           value={salePriceIncTax}
           setValue={setSalePriceIncTax}
         />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+          <InputField
+            label="Min Stock (optional)"
+            name="minStock"
+            type="number"
+            value={minStock}
+            setValue={setMinStock}
+          />
+          <InputField
+            label="Qty (optional)"
+            name="quantity"
+            type="number"
+            value={quantity}
+            setValue={setQuantity}
+          />
+        </div>
         <InputField
           label="Expiry Date (optional)"
           type="date"

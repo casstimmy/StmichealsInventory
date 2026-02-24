@@ -47,7 +47,9 @@ export default function Products() {
   const [categoryMap, setCategoryMap] = useState({});
   const [editIndex, setEditIndex] = useState(null);
   const [editableProduct, setEditableProduct] = useState({});
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(
+    typeof window !== "undefined" ? sessionStorage.getItem("products:searchTerm") || "" : ""
+  );
   const [properties, setProperties] = useState([]);
   const [expandedRow, setExpandedRow] = useState(null);
   const [isInitializing, setIsInitializing] = useState(true); // Track first load
@@ -55,7 +57,9 @@ export default function Products() {
   const [isApplyingChanges, setIsApplyingChanges] = useState(false);
   const [savingProductId, setSavingProductId] = useState(null);
   const [isOpeningAddProduct, setIsOpeningAddProduct] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedCategory, setSelectedCategory] = useState(
+    typeof window !== "undefined" ? sessionStorage.getItem("products:categoryFilter") || "all" : "all"
+  );
 
   // pagination / lazy load
   const [entriesPerPage] = useState(entriesPerPageDefault);
@@ -153,6 +157,17 @@ export default function Products() {
     if (highlightedId) sessionStorage.setItem("products:highlight", highlightedId);
     else sessionStorage.removeItem("products:highlight");
   }, [highlightedId]);
+
+  // Persist list filters so returning from advanced edit keeps current view.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    sessionStorage.setItem("products:searchTerm", searchTerm || "");
+  }, [searchTerm]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    sessionStorage.setItem("products:categoryFilter", selectedCategory || "all");
+  }, [selectedCategory]);
 
   // Warm the add-product route bundle to make navigation faster.
   useEffect(() => {
@@ -425,7 +440,7 @@ export default function Products() {
                 <th className="hidden lg:table-cell">Properties</th>
                 <th>Category</th>
                 <th className="hidden sm:table-cell">Promo</th>
-                <th className="!px-2">Arch</th>
+                <th className="!px-2">Del</th>
               </tr>
             </thead>
 
@@ -620,7 +635,7 @@ export default function Products() {
                           }}
                           className="py-1 px-2 md:px-3 bg-red-50 text-red-700 border border-red-300 hover:bg-red-600 hover:text-white rounded text-xs"
                         >
-                          Arch
+                          X
                         </button>
                       </td>
                     </tr>
@@ -649,4 +664,3 @@ export default function Products() {
     </Layout>
   );
 }
-

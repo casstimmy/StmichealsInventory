@@ -1,4 +1,5 @@
 import Transaction from "@/models/Transactions";
+import "@/models/Staff";
 import { mongooseConnect } from "@/lib/mongodb";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 import {

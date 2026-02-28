@@ -92,10 +92,14 @@ async function fetchTransactions(signal) {
 function applyFilters() {
     let filtered = [...allTransactions];
 
-    // Filter by status (voided is treated as refunded)
+    // Filter by status (voided is treated as refunded, edited uses subStatus)
     if (statusFilter) {
       if (statusFilter === "refunded") {
         filtered = filtered.filter((tx) => tx.status === "refunded" || tx.status === "voided");
+      } else if (statusFilter === "edited") {
+        filtered = filtered.filter(
+          (tx) => tx.status === "completed" && tx.subStatus === "edited"
+        );
       } else {
         filtered = filtered.filter((tx) => tx.status === statusFilter);
       }

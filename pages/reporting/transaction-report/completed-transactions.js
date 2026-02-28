@@ -7,6 +7,7 @@ import { saveAs } from "file-saver";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { isInDateRange } from "@/lib/dateFilter";
 import useProgress from "@/lib/useProgress";
+import { apiClient } from "@/lib/api-client";
 
 export default function CompletedTransactions() {
   const [transactions, setTransactions] = useState([]);
@@ -21,6 +22,7 @@ export default function CompletedTransactions() {
   const [showBarcode, setShowBarcode] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const { progress, start, onFetch, onProcess, complete } = useProgress();
 
   // Fetch once, filter client-side
@@ -36,13 +38,16 @@ export default function CompletedTransactions() {
 async function fetchTransactions() {
   try {
     setLoading(true);
+    setError("");
     start();
-    const res = await fetch("/api/transactions/transactions");
-    if (!res.ok) throw new Error("Failed to fetch transactions");
+    const res = await apiClient.get("/api/transactions/transactions");
     onFetch();
-    const data = await res.json();
+    const data = res?.data || {};
     onProcess();
-    const all = data.transactions || [];
+    const all = (Array.isArray(data.transactions) ? data.transactions : []).map((tx) => ({
+      ...tx,
+      status: tx?.status ? String(tx.status).toLowerCase() : "completed",
+    }));
 
     // Extract unique locations
     const locationSet = new Set();
@@ -61,6 +66,8 @@ async function fetchTransactions() {
     complete();
   } catch (err) {
     console.error(err);
+    const apiMessage = err?.response?.data?.message || err?.response?.data?.error;
+    setError(apiMessage || "Unable to load completed transactions.");
     complete();
   } finally {
     setLoading(false);
@@ -521,6 +528,11 @@ function applyFilters() {
           {loading ? (
             <div className="p-8">
               <Loader size="md" text="Loading transactions..." progress={progress} />
+            </div>
+          ) : error ? (
+            <div className="p-8 text-center">
+              <p className="text-red-600 text-lg font-medium">Failed to load transactions</p>
+              <p className="text-gray-500 text-sm mt-1">{error}</p>
             </div>
           ) : transactions.length > 0 ? (
             <div className="overflow-x-auto">

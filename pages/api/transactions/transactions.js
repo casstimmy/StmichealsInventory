@@ -16,13 +16,12 @@ export default async function handler(req, res) {
   const authError = authMiddleware(req, res);
   if (authError) return authError;
 
-  if (!isStaff(req)) {
-    return res
-      .status(403)
-      .json({ success: false, message: "Insufficient permissions" });
-  }
-
   if (req.method === "POST") {
+    if (!isStaff(req)) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Insufficient permissions" });
+    }
     return handlePOST(req, res);
   }
 

@@ -21,13 +21,20 @@ export default async function handler(req, res) {
 
   if (req.method === "PUT") {
     try {
-      const { status, refundReason } = req.body || {};
+      const { status, subStatus, refundReason } = req.body || {};
 
       const validStatuses = ["held", "completed", "refunded"];
       if (status && !validStatuses.includes(status)) {
         return res
           .status(400)
           .json({ error: `Invalid status. Must be one of: ${validStatuses.join(", ")}` });
+      }
+
+      const validSubStatuses = ["none", "edited", "void"];
+      if (subStatus && !validSubStatuses.includes(subStatus)) {
+        return res
+          .status(400)
+          .json({ error: `Invalid subStatus. Must be one of: ${validSubStatuses.join(", ")}` });
       }
 
       const transaction = await Transaction.findById(id);
@@ -43,6 +50,7 @@ export default async function handler(req, res) {
 
       const updateData = {};
       if (status) updateData.status = status;
+      if (subStatus) updateData.subStatus = subStatus;
       if (refundReason) updateData.refundReason = refundReason;
 
       const isRefundTransition =

@@ -2,7 +2,7 @@
 import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { saveAs } from "file-saver";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { isInDateRange } from "@/lib/dateFilter";
@@ -25,9 +25,21 @@ export default function CompletedTransactions() {
   const [error, setError] = useState("");
   const { progress, start, onFetch, onProcess, complete } = useProgress();
 
-  // Fetch once, filter client-side
+  // Edit/Refund action states
+  const [editModalTx, setEditModalTx] = useState(null);
+  const [refundModalTx, setRefundModalTx] = useState(null);
+  const [actionReason, setActionReason] = useState("");
+  const [editForm, setEditForm] = useState({});
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionMessage, setActionMessage] = useState({ text: "", type: "" });
+  const abortRef = useRef(null);
+
+  // Fetch once, filter client-side — with AbortController for cleanup
   useEffect(() => {
-    fetchTransactions();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    fetchTransactions(controller.signal);
+    return () => { controller.abort(); };
   }, []);
 
   // Apply filters when they change
@@ -35,18 +47,20 @@ export default function CompletedTransactions() {
     applyFilters();
   }, [locationFilter, statusFilter, selectedDate, startDate, endDate, allTransactions]);
 
-async function fetchTransactions() {
+async function fetchTransactions(signal) {
   try {
     setLoading(true);
     setError("");
     start();
-    const res = await apiClient.get("/api/transactions/transactions");
+    const res = await apiClient.get("/api/transactions/transactions", { signal });
     onFetch();
+    if (signal?.aborted) return;
     const data = res?.data || {};
     onProcess();
     const all = (Array.isArray(data.transactions) ? data.transactions : []).map((tx) => ({
       ...tx,
       status: tx?.status ? String(tx.status).toLowerCase() : "completed",
+      subStatus: tx?.subStatus || "none",
     }));
 
     // Extract unique locations
@@ -65,12 +79,13 @@ async function fetchTransactions() {
     setAllTransactions(all);
     complete();
   } catch (err) {
+    if (err?.name === "CanceledError" || err?.code === "ERR_CANCELED" || signal?.aborted) return;
     console.error(err);
     const apiMessage = err?.response?.data?.message || err?.response?.data?.error;
     setError(apiMessage || "Unable to load completed transactions.");
     complete();
   } finally {
-    setLoading(false);
+    if (!signal?.aborted) setLoading(false);
   }
 }
 
@@ -123,14 +138,18 @@ function applyFilters() {
     setTransactions(filtered);
 }
 
-  // Get display status (voided → Refunded)
-  function getDisplayStatus(status) {
+  // Get display status (voided → Refunded, subStatus for edited/void)
+  function getDisplayStatus(status, subStatus) {
     if (status === "voided") return "Refunded";
+    if (subStatus === "edited") return "Edited";
+    if (subStatus === "void") return "Refunded (Void)";
     if (!status) return "Unknown";
     return status.charAt(0).toUpperCase() + status.slice(1);
   }
 
-  function getStatusBadgeClass(status) {
+  function getStatusBadgeClass(status, subStatus) {
+    if (subStatus === "edited") return "bg-blue-100 text-blue-800";
+    if (subStatus === "void") return "bg-purple-100 text-purple-800";
     switch (status) {
       case "completed": return "bg-emerald-100 text-emerald-800";
       case "held": return "bg-amber-100 text-amber-800";
@@ -145,19 +164,118 @@ function applyFilters() {
   async function handleVoidTransaction(txId) {
     if (!confirm("Are you sure you want to void this held transaction? It will be marked as refunded.")) return;
     try {
-      const res = await fetch(`/api/transactions/${txId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "refunded" }),
-      });
-      if (res.ok) {
+      const res = await apiClient.put(`/api/transactions/${txId}`, { status: "refunded" });
+      if (res.data?.success) {
         setAllTransactions((prev) =>
           prev.map((tx) => tx._id === txId ? { ...tx, status: "refunded" } : tx)
         );
       }
     } catch (err) {
       console.error("Error voiding transaction:", err);
+      alert("Failed to void transaction. Please try again.");
     }
+  }
+
+  // Open edit modal
+  function openEditModal(tx) {
+    setEditForm({
+      customerName: tx.customerName || "",
+      discount: tx.discount || 0,
+      discountReason: tx.discountReason || "",
+      items: (tx.items || []).map((item) => ({
+        ...item,
+        qty: item.qty || item.quantity || 0,
+        salePriceIncTax: item.salePriceIncTax || item.price || 0,
+      })),
+    });
+    setActionReason("");
+    setActionMessage({ text: "", type: "" });
+    setEditModalTx(tx);
+  }
+
+  // Open refund modal
+  function openRefundModal(tx) {
+    setActionReason("");
+    setActionMessage({ text: "", type: "" });
+    setRefundModalTx(tx);
+  }
+
+  // Submit edit request → sends email to admin for confirmation
+  async function handleEditRequest() {
+    if (!editModalTx) return;
+    if (!actionReason.trim()) {
+      setActionMessage({ text: "Please provide a reason for editing.", type: "error" });
+      return;
+    }
+    setActionLoading(true);
+    setActionMessage({ text: "", type: "" });
+    try {
+      // Recalculate total from edited items
+      const itemsTotal = editForm.items.reduce((sum, item) => sum + (item.qty * item.salePriceIncTax), 0);
+      const newTotal = itemsTotal - (Number(editForm.discount) || 0);
+
+      const res = await apiClient.post("/api/transactions/request-action", {
+        transactionId: editModalTx._id,
+        actionType: "edit",
+        reason: actionReason,
+        editPayload: {
+          items: editForm.items,
+          total: Math.max(0, newTotal),
+          discount: Number(editForm.discount) || 0,
+          discountReason: editForm.discountReason,
+          customerName: editForm.customerName,
+        },
+      });
+
+      setActionMessage({
+        text: res.data?.message || "Edit request sent to admin for approval.",
+        type: "success",
+      });
+      setTimeout(() => { setEditModalTx(null); setActionMessage({ text: "", type: "" }); }, 3000);
+    } catch (err) {
+      const msg = err?.response?.data?.message || "Failed to submit edit request.";
+      setActionMessage({ text: msg, type: "error" });
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  // Submit refund request → sends email to admin for confirmation
+  async function handleRefundRequest() {
+    if (!refundModalTx) return;
+    if (!actionReason.trim()) {
+      setActionMessage({ text: "Please provide a reason for the refund.", type: "error" });
+      return;
+    }
+    setActionLoading(true);
+    setActionMessage({ text: "", type: "" });
+    try {
+      const res = await apiClient.post("/api/transactions/request-action", {
+        transactionId: refundModalTx._id,
+        actionType: "refund",
+        reason: actionReason,
+      });
+
+      setActionMessage({
+        text: res.data?.message || "Refund request sent to admin for approval.",
+        type: "success",
+      });
+      setTimeout(() => { setRefundModalTx(null); setActionMessage({ text: "", type: "" }); }, 3000);
+    } catch (err) {
+      const msg = err?.response?.data?.message || "Failed to submit refund request.";
+      setActionMessage({ text: msg, type: "error" });
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  // Update item in edit form
+  function updateEditItem(index, field, value) {
+    setEditForm((prev) => {
+      const items = [...prev.items];
+      items[index] = { ...items[index], [field]: Number(value) || 0 };
+      return { ...prev, items };
+    });
   }
 
   // Compute sales total excluding refunded/voided
@@ -266,8 +384,9 @@ function applyFilters() {
       });
     }
 
-    // Next month days (greyed out)
-    const remainingDays = 42 - days.length; // 6 rows x 7 days
+    // Next month days (greyed out) — cap at 35 cells (5 rows)
+    const totalCells = days.length <= 35 ? 35 : 42;
+    const remainingDays = totalCells - days.length;
     for (let i = 1; i <= remainingDays; i++) {
       days.push({
         day: i,
@@ -315,39 +434,39 @@ function applyFilters() {
           <p className="page-subtitle">View and manage transaction records with advanced filtering</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 lg:items-stretch">
-          {/* Calendar & Date Range Card */}
-          <div className="content-card flex flex-col">
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 lg:items-stretch">
+          {/* Calendar & Date Range Card — compact */}
+          <div className="content-card flex flex-col p-3">
+            <div className="mb-2">
+              <div className="flex items-center justify-between mb-2">
                 <button
                   onClick={handlePrevMonth}
-                  className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-1 hover:bg-gray-100 rounded transition-colors"
                   aria-label="Previous month"
                 >
-                  <span className="text-lg">{"<"}</span>
+                  <span className="text-sm">{"<"}</span>
                 </button>
-                <h2 className="text-sm font-semibold text-gray-800">
+                <h2 className="text-xs font-semibold text-gray-800">
                   {formatMonthYear(calendarMonth)}
                 </h2>
                 <button
                   onClick={handleNextMonth}
-                  className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-1 hover:bg-gray-100 rounded transition-colors"
                   aria-label="Next month"
                 >
-                  <span className="text-lg">{">"}</span>
+                  <span className="text-sm">{">"}</span>
                 </button>
               </div>
 
-              <div className="grid grid-cols-7 gap-1 mb-1">
-                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
-                  <div key={d} className="text-center text-xs font-semibold text-gray-600 py-1">
+              <div className="grid grid-cols-7 gap-0.5 mb-0.5">
+                {["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map((d) => (
+                  <div key={d} className="text-center text-[10px] font-semibold text-gray-500 py-0.5">
                     {d}
                   </div>
                 ))}
               </div>
 
-              <div className="grid grid-cols-7 gap-1">
+              <div className="grid grid-cols-7 gap-0.5">
                 {getCalendarDays().map((item, idx) => {
                   const dateStr = `${calendarMonth.getFullYear()}-${String(calendarMonth.getMonth() + 1).padStart(2, "0")}-${String(item.day).padStart(2, "0")}`;
                   const isSelected = selectedDate === dateStr;
@@ -356,11 +475,11 @@ function applyFilters() {
                     <button
                       key={idx}
                       onClick={() => handleDateSelect(item.day)}
-                      className={`py-2 rounded text-xs font-medium transition-all ${
+                      className={`py-1 rounded text-[11px] font-medium transition-all ${
                         !item.isCurrentMonth
                           ? "text-gray-300 cursor-default"
                           : isSelected
-                          ? "bg-gradient-to-br from-cyan-500 to-cyan-600 text-white shadow-md"
+                          ? "bg-gradient-to-br from-cyan-500 to-cyan-600 text-white shadow-sm"
                           : "text-gray-700 hover:bg-gray-50"
                       }`}
                       disabled={!item.isCurrentMonth}
@@ -374,40 +493,40 @@ function applyFilters() {
 
             <button
               onClick={() => setSelectedDate(null)}
-              className="w-full text-xs font-medium text-cyan-600 hover:text-cyan-700 py-2 px-3 rounded-lg hover:bg-gray-50 transition-colors mb-4"
+              className="w-full text-[10px] font-medium text-cyan-600 hover:text-cyan-700 py-1 px-2 rounded hover:bg-gray-50 transition-colors mb-2"
             >
               Clear Date Filter
             </button>
 
             {/* Date Range - same card */}
-            <div className="border-t border-gray-200 pt-4 mt-auto">
-              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-                <span className="w-1 h-4 bg-sky-500 rounded"></span>
+            <div className="border-t border-gray-200 pt-3 mt-auto">
+              <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 mb-2">
+                <span className="w-1 h-3 bg-sky-500 rounded"></span>
                 Date Range
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Start Date</label>
+                  <label className="block text-[10px] text-gray-500 mb-0.5">Start Date</label>
                   <input
                     type="date"
                     value={startDate}
                     onChange={(e) => { setStartDate(e.target.value); setSelectedDate(null); }}
-                    className="form-input text-sm"
+                    className="form-input text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">End Date</label>
+                  <label className="block text-[10px] text-gray-500 mb-0.5">End Date</label>
                   <input
                     type="date"
                     value={endDate}
                     onChange={(e) => { setEndDate(e.target.value); setSelectedDate(null); }}
-                    className="form-input text-sm"
+                    className="form-input text-xs"
                   />
                 </div>
               </div>
               <button
                 onClick={() => { setStartDate(""); setEndDate(""); }}
-                className="w-full text-xs font-medium text-cyan-600 hover:text-cyan-700 py-2 px-3 rounded-lg hover:bg-gray-50 transition-colors mt-2"
+                className="w-full text-[10px] font-medium text-cyan-600 hover:text-cyan-700 py-1 px-2 rounded hover:bg-gray-50 transition-colors mt-1"
               >
                 Clear Date Range
               </button>
@@ -533,6 +652,12 @@ function applyFilters() {
             <div className="p-8 text-center">
               <p className="text-red-600 text-lg font-medium">Failed to load transactions</p>
               <p className="text-gray-500 text-sm mt-1">{error}</p>
+              <button
+                onClick={() => { const c = new AbortController(); abortRef.current = c; fetchTransactions(c.signal); }}
+                className="mt-3 btn-action btn-action-primary"
+              >
+                Retry
+              </button>
             </div>
           ) : transactions.length > 0 ? (
             <div className="overflow-x-auto">
@@ -562,8 +687,8 @@ function applyFilters() {
                         <td className="px-4 py-3 text-gray-600 text-xs">{new Date(tx.createdAt).toLocaleString("en-NG")}</td>
                         <td className="px-4 py-3 text-gray-800">{tx.customerName || "Walk-in"}</td>
                         <td className="px-4 py-3 text-center">
-                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadgeClass(tx.status)}`}>
-                            {getDisplayStatus(tx.status)}
+                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadgeClass(tx.status, tx.subStatus)}`}>
+                            {getDisplayStatus(tx.status, tx.subStatus)}
                           </span>
                         </td>
                         <td className={`px-4 py-3 text-right font-bold ${(tx.status === "voided" || tx.status === "refunded") ? "text-red-400 line-through" : "text-cyan-600"}`}>

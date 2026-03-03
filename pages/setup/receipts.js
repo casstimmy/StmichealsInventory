@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
 import useProgress from "@/lib/useProgress";
+import QRCode from "qrcode";
 
 export default function Receipts() {
   const [companyName, setCompanyName] = useState("");
@@ -22,6 +23,8 @@ export default function Receipts() {
   const [companyLogo, setCompanyLogo] = useState("/images/logo.png");
   const [qrUrl, setQrUrl] = useState("");
   const [qrDescription, setQrDescription] = useState("");
+  const [qrDataUrl, setQrDataUrl] = useState("");
+  const [qrGenerating, setQrGenerating] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState("paid");
   const [locations, setLocations] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState("");
@@ -77,6 +80,7 @@ export default function Receipts() {
           setBarcodeType(settings.barcodeType || "Default - Code 39");
           setQrUrl(settings.qrUrl || "");
           setQrDescription(settings.qrDescription || "");
+          setQrDataUrl(settings.qrDataUrl || "");
           setPaymentStatus(settings.paymentStatus || "paid");
           // Load logo from localStorage if it exists
           if (settings.companyLogo) {
@@ -103,6 +107,33 @@ export default function Receipts() {
 
   const removeLogo = () => setCompanyLogo("/images/logo.png");
 
+  const generateQRCode = async () => {
+    if (!qrUrl.trim()) return;
+    setQrGenerating(true);
+    try {
+      const dataUrl = await QRCode.toDataURL(qrUrl.trim(), {
+        width: 150,
+        margin: 1,
+        color: { dark: "#000000", light: "#ffffff" },
+        errorCorrectionLevel: "M",
+      });
+      setQrDataUrl(dataUrl);
+    } catch (err) {
+      console.error("QR generation failed:", err);
+    } finally {
+      setQrGenerating(false);
+    }
+  };
+
+  // Auto-regenerate QR when URL changes (if a QR was already generated)
+  useEffect(() => {
+    if (qrDataUrl && qrUrl.trim()) {
+      const timer = setTimeout(() => generateQRCode(), 500);
+      return () => clearTimeout(timer);
+    }
+    if (!qrUrl.trim()) setQrDataUrl("");
+  }, [qrUrl]);
+
   const handleSave = async () => {
     try {
       setSaving(true);
@@ -127,6 +158,7 @@ export default function Receipts() {
         barcodeType,
         qrUrl,
         qrDescription,
+        qrDataUrl,
         paymentStatus,
         companyLogo,
         staffName,
@@ -400,14 +432,33 @@ export default function Receipts() {
                 <div className="form-group space-y-3">
                   <div>
                     <label className="form-label">QR Code URL or Link</label>
-                    <input
-                      type="text"
-                      placeholder="Example: https://google.com"
-                      value={qrUrl}
-                      onChange={(e) => setQrUrl(e.target.value)}
-                      className="form-input"
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Example: https://google.com"
+                        value={qrUrl}
+                        onChange={(e) => setQrUrl(e.target.value)}
+                        className="form-input flex-1"
+                      />
+                      <button
+                        type="button"
+                        onClick={generateQRCode}
+                        disabled={!qrUrl.trim() || qrGenerating}
+                        className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                      >
+                        {qrGenerating ? "Generating..." : "Generate QR Code"}
+                      </button>
+                    </div>
                   </div>
+                  {qrDataUrl && (
+                    <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <img src={qrDataUrl} alt="QR Code Preview" className="w-20 h-20 rounded" />
+                      <div className="text-sm text-green-700">
+                        <p className="font-medium">QR Code Generated</p>
+                        <p className="text-xs text-green-600 mt-0.5 break-all">{qrUrl}</p>
+                      </div>
+                    </div>
+                  )}
                   <div>
                     <label className="form-label">QR Code Description</label>
                     <input
@@ -587,9 +638,13 @@ export default function Receipts() {
                   {/* QR Code */}
                   {qrUrl && (
                     <div className="mb-2 pt-1 border-t border-gray-800">
-                      <div className="bg-gray-200 h-16 w-16 mx-auto flex items-center justify-center text-xs text-gray-600 rounded my-2">
-                        [QR]
-                      </div>
+                      {qrDataUrl ? (
+                        <img src={qrDataUrl} alt="QR Code" className="w-16 h-16 mx-auto my-2" />
+                      ) : (
+                        <div className="bg-gray-200 h-16 w-16 mx-auto flex items-center justify-center text-xs text-gray-600 rounded my-2">
+                          [QR]
+                        </div>
+                      )}
                       {qrDescription && (
                         <div className="text-xs text-gray-700">{qrDescription}</div>
                       )}

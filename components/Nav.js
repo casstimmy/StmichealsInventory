@@ -327,6 +327,8 @@ export default function Sidebar() {
                 {renderSubMenu([
                   { href: "/stock/management", label: "Stock Management" },
                   { href: "/stock/movement", label: "Stock Movement" },
+                  { href: "/stock/stock-take", label: "Stock Take" },
+                  { href: "/stock/stock-take-report", label: "Stock Take Report" },
                   { href: "/stock/expiration-report", label: "Expiration Report" },
                 ])}
               </ul>
@@ -612,6 +614,16 @@ export default function Sidebar() {
                   <li onClick={closeMenu}>
                     <Link href="/stock/movement" className={`block px-8 py-3 text-sm transition-all ${pathname === "/stock/movement" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Stock Movement
+                    </Link>
+                  </li>
+                  <li onClick={closeMenu}>
+                    <Link href="/stock/stock-take" className={`block px-8 py-3 text-sm transition-all ${pathname.startsWith("/stock/stock-take") && !pathname.startsWith("/stock/stock-take-report") ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                      Stock Take
+                    </Link>
+                  </li>
+                  <li onClick={closeMenu}>
+                    <Link href="/stock/stock-take-report" className={`block px-8 py-3 text-sm transition-all ${pathname === "/stock/stock-take-report" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                      Stock Take Report
                     </Link>
                   </li>
                   <li onClick={closeMenu}>

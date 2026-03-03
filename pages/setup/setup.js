@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import Layout from "@/components/Layout";
+import { getCachedSetup, clearSetupCache } from "@/lib/setupCache";
 
 // Field component - defined outside to prevent re-creation on each render
 const Field = ({ label, ...props }) => (
@@ -38,48 +39,44 @@ export default function Setup() {
   const [message, setMessage] = useState("");
 
   /* =====================
-     FETCH DATA
+     FETCH DATA (cached – sessionStorage → localStorage → API)
   ===================== */
   useEffect(() => {
     async function fetchData() {
-      const res = await fetch("/api/setup/setup");
-      if (!res.ok) return;
+      try {
+        const data = await getCachedSetup();
+        const { store, user } = data || {};
 
-      const data = await res.json();
-      const { store, user } = data;
-
-      if (store) {
-        setStoreName(store.storeName || "");
-        setStorePhone(store.storePhone || "");
-        setCountry(store.country || "");
-        setLogo(store.logo || "");
-        
-        // If DB has locations, use them; otherwise check localStorage
-        if (store.locations && store.locations.length > 0) {
-          setLocations(store.locations);
-          // Clear localStorage since we have persisted data
-          localStorage.removeItem("setupLocations");
-        } else {
-          // If no locations in DB, try to restore from localStorage
-          const savedLocations = localStorage.getItem("setupLocations");
-          if (savedLocations) {
-            try {
-              const parsed = JSON.parse(savedLocations);
-              if (Array.isArray(parsed) && parsed.length > 0) {
-                setLocations(parsed);
-                console.log("Restored locations from localStorage:", parsed);
+        if (store) {
+          setStoreName(store.storeName || "");
+          setStorePhone(store.storePhone || "");
+          setCountry(store.country || "");
+          setLogo(store.logo || "");
+          
+          if (store.locations && store.locations.length > 0) {
+            setLocations(store.locations);
+            localStorage.removeItem("setupLocations");
+          } else {
+            const savedLocations = localStorage.getItem("setupLocations");
+            if (savedLocations) {
+              try {
+                const parsed = JSON.parse(savedLocations);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                  setLocations(parsed);
+                }
+              } catch (e) {
+                localStorage.removeItem("setupLocations");
               }
-            } catch (e) {
-              console.error("Failed to parse saved locations:", e);
-              localStorage.removeItem("setupLocations");
             }
           }
         }
-      }
 
-      if (user) {
-        setAdminName(user.name || "");
-        setAdminEmail(user.email || "");
+        if (user) {
+          setAdminName(user.name || "");
+          setAdminEmail(user.email || "");
+        }
+      } catch (err) {
+        console.error("Failed to load setup data:", err);
       }
     }
 
@@ -198,8 +195,9 @@ export default function Setup() {
       if (res.ok) {
         setMessage("✅ Setup saved successfully");
         setAdminPassword(""); // Clear password field after save
-        // Clear localStorage after successful save
+        // Clear caches so next load picks up fresh data
         localStorage.removeItem("setupLocations");
+        clearSetupCache();
         setTimeout(() => setMessage(""), 3000);
       } else {
         setMessage("❌ Setup failed: " + (data.message || "Unknown error"));

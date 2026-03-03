@@ -71,7 +71,20 @@ function installGlobalApiFetchWrapper() {
       );
     }
 
-    return window.__inventoryOriginalFetch(input, nextInit);
+    const response = await window.__inventoryOriginalFetch(input, nextInit);
+
+    // Handle 401 from any fetch call (not just apiClient/axios)
+    if (isApiRequest && response.status === 401) {
+      // Avoid redirect loops if already on `login` or `register`
+      const path = window.location.pathname;
+      if (!path.includes("/login") && !path.includes("/register")) {
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("user");
+        window.location.href = "/login";
+      }
+    }
+
+    return response;
   };
 
   window.__inventoryFetchWrapped = true;

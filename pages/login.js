@@ -2,6 +2,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { apiClient } from "@/lib/api-client";
+import { clearAllAppCaches } from "@/lib/clearAllCaches";
 
 /* ===== Ripple Handler ===== */
 function createRipple(event) {
@@ -64,6 +65,9 @@ export default function Login({ staffList, locations }) {
         email: user.email,
         password,
       });
+
+      // Clear ALL stale caches before establishing the new session
+      await clearAllAppCaches();
 
       localStorage.setItem("auth_token", res.data.token);
       localStorage.setItem(

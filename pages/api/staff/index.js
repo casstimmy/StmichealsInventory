@@ -2,6 +2,10 @@ import { mongooseConnect } from "@/lib/mongodb";
 import Staff from "@/models/Staff";
 import bcrypt from "bcryptjs";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
+import {
+  normalizePosPermissions,
+  normalizeStaffRole,
+} from "@/lib/pos-permissions";
 
 let staffIndexesSynced = false;
 
@@ -44,19 +48,31 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "POST") {
-    const { name, password, location, role, accountName, accountNumber, bankName, salary } = req.body;
+    const {
+      name,
+      password,
+      location,
+      role,
+      posPermissions,
+      accountName,
+      accountNumber,
+      bankName,
+      salary,
+    } = req.body;
 
     if (!name || !password) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
     try {
+      const normalizedRole = normalizeStaffRole(role);
       const hashedPassword = await bcrypt.hash(password, 10);
       const staff = await Staff.create({
         name,
         password: hashedPassword,
         location: location || "",
-        role: role || "staff",
+        role: normalizedRole,
+        posPermissions: normalizePosPermissions(normalizedRole, posPermissions),
         accountName: accountName || "",
         accountNumber: accountNumber || "",
         bankName: bankName || "",

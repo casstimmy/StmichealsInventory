@@ -1,6 +1,10 @@
 import { mongooseConnect } from "@/lib/mongodb";
 import { Staff } from "@/models/Staff";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
+import {
+  normalizePosPermissions,
+  normalizeStaffRole,
+} from "@/lib/pos-permissions";
 
 export default async function handler(req, res) {
   const authError = authMiddleware(req, res);
@@ -16,16 +20,29 @@ export default async function handler(req, res) {
 
   if (req.method === "PUT") {
     try {
-      const { name, password, location, role, accountName, accountNumber, bankName, salary, isActive } = req.body;
+      const {
+        name,
+        password,
+        location,
+        role,
+        posPermissions,
+        accountName,
+        accountNumber,
+        bankName,
+        salary,
+        isActive,
+      } = req.body;
 
       if (!name) {
         return res.status(400).json({ error: "Name is required." });
       }
 
+      const normalizedRole = normalizeStaffRole(role);
       const updateData = {
         name,
         location: location || "",
-        role: role || "staff",
+        role: normalizedRole,
+        posPermissions: normalizePosPermissions(normalizedRole, posPermissions),
         accountName: accountName || "",
         accountNumber: accountNumber || "",
         bankName: bankName || "",

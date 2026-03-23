@@ -8,6 +8,7 @@ import { formatCurrency, formatNumber } from "@/lib/format";
 import { Printer, Mail } from "lucide-react";
 import { useRouter } from "next/router";
 import { apiClient } from "@/lib/api-client";
+import { STAFF_ROLE_OPTIONS, normalizeStaffRole } from "@/lib/pos-permissions";
 
 function toCamelCase(str) {
   return str
@@ -68,7 +69,12 @@ export default function StaffPage() {
       const res = await apiClient.get("/api/staff");
       onProcess();
       const staff = Array.isArray(res.data) ? res.data : res.data?.data || [];
-      setStaffList(staff);
+      setStaffList(
+        staff.map((member) => ({
+          ...member,
+          role: normalizeStaffRole(member.role),
+        }))
+      );
       calculateSalaries(staff);
     } catch (err) {
       console.error("API Error:", err.response?.data || err.message);
@@ -237,7 +243,7 @@ export default function StaffPage() {
       name: staff.name || "",
       password: "",
       location: staff.location || "",
-      role: staff.role || "staff",
+      role: normalizeStaffRole(staff.role) || "staff",
       accountName: staff.accountName || "",
       accountNumber: staff.accountNumber || "",
       bankName: staff.bankName || "",
@@ -369,7 +375,19 @@ export default function StaffPage() {
         <div className="page-content">
         {/* Header */}
         <div className="page-header">
-          <h1 className="page-title">Manage Staff Logins</h1>
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h1 className="page-title">Manage Staff Logins</h1>
+              <p className="page-subtitle">Create staff accounts, maintain profiles, and manage payroll details.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => router.push("/manage/staff-roles")}
+              className="btn-action btn-action-secondary"
+            >
+              Manage POS Roles
+            </button>
+          </div>
         </div>
 
         {/* Add New Staff Form */}
@@ -415,10 +433,11 @@ export default function StaffPage() {
               onChange={handleInputChange}
               className="border border-gray-300 p-3 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="staff">Staff</option>
-              <option value="Senior staff">Manager</option>
-              <option value="admin">Admin</option>
-              <option value="junior staff">Junior Staff</option>
+              {STAFF_ROLE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
 
             <input
@@ -512,10 +531,11 @@ export default function StaffPage() {
                           onChange={handleEditChange}
                           className="border border-gray-300 p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
-                          <option value="staff">Staff</option>
-                          <option value="Senior staff">Manager</option>
-                          <option value="admin">Admin</option>
-                          <option value="junior staff">Junior Staff</option>
+                          {STAFF_ROLE_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
                         </select>
                         <input
                           type="password"
@@ -584,12 +604,12 @@ export default function StaffPage() {
                           <div className="text-sm text-gray-600 mb-2"> {staff.location}</div>
                           <span
                             className={`text-xs font-medium px-2 py-1 rounded-full inline-block ${
-                              staff.role === "admin" || staff.role === "Senior staff"
+                              staff.role === "admin" || staff.role === "manager"
                                 ? "bg-red-100 text-red-700"
                                 : "bg-blue-100 text-blue-700"
                             }`}
                           >
-                            {staff.role}
+                            {STAFF_ROLE_OPTIONS.find((option) => option.value === staff.role)?.label || staff.role}
                           </span>
                         </div>
                         <div className="flex flex-col gap-2">

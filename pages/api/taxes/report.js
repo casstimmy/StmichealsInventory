@@ -13,6 +13,39 @@ function money(value = 0) {
   })}`;
 }
 
+function formatDate(value) {
+  return new Date(value).toLocaleDateString("en-NG", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+function drawSignatureBlock(doc, options = {}) {
+  const left = options.left || 48;
+  const top = doc.y;
+  const width = options.width || 240;
+  const lineY = top + 28;
+
+  doc
+    .moveTo(left, lineY)
+    .lineTo(left + width, lineY)
+    .strokeColor("#9CA3AF")
+    .stroke();
+
+  doc
+    .fillColor("#111827")
+    .font("Helvetica-Bold")
+    .fontSize(10)
+    .text(options.title || "Authorized Signatory", left, lineY + 6, { width });
+
+  doc
+    .font("Helvetica")
+    .fontSize(9)
+    .fillColor("#4B5563")
+    .text(options.subtitle || "", left, lineY + 20, { width });
+}
+
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -53,20 +86,91 @@ export default async function handler(req, res) {
     const doc = new PDFDocument({ margin: 48, size: "A4" });
     doc.pipe(res);
 
-    doc.font("Helvetica-Bold").fontSize(18).text("OFFICIAL TAX COMPLIANCE REPORT", { align: "center" });
+    const businessName = store?.storeName || store?.companyName || "N/A";
+    const reportPeriodLabel = tax.periodLabel || label;
+    const periodRange = `${formatDate(start)} to ${formatDate(end)}`;
+
+    doc
+      .rect(48, 48, 499, 90)
+      .fill("#0F172A");
+    doc
+      .fillColor("#FFFFFF")
+      .font("Helvetica-Bold")
+      .fontSize(22)
+      .text("TAX COVER LETTER", 48, 76, { align: "center" });
+    doc
+      .font("Helvetica")
+      .fontSize(11)
+      .text("Prepared for FIRS / relevant state internal revenue service", 48, 106, {
+        align: "center",
+      });
+
+    doc.moveDown(6);
+    doc.fillColor("#111827").font("Helvetica").fontSize(11);
+    doc.text(`Date: ${formatDate(now)}`);
+    doc.moveDown(0.8);
+    doc.text("To:");
+    doc.text("The Reviewing Tax Officer");
+    doc.text("Federal Inland Revenue Service / Applicable State IRS");
+    doc.moveDown(1);
+    doc.text(`Subject: Submission of tax compliance schedule for ${businessName}`);
+    doc.moveDown(1);
+    doc.text(
+      `Please find attached the tax computation schedule for ${businessName} covering ${reportPeriodLabel}. This package includes revenue, allowable expenses, and the resulting tax estimates generated from the business records maintained in the inventory platform.`
+    );
+    doc.moveDown(0.8);
+    doc.text(
+      "The enclosed figures should be reviewed together with supporting invoices, expense records, and any accountant adjustments required before final statutory filing."
+    );
+    doc.moveDown(1.4);
+    doc.font("Helvetica-Bold").fontSize(12).text("Submission Snapshot");
     doc.moveDown(0.3);
-    doc.font("Helvetica").fontSize(11).text("Prepared for submission to tax authorities (FIRS / relevant state IRS)", { align: "center" });
+    doc.font("Helvetica").fontSize(10);
+    doc.text(`Business Name: ${businessName}`);
+    doc.text(`Reporting Period: ${reportPeriodLabel}`);
+    doc.text(`Covered Dates: ${periodRange}`);
+    doc.text(`Prepared By: ${req.user?.name || req.user?.email || "System User"}`);
+    doc.text(`Total Estimated Tax Liability: ${money(tax.totalTaxLiability)}`);
+    doc.moveDown(2);
+
+    drawSignatureBlock(doc, {
+      title: "Prepared By",
+      subtitle: "Management / Internal Finance Representative",
+      left: 48,
+      width: 210,
+    });
+    drawSignatureBlock(doc, {
+      title: "Accountant Sign-Off",
+      subtitle: "Name, signature, firm stamp and date",
+      left: 320,
+      width: 210,
+    });
+
+    doc.moveDown(6);
+    doc
+      .font("Helvetica")
+      .fontSize(9)
+      .fillColor("#4B5563")
+      .text(
+        "This cover letter is generated for print and submission support. Final filing values should be confirmed by a qualified accountant before lodgement."
+      );
+
+    doc.addPage();
+
+    doc.font("Helvetica-Bold").fontSize(18).fillColor("#111827").text("OFFICIAL TAX COMPLIANCE REPORT", { align: "center" });
+    doc.moveDown(0.3);
+    doc.font("Helvetica").fontSize(11).fillColor("#374151").text("Prepared for submission to tax authorities (FIRS / relevant state IRS)", { align: "center" });
     doc.moveDown(1.2);
 
     doc.font("Helvetica-Bold").fontSize(12).text("Business Information");
     doc.moveDown(0.3);
     doc.font("Helvetica").fontSize(10);
-    doc.text(`Business Name: ${store?.storeName || store?.companyName || "N/A"}`);
+    doc.text(`Business Name: ${businessName}`);
     doc.text(`Country: ${store?.country || "N/A"}`);
     doc.text(`Business Phone: ${store?.storePhone || "N/A"}`);
     doc.text(`Business Email: ${store?.email || "N/A"}`);
-    doc.text(`Report Period: ${tax.periodLabel || label}`);
-    doc.text(`Range: ${start.toLocaleDateString("en-NG")} to ${end.toLocaleDateString("en-NG")}`);
+    doc.text(`Report Period: ${reportPeriodLabel}`);
+    doc.text(`Range: ${periodRange}`);
     doc.text(`Generated On: ${now.toLocaleString("en-NG")}`);
     doc.text(`Generated By: ${req.user?.name || req.user?.email || "System User"}`);
     doc.moveDown(1);
@@ -148,16 +252,26 @@ export default async function handler(req, res) {
     });
 
     doc.moveDown(1.2);
-    doc.font("Helvetica-Bold").fontSize(11).text("Declaration");
-    doc.font("Helvetica").fontSize(9).text(
+    doc.font("Helvetica-Bold").fontSize(11).fillColor("#111827").text("Declaration");
+    doc.font("Helvetica").fontSize(9).fillColor("#374151").text(
       "We certify that this report is generated from business transaction and expense records maintained in the inventory system and reflects the tax computations for the selected reporting period."
     );
     doc.moveDown(0.8);
-    doc.text("Authorized Signatory: ________________________________");
-    doc.text("Date: ________________________________");
-    doc.moveDown(0.8);
+    drawSignatureBlock(doc, {
+      title: "Management Authorization",
+      subtitle: "Name, signature and date",
+      left: 48,
+      width: 210,
+    });
+    drawSignatureBlock(doc, {
+      title: "Accountant Review",
+      subtitle: "Name, signature, stamp and date",
+      left: 320,
+      width: 210,
+    });
+    doc.moveDown(5.5);
     doc.fontSize(8).fillColor("#4B5563").text(
-      "Reference tax basis: Nigeria Finance Act (CIT thresholds, VAT and applicable levies). Please have your accountant validate final statutory filing figures before submission.",
+      "Reference tax basis: Nigeria Finance Act (CIT thresholds, VAT and applicable levies). This schedule is intended to support filing preparation and should be validated by your accountant before submission.",
       { align: "left" }
     );
 

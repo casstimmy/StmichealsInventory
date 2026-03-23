@@ -289,10 +289,29 @@ export default function Sidebar() {
                   { href: "/manage/promotions", label: "Promotions" },
                   { href: "/manage/promotions-management", label: "Customer Promotions", indent: false },
                   { href: "/manage/orders", label: "Orders" },
-                  { href: "/manage/staff", label: "Staff" },
                   { href: "/manage/customers", label: "Customers", indent: false },
                   { href: "/manage/campaigns", label: "Campaigns", indent: true },
                 ])}
+                <li className="border-b border-gray-100 transition-all duration-300 group">
+                  <button
+                    onClick={() => toggleSubMenu("staff-menu")}
+                    className="w-full h-14 px-4 py-3 flex items-center justify-between text-sm font-medium transition-all duration-300 text-gray-700 hover:bg-gray-50 hover:text-blue-600 border-l-4 border-transparent"
+                  >
+                    <span className="flex items-center gap-3">
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-blue-400 transition-all"></span>
+                      Staff
+                    </span>
+                    <span className={`text-lg transition-transform duration-300 ${openSubMenu === "staff-menu" ? "rotate-90" : ""}`}>›</span>
+                  </button>
+                  {openSubMenu === "staff-menu" && (
+                    <div className="bg-gray-50 border-t border-gray-100">
+                      {renderSubMenu([
+                        { href: "/manage/staff", label: "Staff Page", indent: true },
+                        { href: "/manage/staff-roles", label: "Staff Roles", indent: true },
+                      ])}
+                    </div>
+                  )}
+                </li>
               </ul>
             </li>
 
@@ -570,10 +589,31 @@ export default function Sidebar() {
                       Orders
                     </Link>
                   </li>
-                  <li onClick={closeMenu}>
-                    <Link href="/manage/staff" className={`block px-8 py-3 text-sm transition-all ${pathname === "/manage/staff" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
-                      Staff
-                    </Link>
+                  <li>
+                    <button
+                      onClick={() => toggleSubMenu("mobile-staff-menu")}
+                      className={`w-full flex items-center justify-between px-8 py-3 text-sm transition-all ${pathname.startsWith("/manage/staff") ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}
+                    >
+                      <span>Staff</span>
+                      <FontAwesomeIcon
+                        icon={faChevronRight}
+                        className={`w-4 h-4 transition-transform duration-300 ${openSubMenu === "mobile-staff-menu" ? "rotate-90" : ""}`}
+                      />
+                    </button>
+                    {openSubMenu === "mobile-staff-menu" && (
+                      <ul className="bg-white/70">
+                        <li onClick={closeMenu}>
+                          <Link href="/manage/staff" className={`block px-12 py-3 text-sm transition-all ${pathname === "/manage/staff" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                            Staff Page
+                          </Link>
+                        </li>
+                        <li onClick={closeMenu}>
+                          <Link href="/manage/staff-roles" className={`block px-12 py-3 text-sm transition-all ${pathname === "/manage/staff-roles" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                            Staff Roles
+                          </Link>
+                        </li>
+                      </ul>
+                    )}
                   </li>
                   <li onClick={closeMenu}>
                     <Link href="/manage/customers" className={`block px-8 py-3 text-sm transition-all ${pathname === "/manage/customers" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>

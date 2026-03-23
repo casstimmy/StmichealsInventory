@@ -20,6 +20,7 @@ export default function TaxAnalysisPage() {
   const { progress, start, onFetch, onProcess, complete } = useProgress();
   const [period, setPeriod] = useState("last-month");
   const [error, setError] = useState(null);
+  const [downloadingReport, setDownloadingReport] = useState(false);
 
   useEffect(() => {
     fetchTaxData();
@@ -58,6 +59,32 @@ export default function TaxAnalysisPage() {
     } finally {
       complete();
       setLoading(false);
+    }
+  };
+
+  const downloadTaxReport = async () => {
+    try {
+      setDownloadingReport(true);
+      const response = await fetch(`/api/taxes/report?period=${period}`);
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || "Failed to generate report");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const today = new Date().toISOString().split("T")[0];
+      a.href = url;
+      a.download = `Official_Tax_Report_${period}_${today}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err?.message || "Failed to download report");
+    } finally {
+      setDownloadingReport(false);
     }
   };
 
@@ -278,11 +305,12 @@ export default function TaxAnalysisPage() {
                   <p>Last updated: <span className="font-semibold text-gray-900">{new Date().toLocaleDateString()}</span></p>
                 </div>
                 <button
-                  onClick={() => alert("Tax Report downloaded")}
-                  className="btn-action btn-action-primary flex items-center gap-2"
+                  onClick={downloadTaxReport}
+                  disabled={downloadingReport}
+                  className="btn-action btn-action-primary flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <FontAwesomeIcon icon={faFileDownload} />
-                  Download Tax Report
+                  {downloadingReport ? "Generating Report..." : "Download Tax Report"}
                 </button>
               </div>
             </>

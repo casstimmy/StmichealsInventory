@@ -1,33 +1,29 @@
-// Mock tender assignments storage
-let tenderAssignments = {
-  "1": {
-    "1": 3,
-    "2": 3,
-    "3": 3,
-    "4": 3,
-    "5": 3,
-  },
-  "2": {
-    "1": 1,
-    "2": 1,
-    "3": 1,
-    "4": 1,
-    "5": 1,
-  },
-};
+import { mongooseConnect } from "@/lib/mongodb";
+import TenderAssignment from "@/models/TenderAssignment";
+import { authMiddleware, isStaff } from "@/lib/auth-middleware";
+
+const ASSIGNMENTS_KEY = "default";
 
 export default async function handler(req, res) {
   try {
+    const authError = authMiddleware(req, res);
+    if (authError) return authError;
+
+    if (!isStaff(req)) {
+      return res.status(403).json({ error: "Insufficient permissions" });
+    }
+
+    await mongooseConnect();
+
     if (req.method === "GET") {
-      // Get tender assignments
+      const doc = await TenderAssignment.findOne({ key: ASSIGNMENTS_KEY }).lean();
       return res.status(200).json({
         success: true,
-        tenderAssignments,
+        tenderAssignments: doc?.deviceTenders || {},
       });
     }
 
     if (req.method === "POST") {
-      // Save tender assignments
       const { deviceTenders } = req.body;
 
       if (!deviceTenders) {
@@ -37,13 +33,16 @@ export default async function handler(req, res) {
         });
       }
 
-      // Update assignments
-      tenderAssignments = deviceTenders;
+      await TenderAssignment.findOneAndUpdate(
+        { key: ASSIGNMENTS_KEY },
+        { $set: { deviceTenders } },
+        { upsert: true, new: true }
+      );
 
       return res.status(200).json({
         success: true,
         message: "Tender assignments saved successfully",
-        tenderAssignments,
+        tenderAssignments: deviceTenders,
       });
     }
 

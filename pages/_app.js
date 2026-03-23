@@ -3,6 +3,7 @@ import '../styles/globals.css';
 import { useRouter } from 'next/router';
 import { useEffect } from 'react';
 import Layout from '@/components/Layout';
+import axios from "axios";
 import { fetchAndCacheLogo } from '@/lib/storeLogo';
 import {
   queuePosTransaction,
@@ -90,12 +91,44 @@ function installGlobalApiFetchWrapper() {
   window.__inventoryFetchWrapped = true;
 }
 
+function installAxiosAuthInterceptor() {
+  if (typeof window === "undefined") return;
+  if (window.__inventoryAxiosWrapped) return;
+
+  axios.interceptors.request.use((config) => {
+    const token = localStorage.getItem("auth_token");
+    if (token && !config.headers?.Authorization) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  });
+
+  axios.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      if (error?.response?.status === 401) {
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("user");
+        const path = window.location.pathname;
+        if (!path.includes("/login") && !path.includes("/register")) {
+          window.location.href = "/login";
+        }
+      }
+      return Promise.reject(error);
+    }
+  );
+
+  window.__inventoryAxiosWrapped = true;
+}
+
 export default function App({
   Component,
   pageProps,
 }) {
   const router = useRouter();
   installGlobalApiFetchWrapper();
+  installAxiosAuthInterceptor();
   
   // Prime the store logo cache on first load
   useEffect(() => {
@@ -145,4 +178,3 @@ export default function App({
     </>
   );
 }
-

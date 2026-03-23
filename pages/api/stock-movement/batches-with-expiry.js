@@ -7,8 +7,16 @@ import StockMovement from "@/models/StockMovement";
 import Product from "@/models/Product";
 import { Category } from "@/models/Category";
 import { buildLocationCache } from "@/lib/serverLocationHelper";
+import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 
 export default async function handler(req, res) {
+  const authError = authMiddleware(req, res);
+  if (authError) return authError;
+
+  if (!isStaff(req)) {
+    return res.status(403).json({ error: "Insufficient permissions" });
+  }
+
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }

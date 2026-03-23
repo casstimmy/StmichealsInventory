@@ -10,8 +10,9 @@ export default async function handler(req, res) {
 
   try {
     const { email, password, name, role = 'staff' } = req.body;
+    const normalizedEmail = String(email || "").trim().toLowerCase();
 
-    if (!email || !password || !name) {
+    if (!normalizedEmail || !password || !name) {
       return res.status(400).json({ error: 'Email, PIN, and name are required' });
     }
 
@@ -37,7 +38,7 @@ export default async function handler(req, res) {
     const requestedRole = allowedRoles.includes(role) ? role : 'staff';
     const safeRole = totalUsers === 0 ? 'admin' : requestedRole;
 
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email: normalizedEmail });
 
     if (existingUser) {
       return res.status(400).json({ error: 'Email already registered' });
@@ -45,8 +46,8 @@ export default async function handler(req, res) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await User.create({
-      email: email.toLowerCase() || 'email@example.com',
+      const user = await User.create({
+      email: normalizedEmail,
       password: hashedPassword,
       name,
       role: safeRole,

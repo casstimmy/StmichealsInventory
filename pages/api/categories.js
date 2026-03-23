@@ -1,5 +1,6 @@
 import { mongooseConnect } from "@/lib/mongodb";
 import { Category } from "@/models/Category";
+import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 
 // Simple in-memory cache for categories (cleared on mutations)
 let categoriesCache = null;
@@ -23,6 +24,13 @@ function invalidateCache() {
 }
 
 export default async function handler(req, res) {
+  const authError = authMiddleware(req, res);
+  if (authError) return authError;
+
+  if (!isStaff(req)) {
+    return res.status(403).json({ error: "Insufficient permissions" });
+  }
+
   const { method } = req;
   await mongooseConnect();
 

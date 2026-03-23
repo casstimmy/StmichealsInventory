@@ -3,8 +3,16 @@ import StockMovement from "@/models/StockMovement";
 import Product from "@/models/Product";
 import mongoose from "mongoose";
 import { buildLocationCache, resolveLocationName } from "@/lib/serverLocationHelper";
+import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 
 export default async function handler(req, res) {
+  const authError = authMiddleware(req, res);
+  if (authError) return authError;
+
+  if (!isStaff(req)) {
+    return res.status(403).json({ error: "Insufficient permissions" });
+  }
+
   await mongooseConnect();
 
   const { id } = req.query;

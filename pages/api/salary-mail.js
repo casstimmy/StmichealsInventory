@@ -3,8 +3,24 @@ import nodemailer from "nodemailer";
 import path from "path";
 import fs from "fs";
 import { Staff } from "@/models/Staff";
+import { authMiddleware, isAdmin } from "@/lib/auth-middleware";
 
 export default async function handler(req, res) {
+  const cronSecret = process.env.CRON_SECRET;
+  const key = req.query.key;
+  const authHeader = req.headers.authorization || "";
+  const cronAuthorized =
+    !!cronSecret &&
+    (key === cronSecret || authHeader === `Bearer ${cronSecret}`);
+
+  if (!cronAuthorized) {
+    const authError = authMiddleware(req, res);
+    if (authError) return authError;
+    if (!isAdmin(req)) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+  }
+
   // 1. Check method
   if (req.method !== "POST" && req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });

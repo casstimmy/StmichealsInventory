@@ -2,8 +2,16 @@ import { mongooseConnect } from "@/lib/mongodb";
 import Promotion from "@/models/Promotion";
 import "@/models/Category";
 import "@/models/Product";
+import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 
 export default async function handler(req, res) {
+  const authError = authMiddleware(req, res);
+  if (authError) return authError;
+
+  if (!isStaff(req)) {
+    return res.status(403).json({ error: "Insufficient permissions" });
+  }
+
   if (req.method === "GET") {
     // Get all promotions
     try {

@@ -1,7 +1,15 @@
 import { mongooseConnect } from "@/lib/mongodb";
 import Customer from "@/models/Customer";
+import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 
 export default async function handler(req, res) {
+  const authError = authMiddleware(req, res);
+  if (authError) return authError;
+
+  if (!isStaff(req)) {
+    return res.status(403).json({ error: "Insufficient permissions" });
+  }
+
   const { id } = req.query;
 
   if (req.method === "PUT") {

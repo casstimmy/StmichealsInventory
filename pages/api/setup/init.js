@@ -1,5 +1,6 @@
 import { mongooseConnect } from "@/lib/mongodb";
 import Store from "@/models/Store";
+import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -11,6 +12,14 @@ export default async function handler(req, res) {
 
     // Check if store exists
     let store = await Store.findOne({});
+
+    if (store) {
+      const authError = authMiddleware(req, res);
+      if (authError) return authError;
+      if (!isStaff(req)) {
+        return res.status(403).json({ error: "Insufficient permissions" });
+      }
+    }
 
     if (!store) {
       // Create default store with a default location

@@ -17,6 +17,7 @@ const StaffSchema = new Schema(
     password: {
       type: String,
       required: true,
+      select: false,
     },
 
     role: {

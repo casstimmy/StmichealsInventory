@@ -1,6 +1,7 @@
 import { mongooseConnect } from "@/lib/mongodb";
 import Staff from "@/models/Staff";
 import bcrypt from "bcryptjs";
+import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 
 let staffIndexesSynced = false;
 
@@ -15,6 +16,13 @@ async function ensureStaffIndexes() {
 }
 
 export default async function handler(req, res) {
+  const authError = authMiddleware(req, res);
+  if (authError) return authError;
+
+  if (!isStaff(req)) {
+    return res.status(403).json({ error: "Insufficient permissions" });
+  }
+
   try {
     await mongooseConnect();
   } catch (err) {
@@ -27,7 +35,7 @@ export default async function handler(req, res) {
 
   if (req.method === "GET") {
     try {
-      const staff = await Staff.find().lean();
+      const staff = await Staff.find().select("-password").lean();
       return res.status(200).json(staff);
     } catch (error) {
       console.error("Error fetching staff:", error);

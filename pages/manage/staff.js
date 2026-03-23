@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import axios from "axios";
 import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
 import useProgress from "@/lib/useProgress";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { Printer, Mail } from "lucide-react";
 import { useRouter } from "next/router";
+import { apiClient } from "@/lib/api-client";
 
 function toCamelCase(str) {
   return str
@@ -65,7 +65,7 @@ export default function StaffPage() {
     start();
     try {
       onFetch();
-      const res = await axios.get("/api/staff");
+      const res = await apiClient.get("/api/staff");
       onProcess();
       const staff = Array.isArray(res.data) ? res.data : res.data?.data || [];
       setStaffList(staff);
@@ -81,7 +81,7 @@ export default function StaffPage() {
 
   const fetchLocations = async () => {
     try {
-      const res = await axios.get("/api/setup/get");
+      const res = await apiClient.get("/api/setup/get");
       const { store } = res.data;
       
       if (store?.locations && Array.isArray(store.locations)) {
@@ -100,7 +100,7 @@ export default function StaffPage() {
       console.error("Error fetching locations:", err);
       // Fallback: extract locations from staff data if API fails
       try {
-        const staffRes = await axios.get("/api/staff");
+        const staffRes = await apiClient.get("/api/staff");
         const staff = Array.isArray(staffRes.data) ? staffRes.data : staffRes.data?.data || [];
         if (staff.length > 0) {
           const uniqueLocations = [...new Set(staff.map((s) => s.location).filter(Boolean))];
@@ -184,7 +184,7 @@ export default function StaffPage() {
       return;
     }
     try {
-      await axios.post("/api/staff", formData);
+      await apiClient.post("/api/staff", formData);
       setMessage("Staff added successfully.");
       setFormData({
         name: "",
@@ -210,7 +210,7 @@ export default function StaffPage() {
     }
 
     try {
-      await axios.post("/api/staff/penalties", {
+      await apiClient.post("/api/staff/penalties", {
         staffId: penaltyForm.staffId,
         amount: penaltyForm.amount,
         reason: penaltyForm.reason,
@@ -261,7 +261,7 @@ export default function StaffPage() {
 
   const saveEdit = async (id) => {
     try {
-      await axios.put(`/api/staff/${id}`, editForm);
+      await apiClient.put(`/api/staff/${id}`, editForm);
       setMessage("Staff updated successfully.");
       setEditingId(null);
       fetchStaff();
@@ -280,7 +280,7 @@ export default function StaffPage() {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`/api/staff/${id}`);
+      await apiClient.delete(`/api/staff/${id}`);
       setMessage("Staff deleted successfully.");
       fetchStaff();
     } catch (err) {
@@ -314,7 +314,7 @@ export default function StaffPage() {
     setIsSending(true);
     try {
       // Call the new salary-mail endpoint
-      const response = await axios.post("/api/salary-mail", {});
+      const response = await apiClient.post("/api/salary-mail", {});
       setMessage(response.data.message || "Salary email sent successfully!");
     } catch (err) {
       console.error("Error sending emails:", err);

@@ -1,6 +1,14 @@
 import nodemailer from "nodemailer";
+import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 
 export default async function handler(req, res) {
+  const authError = authMiddleware(req, res);
+  if (authError) return authError;
+
+  if (!isStaff(req)) {
+    return res.status(403).json({ error: "Insufficient permissions" });
+  }
+
   if (req.method !== "POST")
     return res.status(405).json({ message: "Method not allowed" });
 

@@ -2,10 +2,17 @@ import multiparty from "multiparty";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import sharp from "sharp";
 import { mongooseConnect } from "@/lib/mongodb";
+import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 
 const S3BucketName = "image-bucket-admin";
 
 export default async function ImageHandler(req, res) {
+  const authError = authMiddleware(req, res);
+  if (authError) return authError;
+  if (!isStaff(req)) {
+    return res.status(403).json({ error: "Insufficient permissions" });
+  }
+
   try {
     await mongooseConnect();
 

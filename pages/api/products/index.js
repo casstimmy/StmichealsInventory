@@ -1,6 +1,7 @@
 import { mongooseConnect, withRetry } from "@/lib/mongodb";
 import Product from "@/models/Product";
 import { Category } from "@/models/Category";
+import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 
 let lastRoomSyncAt = 0;
 const ROOM_SYNC_INTERVAL_MS = 10 * 60 * 1000;
@@ -96,6 +97,13 @@ async function resolveStockManagedFromCategory(categoryIdOrName, requestedValue)
 }
 
 export default async function handler(req, res) {
+  const authError = authMiddleware(req, res);
+  if (authError) return authError;
+
+  if (!isStaff(req)) {
+    return res.status(403).json({ error: "Insufficient permissions" });
+  }
+
   const { method } = req;
   await mongooseConnect();
 

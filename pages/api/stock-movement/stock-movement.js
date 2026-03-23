@@ -2,8 +2,16 @@ import { mongooseConnect } from "@/lib/mongodb";
 import Product from "@/models/Product";
 import StockMovement from "@/models/StockMovement";
 import { isValidObjectId } from "mongoose";
+import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 
 export default async function handler(req, res) {
+  const authError = authMiddleware(req, res);
+  if (authError) return authError;
+
+  if (!isStaff(req)) {
+    return res.status(403).json({ error: "Insufficient permissions" });
+  }
+
   if (req.method !== "POST") {
     return res.status(405).json({ message: "Method not allowed" });
   }
@@ -157,7 +165,10 @@ export default async function handler(req, res) {
         try {
           await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/notify-low-stock`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              ...(req.headers.authorization ? { Authorization: req.headers.authorization } : {}),
+            },
             body: JSON.stringify({ 
               products: lowStockItems,
               movementId: movement._id 

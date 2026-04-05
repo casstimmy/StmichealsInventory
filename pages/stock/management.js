@@ -25,6 +25,7 @@ export default function StockManagement() {
   const [loading, setLoading] = useState(true);
   const { progress, start, onFetch, onProcess, complete } = useProgress();
   const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [categoryMap, setCategoryMap] = useState({});
 
   useEffect(() => {
@@ -45,7 +46,11 @@ export default function StockManagement() {
   }, []);
 
   useEffect(() => {
-    setLoading(productsLoading);
+    if (productsLoading && !refreshing) {
+      setLoading(true);
+    } else {
+      setLoading(false);
+    }
     if (productsError) {
       setError(productsError || "Failed to load data");
       setProducts([]);
@@ -58,7 +63,7 @@ export default function StockManagement() {
     setProducts(list);
     onProcess();
     complete();
-  }, [cachedProducts, productsLoading, productsError, start, onFetch, onProcess, complete]);
+  }, [cachedProducts, productsLoading, productsError, start, onFetch, onProcess, complete, refreshing]);
 
   const filteredItems = useMemo(() => {
     const term = searchTerm.toLowerCase();
@@ -97,10 +102,18 @@ export default function StockManagement() {
           <p className="page-subtitle">Monitor all stock levels and alerts in real-time.</p>
           <button
             type="button"
-            onClick={() => refreshProducts()}
+            onClick={async () => {
+              setRefreshing(true);
+              try {
+                await refreshProducts();
+              } finally {
+                setRefreshing(false);
+              }
+            }}
+            disabled={refreshing}
             className="btn-action-secondary mt-3"
           >
-            Refresh Data
+            {refreshing ? "Refreshing..." : "Refresh Data"}
           </button>
         </header>
 

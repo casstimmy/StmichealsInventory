@@ -26,7 +26,7 @@ const STATUS_COLORS = {
 };
 
 export default function AssetsPage() {
-  const progress = useProgress();
+  const { progress, start, complete } = useProgress();
   const [assets, setAssets] = useState([]);
   const [summary, setSummary] = useState({ totalAssets: 0, totalValue: 0, totalPurchaseValue: 0 });
   const [loading, setLoading] = useState(true);
@@ -60,7 +60,7 @@ export default function AssetsPage() {
 
   async function fetchAssets() {
     try {
-      progress.start();
+      start();
       const params = new URLSearchParams();
       if (search) params.set("search", search);
       if (catFilter) params.set("category", catFilter);
@@ -68,8 +68,8 @@ export default function AssetsPage() {
       const res = await apiClient.get(`/api/assets?${params.toString()}`);
       setAssets(res.data.assets || []);
       setSummary(res.data.summary || {});
-      progress.complete();
-    } catch { progress.complete(); } finally { setLoading(false); }
+      complete();
+    } catch { complete(); } finally { setLoading(false); }
   }
 
   useEffect(() => {

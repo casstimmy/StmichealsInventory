@@ -7,7 +7,7 @@ import { apiClient } from "@/lib/api-client";
 import { Search, Plus, Edit, Trash2, X, ChevronDown, ChevronUp, Phone, Mail, MapPin } from "lucide-react";
 
 export default function VendorsPage() {
-  const progress = useProgress();
+  const { progress, start, complete } = useProgress();
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -28,11 +28,11 @@ export default function VendorsPage() {
 
   async function fetchVendors() {
     try {
-      progress.start();
+      start();
       const res = await apiClient.get("/api/vendors");
       setVendors(res.data);
-      progress.complete();
-    } catch { progress.complete(); } finally { setLoading(false); }
+      complete();
+    } catch { complete(); } finally { setLoading(false); }
   }
 
   async function handleSave(e) {

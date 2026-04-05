@@ -23,7 +23,7 @@ const RECEIVED_COLORS = {
 };
 
 export default function PurchaseOrdersPage() {
-  const progress = useProgress();
+  const { progress, start, complete } = useProgress();
   const [orders, setOrders] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -49,11 +49,11 @@ export default function PurchaseOrdersPage() {
 
   async function fetchOrders() {
     try {
-      progress.start();
+      start();
       const res = await apiClient.get("/api/purchase-orders");
       setOrders(res.data.orders || res.data);
-      progress.complete();
-    } catch { progress.complete(); } finally { setLoading(false); }
+      complete();
+    } catch { complete(); } finally { setLoading(false); }
   }
 
   async function fetchVendors() {

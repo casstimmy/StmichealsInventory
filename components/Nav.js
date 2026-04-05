@@ -250,6 +250,7 @@ export default function Sidebar() {
                   { href: "/setup/receipts", label: "Receipts" },
                   { href: "/setup/pos-tenders", label: "POS Tenders" },
                   { href: "/setup/location-items", label: "Location Tenders" },
+                  { href: "/manage/assets", label: "Assets" },
                 ])}
               </ul>
             </li>
@@ -328,7 +329,6 @@ export default function Sidebar() {
                       {renderSubMenu([
                         { href: "/manage/vendors", label: "Vendors", indent: true },
                         { href: "/manage/purchase-orders", label: "Purchase Orders", indent: true },
-                        { href: "/manage/assets", label: "Assets", indent: true },
                       ])}
                     </div>
                   )}

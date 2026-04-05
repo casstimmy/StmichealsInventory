@@ -126,6 +126,7 @@ const AssetSchema = new Schema(
     },
 
     // Images
+    image: { type: String, default: "" },
     images: [{ type: String }],
 
     // Maintenance history

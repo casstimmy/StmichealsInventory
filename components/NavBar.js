@@ -31,7 +31,7 @@ const TopBar = ({ user, logout }) => {
           const productList = data.data || data;
           const products = Array.isArray(productList) ? productList : [];
           
-          const lowStockCount = products.filter(p => p.quantity < (p.minStock || 10)).length;
+          const lowStockCount = products.filter(p => p.minStock > 0 && p.quantity < p.minStock).length;
           setLowStockCount(lowStockCount);
         }
 

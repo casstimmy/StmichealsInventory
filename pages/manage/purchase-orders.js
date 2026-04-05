@@ -59,7 +59,8 @@ export default function PurchaseOrdersPage() {
   async function fetchVendors() {
     try {
       const res = await apiClient.get("/api/vendors?active=true");
-      setVendors(res.data);
+      const list = res.data?.vendors || res.data;
+      setVendors(Array.isArray(list) ? list : []);
     } catch {}
   }
 

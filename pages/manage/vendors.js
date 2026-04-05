@@ -30,7 +30,8 @@ export default function VendorsPage() {
     try {
       start();
       const res = await apiClient.get("/api/vendors");
-      setVendors(res.data);
+      const list = res.data?.vendors || res.data;
+      setVendors(Array.isArray(list) ? list : []);
       complete();
     } catch { complete(); } finally { setLoading(false); }
   }

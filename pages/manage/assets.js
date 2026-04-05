@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
 import useProgress from "@/lib/useProgress";
@@ -7,7 +7,7 @@ import { apiClient } from "@/lib/api-client";
 import { formatCurrency } from "@/lib/format";
 import {
   Plus, Search, X, ChevronDown, ChevronUp, Edit, Trash2,
-  Wrench, Package, AlertTriangle, Filter, BarChart3,
+  Wrench, Package, AlertTriangle, Filter, BarChart3, Camera, Loader2,
 } from "lucide-react";
 
 const CATEGORIES = [
@@ -40,13 +40,18 @@ export default function AssetsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [showMaintenance, setShowMaintenance] = useState(null);
   const [showDispose, setShowDispose] = useState(null);
+  const [showFinancial, setShowFinancial] = useState(false);
+  const [showStatusAssignment, setShowStatusAssignment] = useState(false);
+  const photoRef = useRef(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const emptyForm = {
     name: "", description: "", category: "Other", serialNumber: "",
     manufacturer: "", model: "", purchaseDate: "", purchasePrice: "",
     depreciationMethod: "Straight-Line", usefulLifeYears: 5, salvageValue: 0,
     assignedTo: "", location: "", status: "Active", condition: "New",
-    vendor: "", warrantyExpiry: "", insuranceExpiry: "", notes: "",
+    vendor: "", warrantyExpiry: "", insuranceExpiry: "", notes: "", image: "",
   };
   const [form, setForm] = useState(emptyForm);
 
@@ -163,9 +168,34 @@ export default function AssetsPage() {
       warrantyExpiry: asset.warrantyExpiry ? asset.warrantyExpiry.slice(0, 10) : "",
       insuranceExpiry: asset.insuranceExpiry ? asset.insuranceExpiry.slice(0, 10) : "",
       notes: asset.notes || "",
+      image: asset.image || (asset.images?.[0]) || "",
     });
+    setPhotoPreview(asset.image || (asset.images?.[0]) || null);
+    setShowFinancial(false);
+    setShowStatusAssignment(false);
     setEditingAsset(asset);
     setShowForm(true);
+  }
+
+  async function handlePhotoUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setPhotoPreview(ev.target.result);
+    reader.readAsDataURL(file);
+    setUploadingPhoto(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const data = await res.json();
+      const url = data?.links?.[0] || "";
+      setForm((prev) => ({ ...prev, image: url }));
+    } catch (err) {
+      console.error("Upload failed:", err);
+    } finally {
+      setUploadingPhoto(false);
+    }
   }
 
   if (loading) return <Layout><Loader /></Layout>;
@@ -179,7 +209,7 @@ export default function AssetsPage() {
             <h1 className="text-2xl font-bold text-gray-800">Asset Management</h1>
             <p className="text-sm text-gray-500 mt-1">{summary.totalAssets} asset{summary.totalAssets !== 1 ? "s" : ""} tracked</p>
           </div>
-          <button onClick={() => { setForm(emptyForm); setEditingAsset(null); setShowForm(true); }} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+          <button onClick={() => { setForm(emptyForm); setEditingAsset(null); setPhotoPreview(null); setShowFinancial(false); setShowStatusAssignment(false); setShowForm(true); }} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
             <Plus size={16} /> Add Asset
           </button>
         </div>
@@ -227,18 +257,23 @@ export default function AssetsPage() {
             <div key={a._id} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
               {/* Row */}
               <div className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-50" onClick={() => setExpandedAsset(expandedAsset === a._id ? null : a._id)}>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono text-xs text-gray-400">{a.assetTag}</span>
-                    <h3 className="font-semibold text-gray-800 truncate">{a.name}</h3>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[a.status] || ""}`}>{a.status}</span>
-                  </div>
-                  <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
-                    <span>{a.category}</span>
-                    {a.location && <><span>•</span><span>{a.location}</span></>}
-                    {a.assignedTo && <><span>•</span><span>Assigned: {a.assignedTo}</span></>}
-                    <span>•</span>
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  {a.image && (
+                    <img src={a.image} alt={a.name} className="w-10 h-10 rounded-lg object-cover shrink-0 border border-gray-200" />
+                  )}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono text-xs text-gray-400">{a.assetTag}</span>
+                      <h3 className="font-semibold text-gray-800 truncate">{a.name}</h3>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[a.status] || ""}`}>{a.status}</span>
+                    </div>
+                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                      <span>{a.category}</span>
+                      {a.location && <><span>•</span><span>{a.location}</span></>}
+                      {a.assignedTo && <><span>•</span><span>Assigned: {a.assignedTo}</span></>}
+                      <span>•</span>
                     <span>Value: {formatCurrency(a.currentValue ?? a.purchasePrice)}</span>
+                  </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 ml-3 shrink-0">
@@ -381,6 +416,28 @@ export default function AssetsPage() {
               {/* Basic Info */}
               <div>
                 <h3 className="text-sm font-semibold text-gray-600 mb-2 uppercase tracking-wide">Basic Information</h3>
+
+                {/* Photo Upload */}
+                <div className="flex items-center gap-4 mb-4">
+                  <div
+                    onClick={() => photoRef.current?.click()}
+                    className="w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition overflow-hidden shrink-0"
+                  >
+                    {uploadingPhoto ? (
+                      <Loader2 size={24} className="text-blue-400 animate-spin" />
+                    ) : photoPreview ? (
+                      <img src={photoPreview} alt="Asset" className="w-full h-full object-cover" />
+                    ) : (
+                      <Camera size={24} className="text-gray-400" />
+                    )}
+                  </div>
+                  <input ref={photoRef} type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Asset Photo</p>
+                    <p className="text-xs text-gray-400">Click to upload for easy identification</p>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="sm:col-span-2">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Asset Name *</label>
@@ -411,9 +468,14 @@ export default function AssetsPage() {
                 </div>
               </div>
 
-              {/* Financial */}
-              <div>
-                <h3 className="text-sm font-semibold text-gray-600 mb-2 uppercase tracking-wide">Financial Details</h3>
+              {/* Financial - Collapsible */}
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <button type="button" onClick={() => setShowFinancial(!showFinancial)} className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition">
+                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Financial Details</h3>
+                  {showFinancial ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+                </button>
+                {showFinancial && (
+                <div className="p-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Purchase Date</label>
@@ -444,11 +506,18 @@ export default function AssetsPage() {
                     <input type="text" value={form.vendor} onChange={(e) => setForm({ ...form, vendor: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" />
                   </div>
                 </div>
+                </div>
+                )}
               </div>
 
-              {/* Status & Assignment */}
-              <div>
-                <h3 className="text-sm font-semibold text-gray-600 mb-2 uppercase tracking-wide">Status & Assignment</h3>
+              {/* Status & Assignment - Collapsible */}
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <button type="button" onClick={() => setShowStatusAssignment(!showStatusAssignment)} className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition">
+                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Status & Assignment</h3>
+                  {showStatusAssignment ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+                </button>
+                {showStatusAssignment && (
+                <div className="p-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
@@ -479,6 +548,8 @@ export default function AssetsPage() {
                     <input type="date" value={form.insuranceExpiry} onChange={(e) => setForm({ ...form, insuranceExpiry: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" />
                   </div>
                 </div>
+                </div>
+                )}
               </div>
 
               <div>

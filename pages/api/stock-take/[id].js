@@ -151,6 +151,34 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, message: "Stock take cancelled" });
       }
 
+      // Action: zero all stock (set all countedQty to 0)
+      if (action === "zero-all") {
+        if (!["draft", "in-progress"].includes(stockTake.status)) {
+          return res.status(400).json({ success: false, message: "Cannot zero counts in current status" });
+        }
+        if (stockTake.status === "draft") {
+          stockTake.status = "in-progress";
+          stockTake.startedAt = stockTake.startedAt || new Date();
+        }
+
+        for (const item of stockTake.items) {
+          item.countedQty = 0;
+          item.variance = 0 - item.systemQty;
+          item.varianceValue = item.variance * item.costPrice;
+          item.status = "counted";
+          item.countedAt = new Date();
+          item.countedBy = req.body.countedBy || req.user?.name || "System";
+        }
+
+        recalcSummary(stockTake);
+        await stockTake.save();
+        return res.status(200).json({
+          success: true,
+          message: `All ${stockTake.items.length} items set to zero`,
+          stockTake: stockTake.toObject(),
+        });
+      }
+
       return res.status(400).json({ success: false, message: "Unknown action" });
     } catch (err) {
       console.error("Stock take PUT error:", err);

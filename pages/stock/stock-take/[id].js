@@ -260,6 +260,20 @@ export default function StockTakeDetail() {
                   Start Counting
                 </button>
               )}
+              {(stockTake.status === "draft" || stockTake.status === "in-progress") && (
+                <button
+                  onClick={() => {
+                    if (confirm("Zero ALL product counts? This sets every item's counted quantity to 0.")) {
+                      performAction("zero-all");
+                    }
+                  }}
+                  disabled={!!actionLoading}
+                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
+                >
+                  <FontAwesomeIcon icon={faExclamationTriangle} className="w-3.5 h-3.5" />
+                  {actionLoading === "zero-all" ? "Zeroing..." : "Zero All Stock"}
+                </button>
+              )}
               {stockTake.status === "in-progress" && (
                 <button
                   onClick={() => {

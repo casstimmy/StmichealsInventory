@@ -312,6 +312,27 @@ export default function Sidebar() {
                     </div>
                   )}
                 </li>
+                <li className="border-b border-gray-100 transition-all duration-300 group">
+                  <button
+                    onClick={() => toggleSubMenu("procurement-menu")}
+                    className="w-full h-14 px-4 py-3 flex items-center justify-between text-sm font-medium transition-all duration-300 text-gray-700 hover:bg-gray-50 hover:text-blue-600 border-l-4 border-transparent"
+                  >
+                    <span className="flex items-center gap-3">
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-blue-400 transition-all"></span>
+                      Procurement
+                    </span>
+                    <span className={`text-lg transition-transform duration-300 ${openSubMenu === "procurement-menu" ? "rotate-90" : ""}`}>›</span>
+                  </button>
+                  {openSubMenu === "procurement-menu" && (
+                    <div className="bg-gray-50 border-t border-gray-100">
+                      {renderSubMenu([
+                        { href: "/manage/vendors", label: "Vendors", indent: true },
+                        { href: "/manage/purchase-orders", label: "Purchase Orders", indent: true },
+                        { href: "/manage/assets", label: "Assets", indent: true },
+                      ])}
+                    </div>
+                  )}
+                </li>
               </ul>
             </li>
 

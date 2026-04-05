@@ -50,6 +50,10 @@ export default async function handler(req, res) {
         isActive: isActive !== undefined ? isActive : true,
       };
 
+      if (req.body.photo !== undefined) {
+        updateData.photo = req.body.photo;
+      }
+
       // Only hash password if provided
       if (password) {
         const bcrypt = require("bcryptjs");

@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^Copy-Item \"c:\\\\Users\\\\hp\\\\Desktop\\\\Projects\\\\Inventory-sales\\\\Inventory\\\\inventory-admin-app\\\\pages\\\\manage\\\\staff\\.js\" \"c:\\\\Users\\\\hp\\\\Desktop\\\\Projects\\\\Inventory-sales\\\\Inventory\\\\inventory-admin-app\\\\pages\\\\manage\\\\staff\\.js\\.bak\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

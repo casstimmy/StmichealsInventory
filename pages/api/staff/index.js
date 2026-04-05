@@ -1,6 +1,7 @@
 import { mongooseConnect } from "@/lib/mongodb";
 import Staff from "@/models/Staff";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 import {
   normalizePosPermissions,
@@ -67,6 +68,7 @@ export default async function handler(req, res) {
     try {
       const normalizedRole = normalizeStaffRole(role);
       const hashedPassword = await bcrypt.hash(password, 10);
+      const onboardingToken = crypto.randomBytes(24).toString("hex");
       const staff = await Staff.create({
         name,
         password: hashedPassword,
@@ -77,6 +79,8 @@ export default async function handler(req, res) {
         accountNumber: accountNumber || "",
         bankName: bankName || "",
         salary: salary ? parseInt(salary) : 0,
+        photo: req.body.photo || "",
+        onboardingToken,
       });
       return res.status(201).json(staff);
     } catch (error) {

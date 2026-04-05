@@ -1,0 +1,160 @@
+import { mongooseConnect } from "@/lib/mongodb";
+import PurchaseOrder from "@/models/PurchaseOrder";
+import StockMovement from "@/models/StockMovement";
+import Product from "@/models/Product";
+import { authMiddleware, isStaff } from "@/lib/auth-middleware";
+import { isValidObjectId } from "mongoose";
+
+function generateTransRef() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `SM-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${rand}`;
+}
+
+export default async function handler(req, res) {
+  const authError = authMiddleware(req, res);
+  if (authError) return authError;
+  if (!isStaff(req)) {
+    return res.status(403).json({ error: "Insufficient permissions" });
+  }
+
+  const { id } = req.query;
+  if (!isValidObjectId(id)) {
+    return res.status(400).json({ error: "Invalid order ID" });
+  }
+
+  await mongooseConnect();
+
+  if (req.method === "GET") {
+    try {
+      const order = await PurchaseOrder.findById(id).populate("vendor", "companyName vendorRep repPhone").lean();
+      if (!order) return res.status(404).json({ error: "Order not found" });
+      return res.status(200).json({ success: true, order });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
+  if (req.method === "PUT") {
+    try {
+      const order = await PurchaseOrder.findById(id);
+      if (!order) return res.status(404).json({ error: "Order not found" });
+
+      const { action } = req.body;
+
+      // Update payment
+      if (action === "update-payment") {
+        const { paymentMade, paymentDate, status } = req.body;
+        order.paymentMade = paymentMade !== undefined ? Number(paymentMade) : order.paymentMade;
+        order.balance = order.grandTotal - order.paymentMade;
+        order.paymentDate = paymentDate || order.paymentDate;
+
+        if (status) {
+          order.status = status;
+        } else {
+          // Auto-determine status
+          if (order.paymentMade >= order.grandTotal) {
+            order.status = "Paid";
+          } else if (order.paymentMade > 0) {
+            order.status = "Partly Paid";
+          } else {
+            order.status = "Not Paid";
+          }
+        }
+        order.balance = Math.max(0, order.balance);
+        await order.save();
+        return res.status(200).json({ success: true, order });
+      }
+
+      // Confirm received → auto-create stock movement
+      if (action === "confirm-received") {
+        if (order.receivedStatus === "Received") {
+          return res.status(400).json({ error: "Order already received" });
+        }
+
+        const { toLocationId } = req.body;
+
+        // Create stock movement from this purchase order
+        const movementProducts = order.products
+          .filter((p) => p.productId && p.quantity > 0)
+          .map((p) => ({
+            productId: p.productId,
+            quantity: p.quantity,
+            costPrice: p.price,
+            notes: `From PO: ${order.orderRef}`,
+          }));
+
+        if (movementProducts.length > 0) {
+          const totalCostPrice = movementProducts.reduce(
+            (sum, p) => sum + (p.costPrice || 0) * p.quantity,
+            0
+          );
+
+          const stockMovement = await StockMovement.create({
+            transRef: generateTransRef(),
+            fromLocationId: null, // Vendor (external)
+            toLocationId: toLocationId || null,
+            staffId: req.user?.id || order.staff || null,
+            reason: "Restock",
+            status: "Received",
+            totalCostPrice,
+            dateSent: new Date(),
+            dateReceived: new Date(),
+            products: movementProducts,
+            notes: `Auto-generated from Purchase Order ${order.orderRef}`,
+          });
+
+          // Update product quantities
+          for (const item of movementProducts) {
+            await Product.findByIdAndUpdate(item.productId, {
+              $inc: { quantity: item.quantity },
+            });
+          }
+
+          order.stockMovementId = stockMovement._id;
+        }
+
+        order.receivedStatus = "Received";
+        order.receivedAt = new Date();
+        await order.save();
+
+        return res.status(200).json({
+          success: true,
+          message: "Order received and stock updated",
+          order,
+          stockMovementId: order.stockMovementId,
+        });
+      }
+
+      // General update
+      const allowedFields = ["notes", "payBeforeSupply", "status"];
+      for (const field of allowedFields) {
+        if (req.body[field] !== undefined) {
+          order[field] = req.body[field];
+        }
+      }
+      await order.save();
+      return res.status(200).json({ success: true, order });
+    } catch (err) {
+      console.error("PurchaseOrder update error:", err);
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
+  if (req.method === "DELETE") {
+    try {
+      const order = await PurchaseOrder.findById(id);
+      if (!order) return res.status(404).json({ error: "Order not found" });
+      if (order.receivedStatus === "Received") {
+        return res.status(400).json({ error: "Cannot delete a received order" });
+      }
+      await PurchaseOrder.deleteOne({ _id: id });
+      return res.status(200).json({ success: true, message: "Order deleted" });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
+  return res.status(405).json({ error: "Method not allowed" });
+}

@@ -66,9 +66,46 @@ const StaffSchema = new Schema(
       },
     ],
 
-       locationId: { type: Schema.Types.ObjectId },
+    locationId: { type: Schema.Types.ObjectId },
     locationName: String,
 
+    photo: {
+      type: String,
+      default: "",
+    },
+
+    onboardingToken: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+
+    onboardingComplete: {
+      type: Boolean,
+      default: false,
+    },
+
+    onboardingData: {
+      fullName: { type: String, trim: true },
+      email: { type: String, trim: true },
+      phone: { type: String, trim: true },
+      address: { type: String, trim: true },
+      dateOfBirth: { type: String, trim: true },
+      stateOfOrigin: { type: String, trim: true },
+      nextOfKin: { type: String, trim: true },
+      nextOfKinPhone: { type: String, trim: true },
+      photo: { type: String },
+    },
+
+    guarantor: {
+      name: { type: String, trim: true },
+      phone: { type: String, trim: true },
+      email: { type: String, trim: true },
+      address: { type: String, trim: true },
+      relationship: { type: String, trim: true },
+      occupation: { type: String, trim: true },
+      photo: { type: String },
+    },
 
     isActive: {
       type: Boolean,

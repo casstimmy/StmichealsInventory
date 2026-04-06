@@ -328,7 +328,7 @@ export default function Sidebar() {
                     <div className="bg-gray-50 border-t border-gray-100">
                       {renderSubMenu([
                         { href: "/manage/vendors", label: "Vendors", indent: true },
-                        { href: "/manage/purchase-orders", label: "Purchase Orders", indent: true },
+                        { href: "/manage/purchase-orders", label: "Payment Tracker", indent: true },
                       ])}
                     </div>
                   )}

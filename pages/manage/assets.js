@@ -189,7 +189,8 @@ export default function AssetsPage() {
       fd.append("file", file);
       const res = await fetch("/api/upload", { method: "POST", body: fd });
       const data = await res.json();
-      const url = data?.links?.[0] || "";
+      const link = data?.links?.[0];
+      const url = typeof link === "string" ? link : link?.full || "";
       setForm((prev) => ({ ...prev, image: url }));
     } catch (err) {
       console.error("Upload failed:", err);

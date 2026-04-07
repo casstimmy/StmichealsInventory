@@ -10,13 +10,16 @@ export default function ExpenseForm({ onSaved }) {
     description: "",
     location: "",
     staff: "",
+    asset: "",
   });
 
   const [customCategory, setCustomCategory] = useState("");
   const [categories, setCategories] = useState([]);
   const [locations, setLocations] = useState([]);
   const [staff, setStaff] = useState([]);
+  const [assets, setAssets] = useState([]);
   const [isOtherCategory, setIsOtherCategory] = useState(false);
+  const [isMaintenanceCategory, setIsMaintenanceCategory] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -49,6 +52,15 @@ export default function ExpenseForm({ onSaved }) {
       } catch (err) {
         console.error("Failed to fetch staff:", err);
       }
+
+      // Fetch assets
+      try {
+        const assetRes = await fetch("/api/assets?limit=500");
+        const assetData = await assetRes.json();
+        setAssets(Array.isArray(assetData.assets) ? assetData.assets : []);
+      } catch (err) {
+        console.error("Failed to fetch assets:", err);
+      }
     }
     fetchData();
   }, []);
@@ -59,6 +71,14 @@ export default function ExpenseForm({ onSaved }) {
     if (name === "category") {
       setIsOtherCategory(value === "Other");
       if (value !== "Other") setCustomCategory("");
+      // Detect maintenance category
+      const selectedCat = categories.find(cat => cat._id === value);
+      const isMaintenance = selectedCat?.name?.toLowerCase().includes("maintenance");
+      setIsMaintenanceCategory(isMaintenance);
+      if (!isMaintenance) {
+        setFormData(prev => ({ ...prev, asset: "", [name]: value }));
+        return;
+      }
     }
 
     setFormData((prev) => ({
@@ -116,6 +136,17 @@ export default function ExpenseForm({ onSaved }) {
       staffName = selectedStaff?.name || formData.staff;
     }
 
+    // Get asset info if maintenance category
+    let assetId = null;
+    let assetName = "";
+    if (isMaintenanceCategory && formData.asset) {
+      const selectedAsset = assets.find(a => a._id === formData.asset);
+      if (selectedAsset) {
+        assetId = selectedAsset._id;
+        assetName = selectedAsset.name;
+      }
+    }
+
     const res = await fetch("/api/expenses", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -129,13 +160,16 @@ export default function ExpenseForm({ onSaved }) {
         locationName: formData.location || "",
         staffId: formData.staff || null,
         staffName: staffName || "",
+        assetId: assetId,
+        assetName: assetName,
       }),
     });
 
     if (res.ok) {
-      setFormData({ title: "", amount: "", category: "", description: "", location: "", staff: "" });
+      setFormData({ title: "", amount: "", category: "", description: "", location: "", staff: "", asset: "" });
       setCustomCategory("");
       setIsOtherCategory(false);
+      setIsMaintenanceCategory(false);
       onSaved && onSaved();
     } else {
       alert("Failed to save expense");
@@ -208,6 +242,27 @@ export default function ExpenseForm({ onSaved }) {
           <option value="Other">Other</option>
         </select>
       </div>
+
+      {/* Asset Dropdown (for Maintenance categories) */}
+      {isMaintenanceCategory && (
+        <div className="form-group">
+          <label className="form-label">Linked Asset (Optional)</label>
+          <select
+            name="asset"
+            value={formData.asset}
+            onChange={handleChange}
+            className="form-select"
+          >
+            <option value="">Select Asset</option>
+            {assets.map((a) => (
+              <option key={a._id} value={a._id}>
+                {a.name}{a.category ? ` (${a.category})` : ""}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-400 mt-1">Link this maintenance expense to a specific asset</p>
+        </div>
+      )}
 
       {/* Custom Category Input */}
       {isOtherCategory && (

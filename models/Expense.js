@@ -25,6 +25,13 @@ const ExpenseSchema = new Schema(
     },
     staffName: String,
 
+    // Asset maintenance link (optional)
+    assetId: {
+      type: Schema.Types.ObjectId,
+      ref: "Asset",
+    },
+    assetName: String,
+
     expenseDate: { type: Date, default: Date.now },
 
     description: String,

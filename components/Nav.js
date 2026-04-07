@@ -480,7 +480,14 @@ export default function Sidebar() {
                 ])}
               </ul>
             </li>
-            {renderMenuItem("/till", faCashRegister, "Till")}
+            <li key="/till" className={baseLink}>
+              <a href="https://sales-point-app.vercel.app" target="_blank" rel="noopener noreferrer">
+                <div className="flex flex-col items-center justify-center">
+                  <FontAwesomeIcon icon={faCashRegister} className="w-6 h-6" />
+                  <span className="text-xs">Till</span>
+                </div>
+              </a>
+            </li>
             {renderMenuItem("/support", faHeadset, "Support")}
           </ul>
         </nav>
@@ -810,10 +817,10 @@ export default function Sidebar() {
 
             {/* Till */}
             <li onClick={closeMenu}>
-              <Link href="/till" className={`block ${pathname === "/till" ? mobileActiveLink : mobileBaseLink}`}>
+              <a href="https://sales-point-app.vercel.app" target="_blank" rel="noopener noreferrer" className={`block ${mobileBaseLink}`}>
                 <FontAwesomeIcon icon={faCashRegister} className="w-5 h-5" />
                 <span>Till</span>
-              </Link>
+              </a>
             </li>
 
             {/* Support */}

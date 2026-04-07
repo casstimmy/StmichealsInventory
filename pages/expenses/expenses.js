@@ -2,6 +2,7 @@ import ExpenseForm from "@/components/ExpenseForm";
 import Layout from "@/components/Layout";
 import { formatCurrency } from "@/lib/format";
 import { useEffect, useState } from "react";
+import { Wrench } from "lucide-react";
 import { CalendarDays, CircleDollarSign, MapPin, User, Pencil, Trash2, X } from "lucide-react";
 
 export default function ManageExpenses() {
@@ -9,6 +10,7 @@ export default function ManageExpenses() {
   const [categories, setCategories] = useState([]);
   const [locations, setLocations] = useState([]);
   const [staff, setStaff] = useState([]);
+  const [assets, setAssets] = useState([]);
   const [editingExpense, setEditingExpense] = useState(null);
   const [editForm, setEditForm] = useState({
     title: "",
@@ -19,6 +21,8 @@ export default function ManageExpenses() {
     locationName: "",
     staffId: "",
     staffName: "",
+    assetId: "",
+    assetName: "",
   });
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -68,6 +72,15 @@ export default function ManageExpenses() {
     } catch (err) {
       console.error("Failed to fetch staff:", err);
     }
+
+    // Fetch assets
+    try {
+      const assetRes = await fetch("/api/assets?limit=500");
+      const assetData = await assetRes.json();
+      setAssets(Array.isArray(assetData.assets) ? assetData.assets : []);
+    } catch (err) {
+      console.error("Failed to fetch assets:", err);
+    }
   };
 
   useEffect(() => {
@@ -86,6 +99,8 @@ export default function ManageExpenses() {
       locationName: expense.locationName || "",
       staffId: expense.staffId || "",
       staffName: expense.staffName || "",
+      assetId: expense.assetId || "",
+      assetName: expense.assetName || "",
     });
   };
 
@@ -105,6 +120,13 @@ export default function ManageExpenses() {
         ...prev,
         staffId: value,
         staffName: selectedStaff?.name || "",
+      }));
+    } else if (name === "assetId") {
+      const selectedAsset = assets.find(a => a._id === value);
+      setEditForm(prev => ({
+        ...prev,
+        assetId: value,
+        assetName: selectedAsset?.name || "",
       }));
     } else {
       setEditForm(prev => ({ ...prev, [name]: value }));
@@ -221,6 +243,12 @@ export default function ManageExpenses() {
                         <div className="flex items-center gap-2 text-gray-700">
                           <User className="w-4 h-4 text-gray-500" />
                           <span className="font-medium">{exp.staffName}</span>
+                        </div>
+                      )}
+                      {exp.assetName && (
+                        <div className="flex items-center gap-2 text-gray-700">
+                          <Wrench className="w-4 h-4 text-gray-500" />
+                          <span className="font-medium">Asset: {exp.assetName}</span>
                         </div>
                       )}
                       <div className="flex items-center gap-2 text-gray-600">
@@ -356,6 +384,25 @@ export default function ManageExpenses() {
                   ))}
                 </select>
               </div>
+
+              {editForm.categoryName?.toLowerCase().includes("maintenance") && (
+                <div className="form-group">
+                  <label className="form-label">Linked Asset</label>
+                  <select
+                    name="assetId"
+                    value={editForm.assetId}
+                    onChange={handleEditChange}
+                    className="form-select"
+                  >
+                    <option value="">Select Asset</option>
+                    {assets.map((a) => (
+                      <option key={a._id} value={a._id}>
+                        {a.name}{a.category ? ` (${a.category})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="form-group">
                 <label className="form-label">Description</label>

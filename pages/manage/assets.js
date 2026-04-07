@@ -52,6 +52,7 @@ export default function AssetsPage() {
     depreciationMethod: "Straight-Line", usefulLifeYears: 5, salvageValue: 0,
     assignedTo: "", location: "", status: "Active", condition: "New",
     vendor: "", warrantyExpiry: "", insuranceExpiry: "", notes: "", image: "",
+    customProperties: [],
   };
   const [form, setForm] = useState(emptyForm);
 
@@ -169,6 +170,7 @@ export default function AssetsPage() {
       insuranceExpiry: asset.insuranceExpiry ? asset.insuranceExpiry.slice(0, 10) : "",
       notes: asset.notes || "",
       image: asset.image || (asset.images?.[0]) || "",
+      customProperties: (asset.customProperties || []).map((p) => ({ key: p.key || "", value: p.value || "" })),
     });
     setPhotoPreview(asset.image || (asset.images?.[0]) || null);
     setShowFinancial(false);
@@ -278,12 +280,12 @@ export default function AssetsPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 ml-3 shrink-0">
-                  <button onClick={(e) => { e.stopPropagation(); openEdit(a); }} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"><Edit size={16} /></button>
-                  <button onClick={(e) => { e.stopPropagation(); setShowMaintenance(a._id); }} className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition" title="Add Maintenance"><Wrench size={16} /></button>
+                  <button onClick={(e) => { e.stopPropagation(); openEdit(a); }} className="text-xs px-3 py-1 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition font-medium">Edit</button>
+                  <button onClick={(e) => { e.stopPropagation(); setShowMaintenance(a._id); }} className="text-xs px-3 py-1 text-amber-600 border border-amber-300 rounded-lg hover:bg-amber-50 transition font-medium">Maintain</button>
                   {a.status !== "Disposed" && (
-                    <button onClick={(e) => { e.stopPropagation(); setShowDispose(a._id); }} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition" title="Dispose"><AlertTriangle size={16} /></button>
+                    <button onClick={(e) => { e.stopPropagation(); setShowDispose(a._id); }} className="text-xs px-3 py-1 text-red-500 border border-red-300 rounded-lg hover:bg-red-50 transition font-medium">Dispose</button>
                   )}
-                  <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(a._id); }} className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition"><Trash2 size={16} /></button>
+                  <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(a._id); }} className="text-xs px-3 py-1 text-red-400 border border-red-200 rounded-lg hover:bg-red-50 transition font-medium">Delete</button>
                   {expandedAsset === a._id ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
                 </div>
               </div>
@@ -316,6 +318,21 @@ export default function AssetsPage() {
 
                   {a.description && <div className="text-gray-600"><span className="font-medium text-gray-700">Description:</span> {a.description}</div>}
                   {a.notes && <div className="text-gray-600"><span className="font-medium text-gray-700">Notes:</span> {a.notes}</div>}
+
+                  {/* Custom Properties */}
+                  {a.customProperties?.length > 0 && (
+                    <div className="bg-white border border-gray-200 rounded-lg p-3">
+                      <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Properties</h4>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                        {a.customProperties.map((prop, i) => (
+                          <div key={i}>
+                            <span className="text-xs text-gray-400">{prop.key}</span>
+                            <div className="font-medium text-gray-700 text-sm">{prop.value || "—"}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Depreciation Bar */}
                   {a.purchasePrice > 0 && a.depreciationMethod !== "None" && (
@@ -551,6 +568,26 @@ export default function AssetsPage() {
                 </div>
                 </div>
                 )}
+              </div>
+
+              {/* Custom Properties */}
+              <div className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Custom Properties</h3>
+                  <button type="button" onClick={() => setForm((prev) => ({ ...prev, customProperties: [...prev.customProperties, { key: "", value: "" }] }))} className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"><Plus size={14} /> Add Property</button>
+                </div>
+                {form.customProperties.length === 0 && (
+                  <p className="text-xs text-gray-400 mb-2">No custom properties. Add properties like color, weight, dimensions, etc.</p>
+                )}
+                <div className="space-y-2">
+                  {form.customProperties.map((prop, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <input type="text" placeholder="Property name" value={prop.key} onChange={(e) => { const cp = [...form.customProperties]; cp[i] = { ...cp[i], key: e.target.value }; setForm({ ...form, customProperties: cp }); }} className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" />
+                      <input type="text" placeholder="Value" value={prop.value} onChange={(e) => { const cp = [...form.customProperties]; cp[i] = { ...cp[i], value: e.target.value }; setForm({ ...form, customProperties: cp }); }} className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" />
+                      <button type="button" onClick={() => { const cp = [...form.customProperties]; cp.splice(i, 1); setForm({ ...form, customProperties: cp }); }} className="p-1 text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div>

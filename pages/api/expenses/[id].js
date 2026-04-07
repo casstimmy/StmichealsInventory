@@ -44,6 +44,8 @@ export default async function handler(req, res) {
         locationName,
         staffId,
         staffName,
+        assetId,
+        assetName,
       } = req.body;
 
       const expense = await Expense.findById(id);
@@ -65,6 +67,8 @@ export default async function handler(req, res) {
       if (locationName !== undefined) expense.locationName = locationName || "";
       if (staffId !== undefined) expense.staffId = staffId || null;
       if (staffName !== undefined) expense.staffName = staffName || "";
+      if (assetId !== undefined) expense.assetId = assetId || null;
+      if (assetName !== undefined) expense.assetName = assetName || "";
 
       await expense.save();
 

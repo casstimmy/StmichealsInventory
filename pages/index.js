@@ -162,9 +162,22 @@ export default function Home() {
   ======================= */
   const filteredTransactions = useMemo(() => {
     return allTransactions.filter((tx) => {
+      // Exclude held transactions from all calculations
+      if (tx.status === "held") return false;
+
       const loc =
         typeof tx.location === "object" ? tx.location?.name : tx.location;
 
+      if (selectedLocation !== "All" && loc !== selectedLocation) return false;
+      return isWithinPeriod(tx.createdAt);
+    });
+  }, [allTransactions, selectedLocation, selectedPeriod]);
+
+  const heldTransactions = useMemo(() => {
+    return allTransactions.filter((tx) => {
+      if (tx.status !== "held") return false;
+      const loc =
+        typeof tx.location === "object" ? tx.location?.name : tx.location;
       if (selectedLocation !== "All" && loc !== selectedLocation) return false;
       return isWithinPeriod(tx.createdAt);
     });
@@ -190,13 +203,20 @@ export default function Home() {
       0
     );
     const count = filteredTransactions.length;
+    const heldCount = heldTransactions.length;
+    const heldTotal = heldTransactions.reduce(
+      (sum, t) => sum + Number(t.total || 0),
+      0
+    );
 
     return {
       sales,
       transactions: count,
       avg: count ? sales / count : 0,
+      heldCount,
+      heldTotal,
     };
-  }, [filteredTransactions]);
+  }, [filteredTransactions, heldTransactions]);
 
   /* =======================
      PRODUCT SALES
@@ -381,7 +401,7 @@ export default function Home() {
         ) : (
           <>
             {/* KPIs */}
-            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               <KpiCard label="Sales" value={formatCurrency(kpis.sales)} />
               <KpiCard
                 label="Transactions"
@@ -391,6 +411,12 @@ export default function Home() {
                 label="Avg Tx Value"
                 value={formatCurrency(kpis.avg.toFixed(2))}
               />
+              {kpis.heldCount > 0 && (
+                <KpiCard
+                  label="Held Transactions"
+                  value={`${kpis.heldCount} (${formatCurrency(kpis.heldTotal)})`}
+                />
+              )}
             </section>
 
             {/* Charts */}

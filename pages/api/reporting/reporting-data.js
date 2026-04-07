@@ -94,6 +94,7 @@ export default async function handler(req, res) {
     // Locations are now stored as strings (location name or 'online')
     const queryFilter = {
       createdAt: { $gte: cutoffDate },
+      status: { $ne: "held" },
     };
 
     // Handle location filter - locations are strings now

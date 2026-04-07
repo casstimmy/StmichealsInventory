@@ -136,6 +136,14 @@ const AssetSchema = new Schema(
       type: String,
     },
 
+    // Custom properties (dynamic key-value pairs)
+    customProperties: [
+      {
+        key: { type: String, required: true, trim: true },
+        value: { type: String, trim: true },
+      },
+    ],
+
     // Disposal
     disposalDate: {
       type: Date,

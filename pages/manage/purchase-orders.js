@@ -10,6 +10,30 @@ import {
   CreditCard, CheckCircle, Truck, Trash2, Filter,
 } from "lucide-react";
 
+function getDateRangeFromPeriod(period) {
+  const today = new Date();
+  const iso = (date) => date.toISOString().split("T")[0];
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - today.getDay());
+  const endOfLastWeek = new Date(startOfWeek);
+  endOfLastWeek.setDate(startOfWeek.getDate() - 1);
+  const startOfLastWeek = new Date(endOfLastWeek);
+  startOfLastWeek.setDate(endOfLastWeek.getDate() - 6);
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const endOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+  const startOfLastMonth = new Date(endOfLastMonth.getFullYear(), endOfLastMonth.getMonth(), 1);
+
+  switch (period) {
+    case "today": return { selectedDate: iso(today), startDate: "", endDate: "" };
+    case "yesterday": { const y = new Date(today); y.setDate(today.getDate() - 1); return { selectedDate: iso(y), startDate: "", endDate: "" }; }
+    case "thisWeek": return { selectedDate: "", startDate: iso(startOfWeek), endDate: new Date(today.setHours(23, 59, 59, 999)).toISOString() };
+    case "lastWeek": return { selectedDate: "", startDate: iso(startOfLastWeek), endDate: iso(endOfLastWeek) };
+    case "thisMonth": return { selectedDate: "", startDate: iso(startOfMonth), endDate: new Date(new Date().setHours(23, 59, 59, 999)).toISOString() };
+    case "lastMonth": return { selectedDate: "", startDate: iso(startOfLastMonth), endDate: iso(endOfLastMonth) };
+    default: return { selectedDate: "", startDate: "", endDate: "" };
+  }
+}
+
 const STATUS_COLORS = {
   "Not Paid": "bg-red-100 text-red-700",
   "Partly Paid": "bg-yellow-100 text-yellow-700",
@@ -40,6 +64,11 @@ export default function PurchaseOrdersPage() {
   const [paidFilter, setPaidFilter] = useState("tillDate");
   const [currentPage, setCurrentPage] = useState(1);
   const entriesPerPage = 10;
+
+  // Period filter state
+  const [selectedPeriod, setSelectedPeriod] = useState("");
+  const [periodDates, setPeriodDates] = useState({ selectedDate: "", startDate: "", endDate: "" });
+  const [vendorFilter, setVendorFilter] = useState("");
 
   // Inline edit state
   const [editIndex, setEditIndex] = useState(null);
@@ -279,9 +308,34 @@ export default function PurchaseOrdersPage() {
 
   const totalPaid = useMemo(() => {
     const validStatuses = ["paid", "partly paid", "credit"];
-    return orders
-      .filter((o) => validStatuses.includes(o.status?.toLowerCase()))
-      .reduce((sum, o) => sum + toNumber(o.paymentMade), 0);
+    let filtered = orders.filter((o) => validStatuses.includes(o.status?.toLowerCase()));
+
+    // Apply period filter to totalPaid calculation
+    if (periodDates.startDate && periodDates.endDate) {
+      const start = new Date(periodDates.startDate); start.setHours(0, 0, 0, 0);
+      const end = new Date(periodDates.endDate); end.setHours(23, 59, 59, 999);
+      filtered = filtered.filter((o) => {
+        const d = new Date(o.paymentDate || o.date || o.createdAt);
+        return d >= start && d <= end;
+      });
+    } else if (periodDates.selectedDate) {
+      filtered = filtered.filter((o) => {
+        const dStr = new Date(o.paymentDate || o.date || o.createdAt).toISOString().split("T")[0];
+        return dStr === periodDates.selectedDate;
+      });
+    }
+
+    // Apply vendor filter to totalPaid
+    if (vendorFilter) {
+      filtered = filtered.filter((o) => o.vendorName === vendorFilter);
+    }
+
+    return filtered.reduce((sum, o) => sum + toNumber(o.paymentMade), 0);
+  }, [orders, periodDates, vendorFilter]);
+
+  // Unique vendor names for filter dropdown
+  const vendorNames = useMemo(() => {
+    return [...new Set(orders.map((o) => o.vendorName).filter(Boolean))].sort();
   }, [orders]);
 
   const filteredOrdersForTable = useMemo(() => {
@@ -301,8 +355,28 @@ export default function PurchaseOrdersPage() {
       list = list.filter((o) => o.status === statusFilter);
     }
 
+    // Period filter
+    if (periodDates.startDate && periodDates.endDate) {
+      const start = new Date(periodDates.startDate); start.setHours(0, 0, 0, 0);
+      const end = new Date(periodDates.endDate); end.setHours(23, 59, 59, 999);
+      list = list.filter((o) => {
+        const d = new Date(o.date || o.createdAt);
+        return d >= start && d <= end;
+      });
+    } else if (periodDates.selectedDate) {
+      list = list.filter((o) => {
+        const dStr = new Date(o.date || o.createdAt).toISOString().split("T")[0];
+        return dStr === periodDates.selectedDate;
+      });
+    }
+
+    // Vendor filter
+    if (vendorFilter) {
+      list = list.filter((o) => o.vendorName === vendorFilter);
+    }
+
     return [...list].sort((a, b) => new Date(b.date || b.createdAt || 0) - new Date(a.date || a.createdAt || 0));
-  }, [orders, tableFilter, overdueOrders, outstandingOrders, search, statusFilter]);
+  }, [orders, tableFilter, overdueOrders, outstandingOrders, search, statusFilter, periodDates, vendorFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredOrdersForTable.length / entriesPerPage));
   const paginatedOrders = filteredOrdersForTable.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage);
@@ -319,9 +393,7 @@ export default function PurchaseOrdersPage() {
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-blue-800">
               Vendor Payment Tracker
             </h1>
-            <button onClick={() => { setForm(emptyForm); setShowForm(true); }} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-              <Plus size={16} /> New Order
-            </button>
+            <p className="text-sm text-gray-500">Orders are placed from the <a href="/manage/vendors" className="text-blue-600 hover:underline font-medium">Vendor page</a></p>
           </div>
 
           {/* Dashboard Layout */}
@@ -388,7 +460,7 @@ export default function PurchaseOrdersPage() {
             {/* Right Side: Stats Cards */}
             <div className="w-full lg:w-1/2 flex flex-col gap-3 sm:gap-6">
               {/* Total Paid Card */}
-              <div className="bg-gradient-to-br from-green-400 to-green-600 text-white p-4 sm:p-5 rounded-2xl shadow-lg">
+              <div className="bg-gradient-to-br from-green-400 to-green-600 text-white p-4 sm:p-5 rounded-2xl shadow-lg text-center">
                 <div className="text-xs uppercase tracking-wide font-semibold opacity-90 mb-1">Total Paid</div>
                 <div className="text-2xl sm:text-3xl font-bold">{formatCurrency(totalPaid)}</div>
               </div>
@@ -431,6 +503,62 @@ export default function PurchaseOrdersPage() {
                 <option value="Credit">Credit</option>
               </select>
             </div>
+            <select value={vendorFilter} onChange={(e) => setVendorFilter(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500">
+              <option value="">All Vendors</option>
+              {vendorNames.map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Period Filter */}
+          <div className="flex flex-wrap gap-3 mb-4 items-end">
+            <select
+              value={selectedPeriod}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSelectedPeriod(val);
+                if (val && val !== "custom" && val !== "specific") {
+                  setPeriodDates(getDateRangeFromPeriod(val));
+                } else if (!val) {
+                  setPeriodDates({ selectedDate: "", startDate: "", endDate: "" });
+                }
+              }}
+              className="px-4 py-2 rounded-lg border border-gray-300 text-sm bg-white focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Filter by period</option>
+              <option value="today">Today</option>
+              <option value="yesterday">Yesterday</option>
+              <option value="thisWeek">This Week</option>
+              <option value="lastWeek">Last Week</option>
+              <option value="thisMonth">This Month</option>
+              <option value="lastMonth">Last Month</option>
+              <option value="specific">Specific Date</option>
+              <option value="custom">Custom Range</option>
+            </select>
+            {selectedPeriod === "specific" && (
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Select Date</label>
+                <input type="date" onChange={(e) => setPeriodDates({ selectedDate: e.target.value, startDate: "", endDate: "" })} className="px-4 py-2 border border-gray-300 rounded-lg text-sm" />
+              </div>
+            )}
+            {selectedPeriod === "custom" && (
+              <>
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">Start Date</label>
+                  <input type="date" onChange={(e) => setPeriodDates((prev) => ({ ...prev, startDate: e.target.value }))} className="px-4 py-2 border border-gray-300 rounded-lg text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">End Date</label>
+                  <input type="date" onChange={(e) => setPeriodDates((prev) => ({ ...prev, endDate: e.target.value }))} className="px-4 py-2 border border-gray-300 rounded-lg text-sm" />
+                </div>
+              </>
+            )}
+            {selectedPeriod && (
+              <button onClick={() => { setSelectedPeriod(""); setPeriodDates({ selectedDate: "", startDate: "", endDate: "" }); }} className="text-xs text-red-600 hover:text-red-700 px-3 py-2 bg-red-50 rounded-lg">
+                Clear Period
+              </button>
+            )}
           </div>
 
           {/* Desktop Table */}
@@ -609,82 +737,6 @@ export default function PurchaseOrdersPage() {
               <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 text-sm rounded-lg border border-gray-300 bg-white hover:bg-gray-50">Cancel</button>
               <button onClick={() => handleDelete(deleteConfirm)} className="px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700">Delete</button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* New Order Modal */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-8 px-4 overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mb-10">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-bold text-gray-800">New Purchase Order</h2>
-              <button onClick={() => setShowForm(false)} className="p-1 hover:bg-gray-100 rounded-lg"><X size={20} /></button>
-            </div>
-            <form onSubmit={handleCreate} className="p-5 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Vendor *</label>
-                  <select value={form.vendor} onChange={(e) => setForm({ ...form, vendor: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500" required>
-                    <option value="">Select vendor</option>
-                    {vendors.map((v) => (
-                      <option key={v._id} value={v._id}>{v.companyName}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
-                  <select value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500">
-                    <option>Restock</option>
-                    <option>New Product</option>
-                    <option>Emergency</option>
-                    <option>Seasonal</option>
-                    <option>Other</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Products */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-semibold text-gray-700">Products</h3>
-                  <button type="button" onClick={addProductRow} className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"><Plus size={14} /> Add Row</button>
-                </div>
-                <div className="space-y-2">
-                  {form.products.map((p, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <input type="text" placeholder="Product name" value={p.name} onChange={(e) => updateProduct(i, "name", e.target.value)} className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" required />
-                      <input type="number" placeholder="Qty" min="1" value={p.quantity} onChange={(e) => updateProduct(i, "quantity", e.target.value)} className="w-20 border border-gray-300 rounded-lg px-3 py-2 text-sm text-center focus:ring-2 focus:ring-blue-500" />
-                      <input type="number" placeholder="Price" min="0" step="0.01" value={p.price} onChange={(e) => updateProduct(i, "price", e.target.value)} className="w-28 border border-gray-300 rounded-lg px-3 py-2 text-sm text-right focus:ring-2 focus:ring-blue-500" />
-                      <span className="text-sm text-gray-600 w-24 text-right">{formatCurrency((Number(p.quantity) || 0) * (Number(p.price) || 0))}</span>
-                      {form.products.length > 1 && (
-                        <button type="button" onClick={() => removeProductRow(i)} className="p-1 text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <div className="text-right mt-2 font-semibold text-gray-800">
-                  Grand Total: {formatCurrency(getGrandTotal())}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input type="checkbox" id="payBefore" checked={form.payBeforeSupply} onChange={(e) => setForm({ ...form, payBeforeSupply: e.target.checked })} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                <label htmlFor="payBefore" className="text-sm text-gray-700">Pay before supply</label>
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowForm(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
-                <button type="submit" disabled={saving} className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium text-white transition ${saving ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}>
-                  {saving ? "Creating..." : "Create Order"}
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}

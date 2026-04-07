@@ -19,6 +19,7 @@ function getToday() {
 export default function VendorsPage() {
   const { progress, start, complete } = useProgress();
   const [vendors, setVendors] = useState([]);
+  const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingVendor, setEditingVendor] = useState(null);
@@ -26,6 +27,7 @@ export default function VendorsPage() {
   const [search, setSearch] = useState("");
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [productSearch, setProductSearch] = useState("");
 
   // Order form state
   const [selectedVendor, setSelectedVendor] = useState(null);
@@ -38,11 +40,11 @@ export default function VendorsPage() {
   const emptyForm = {
     companyName: "", vendorRep: "", repPhone: "", email: "",
     address: "", mainProduct: "", bankName: "", accountName: "",
-    accountNumber: "", isActive: true,
+    accountNumber: "", isActive: true, products: [],
   };
   const [form, setForm] = useState(emptyForm);
 
-  useEffect(() => { fetchVendors(); }, []);
+  useEffect(() => { fetchVendors(); fetchProducts(); }, []);
 
   async function fetchVendors() {
     try {
@@ -53,6 +55,47 @@ export default function VendorsPage() {
       complete();
     } catch { complete(); } finally { setLoading(false); }
   }
+
+  async function fetchProducts() {
+    try {
+      const res = await apiClient.get("/api/products?minimal=true&limit=1000");
+      const list = res.data?.products || res.data;
+      setAllProducts(Array.isArray(list) ? list : []);
+    } catch { }
+  }
+
+  function addVendorProduct() {
+    setForm((prev) => ({
+      ...prev,
+      products: [...prev.products, { product: "", productName: "", price: 0 }],
+    }));
+  }
+
+  function removeVendorProduct(idx) {
+    setForm((prev) => ({
+      ...prev,
+      products: prev.products.filter((_, i) => i !== idx),
+    }));
+  }
+
+  function updateVendorProduct(idx, field, value) {
+    setForm((prev) => {
+      const products = [...prev.products];
+      if (field === "product") {
+        const selected = allProducts.find((p) => p._id === value);
+        products[idx] = { ...products[idx], product: value, productName: selected?.name || "" };
+      } else {
+        products[idx] = { ...products[idx], [field]: value };
+      }
+      return { ...prev, products };
+    });
+  }
+
+  const filteredProductOptions = useMemo(() => {
+    if (!productSearch.trim()) return allProducts;
+    const s = productSearch.toLowerCase();
+    return allProducts.filter((p) => p.name?.toLowerCase().includes(s));
+  }, [allProducts, productSearch]);
 
   async function handleSave(e) {
     e.preventDefault();
@@ -94,6 +137,11 @@ export default function VendorsPage() {
       accountName: vendor.accountName || "",
       accountNumber: vendor.accountNumber || "",
       isActive: vendor.isActive !== false,
+      products: (vendor.products || []).map((p) => ({
+        product: p.product?._id || p.product || "",
+        productName: p.productName || p.product?.name || "",
+        price: p.price || 0,
+      })),
     });
     setEditingVendor(vendor);
     setShowForm(true);
@@ -325,6 +373,21 @@ export default function VendorsPage() {
                                   </div>
                                 )}
                               </div>
+
+                              {/* Vendor Products List */}
+                              {vendor.products?.length > 0 && (
+                                <div className="mt-3 bg-gray-50 rounded-lg p-3">
+                                  <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Supplied Products</h4>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                                    {vendor.products.map((p, i) => (
+                                      <div key={i} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-gray-200 text-xs">
+                                        <span className="font-medium text-gray-700 truncate">{p.productName || p.product?.name || "Unnamed"}</span>
+                                        {p.price > 0 && <span className="text-blue-600 font-semibold ml-2 shrink-0">{formatCurrency(p.price)}</span>}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
 
                               <div className="flex gap-2 pt-1">
                                 <button
@@ -633,6 +696,40 @@ export default function VendorsPage() {
               <div className="flex items-center gap-2">
                 <input type="checkbox" id="isActive" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
                 <label htmlFor="isActive" className="text-sm text-gray-700">Active Vendor</label>
+              </div>
+
+              {/* Vendor Products */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Products Supplied</h3>
+                  <button type="button" onClick={addVendorProduct} className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"><Plus size={14} /> Add Product</button>
+                </div>
+                {form.products.length === 0 && (
+                  <p className="text-xs text-gray-400 mb-2">No products attached yet. Add products this vendor supplies.</p>
+                )}
+                <div className="space-y-2">
+                  {form.products.map((vp, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <select
+                        value={vp.product}
+                        onChange={(e) => updateVendorProduct(i, "product", e.target.value)}
+                        className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Select product</option>
+                        {allProducts.map((p) => (
+                          <option key={p._id} value={p._id}>{p.name}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="number" min="0" step="0.01" placeholder="Cost price"
+                        value={vp.price}
+                        onChange={(e) => updateVendorProduct(i, "price", Number(e.target.value))}
+                        className="w-28 border border-gray-300 rounded-lg px-3 py-2 text-sm text-right focus:ring-2 focus:ring-blue-500"
+                      />
+                      <button type="button" onClick={() => removeVendorProduct(i)} className="p-1 text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div className="flex gap-3 pt-2">

@@ -10,13 +10,42 @@ const inter = Inter({ subsets: ["latin"] });
 
 // Map route prefixes to required permission keys
 const ROUTE_PERMISSIONS = {
-  "/setup/users": "users",
-  "/setup/assets": "assets",
+  "/setup/users": "setup.users",
+  "/setup/assets": "setup.assets",
+  "/setup/setup": "setup.company",
+  "/setup/Hero-Promo-setup": "setup.hero-promo",
+  "/setup/receipts": "setup.receipts",
+  "/setup/pos-tenders": "setup.pos-tenders",
+  "/setup/location-items": "setup.location-items",
   "/setup": "setup",
-  "/manage/staff": "staff",
+  "/manage/staff-roles": "manage.staff-roles",
+  "/manage/staff": "manage.staff",
+  "/manage/vendors": "manage.vendors",
+  "/manage/purchase-orders": "manage.purchase-orders",
+  "/manage/products": "manage.products",
+  "/manage/archived": "manage.archived",
+  "/manage/categories": "manage.categories",
+  "/manage/promotions-management": "manage.customer-promotions",
+  "/manage/promotions": "manage.promotions",
+  "/manage/orders": "manage.orders",
+  "/manage/customers": "manage.customers",
+  "/manage/campaigns": "manage.campaigns",
   "/manage": "manage",
+  "/stock/management": "stock.management",
+  "/stock/movement": "stock.movement",
+  "/stock/stock-take-report": "stock.stock-take-report",
+  "/stock/stock-take": "stock.stock-take",
+  "/stock/expiration-report": "stock.expiration-report",
   "/stock": "stock",
+  "/reporting/sales-report": "reporting.sales-report",
+  "/reporting/end-of-day-report": "reporting.eod",
+  "/reporting/transaction-report": "reporting.transactions",
+  "/reporting/reporting": "reporting.sales-report",
   "/reporting": "reporting",
+  "/expenses/expenses": "expenses.entry",
+  "/expenses/analysis": "expenses.analysis",
+  "/expenses/tax-analysis": "expenses.tax-analysis",
+  "/expenses/tax-personal": "expenses.tax-personal",
   "/expenses": "expenses",
   "/support": "support",
 };
@@ -34,7 +63,7 @@ function getRequiredPermission(pathname) {
 
 export default function Layout({ children, title = "Dashboard" }) {
   const router = useRouter();
-  const { user, token, loading, isAuthenticated, isAdmin, hasPermission, logout } = useAuth();
+  const { user, token, loading, isAuthenticated, isAdmin, hasPermission, getFirstAccessiblePage, logout } = useAuth();
 
   if (loading) {
     return (
@@ -55,6 +84,19 @@ export default function Layout({ children, title = "Dashboard" }) {
   // CHECK PAGE PERMISSIONS
   const requiredPermission = getRequiredPermission(router.pathname);
   const hasAccess = !requiredPermission || isAdmin || hasPermission(requiredPermission);
+
+  // Dashboard access control: only admin or users with "dashboard" permission
+  const isDashboard = router.pathname === "/";
+  const hasDashboardAccess = isDashboard ? (isAdmin || hasPermission("dashboard")) : true;
+
+  // Redirect non-dashboard users to their first accessible page
+  if (isDashboard && !hasDashboardAccess) {
+    if (typeof window !== "undefined") {
+      const firstPage = getFirstAccessiblePage();
+      router.replace(firstPage);
+    }
+    return null;
+  }
 
   //  APP SHELL
   return (
@@ -78,8 +120,8 @@ export default function Layout({ children, title = "Dashboard" }) {
                   <Shield className="mx-auto mb-4 text-red-400" size={48} />
                   <h2 className="text-xl font-bold text-gray-700">Access Denied</h2>
                   <p className="text-gray-500 mt-2">You don&apos;t have permission to access this page.</p>
-                  <button onClick={() => router.push("/")} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                    Go to Dashboard
+                  <button onClick={() => router.push(getFirstAccessiblePage())} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                    Go to Home
                   </button>
                 </div>
               </div>

@@ -16,6 +16,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import Loader from "@/components/Loader";
+import { useAuth } from "@/lib/useAuth";
 
 export default function Sidebar() {
   const [openMenu, setOpenMenu] = useState(null);
@@ -26,6 +27,19 @@ export default function Sidebar() {
   const sidebarRef = useRef(null);
   const router = useRouter();
   const { pathname } = router;
+  const { isAdmin, hasPermission } = useAuth();
+
+  // Permission check helper - checks both submenu and parent permissions
+  const canAccess = (permKey) => {
+    if (isAdmin) return true;
+    return hasPermission(permKey);
+  };
+
+  // Check if any child in a menu section is accessible
+  const canAccessAny = (permKeys) => {
+    if (isAdmin) return true;
+    return permKeys.some((key) => hasPermission(key));
+  };
 
   // Detect mobile view
   useEffect(() => {
@@ -222,8 +236,9 @@ export default function Sidebar() {
       >
         <nav className="mt-6 h-full overflow-visible">
           <ul className="space-y-1">
-            {renderMenuItem("/", faHome, "Home")}
+            {canAccess("dashboard") && renderMenuItem("/", faHome, "Home")}
             {/* Setup Menu with Submenu */}
+            {canAccessAny(["setup", "setup.company", "setup.hero-promo", "setup.receipts", "setup.pos-tenders", "setup.location-items", "setup.assets", "setup.users"]) && (
             <li
               className={`${pathname.startsWith("/setup") ? activeLink : baseLink} relative`}
             >
@@ -259,11 +274,24 @@ export default function Sidebar() {
                   { href: "/setup/location-items", label: "Location Tenders" },
                   { href: "/setup/assets", label: "Assets" },
                   { href: "/setup/users", label: "Users" },
-                ])}
+                ].filter(item => {
+                  const permMap = {
+                    "/setup/setup": "setup.company",
+                    "/setup/Hero-Promo-setup": "setup.hero-promo",
+                    "/setup/receipts": "setup.receipts",
+                    "/setup/pos-tenders": "setup.pos-tenders",
+                    "/setup/location-items": "setup.location-items",
+                    "/setup/assets": "setup.assets",
+                    "/setup/users": "setup.users",
+                  };
+                  return canAccess(permMap[item.href] || "setup");
+                }))}
               </ul>
             </li>
+            )}
 
             {/* Manage */}
+            {canAccessAny(["manage", "manage.products", "manage.archived", "manage.categories", "manage.promotions", "manage.customer-promotions", "manage.orders", "manage.customers", "manage.campaigns", "manage.staff", "manage.staff-roles", "manage.vendors", "manage.purchase-orders"]) && (
             <li
               className={`${pathname.startsWith("/manage") ? activeLink : baseLink} relative`}
             >
@@ -300,7 +328,20 @@ export default function Sidebar() {
                   { href: "/manage/orders", label: "Orders" },
                   { href: "/manage/customers", label: "Customers", indent: false },
                   { href: "/manage/campaigns", label: "Campaigns", indent: true },
-                ])}
+                ].filter(item => {
+                  const permMap = {
+                    "/manage/products": "manage.products",
+                    "/manage/archived": "manage.archived",
+                    "/manage/categories": "manage.categories",
+                    "/manage/promotions": "manage.promotions",
+                    "/manage/promotions-management": "manage.customer-promotions",
+                    "/manage/orders": "manage.orders",
+                    "/manage/customers": "manage.customers",
+                    "/manage/campaigns": "manage.campaigns",
+                  };
+                  return canAccess(permMap[item.href] || "manage");
+                }))}
+                {canAccessAny(["manage.staff", "manage.staff-roles", "manage"]) && (
                 <li className="border-b border-gray-100 transition-all duration-300 group">
                   <button
                     onClick={() => toggleSubMenu("staff-menu")}
@@ -317,10 +358,18 @@ export default function Sidebar() {
                       {renderSubMenu([
                         { href: "/manage/staff", label: "Staff Page", indent: true },
                         { href: "/manage/staff-roles", label: "Staff Roles", indent: true },
-                      ])}
+                      ].filter(item => {
+                        const permMap = {
+                          "/manage/staff": "manage.staff",
+                          "/manage/staff-roles": "manage.staff-roles",
+                        };
+                        return canAccess(permMap[item.href] || "manage");
+                      }))}
                     </div>
                   )}
                 </li>
+                )}
+                {canAccessAny(["manage.vendors", "manage.purchase-orders", "manage"]) && (
                 <li className="border-b border-gray-100 transition-all duration-300 group">
                   <button
                     onClick={() => toggleSubMenu("procurement-menu")}
@@ -337,14 +386,23 @@ export default function Sidebar() {
                       {renderSubMenu([
                         { href: "/manage/vendors", label: "Vendors", indent: true },
                         { href: "/manage/purchase-orders", label: "Payment Tracker", indent: true },
-                      ])}
+                      ].filter(item => {
+                        const permMap = {
+                          "/manage/vendors": "manage.vendors",
+                          "/manage/purchase-orders": "manage.purchase-orders",
+                        };
+                        return canAccess(permMap[item.href] || "manage");
+                      }))}
                     </div>
                   )}
                 </li>
+                )}
               </ul>
             </li>
+            )}
 
             {/* Stock */}
+            {canAccessAny(["stock", "stock.management", "stock.movement", "stock.stock-take", "stock.stock-take-report", "stock.expiration-report"]) && (
             <li
               className={`${pathname.startsWith("/stock") ? activeLink : baseLink} relative`}
             >
@@ -378,10 +436,21 @@ export default function Sidebar() {
                   { href: "/stock/stock-take", label: "Stock Take" },
                   { href: "/stock/stock-take-report", label: "Stock Take Report" },
                   { href: "/stock/expiration-report", label: "Expiration Report" },
-                ])}
+                ].filter(item => {
+                  const permMap = {
+                    "/stock/management": "stock.management",
+                    "/stock/movement": "stock.movement",
+                    "/stock/stock-take": "stock.stock-take",
+                    "/stock/stock-take-report": "stock.stock-take-report",
+                    "/stock/expiration-report": "stock.expiration-report",
+                  };
+                  return canAccess(permMap[item.href] || "stock");
+                }))}
               </ul>
             </li>
+            )}
 
+            {canAccessAny(["reporting", "reporting.sales-report", "reporting.eod", "reporting.transaction-report", "reporting.time-intervals", "reporting.time-comparisons", "reporting.sales-by-product", "reporting.employees", "reporting.locations", "reporting.categories"]) && (
             <li
               className={`${
                 pathname.startsWith("/reporting") ? activeLink : baseLink
@@ -414,7 +483,13 @@ export default function Sidebar() {
                 {renderSubMenu([
                   { href: "/reporting/reporting", label: "Sales Report" },
                   { href: "/reporting/end-of-day-report", label: "End of Day Reports" },
-                ])}
+                ].filter(item => {
+                  const permMap = {
+                    "/reporting/reporting": "reporting.sales-report",
+                    "/reporting/end-of-day-report": "reporting.eod",
+                  };
+                  return canAccess(permMap[item.href] || "reporting");
+                }))}
                 
                 {/* Sales Report Dropdown */}
                 <li className="border-b border-gray-100 transition-all duration-300 group">
@@ -448,6 +523,9 @@ export default function Sidebar() {
                 ])}
               </ul>
             </li>
+            )}
+
+            {canAccessAny(["expenses", "expenses.expenses", "expenses.analysis", "expenses.tax-analysis", "expenses.tax-personal"]) && (
             <li
               className={`${
                 pathname.startsWith("/expenses") ? activeLink : baseLink
@@ -485,9 +563,19 @@ export default function Sidebar() {
                     href: "/expenses/tax-personal",
                     label: "Personal Tax Calculator",
                   },
-                ])}
+                ].filter(item => {
+                  const permMap = {
+                    "/expenses/expenses": "expenses.expenses",
+                    "/expenses/analysis": "expenses.analysis",
+                    "/expenses/tax-analysis": "expenses.tax-analysis",
+                    "/expenses/tax-personal": "expenses.tax-personal",
+                  };
+                  return canAccess(permMap[item.href] || "expenses");
+                }))}
               </ul>
             </li>
+            )}
+            {canAccess("till") && (
             <li key="/till" className={baseLink}>
               <a href="https://sales-point-app.vercel.app" target="_blank" rel="noopener noreferrer">
                 <div className="flex flex-col items-center justify-center">
@@ -496,7 +584,8 @@ export default function Sidebar() {
                 </div>
               </a>
             </li>
-            {renderMenuItem("/support", faHeadset, "Support")}
+            )}
+            {canAccess("support") && renderMenuItem("/support", faHeadset, "Support")}
           </ul>
         </nav>
       </aside>
@@ -525,14 +614,17 @@ export default function Sidebar() {
 
           <ul className="space-y-0 pb-20">
             {/* Home */}
+            {canAccess("dashboard") && (
             <li onClick={closeMenu}>
               <Link href="/" className={`block ${pathname === "/" ? mobileActiveLink : mobileBaseLink}`}>
                 <FontAwesomeIcon icon={faHome} className="w-5 h-5" />
                 <span>Home</span>
               </Link>
             </li>
+            )}
 
             {/* Setup Menu */}
+            {canAccessAny(["setup", "setup.company", "setup.hero-promo", "setup.receipts", "setup.pos-tenders", "setup.location-items", "setup.assets", "setup.users"]) && (
             <li>
               <button
                 onClick={() => toggleMenu("setup")}
@@ -549,46 +641,62 @@ export default function Sidebar() {
               </button>
               {openMenu === "setup" && (
                 <ul className="bg-gray-50 border-l-4 border-blue-600">
+                  {canAccess("setup.company") && (
                   <li onClick={closeMenu}>
                     <Link href="/setup/setup" className={`block px-8 py-3 text-sm transition-all ${pathname === "/setup/setup" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Company Details
                     </Link>
                   </li>
+                  )}
+                  {canAccess("setup.hero-promo") && (
                   <li onClick={closeMenu}>
                     <Link href="/setup/Hero-Promo-setup" className={`block px-8 py-3 text-sm transition-all ${pathname === "/setup/Hero-Promo-setup" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Hero-Promo Setup
                     </Link>
                   </li>
+                  )}
+                  {canAccess("setup.receipts") && (
                   <li onClick={closeMenu}>
                     <Link href="/setup/receipts" className={`block px-8 py-3 text-sm transition-all ${pathname === "/setup/receipts" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Receipts
                     </Link>
                   </li>
+                  )}
+                  {canAccess("setup.pos-tenders") && (
                   <li onClick={closeMenu}>
                     <Link href="/setup/pos-tenders" className={`block px-8 py-3 text-sm transition-all ${pathname === "/setup/pos-tenders" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       POS Tenders
                     </Link>
                   </li>
+                  )}
+                  {canAccess("setup.location-items") && (
                   <li onClick={closeMenu}>
                     <Link href="/setup/location-items" className={`block px-8 py-3 text-sm transition-all ${pathname === "/setup/location-items" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Location Tenders
                     </Link>
                   </li>
+                  )}
+                  {canAccess("setup.assets") && (
                   <li onClick={closeMenu}>
                     <Link href="/setup/assets" className={`block px-8 py-3 text-sm transition-all ${pathname === "/setup/assets" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Assets
                     </Link>
                   </li>
+                  )}
+                  {canAccess("setup.users") && (
                   <li onClick={closeMenu}>
                     <Link href="/setup/users" className={`block px-8 py-3 text-sm transition-all ${pathname === "/setup/users" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Users
                     </Link>
                   </li>
+                  )}
                 </ul>
               )}
             </li>
+            )}
 
             {/* Manage Menu */}
+            {canAccessAny(["manage", "manage.products", "manage.archived", "manage.categories", "manage.promotions", "manage.customer-promotions", "manage.orders", "manage.customers", "manage.campaigns", "manage.staff", "manage.staff-roles", "manage.vendors", "manage.purchase-orders"]) && (
             <li>
               <button
                 onClick={() => toggleMenu("manage")}
@@ -605,36 +713,49 @@ export default function Sidebar() {
               </button>
               {openMenu === "manage" && (
                 <ul className="bg-gray-50 border-l-4 border-blue-600">
+                  {canAccess("manage.products") && (
                   <li onClick={closeMenu}>
                     <Link href="/manage/products" className={`block px-8 py-3 text-sm transition-all ${pathname === "/manage/products" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Product List
                     </Link>
                   </li>
+                  )}
+                  {canAccess("manage.archived") && (
                   <li onClick={closeMenu}>
                     <Link href="/manage/archived" className={`block px-8 py-3 text-sm transition-all ${pathname === "/manage/archived" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Archived Products
                     </Link>
                   </li>
+                  )}
+                  {canAccess("manage.categories") && (
                   <li onClick={closeMenu}>
                     <Link href="/manage/categories" className={`block px-8 py-3 text-sm transition-all ${pathname === "/manage/categories" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Categories
                     </Link>
                   </li>
+                  )}
+                  {canAccess("manage.promotions") && (
                   <li onClick={closeMenu}>
                     <Link href="/manage/promotions" className={`block px-8 py-3 text-sm transition-all ${pathname === "/manage/promotions" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Promotions
                     </Link>
                   </li>
+                  )}
+                  {canAccess("manage.customer-promotions") && (
                   <li onClick={closeMenu}>
                     <Link href="/manage/promotions-management" className={`block px-8 py-3 text-sm transition-all ${pathname === "/manage/promotions-management" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Customer Promotions
                     </Link>
                   </li>
+                  )}
+                  {canAccess("manage.orders") && (
                   <li onClick={closeMenu}>
                     <Link href="/manage/orders" className={`block px-8 py-3 text-sm transition-all ${pathname === "/manage/orders" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Orders
                     </Link>
                   </li>
+                  )}
+                  {canAccessAny(["manage.staff", "manage.staff-roles", "manage"]) && (
                   <li>
                     <button
                       onClick={() => toggleSubMenu("mobile-staff-menu")}
@@ -648,34 +769,77 @@ export default function Sidebar() {
                     </button>
                     {openSubMenu === "mobile-staff-menu" && (
                       <ul className="bg-white/70">
+                        {canAccess("manage.staff") && (
                         <li onClick={closeMenu}>
                           <Link href="/manage/staff" className={`block px-12 py-3 text-sm transition-all ${pathname === "/manage/staff" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                             Staff Page
                           </Link>
                         </li>
+                        )}
+                        {canAccess("manage.staff-roles") && (
                         <li onClick={closeMenu}>
                           <Link href="/manage/staff-roles" className={`block px-12 py-3 text-sm transition-all ${pathname === "/manage/staff-roles" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                             Staff Roles
                           </Link>
                         </li>
+                        )}
                       </ul>
                     )}
                   </li>
+                  )}
+                  {canAccess("manage.customers") && (
                   <li onClick={closeMenu}>
                     <Link href="/manage/customers" className={`block px-8 py-3 text-sm transition-all ${pathname === "/manage/customers" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Customers
                     </Link>
                   </li>
+                  )}
+                  {canAccess("manage.campaigns") && (
                   <li onClick={closeMenu}>
                     <Link href="/manage/campaigns" className={`block px-12 py-3 text-sm transition-all ${pathname === "/manage/campaigns" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Campaigns
                     </Link>
                   </li>
+                  )}
+                  {canAccessAny(["manage.vendors", "manage.purchase-orders", "manage"]) && (
+                  <li>
+                    <button
+                      onClick={() => toggleSubMenu("mobile-procurement-menu")}
+                      className={`w-full flex items-center justify-between px-8 py-3 text-sm transition-all ${pathname.startsWith("/manage/vendors") || pathname.startsWith("/manage/purchase-orders") ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}
+                    >
+                      <span>Procurement</span>
+                      <FontAwesomeIcon
+                        icon={faChevronRight}
+                        className={`w-4 h-4 transition-transform duration-300 ${openSubMenu === "mobile-procurement-menu" ? "rotate-90" : ""}`}
+                      />
+                    </button>
+                    {openSubMenu === "mobile-procurement-menu" && (
+                      <ul className="bg-white/70">
+                        {canAccess("manage.vendors") && (
+                        <li onClick={closeMenu}>
+                          <Link href="/manage/vendors" className={`block px-12 py-3 text-sm transition-all ${pathname === "/manage/vendors" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                            Vendors
+                          </Link>
+                        </li>
+                        )}
+                        {canAccess("manage.purchase-orders") && (
+                        <li onClick={closeMenu}>
+                          <Link href="/manage/purchase-orders" className={`block px-12 py-3 text-sm transition-all ${pathname === "/manage/purchase-orders" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                            Payment Tracker
+                          </Link>
+                        </li>
+                        )}
+                      </ul>
+                    )}
+                  </li>
+                  )}
                 </ul>
               )}
             </li>
+            )}
 
             {/* Stock Menu */}
+            {canAccessAny(["stock", "stock.management", "stock.movement", "stock.stock-take", "stock.stock-take-report", "stock.expiration-report"]) && (
             <li>
               <button
                 onClick={() => toggleMenu("stock")}
@@ -692,36 +856,48 @@ export default function Sidebar() {
               </button>
               {openMenu === "stock" && (
                 <ul className="bg-gray-50 border-l-4 border-blue-600">
+                  {canAccess("stock.management") && (
                   <li onClick={closeMenu}>
                     <Link href="/stock/management" className={`block px-8 py-3 text-sm transition-all ${pathname === "/stock/management" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Stock Management
                     </Link>
                   </li>
+                  )}
+                  {canAccess("stock.movement") && (
                   <li onClick={closeMenu}>
                     <Link href="/stock/movement" className={`block px-8 py-3 text-sm transition-all ${pathname === "/stock/movement" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Stock Movement
                     </Link>
                   </li>
+                  )}
+                  {canAccess("stock.stock-take") && (
                   <li onClick={closeMenu}>
                     <Link href="/stock/stock-take" className={`block px-8 py-3 text-sm transition-all ${pathname.startsWith("/stock/stock-take") && !pathname.startsWith("/stock/stock-take-report") ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Stock Take
                     </Link>
                   </li>
+                  )}
+                  {canAccess("stock.stock-take-report") && (
                   <li onClick={closeMenu}>
                     <Link href="/stock/stock-take-report" className={`block px-8 py-3 text-sm transition-all ${pathname === "/stock/stock-take-report" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Stock Take Report
                     </Link>
                   </li>
+                  )}
+                  {canAccess("stock.expiration-report") && (
                   <li onClick={closeMenu}>
                     <Link href="/stock/expiration-report" className={`block px-8 py-3 text-sm transition-all ${pathname === "/stock/expiration-report" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Expiration Report
                     </Link>
                   </li>
+                  )}
                 </ul>
               )}
             </li>
+            )}
 
             {/* Reporting Menu */}
+            {canAccessAny(["reporting", "reporting.sales-report", "reporting.eod", "reporting.transaction-report", "reporting.time-intervals", "reporting.time-comparisons", "reporting.sales-by-product", "reporting.employees", "reporting.locations", "reporting.categories"]) && (
             <li>
               <button
                 onClick={() => toggleMenu("reporting")}
@@ -738,61 +914,83 @@ export default function Sidebar() {
               </button>
               {openMenu === "reporting" && (
                 <ul className="bg-gray-50 border-l-4 border-blue-600">
+                  {canAccess("reporting.sales-report") && (
                   <li onClick={closeMenu}>
                     <Link href="/reporting/reporting" className={`block px-8 py-3 text-sm transition-all ${pathname === "/reporting/reporting" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Sales Report
                     </Link>
                   </li>
+                  )}
+                  {canAccess("reporting.eod") && (
                   <li onClick={closeMenu}>
                     <Link href="/reporting/end-of-day-report" className={`block px-8 py-3 text-sm transition-all ${pathname === "/reporting/end-of-day-report" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       End of Day Reports
                     </Link>
                   </li>
+                  )}
+                  {canAccess("reporting.transaction-report") && (
                   <li onClick={closeMenu}>
                     <Link href="/reporting/transaction-report" className={`block px-8 py-3 text-sm transition-all ${pathname === "/reporting/transaction-report" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Transaction Reports
                     </Link>
                   </li>
+                  )}
+                  {canAccess("reporting.transaction-report") && (
                   <li onClick={closeMenu}>
                     <Link href="/reporting/transaction-report/completed-transactions" className={`block px-10 py-3 text-sm transition-all ${pathname === "/reporting/transaction-report/completed-transactions" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Completed Transactions
                     </Link>
                   </li>
+                  )}
+                  {canAccess("reporting.time-intervals") && (
                   <li onClick={closeMenu}>
                     <Link href="/reporting/sales-report/time-intervals" className={`block px-10 py-3 text-sm transition-all ${pathname === "/reporting/sales-report/time-intervals" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Time Intervals
                     </Link>
                   </li>
+                  )}
+                  {canAccess("reporting.time-comparisons") && (
                   <li onClick={closeMenu}>
                     <Link href="/reporting/sales-report/time-comparisons" className={`block px-10 py-3 text-sm transition-all ${pathname === "/reporting/sales-report/time-comparisons" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Time Comparisons
                     </Link>
                   </li>
+                  )}
+                  {canAccess("reporting.sales-by-product") && (
                   <li onClick={closeMenu}>
                     <Link href="/reporting/sales-report/products" className={`block px-10 py-3 text-sm transition-all ${pathname === "/reporting/sales-report/products" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Sales by Product
                     </Link>
                   </li>
+                  )}
+                  {canAccess("reporting.employees") && (
                   <li onClick={closeMenu}>
                     <Link href="/reporting/sales-report/employees" className={`block px-10 py-3 text-sm transition-all ${pathname === "/reporting/sales-report/employees" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Employees
                     </Link>
                   </li>
+                  )}
+                  {canAccess("reporting.locations") && (
                   <li onClick={closeMenu}>
                     <Link href="/reporting/sales-report/locations" className={`block px-10 py-3 text-sm transition-all ${pathname === "/reporting/sales-report/locations" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Locations
                     </Link>
                   </li>
+                  )}
+                  {canAccess("reporting.categories") && (
                   <li onClick={closeMenu}>
                     <Link href="/reporting/sales-report/categories" className={`block px-10 py-3 text-sm transition-all ${pathname === "/reporting/sales-report/categories" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Categories
                     </Link>
                   </li>
+                  )}
                 </ul>
               )}
             </li>
+            )}
 
             {/* Expenses Menu */}
+            {canAccessAny(["expenses", "expenses.expenses", "expenses.analysis", "expenses.tax-analysis", "expenses.tax-personal"]) && (
             <li>
               <button
                 onClick={() => toggleMenu("expenses")}
@@ -809,45 +1007,58 @@ export default function Sidebar() {
               </button>
               {openMenu === "expenses" && (
                 <ul className="bg-gray-50 border-l-4 border-blue-600">
+                  {canAccess("expenses.expenses") && (
                   <li onClick={closeMenu}>
                     <Link href="/expenses/expenses" className={`block px-8 py-3 text-sm transition-all ${pathname === "/expenses/expenses" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Expenses Entry
                     </Link>
                   </li>
+                  )}
+                  {canAccess("expenses.analysis") && (
                   <li onClick={closeMenu}>
                     <Link href="/expenses/analysis" className={`block px-8 py-3 text-sm transition-all ${pathname === "/expenses/analysis" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Expenses Analysis
                     </Link>
                   </li>
+                  )}
+                  {canAccess("expenses.tax-analysis") && (
                   <li onClick={closeMenu}>
                     <Link href="/expenses/tax-analysis" className={`block px-8 py-3 text-sm transition-all ${pathname === "/expenses/tax-analysis" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Tax Analysis
                     </Link>
                   </li>
+                  )}
+                  {canAccess("expenses.tax-personal") && (
                   <li onClick={closeMenu}>
                     <Link href="/expenses/tax-personal" className={`block px-8 py-3 text-sm transition-all ${pathname === "/expenses/tax-personal" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Personal Tax Calculator
                     </Link>
                   </li>
+                  )}
                 </ul>
               )}
             </li>
+            )}
 
             {/* Till */}
+            {canAccess("till") && (
             <li onClick={closeMenu}>
               <a href="https://sales-point-app.vercel.app" target="_blank" rel="noopener noreferrer" className={`block ${mobileBaseLink}`}>
                 <FontAwesomeIcon icon={faCashRegister} className="w-5 h-5" />
                 <span>Till</span>
               </a>
             </li>
+            )}
 
             {/* Support */}
+            {canAccess("support") && (
             <li onClick={closeMenu}>
               <Link href="/support" className={`block ${pathname === "/support" ? mobileActiveLink : mobileBaseLink}`}>
                 <FontAwesomeIcon icon={faHeadset} className="w-5 h-5" />
                 <span>Support</span>
               </Link>
             </li>
+            )}
           </ul>
         </nav>
       )}

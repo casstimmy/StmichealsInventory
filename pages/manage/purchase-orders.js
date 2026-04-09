@@ -84,6 +84,13 @@ export default function PurchaseOrdersPage() {
   };
   const [form, setForm] = useState(emptyForm);
 
+  // Quick entry state
+  const [showQuickEntry, setShowQuickEntry] = useState(false);
+  const [quickForm, setQuickForm] = useState({
+    vendor: "", amount: "", paymentDate: new Date().toISOString().split("T")[0], notes: "", products: "",
+  });
+  const [savingQuick, setSavingQuick] = useState(false);
+
   const outstandingCheck = ["not paid", "partly paid"];
 
   const toNumber = (v) => {
@@ -200,6 +207,47 @@ export default function PurchaseOrdersPage() {
       fetchOrders();
     } catch (err) {
       alert(err.response?.data?.error || "Failed to delete");
+    }
+  }
+
+  async function handleQuickEntrySubmit(e) {
+    e.preventDefault();
+    if (!quickForm.vendor || !quickForm.amount) {
+      alert("Vendor and amount are required");
+      return;
+    }
+    setSavingQuick(true);
+    try {
+      const vendor = vendors.find((v) => v._id === quickForm.vendor);
+      const payload = {
+        vendor: quickForm.vendor,
+        vendorName: vendor?.companyName || "",
+        contact: vendor?.repPhone || "",
+        reason: "Quick Entry",
+        notes: quickForm.notes,
+        payBeforeSupply: true,
+        date: quickForm.paymentDate,
+        products: quickForm.products
+          ? quickForm.products.split(",").map((p) => ({
+              name: p.trim(),
+              quantity: 1,
+              price: Number(quickForm.amount),
+              total: Number(quickForm.amount),
+            }))
+          : [{ name: "Payment Entry", quantity: 1, price: Number(quickForm.amount), total: Number(quickForm.amount) }],
+        grandTotal: Number(quickForm.amount),
+        paymentMade: Number(quickForm.amount),
+        paymentDate: quickForm.paymentDate,
+        status: "Paid",
+      };
+      await apiClient.post("/api/purchase-orders", payload);
+      setShowQuickEntry(false);
+      setQuickForm({ vendor: "", amount: "", paymentDate: new Date().toISOString().split("T")[0], notes: "", products: "" });
+      fetchOrders();
+    } catch (err) {
+      alert(err.response?.data?.error || "Failed to create quick entry");
+    } finally {
+      setSavingQuick(false);
     }
   }
 
@@ -393,7 +441,15 @@ export default function PurchaseOrdersPage() {
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-blue-800">
               Vendor Payment Tracker
             </h1>
-            <p className="text-sm text-gray-500">Orders are placed from the <a href="/manage/vendors" className="text-blue-600 hover:underline font-medium">Vendor page</a></p>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowQuickEntry(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium transition shadow-sm"
+              >
+                <Plus size={16} /> Quick Entry
+              </button>
+              <p className="text-sm text-gray-500">Orders are placed from the <a href="/manage/vendors" className="text-blue-600 hover:underline font-medium">Vendor page</a></p>
+            </div>
           </div>
 
           {/* Dashboard Layout */}
@@ -737,6 +793,82 @@ export default function PurchaseOrdersPage() {
               <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 text-sm rounded-lg border border-gray-300 bg-white hover:bg-gray-50">Cancel</button>
               <button onClick={() => handleDelete(deleteConfirm)} className="px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700">Delete</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Entry Modal */}
+      {showQuickEntry && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowQuickEntry(false)}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+              <h2 className="text-lg font-bold text-gray-800">Quick Payment Entry</h2>
+              <button onClick={() => setShowQuickEntry(false)} className="p-1 hover:bg-gray-100 rounded-lg"><X size={20} /></button>
+            </div>
+            <form onSubmit={handleQuickEntrySubmit} className="p-5 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Vendor *</label>
+                <select
+                  value={quickForm.vendor}
+                  onChange={(e) => setQuickForm({ ...quickForm, vendor: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
+                >
+                  <option value="">Select vendor</option>
+                  {vendors.map((v) => (
+                    <option key={v._id} value={v._id}>{v.companyName}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Amount Paid *</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={quickForm.amount}
+                  onChange={(e) => setQuickForm({ ...quickForm, amount: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter payment amount"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Date</label>
+                <input
+                  type="date"
+                  value={quickForm.paymentDate}
+                  onChange={(e) => setQuickForm({ ...quickForm, paymentDate: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Products (comma separated, optional)</label>
+                <input
+                  type="text"
+                  value={quickForm.products}
+                  onChange={(e) => setQuickForm({ ...quickForm, products: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="e.g. Rice, Beans, Sugar"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                <textarea
+                  value={quickForm.notes}
+                  onChange={(e) => setQuickForm({ ...quickForm, notes: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  rows={2}
+                  placeholder="Any additional notes about this payment..."
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowQuickEntry(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+                <button type="submit" disabled={savingQuick} className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium text-white transition ${savingQuick ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"}`}>
+                  {savingQuick ? "Saving..." : "Save Entry"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

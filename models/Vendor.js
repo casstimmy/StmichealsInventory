@@ -44,6 +44,8 @@ const VendorSchema = new Schema(
         product: { type: Schema.Types.ObjectId, ref: "Product" },
         productName: { type: String },
         price: { type: Number, default: 0 },
+        packType: { type: String, enum: ["unit", "pack"], default: "unit" },
+        qtyPerPack: { type: Number, default: 1 },
       },
     ],
     isActive: {

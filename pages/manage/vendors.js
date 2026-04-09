@@ -67,7 +67,7 @@ export default function VendorsPage() {
   function addVendorProduct() {
     setForm((prev) => ({
       ...prev,
-      products: [...prev.products, { product: "", productName: "", price: 0 }],
+      products: [...prev.products, { product: "", productName: "", price: 0, packType: "unit", qtyPerPack: 1 }],
     }));
   }
 
@@ -141,6 +141,8 @@ export default function VendorsPage() {
         product: p.product?._id || p.product || "",
         productName: p.productName || p.product?.name || "",
         price: p.price || 0,
+        packType: p.packType || "unit",
+        qtyPerPack: p.qtyPerPack || 1,
       })),
     });
     setEditingVendor(vendor);
@@ -381,8 +383,16 @@ export default function VendorsPage() {
                                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                                     {vendor.products.map((p, i) => (
                                       <div key={i} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-gray-200 text-xs">
-                                        <span className="font-medium text-gray-700 truncate">{p.productName || p.product?.name || "Unnamed"}</span>
-                                        {p.price > 0 && <span className="text-blue-600 font-semibold ml-2 shrink-0">{formatCurrency(p.price)}</span>}
+                                        <span className="font-medium text-gray-700 truncate">
+                                          {p.productName || p.product?.name || "Unnamed"}
+                                          {p.packType === "pack" && <span className="ml-1 text-purple-600">({p.qtyPerPack || 1}/pack)</span>}
+                                        </span>
+                                        <div className="flex items-center gap-2 shrink-0 ml-2">
+                                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${p.packType === "pack" ? "bg-purple-100 text-purple-700" : "bg-gray-100 text-gray-600"}`}>
+                                            {p.packType === "pack" ? "Pack" : "Unit"}
+                                          </span>
+                                          {p.price > 0 && <span className="text-blue-600 font-semibold">{formatCurrency(p.price)}</span>}
+                                        </div>
                                       </div>
                                     ))}
                                   </div>
@@ -709,24 +719,52 @@ export default function VendorsPage() {
                 )}
                 <div className="space-y-2">
                   {form.products.map((vp, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <select
-                        value={vp.product}
-                        onChange={(e) => updateVendorProduct(i, "product", e.target.value)}
-                        className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="">Select product</option>
-                        {allProducts.map((p) => (
-                          <option key={p._id} value={p._id}>{p.name}</option>
-                        ))}
-                      </select>
-                      <input
-                        type="number" min="0" step="0.01" placeholder="Cost price"
-                        value={vp.price}
-                        onChange={(e) => updateVendorProduct(i, "price", Number(e.target.value))}
-                        className="w-28 border border-gray-300 rounded-lg px-3 py-2 text-sm text-right focus:ring-2 focus:ring-blue-500"
-                      />
-                      <button type="button" onClick={() => removeVendorProduct(i)} className="p-1 text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
+                    <div key={i} className="border border-gray-200 rounded-lg p-3 space-y-2 bg-gray-50">
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={vp.product}
+                          onChange={(e) => updateVendorProduct(i, "product", e.target.value)}
+                          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">Select product</option>
+                          {allProducts.map((p) => (
+                            <option key={p._id} value={p._id}>{p.name}</option>
+                          ))}
+                        </select>
+                        <button type="button" onClick={() => removeVendorProduct(i)} className="p-1 text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Cost Price</label>
+                          <input
+                            type="number" min="0" step="0.01" placeholder="Cost price"
+                            value={vp.price}
+                            onChange={(e) => updateVendorProduct(i, "price", Number(e.target.value))}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-right focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Type</label>
+                          <select
+                            value={vp.packType || "unit"}
+                            onChange={(e) => updateVendorProduct(i, "packType", e.target.value)}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="unit">Unit</option>
+                            <option value="pack">Pack</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Qty/Pack</label>
+                          <input
+                            type="number" min="1" placeholder="1"
+                            value={vp.qtyPerPack || 1}
+                            onChange={(e) => updateVendorProduct(i, "qtyPerPack", Number(e.target.value))}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-right focus:ring-2 focus:ring-blue-500"
+                            disabled={vp.packType !== "pack"}
+                          />
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>

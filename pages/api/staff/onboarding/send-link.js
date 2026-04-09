@@ -60,9 +60,14 @@ export default async function handler(req, res) {
       `,
     });
 
-    return res.status(200).json({ success: true, message: "Onboarding link sent successfully" });
+    return res.status(200).json({ success: true, message: `Onboarding link sent to ${email}` });
   } catch (err) {
     console.error("Send onboarding email error:", err);
-    return res.status(500).json({ error: "Failed to send onboarding email" });
+    const detail = err.code === "EAUTH" 
+      ? "Email authentication failed. Check EMAIL_USER and EMAIL_PASS in .env" 
+      : err.code === "ECONNREFUSED" 
+        ? "Could not connect to email server. Check EMAIL_HOST and EMAIL_PORT in .env"
+        : err.message || "Failed to send onboarding email";
+    return res.status(500).json({ error: detail });
   }
 }

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Layout from "@/components/Layout";
 import { apiClient } from "@/lib/api-client";
-import { MessageCircle, Send, TicketIcon, ArrowLeft, ChevronDown, ChevronUp, HelpCircle, X } from "lucide-react";
+import { MessageCircle, Send, TicketIcon, ArrowLeft, ChevronDown, ChevronUp, HelpCircle, X, Check, CheckCheck } from "lucide-react";
 
 const STATUS_OPTIONS = [
   { value: "all", label: "All Status" },
@@ -345,49 +345,71 @@ export default function SupportPage() {
 
           {/* ======== CHAT Q&A VIEW ======== */}
           {view === "chat" && (
-            <div className="content-card flex flex-col" style={{ height: "calc(100vh - 220px)", minHeight: "500px" }}>
-              {/* Chat Messages */}
-              <div className="flex-1 overflow-y-auto px-2 py-4 space-y-4">
+            <div className="flex flex-col rounded-xl overflow-hidden shadow-lg border border-gray-200" style={{ height: "calc(100vh - 220px)", minHeight: "500px" }}>
+              {/* WhatsApp-style Header */}
+              <div className="bg-gradient-to-r from-[#4c63ae] to-[#5398d2] px-4 py-3 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center overflow-hidden shadow-md ring-2 ring-white/30">
+                  <img src="/images/bizsuits-icon.svg" alt="BizSuits" className="w-8 h-8 animate-pulse" style={{ animationDuration: "3s" }} />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-white font-semibold text-sm">BizSuits Support</h3>
+                  <p className="text-white/70 text-xs">Online • Always here to help</p>
+                </div>
+              </div>
+
+              {/* Chat Messages - WhatsApp wallpaper style */}
+              <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3" style={{ backgroundColor: "#e5ddd5", backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c8bfb0' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")"}}>
                 {chatMessages.map((msg) => (
                   <div
                     key={msg.id}
                     className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                   >
-                    <div
-                      className={`max-w-[85%] sm:max-w-[70%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                        msg.role === "user"
-                          ? "bg-sky-600 text-white rounded-br-md"
-                          : "bg-gray-100 text-gray-800 rounded-bl-md"
-                      }`}
-                    >
-                      <p>{renderMarkdown(msg.text)}</p>
+                    {msg.role === "system" && (
+                      <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center overflow-hidden shadow-sm shrink-0 mr-2 mt-auto mb-1">
+                        <img src="/images/bizsuits-icon.svg" alt="" className="w-5 h-5" />
+                      </div>
+                    )}
+                    <div className="relative max-w-[85%] sm:max-w-[70%]">
+                      <div
+                        className={`rounded-lg px-3 py-2 text-sm leading-relaxed shadow-sm ${
+                          msg.role === "user"
+                            ? "bg-[#dcf8c6] text-gray-800 rounded-tr-none"
+                            : "bg-white text-gray-800 rounded-tl-none"
+                        }`}
+                      >
+                        <p>{renderMarkdown(msg.text)}</p>
 
-                      {/* Related questions */}
-                      {msg.relatedQuestions?.length > 0 && (
-                        <div className="mt-3 pt-2 border-t border-gray-200">
-                          <p className="text-xs text-gray-500 mb-1">Related:</p>
-                          {msg.relatedQuestions.map((q, i) => (
-                            <button
-                              key={i}
-                              onClick={() => handleRelatedQuestion(q)}
-                              className="block text-left text-xs text-sky-600 hover:text-sky-800 hover:underline mt-1"
-                            >
-                              → {q}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                        {/* Related questions */}
+                        {msg.relatedQuestions?.length > 0 && (
+                          <div className="mt-2 pt-2 border-t border-gray-200">
+                            <p className="text-[11px] text-gray-500 mb-1">Related:</p>
+                            {msg.relatedQuestions.map((q, i) => (
+                              <button
+                                key={i}
+                                onClick={() => handleRelatedQuestion(q)}
+                                className="block text-left text-xs text-[#4c63ae] hover:text-[#3a4f8c] hover:underline mt-1"
+                              >
+                                → {q}
+                              </button>
+                            ))}
+                          </div>
+                        )}
 
-                      {/* Ticket prompt */}
-                      {msg.showTicketPrompt && (
-                        <button
-                          onClick={startTicketFromChat}
-                          className="mt-3 flex items-center gap-2 text-xs bg-white text-sky-700 px-3 py-2 rounded-lg hover:bg-sky-50 transition-colors border border-sky-200"
-                        >
-                          <TicketIcon className="w-3.5 h-3.5" />
-                          Create Support Ticket
-                        </button>
-                      )}
+                        {/* Ticket prompt */}
+                        {msg.showTicketPrompt && (
+                          <button
+                            onClick={startTicketFromChat}
+                            className="mt-2 flex items-center gap-2 text-xs bg-[#4c63ae]/10 text-[#4c63ae] px-3 py-1.5 rounded-lg hover:bg-[#4c63ae]/20 transition-colors border border-[#4c63ae]/20"
+                          >
+                            <TicketIcon className="w-3.5 h-3.5" />
+                            Create Support Ticket
+                          </button>
+                        )}
+                      </div>
+                      <div className={`flex items-center gap-1 mt-0.5 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                        <span className="text-[10px] text-gray-500">{new Date(msg.id).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                        {msg.role === "user" && <CheckCheck size={12} className="text-[#53bdeb]" />}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -396,7 +418,7 @@ export default function SupportPage() {
 
               {/* Quick Topics */}
               {showQuickTopics && (
-                <div className="px-2 pb-3">
+                <div className="px-3 py-2 bg-white border-t border-gray-200">
                   <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
                     <HelpCircle className="w-3.5 h-3.5" />
                     Common topics:
@@ -406,7 +428,7 @@ export default function SupportPage() {
                       <button
                         key={i}
                         onClick={() => handleQuickTopic(entry)}
-                        className="text-xs px-3 py-1.5 rounded-full bg-sky-50 text-sky-700 hover:bg-sky-100 transition-colors border border-sky-200"
+                        className="text-xs px-3 py-1.5 rounded-full bg-gray-100 text-gray-700 hover:bg-[#4c63ae]/10 hover:text-[#4c63ae] transition-colors border border-gray-200"
                       >
                         {entry.question}
                       </button>
@@ -415,28 +437,28 @@ export default function SupportPage() {
                 </div>
               )}
 
-              {/* Chat Input */}
-              <div className="border-t border-gray-200 px-2 py-3">
-                <div className="flex gap-2">
+              {/* Chat Input - WhatsApp style */}
+              <div className="bg-[#f0f0f0] px-3 py-2">
+                <div className="flex items-center gap-2">
                   <input
                     type="text"
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") handleChatSend(); }}
-                    placeholder="Ask a question..."
-                    className="form-input flex-1"
+                    placeholder="Type a message..."
+                    className="flex-1 rounded-full px-4 py-2 text-sm bg-white border-0 focus:ring-2 focus:ring-[#4c63ae]/30 outline-none shadow-sm"
                   />
                   <button
                     onClick={handleChatSend}
                     disabled={!chatInput.trim()}
-                    className="px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-10 h-10 rounded-full bg-[#4c63ae] text-white flex items-center justify-center hover:bg-[#3a4f8c] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                   >
                     <Send className="w-4 h-4" />
                   </button>
                 </div>
-                <p className="text-xs text-gray-400 mt-1.5">
+                <p className="text-[10px] text-gray-400 mt-1 text-center">
                   Can't find what you need?{" "}
-                  <button onClick={() => { setView("tickets"); setShowNewTicket(true); }} className="text-sky-600 hover:underline">
+                  <button onClick={() => { setView("tickets"); setShowNewTicket(true); }} className="text-[#4c63ae] hover:underline">
                     Create a support ticket
                   </button>
                 </p>

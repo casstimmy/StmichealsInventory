@@ -401,7 +401,7 @@ export default function Home() {
         ) : (
           <>
             {/* KPIs */}
-            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <section className={`grid grid-cols-1 sm:grid-cols-2 ${kpis.heldCount > 0 ? "lg:grid-cols-4" : "lg:grid-cols-3"} gap-4 mb-6`}>
               <KpiCard label="Sales" value={formatCurrency(kpis.sales)} />
               <KpiCard
                 label="Transactions"

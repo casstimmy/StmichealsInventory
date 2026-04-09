@@ -15,6 +15,10 @@
         "/^\\$content = @'\nimport \\{ useEffect \\} from \"react\";\nimport \\{ useRouter \\} from \"next/router\";\n\nexport default function AssetsRedirect\\(\\) \\{\n  const router = useRouter\\(\\);\n  useEffect\\(\\(\\) => \\{ router\\.replace\\(\"/setup/assets\"\\); \\}, \\[router\\]\\);\n  return null;\n\\}\n'@\nSet-Content -Path \"c:\\\\Users\\\\hp\\\\Desktop\\\\Projects\\\\Inventory-sales\\\\Inventory\\\\inventory-admin-app\\\\pages\\\\manage\\\\assets\\.js\" -Value \\$content -Encoding UTF8$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^Copy-Item \"C:\\\\Users\\\\hp\\\\Desktop\\\\Projects\\\\BizSuits\\\\BizSuits_System\\\\public\\\\images\\\\Icon\\.svg\" \"c:\\\\Users\\\\hp\\\\Desktop\\\\Projects\\\\Inventory-sales\\\\Inventory\\\\inventory-admin-app\\\\public\\\\images\\\\bizsuits-icon\\.svg\"$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     }
 }

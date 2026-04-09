@@ -7,15 +7,55 @@ import { apiClient } from "@/lib/api-client";
 import { Plus, Edit, Trash2, X, Shield, Check, UserPlus, Users, Eye, EyeOff } from "lucide-react";
 
 const ALL_PERMISSIONS = [
-  { key: "setup", label: "Setup", description: "Company details, receipts, tenders, hero/promo" },
-  { key: "manage", label: "Manage", description: "Products, categories, promotions, orders, customers" },
-  { key: "stock", label: "Stock", description: "Stock management, movement, stock take, reports" },
-  { key: "reporting", label: "Reporting", description: "Sales reports, EOD reports, transactions" },
-  { key: "expenses", label: "Expenses", description: "Expense entry, analysis, tax" },
+  { key: "dashboard", label: "Dashboard", description: "Home dashboard access" },
+  { key: "setup", label: "Setup", description: "Company details, receipts, tenders, hero/promo", children: [
+    { key: "setup.company", label: "Company Details" },
+    { key: "setup.hero-promo", label: "Hero-Promo Setup" },
+    { key: "setup.receipts", label: "Receipts" },
+    { key: "setup.pos-tenders", label: "POS Tenders" },
+    { key: "setup.location-items", label: "Location Tenders" },
+    { key: "setup.assets", label: "Assets" },
+    { key: "setup.users", label: "Users" },
+  ]},
+  { key: "manage", label: "Manage", description: "Products, categories, promotions, orders, customers", children: [
+    { key: "manage.products", label: "Product List" },
+    { key: "manage.archived", label: "Archived Products" },
+    { key: "manage.categories", label: "Categories" },
+    { key: "manage.promotions", label: "Promotions" },
+    { key: "manage.customer-promotions", label: "Customer Promotions" },
+    { key: "manage.orders", label: "Orders" },
+    { key: "manage.customers", label: "Customers" },
+    { key: "manage.campaigns", label: "Campaigns" },
+    { key: "manage.staff", label: "Staff" },
+    { key: "manage.staff-roles", label: "Staff Roles" },
+    { key: "manage.vendors", label: "Vendors" },
+    { key: "manage.purchase-orders", label: "Payment Tracker" },
+  ]},
+  { key: "stock", label: "Stock", description: "Stock management, movement, stock take, reports", children: [
+    { key: "stock.management", label: "Stock Management" },
+    { key: "stock.movement", label: "Stock Movement" },
+    { key: "stock.stock-take", label: "Stock Take" },
+    { key: "stock.stock-take-report", label: "Stock Take Report" },
+    { key: "stock.expiration-report", label: "Expiration Report" },
+  ]},
+  { key: "reporting", label: "Reporting", description: "Sales reports, EOD reports, transactions", children: [
+    { key: "reporting.sales-report", label: "Sales Report" },
+    { key: "reporting.eod", label: "End of Day Reports" },
+    { key: "reporting.time-intervals", label: "Time Intervals" },
+    { key: "reporting.time-comparisons", label: "Time Comparisons" },
+    { key: "reporting.products", label: "Sales by Product" },
+    { key: "reporting.employees", label: "Employees" },
+    { key: "reporting.locations", label: "Locations" },
+    { key: "reporting.categories", label: "Categories" },
+    { key: "reporting.transactions", label: "Completed Transactions" },
+  ]},
+  { key: "expenses", label: "Expenses", description: "Expense entry, analysis, tax", children: [
+    { key: "expenses.entry", label: "Expenses Entry" },
+    { key: "expenses.analysis", label: "Expenses Analysis" },
+    { key: "expenses.tax-analysis", label: "Tax Analysis" },
+    { key: "expenses.tax-personal", label: "Personal Tax Calculator" },
+  ]},
   { key: "support", label: "Support", description: "Support tickets" },
-  { key: "staff", label: "Staff", description: "Staff management, roles, penalties" },
-  { key: "assets", label: "Assets", description: "Asset tracking and management" },
-  { key: "users", label: "Users", description: "User account management (admin only)" },
 ];
 
 const ROLES = [
@@ -38,11 +78,20 @@ const ROLE_COLORS = {
   viewer: "bg-gray-50 text-gray-500",
 };
 
+function getAllPermissionKeys() {
+  const keys = [];
+  ALL_PERMISSIONS.forEach((p) => {
+    keys.push(p.key);
+    if (p.children) p.children.forEach((c) => keys.push(c.key));
+  });
+  return keys;
+}
+
 function getDefaultPermissions(role) {
   switch (role) {
-    case "admin": return ALL_PERMISSIONS.map(p => p.key);
-    case "inventory": return ["manage", "stock"];
-    case "account": return ["expenses", "reporting"];
+    case "admin": return getAllPermissionKeys();
+    case "inventory": return ["manage", "manage.products", "manage.archived", "manage.categories", "stock", "stock.management", "stock.movement", "stock.stock-take", "stock.stock-take-report", "stock.expiration-report"];
+    case "account": return ["expenses", "expenses.entry", "expenses.analysis", "expenses.tax-analysis", "expenses.tax-personal", "reporting", "reporting.sales-report", "reporting.eod", "reporting.transactions"];
     default: return [];
   }
 }
@@ -85,12 +134,51 @@ export default function UsersPage() {
     if (form.role === "admin") return;
     if (form.role === "inventory" || form.role === "account") return;
 
-    setForm(prev => ({
-      ...prev,
-      permissions: prev.permissions.includes(key)
-        ? prev.permissions.filter(p => p !== key)
-        : [...prev.permissions, key],
-    }));
+    setForm(prev => {
+      const has = prev.permissions.includes(key);
+      let next = [...prev.permissions];
+
+      if (has) {
+        // Remove this key
+        next = next.filter(p => p !== key);
+        // If it's a parent, also remove all children
+        const parent = ALL_PERMISSIONS.find(p => p.key === key);
+        if (parent?.children) {
+          const childKeys = parent.children.map(c => c.key);
+          next = next.filter(p => !childKeys.includes(p));
+        }
+        // If it's a child, check if parent should be removed
+        const dot = key.indexOf(".");
+        if (dot > 0) {
+          const parentKey = key.substring(0, dot);
+          const parentDef = ALL_PERMISSIONS.find(p => p.key === parentKey);
+          if (parentDef?.children) {
+            const remainingChildren = parentDef.children.filter(c => next.includes(c.key));
+            if (remainingChildren.length === 0) {
+              next = next.filter(p => p !== parentKey);
+            }
+          }
+        }
+      } else {
+        // Add this key
+        next.push(key);
+        // If it's a parent, also add all children
+        const parent = ALL_PERMISSIONS.find(p => p.key === key);
+        if (parent?.children) {
+          parent.children.forEach(c => {
+            if (!next.includes(c.key)) next.push(c.key);
+          });
+        }
+        // If it's a child, ensure parent is also included
+        const dot = key.indexOf(".");
+        if (dot > 0) {
+          const parentKey = key.substring(0, dot);
+          if (!next.includes(parentKey)) next.push(parentKey);
+        }
+      }
+
+      return { ...prev, permissions: next };
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -189,7 +277,7 @@ export default function UsersPage() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Users size={28} /> User Management
+              User Management
             </h1>
             <p className="text-gray-500 text-sm mt-1">Create and manage system users with different access levels</p>
           </div>
@@ -237,10 +325,10 @@ export default function UsersPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">
-                        {(u.permissions || []).map(p => (
+                        {(u.permissions || []).filter(p => !p.includes(".")).map(p => (
                           <span key={p} className="px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-xs">{p}</span>
                         ))}
-                        {(!u.permissions || u.permissions.length === 0) && (
+                        {(!u.permissions || u.permissions.filter(p => !p.includes(".")).length === 0) && (
                           <span className="text-gray-400 text-xs">No permissions</span>
                         )}
                       </div>
@@ -256,12 +344,12 @@ export default function UsersPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => startEdit(u)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition" title="Edit">
-                          <Edit size={16} />
+                        <button onClick={() => startEdit(u)} className="px-3 py-1.5 text-sm text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition font-medium">
+                          Edit
                         </button>
                         {u._id !== currentUser?.id && (
-                          <button onClick={() => setDeleteConfirm(u._id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded transition" title="Delete">
-                            <Trash2 size={16} />
+                          <button onClick={() => setDeleteConfirm(u._id)} className="px-3 py-1.5 text-sm text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition font-medium">
+                            Delete
                           </button>
                         )}
                       </div>
@@ -400,29 +488,57 @@ export default function UsersPage() {
                       {form.role === "admin" ? "Admin has full access to all pages." : `${form.role === "inventory" ? "Inventory" : "Account"} role has preset permissions.`}
                     </p>
                   )}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div className="space-y-3">
                     {ALL_PERMISSIONS.map(p => {
                       const checked = form.permissions.includes(p.key);
                       const disabled = isFixedPermissions;
                       return (
-                        <label
-                          key={p.key}
-                          className={`flex items-start gap-3 p-3 rounded-lg border-2 transition cursor-pointer ${
-                            checked ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"
-                          } ${disabled ? "opacity-60 cursor-not-allowed" : ""}`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => togglePermission(p.key)}
-                            disabled={disabled}
-                            className="mt-0.5 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                          />
-                          <div>
-                            <div className="text-sm font-semibold text-gray-800">{p.label}</div>
-                            <div className="text-xs text-gray-500">{p.description}</div>
-                          </div>
-                        </label>
+                        <div key={p.key} className={`rounded-lg border-2 transition ${checked ? "border-blue-500 bg-blue-50/50" : "border-gray-200"} ${disabled ? "opacity-60" : ""}`}>
+                          <label className={`flex items-start gap-3 p-3 cursor-pointer ${disabled ? "cursor-not-allowed" : ""}`}>
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => togglePermission(p.key)}
+                              disabled={disabled}
+                              className="mt-0.5 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                            />
+                            <div>
+                              <div className="text-sm font-semibold text-gray-800">{p.label}</div>
+                              <div className="text-xs text-gray-500">{p.description}</div>
+                            </div>
+                          </label>
+                          {p.children && checked && !disabled && (
+                            <div className="px-4 pb-3 grid grid-cols-2 sm:grid-cols-3 gap-2 border-t border-gray-200 pt-2 ml-7">
+                              {p.children.map(c => {
+                                const cChecked = form.permissions.includes(c.key);
+                                return (
+                                  <label key={c.key} className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs cursor-pointer transition ${cChecked ? "bg-blue-100 text-blue-800" : "bg-gray-50 text-gray-600 hover:bg-gray-100"}`}>
+                                    <input
+                                      type="checkbox"
+                                      checked={cChecked}
+                                      onChange={() => togglePermission(c.key)}
+                                      className="w-3.5 h-3.5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                    />
+                                    {c.label}
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          )}
+                          {p.children && checked && disabled && (
+                            <div className="px-4 pb-3 grid grid-cols-2 sm:grid-cols-3 gap-2 border-t border-gray-200 pt-2 ml-7">
+                              {p.children.map(c => {
+                                const cChecked = form.permissions.includes(c.key);
+                                return (
+                                  <label key={c.key} className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs cursor-not-allowed ${cChecked ? "bg-blue-100 text-blue-800" : "bg-gray-50 text-gray-600"}`}>
+                                    <input type="checkbox" checked={cChecked} disabled className="w-3.5 h-3.5 text-blue-600 rounded border-gray-300" />
+                                    {c.label}
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
                       );
                     })}
                   </div>

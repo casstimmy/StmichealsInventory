@@ -3,6 +3,18 @@
         "/^Copy-Item \"c:\\\\Users\\\\hp\\\\Desktop\\\\Projects\\\\Inventory-sales\\\\Inventory\\\\inventory-admin-app\\\\pages\\\\manage\\\\staff\\.js\" \"c:\\\\Users\\\\hp\\\\Desktop\\\\Projects\\\\Inventory-sales\\\\Inventory\\\\inventory-admin-app\\\\pages\\\\manage\\\\staff\\.js\\.bak\"$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^\\$content = @'\nimport \\{ useEffect \\} from \"react\";\nimport \\{ useRouter \\} from \"next/router\";\n\nexport default function Register\\(\\) \\{\n  const router = useRouter\\(\\);\n  useEffect\\(\\(\\) => \\{ router\\.replace\\(\"/login\"\\); \\}, \\[router\\]\\);\n  return null;\n\\}\n'@\nSet-Content -Path \"c:\\\\Users\\\\hp\\\\Desktop\\\\Projects\\\\Inventory-sales\\\\Inventory\\\\inventory-admin-app\\\\pages\\\\register\\.js\" -Value \\$content -Encoding UTF8$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^Copy-Item \"c:\\\\Users\\\\hp\\\\Desktop\\\\Projects\\\\Inventory-sales\\\\Inventory\\\\inventory-admin-app\\\\pages\\\\manage\\\\assets\\.js\" \"c:\\\\Users\\\\hp\\\\Desktop\\\\Projects\\\\Inventory-sales\\\\Inventory\\\\inventory-admin-app\\\\pages\\\\setup\\\\assets\\.js\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^\\$content = @'\nimport \\{ useEffect \\} from \"react\";\nimport \\{ useRouter \\} from \"next/router\";\n\nexport default function AssetsRedirect\\(\\) \\{\n  const router = useRouter\\(\\);\n  useEffect\\(\\(\\) => \\{ router\\.replace\\(\"/setup/assets\"\\); \\}, \\[router\\]\\);\n  return null;\n\\}\n'@\nSet-Content -Path \"c:\\\\Users\\\\hp\\\\Desktop\\\\Projects\\\\Inventory-sales\\\\Inventory\\\\inventory-admin-app\\\\pages\\\\manage\\\\assets\\.js\" -Value \\$content -Encoding UTF8$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     }
 }

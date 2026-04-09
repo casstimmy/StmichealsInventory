@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { apiClient } from "@/lib/api-client";
@@ -123,15 +122,6 @@ export default function Login({ staffList, locations }) {
 
           {/* CTA */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-            <Link
-              href="/register"
-              className="inline-flex items-center justify-center px-6 py-3 rounded-lg
-                 bg-blue-600 text-white font-semibold
-                 hover:bg-blue-700 active:scale-95 transition"
-            >
-              Create Admin Account
-            </Link>
-
             <p className="text-sm text-slate-500 flex items-center justify-center">
               Authorized personnel only
             </p>
@@ -231,13 +221,6 @@ export default function Login({ staffList, locations }) {
               {loading ? "Logging in..." : "Log In"}
             </button>
           </form>
-
-          <p className="text-center text-sm text-gray-600 mt-6">
-            Need an account?{" "}
-            <Link href="/register" className="text-blue-600 font-semibold">
-              Register here
-            </Link>
-          </p>
         </div>
       </div>
     </div>

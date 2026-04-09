@@ -144,6 +144,57 @@ export default function App({
       if (cleanupSync) cleanupSync();
     };
   }, []);
+
+  // Make all overflowing tables / containers draggable to scroll horizontally
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    function initDragScroll() {
+      const containers = document.querySelectorAll(".overflow-x-auto, .table-wrapper, .data-table-container");
+      containers.forEach((el) => {
+        if (el._dragScrollInit) return;
+        el._dragScrollInit = true;
+
+        let isDown = false;
+        let startX = 0;
+        let scrollLeft = 0;
+
+        el.addEventListener("mousedown", (e) => {
+          // Don't interfere with clicks on interactive elements
+          if (e.target.closest("button, a, input, select, textarea, [role='button']")) return;
+          isDown = true;
+          el.classList.add("is-dragging");
+          startX = e.pageX - el.offsetLeft;
+          scrollLeft = el.scrollLeft;
+        });
+
+        el.addEventListener("mouseleave", () => {
+          isDown = false;
+          el.classList.remove("is-dragging");
+        });
+
+        el.addEventListener("mouseup", () => {
+          isDown = false;
+          el.classList.remove("is-dragging");
+        });
+
+        el.addEventListener("mousemove", (e) => {
+          if (!isDown) return;
+          e.preventDefault();
+          const x = e.pageX - el.offsetLeft;
+          const walk = (x - startX) * 1.5;
+          el.scrollLeft = scrollLeft - walk;
+        });
+      });
+    }
+
+    // Initialize on load and re-init on route changes
+    initDragScroll();
+    const observer = new MutationObserver(() => initDragScroll());
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => observer.disconnect();
+  }, []);
   
   // Don't show layout on login and register pages
   const showLayout = !router.pathname.includes('/login') && !router.pathname.includes('/register');

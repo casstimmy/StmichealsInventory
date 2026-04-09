@@ -34,7 +34,7 @@ export default async function handler(req, res) {
       });
     }
 
-    const allowedRoles = ['admin', 'manager', 'staff', 'viewer'];
+    const allowedRoles = ['admin', 'sub-admin', 'inventory', 'account', 'manager', 'staff', 'viewer'];
     const requestedRole = allowedRoles.includes(role) ? role : 'staff';
     const safeRole = totalUsers === 0 ? 'admin' : requestedRole;
 
@@ -46,11 +46,18 @@ export default async function handler(req, res) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // First user gets all permissions. Others get role-based defaults.
+    let permissions = [];
+    if (totalUsers === 0 || safeRole === 'admin') {
+      permissions = ['setup', 'manage', 'stock', 'reporting', 'expenses', 'support', 'staff', 'assets', 'users'];
+    }
+
       const user = await User.create({
       email: normalizedEmail,
       password: hashedPassword,
       name,
       role: safeRole,
+      permissions,
       isActive: true,
     });
 

@@ -5,7 +5,7 @@ import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
 import useProgress from "@/lib/useProgress";
 import { formatCurrency } from "@/lib/format";
-import { Printer, Mail, Camera, Copy, CheckCircle, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { Printer, Mail, Camera, Copy, CheckCircle, ChevronDown, ChevronUp, Loader2, Send, Link2 } from "lucide-react";
 import { useRouter } from "next/router";
 import { apiClient } from "@/lib/api-client";
 import { STAFF_ROLE_OPTIONS, normalizeStaffRole } from "@/lib/pos-permissions";
@@ -134,6 +134,25 @@ export default function StaffPage() {
     navigator.clipboard.writeText(link);
     setCopiedLink(staff._id);
     setTimeout(() => setCopiedLink(null), 2000);
+  };
+
+  const [sendingOnboarding, setSendingOnboarding] = useState(null);
+  const [onboardingEmail, setOnboardingEmail] = useState("");
+  const [showOnboardingEmailModal, setShowOnboardingEmailModal] = useState(null);
+
+  const sendOnboardingEmail = async (staffId) => {
+    if (!onboardingEmail) { setMessage("Please enter an email address"); return; }
+    setSendingOnboarding(staffId);
+    try {
+      const res = await apiClient.post("/api/staff/onboarding/send-link", { staffId, email: onboardingEmail });
+      setMessage(res.data.message || "Onboarding link sent!");
+      setShowOnboardingEmailModal(null);
+      setOnboardingEmail("");
+    } catch (err) {
+      setMessage(err.response?.data?.error || "Failed to send onboarding link");
+    } finally {
+      setSendingOnboarding(null);
+    }
   };
 
   const handleInputChange = (e) => {
@@ -344,9 +363,17 @@ export default function StaffPage() {
                           </div>
                           <div className="mt-3 pt-2 border-t border-gray-100 flex flex-wrap items-center gap-2">
                             {staff.onboardingToken && (
-                              <button onClick={() => copyOnboardingLink(staff)} className="flex items-center gap-1 text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded hover:bg-indigo-100 transition">
-                                {copiedLink === staff._id ? <><CheckCircle size={12} /> Copied!</> : <><Copy size={12} /> Copy Onboarding Link</>}
-                              </button>
+                              <>
+                                <button onClick={() => copyOnboardingLink(staff)} className="flex items-center gap-1 text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded hover:bg-indigo-100 transition">
+                                  {copiedLink === staff._id ? <><CheckCircle size={12} /> Copied!</> : <><Copy size={12} /> Copy Onboarding Link</>}
+                                </button>
+                                <button onClick={() => { setShowOnboardingEmailModal(staff._id); setOnboardingEmail(""); }} className="flex items-center gap-1 text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded hover:bg-blue-100 transition">
+                                  <Send size={12} /> Send Onboarding Link
+                                </button>
+                                <a href={`${typeof window !== "undefined" ? window.location.origin : ""}/onboarding/${staff.onboardingToken}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs bg-green-50 text-green-600 px-2 py-1 rounded hover:bg-green-100 transition">
+                                  <Link2 size={12} /> Open Form
+                                </a>
+                              </>
                             )}
                             {staff.onboardingComplete && (
                               <button onClick={() => setExpandedProfile(expandedProfile === staff._id ? null : staff._id)} className="flex items-center gap-1 text-xs bg-gray-50 text-gray-600 px-2 py-1 rounded hover:bg-gray-100 transition">
@@ -510,6 +537,34 @@ export default function StaffPage() {
             )}
           </div>
         </div>
+
+        {/* Onboarding Email Modal */}
+        {showOnboardingEmailModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowOnboardingEmailModal(null)}>
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+              <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2"><Send size={18} className="text-blue-600" /> Send Onboarding Link</h3>
+              <p className="text-sm text-gray-500 mb-4">Send the onboarding form link (staff details + guarantor info) to the staff member&apos;s email.</p>
+              <input
+                type="email"
+                value={onboardingEmail}
+                onChange={e => setOnboardingEmail(e.target.value)}
+                placeholder="Enter email address"
+                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 transition mb-4"
+              />
+              <div className="flex justify-end gap-3">
+                <button onClick={() => setShowOnboardingEmailModal(null)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">Cancel</button>
+                <button
+                  onClick={() => sendOnboardingEmail(showOnboardingEmailModal)}
+                  disabled={!!sendingOnboarding}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold disabled:opacity-50 flex items-center gap-2"
+                >
+                  {sendingOnboarding ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                  {sendingOnboarding ? "Sending..." : "Send Link"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );

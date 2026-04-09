@@ -95,6 +95,7 @@ export default async function handler(req, res) {
         email: user.email,
         name: user.name,
         role: user.role,
+        permissions: user.permissions || [],
       },
     });
   } catch (err) {

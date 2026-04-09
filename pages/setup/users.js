@@ -1,0 +1,456 @@
+"use client";
+import { useEffect, useState } from "react";
+import Layout from "@/components/Layout";
+import Loader from "@/components/Loader";
+import { useAuth } from "@/lib/useAuth";
+import { apiClient } from "@/lib/api-client";
+import { Plus, Edit, Trash2, X, Shield, Check, UserPlus, Users, Eye, EyeOff } from "lucide-react";
+
+const ALL_PERMISSIONS = [
+  { key: "setup", label: "Setup", description: "Company details, receipts, tenders, hero/promo" },
+  { key: "manage", label: "Manage", description: "Products, categories, promotions, orders, customers" },
+  { key: "stock", label: "Stock", description: "Stock management, movement, stock take, reports" },
+  { key: "reporting", label: "Reporting", description: "Sales reports, EOD reports, transactions" },
+  { key: "expenses", label: "Expenses", description: "Expense entry, analysis, tax" },
+  { key: "support", label: "Support", description: "Support tickets" },
+  { key: "staff", label: "Staff", description: "Staff management, roles, penalties" },
+  { key: "assets", label: "Assets", description: "Asset tracking and management" },
+  { key: "users", label: "Users", description: "User account management (admin only)" },
+];
+
+const ROLES = [
+  { value: "admin", label: "Admin", description: "Full access to everything" },
+  { value: "sub-admin", label: "Sub Admin", description: "Custom access via checkboxes" },
+  { value: "inventory", label: "Inventory", description: "Manage & Stock pages" },
+  { value: "account", label: "Account", description: "Expenses & Reporting pages" },
+  { value: "manager", label: "Manager", description: "Custom access via checkboxes" },
+  { value: "staff", label: "Staff", description: "Custom access via checkboxes" },
+  { value: "viewer", label: "Viewer", description: "Read-only, custom access via checkboxes" },
+];
+
+const ROLE_COLORS = {
+  admin: "bg-red-100 text-red-700",
+  "sub-admin": "bg-purple-100 text-purple-700",
+  inventory: "bg-green-100 text-green-700",
+  account: "bg-blue-100 text-blue-700",
+  manager: "bg-yellow-100 text-yellow-700",
+  staff: "bg-gray-100 text-gray-700",
+  viewer: "bg-gray-50 text-gray-500",
+};
+
+function getDefaultPermissions(role) {
+  switch (role) {
+    case "admin": return ALL_PERMISSIONS.map(p => p.key);
+    case "inventory": return ["manage", "stock"];
+    case "account": return ["expenses", "reporting"];
+    default: return [];
+  }
+}
+
+export default function UsersPage() {
+  const { user: currentUser, isAdmin } = useAuth();
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState({ text: "", type: "" });
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [showPin, setShowPin] = useState(false);
+
+  const emptyForm = { name: "", email: "", password: "", role: "staff", permissions: [], isActive: true };
+  const [form, setForm] = useState(emptyForm);
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const res = await apiClient.get("/api/users");
+      setUsers(res.data.users || []);
+    } catch (err) {
+      setMessage({ text: "Failed to load users", type: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchUsers(); }, []);
+
+  const handleRoleChange = (role) => {
+    const defaults = getDefaultPermissions(role);
+    setForm(prev => ({ ...prev, role, permissions: defaults }));
+  };
+
+  const togglePermission = (key) => {
+    // Don't allow changing permissions for admin or preset roles
+    if (form.role === "admin") return;
+    if (form.role === "inventory" || form.role === "account") return;
+
+    setForm(prev => ({
+      ...prev,
+      permissions: prev.permissions.includes(key)
+        ? prev.permissions.filter(p => p !== key)
+        : [...prev.permissions, key],
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.name || !form.email) {
+      setMessage({ text: "Name and email are required", type: "error" });
+      return;
+    }
+    if (!editingUser && !form.password) {
+      setMessage({ text: "PIN is required for new users", type: "error" });
+      return;
+    }
+    if (form.password && !/^\d{4}$/.test(form.password)) {
+      setMessage({ text: "PIN must be exactly 4 digits", type: "error" });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const payload = { ...form };
+      if (!payload.password) delete payload.password;
+
+      if (editingUser) {
+        await apiClient.put(`/api/users/${editingUser._id}`, payload);
+        setMessage({ text: "User updated successfully", type: "success" });
+      } else {
+        await apiClient.post("/api/users", payload);
+        setMessage({ text: "User created successfully", type: "success" });
+      }
+      setShowForm(false);
+      setEditingUser(null);
+      setForm(emptyForm);
+      setShowPin(false);
+      fetchUsers();
+    } catch (err) {
+      setMessage({ text: err.response?.data?.error || "Failed to save user", type: "error" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const startEdit = (u) => {
+    setEditingUser(u);
+    setForm({
+      name: u.name,
+      email: u.email,
+      password: "",
+      role: u.role,
+      permissions: u.permissions || [],
+      isActive: u.isActive,
+    });
+    setShowPin(false);
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await apiClient.delete(`/api/users/${id}`);
+      setMessage({ text: "User deleted", type: "success" });
+      setDeleteConfirm(null);
+      fetchUsers();
+    } catch (err) {
+      setMessage({ text: err.response?.data?.error || "Failed to delete user", type: "error" });
+    }
+  };
+
+  const handleToggleActive = async (u) => {
+    try {
+      await apiClient.put(`/api/users/${u._id}`, { isActive: !u.isActive });
+      fetchUsers();
+    } catch (err) {
+      setMessage({ text: err.response?.data?.error || "Failed to update user", type: "error" });
+    }
+  };
+
+  if (!isAdmin) {
+    return (
+      <Layout title="Users">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <Shield className="mx-auto mb-4 text-red-400" size={48} />
+            <h2 className="text-xl font-bold text-gray-700">Access Denied</h2>
+            <p className="text-gray-500 mt-2">Only administrators can access user management.</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  const isFixedPermissions = form.role === "admin" || form.role === "inventory" || form.role === "account";
+
+  return (
+    <Layout title="User Management">
+      <div className="max-w-6xl mx-auto py-6 space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <Users size={28} /> User Management
+            </h1>
+            <p className="text-gray-500 text-sm mt-1">Create and manage system users with different access levels</p>
+          </div>
+          <button
+            onClick={() => { setShowForm(true); setEditingUser(null); setForm(emptyForm); setShowPin(false); }}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
+          >
+            <UserPlus size={18} /> Add User
+          </button>
+        </div>
+
+        {/* Messages */}
+        {message.text && (
+          <div className={`px-4 py-3 rounded-lg text-sm font-medium ${message.type === "error" ? "bg-red-50 text-red-700 border border-red-200" : "bg-green-50 text-green-700 border border-green-200"}`}>
+            {message.text}
+            <button onClick={() => setMessage({ text: "", type: "" })} className="float-right text-lg leading-none">&times;</button>
+          </div>
+        )}
+
+        {/* Users Table */}
+        {loading ? (
+          <div className="flex justify-center py-20"><Loader size="lg" text="Loading users..." /></div>
+        ) : (
+          <div className="overflow-x-auto cursor-grab active:cursor-grabbing" style={{ WebkitOverflowScrolling: "touch" }}>
+            <table className="w-full text-sm bg-white rounded-xl shadow border border-gray-200">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Name</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Email</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Role</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Permissions</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Status</th>
+                  <th className="px-4 py-3 text-right font-semibold text-gray-600">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u) => (
+                  <tr key={u._id} className="border-b border-gray-100 hover:bg-gray-50 transition">
+                    <td className="px-4 py-3 font-medium text-gray-900">{u.name}</td>
+                    <td className="px-4 py-3 text-gray-600">{u.email}</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${ROLE_COLORS[u.role] || "bg-gray-100 text-gray-700"}`}>
+                        {u.role}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-1">
+                        {(u.permissions || []).map(p => (
+                          <span key={p} className="px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-xs">{p}</span>
+                        ))}
+                        {(!u.permissions || u.permissions.length === 0) && (
+                          <span className="text-gray-400 text-xs">No permissions</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => handleToggleActive(u)}
+                        disabled={u._id === currentUser?.id}
+                        className={`px-2 py-1 rounded-full text-xs font-semibold transition ${u.isActive ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-red-100 text-red-600 hover:bg-red-200"} ${u._id === currentUser?.id ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                      >
+                        {u.isActive ? "Active" : "Inactive"}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button onClick={() => startEdit(u)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition" title="Edit">
+                          <Edit size={16} />
+                        </button>
+                        {u._id !== currentUser?.id && (
+                          <button onClick={() => setDeleteConfirm(u._id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded transition" title="Delete">
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {users.length === 0 && (
+                  <tr><td colSpan={6} className="text-center py-10 text-gray-400">No users found</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Delete Confirmation */}
+        {deleteConfirm && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setDeleteConfirm(null)}>
+            <div className="bg-white rounded-xl p-6 max-w-sm w-full mx-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Delete User?</h3>
+              <p className="text-gray-600 text-sm mb-4">This action cannot be undone. The user will lose all access.</p>
+              <div className="flex gap-3 justify-end">
+                <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">Cancel</button>
+                <button onClick={() => handleDelete(deleteConfirm)} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">Delete</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Create/Edit Form Modal */}
+        {showForm && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => { setShowForm(false); setEditingUser(null); }}>
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-xl">
+                <h2 className="text-xl font-bold text-gray-900">{editingUser ? "Edit User" : "Create New User"}</h2>
+                <button onClick={() => { setShowForm(false); setEditingUser(null); }} className="p-1 hover:bg-gray-100 rounded-full transition">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmit} className="p-6 space-y-5">
+                {/* Name & Email */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Full Name *</label>
+                    <input
+                      type="text"
+                      value={form.name}
+                      onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 transition"
+                      placeholder="John Doe"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Email *</label>
+                    <input
+                      type="email"
+                      value={form.email}
+                      onChange={e => setForm(prev => ({ ...prev, email: e.target.value }))}
+                      className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 transition"
+                      placeholder="user@email.com"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* PIN & Role */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">
+                      4-Digit PIN {editingUser ? "(leave blank to keep)" : "*"}
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPin ? "text" : "password"}
+                        value={form.password}
+                        onChange={e => {
+                          const val = e.target.value.replace(/\D/g, "").slice(0, 4);
+                          setForm(prev => ({ ...prev, password: val }));
+                        }}
+                        className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 transition pr-10 text-center text-xl tracking-widest"
+                        placeholder="••••"
+                        inputMode="numeric"
+                        maxLength={4}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPin(!showPin)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        {showPin ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Role *</label>
+                    <select
+                      value={form.role}
+                      onChange={e => handleRoleChange(e.target.value)}
+                      className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 transition"
+                    >
+                      {ROLES.map(r => (
+                        <option key={r.value} value={r.value}>{r.label}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {ROLES.find(r => r.value === form.role)?.description}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Active toggle */}
+                {editingUser && (
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm font-semibold text-gray-700">Account Active</label>
+                    <button
+                      type="button"
+                      onClick={() => setForm(prev => ({ ...prev, isActive: !prev.isActive }))}
+                      className={`relative w-12 h-6 rounded-full transition ${form.isActive ? "bg-green-500" : "bg-gray-300"}`}
+                    >
+                      <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition ${form.isActive ? "left-6" : "left-0.5"}`} />
+                    </button>
+                    <span className={`text-sm ${form.isActive ? "text-green-600" : "text-red-500"}`}>
+                      {form.isActive ? "Active" : "Inactive"}
+                    </span>
+                  </div>
+                )}
+
+                {/* Permissions Checkboxes */}
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                    <Shield size={16} /> Page Access Permissions
+                  </label>
+                  {isFixedPermissions && (
+                    <p className="text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg mb-3">
+                      {form.role === "admin" ? "Admin has full access to all pages." : `${form.role === "inventory" ? "Inventory" : "Account"} role has preset permissions.`}
+                    </p>
+                  )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {ALL_PERMISSIONS.map(p => {
+                      const checked = form.permissions.includes(p.key);
+                      const disabled = isFixedPermissions;
+                      return (
+                        <label
+                          key={p.key}
+                          className={`flex items-start gap-3 p-3 rounded-lg border-2 transition cursor-pointer ${
+                            checked ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"
+                          } ${disabled ? "opacity-60 cursor-not-allowed" : ""}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => togglePermission(p.key)}
+                            disabled={disabled}
+                            className="mt-0.5 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                          />
+                          <div>
+                            <div className="text-sm font-semibold text-gray-800">{p.label}</div>
+                            <div className="text-xs text-gray-500">{p.description}</div>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-3 justify-end pt-4 border-t border-gray-200">
+                  <button
+                    type="button"
+                    onClick={() => { setShowForm(false); setEditingUser(null); }}
+                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {saving ? <Loader size="sm" /> : <Check size={18} />}
+                    {editingUser ? "Update User" : "Create User"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    </Layout>
+  );
+}

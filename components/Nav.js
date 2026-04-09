@@ -88,7 +88,14 @@ export default function Sidebar() {
       setOpenSubMenu(null);
     } else if (pathname.startsWith("/manage")) {
       setOpenMenu("manage");
-      setOpenSubMenu(null);
+      // Auto-open staff sub-menu if on a staff page
+      if (pathname.startsWith("/manage/staff")) {
+        setOpenSubMenu("staff-menu");
+      } else if (pathname.startsWith("/manage/vendors") || pathname.startsWith("/manage/purchase-orders")) {
+        setOpenSubMenu("procurement-menu");
+      } else {
+        setOpenSubMenu(null);
+      }
     } else if (pathname.startsWith("/stock")) {
       setOpenMenu("stock");
       setOpenSubMenu(null);
@@ -250,7 +257,8 @@ export default function Sidebar() {
                   { href: "/setup/receipts", label: "Receipts" },
                   { href: "/setup/pos-tenders", label: "POS Tenders" },
                   { href: "/setup/location-items", label: "Location Tenders" },
-                  { href: "/manage/assets", label: "Assets" },
+                  { href: "/setup/assets", label: "Assets" },
+                  { href: "/setup/users", label: "Users" },
                 ])}
               </ul>
             </li>
@@ -564,6 +572,16 @@ export default function Sidebar() {
                   <li onClick={closeMenu}>
                     <Link href="/setup/location-items" className={`block px-8 py-3 text-sm transition-all ${pathname === "/setup/location-items" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Location Tenders
+                    </Link>
+                  </li>
+                  <li onClick={closeMenu}>
+                    <Link href="/setup/assets" className={`block px-8 py-3 text-sm transition-all ${pathname === "/setup/assets" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                      Assets
+                    </Link>
+                  </li>
+                  <li onClick={closeMenu}>
+                    <Link href="/setup/users" className={`block px-8 py-3 text-sm transition-all ${pathname === "/setup/users" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                      Users
                     </Link>
                   </li>
                 </ul>

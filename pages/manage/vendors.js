@@ -721,16 +721,42 @@ export default function VendorsPage() {
                   {form.products.map((vp, i) => (
                     <div key={i} className="border border-gray-200 rounded-lg p-3 space-y-2 bg-gray-50">
                       <div className="flex items-center gap-2">
-                        <select
-                          value={vp.product}
-                          onChange={(e) => updateVendorProduct(i, "product", e.target.value)}
-                          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value="">Select product</option>
-                          {allProducts.map((p) => (
-                            <option key={p._id} value={p._id}>{p.name}</option>
-                          ))}
-                        </select>
+                        <div className="flex-1 relative">
+                          <input
+                            type="text"
+                            placeholder="Search product..."
+                            value={vp.productName || ""}
+                            onChange={(e) => {
+                              updateVendorProduct(i, "productName", e.target.value);
+                              setProductSearch(e.target.value);
+                            }}
+                            onFocus={() => setProductSearch(vp.productName || "")}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                          />
+                          {productSearch && !vp.product && (
+                            <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto">
+                              {filteredProductOptions.slice(0, 20).map((p) => (
+                                <button
+                                  key={p._id}
+                                  type="button"
+                                  onClick={() => {
+                                    updateVendorProduct(i, "product", p._id);
+                                    setProductSearch("");
+                                  }}
+                                  className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 border-b border-gray-100 last:border-0"
+                                >
+                                  {p.name}
+                                </button>
+                              ))}
+                              {filteredProductOptions.length === 0 && (
+                                <div className="px-3 py-2 text-xs text-gray-400">No products found</div>
+                              )}
+                            </div>
+                          )}
+                          {vp.product && (
+                            <button type="button" onClick={() => { updateVendorProduct(i, "product", ""); updateVendorProduct(i, "productName", ""); }} className="absolute right-2 top-2.5 text-gray-400 hover:text-red-500"><X size={14} /></button>
+                          )}
+                        </div>
                         <button type="button" onClick={() => removeVendorProduct(i)} className="p-1 text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
                       </div>
                       <div className="grid grid-cols-3 gap-2">
@@ -765,6 +791,11 @@ export default function VendorsPage() {
                           />
                         </div>
                       </div>
+                      {vp.packType === "pack" && vp.product && vp.qtyPerPack > 1 && (
+                        <p className="text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded">
+                          A child product &quot;{vp.productName} (Pack of {vp.qtyPerPack})&quot; will be auto-created with cost price {formatCurrency((vp.price || 0) * (vp.qtyPerPack || 1))}. You can set the sale price later in the Product List.
+                        </p>
+                      )}
                     </div>
                   ))}
                 </div>

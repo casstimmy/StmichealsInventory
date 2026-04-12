@@ -72,6 +72,14 @@ const ProductSchema = new Schema(
       },
     ],
 
+    /* =====================
+       PACK / CHILD PRODUCT
+    ===================== */
+    isChildProduct: { type: Boolean, default: false },
+    parentProduct: { type: Schema.Types.ObjectId, ref: "Product" },
+    packType: { type: String, enum: ["unit", "pack"], default: "unit" },
+    qtyPerPack: { type: Number, default: 1 },
+
     isArchived: { type: Boolean, default: false, index: true },
     archivedAt: { type: Date },
     archivedReason: { type: String, default: "" },

@@ -492,6 +492,7 @@ export default function Sidebar() {
                 }))}
                 
                 {/* Sales Report Dropdown */}
+                {canAccessAny(["reporting.time-intervals", "reporting.time-comparisons", "reporting.sales-by-product", "reporting.employees", "reporting.locations", "reporting.categories"]) && (
                 <li className="border-b border-gray-100 transition-all duration-300 group">
                   <button
                     onClick={() => toggleSubMenu("sales-report")}
@@ -512,15 +513,26 @@ export default function Sidebar() {
                         { href: "/reporting/sales-report/employees", label: "Employees", indent: true },
                         { href: "/reporting/sales-report/locations", label: "Locations", indent: true },
                         { href: "/reporting/sales-report/categories", label: "Categories", indent: true },
-                      ])}
+                      ].filter(item => {
+                        const permMap = {
+                          "/reporting/sales-report/time-intervals": "reporting.time-intervals",
+                          "/reporting/sales-report/time-comparisons": "reporting.time-comparisons",
+                          "/reporting/sales-report/products": "reporting.sales-by-product",
+                          "/reporting/sales-report/employees": "reporting.employees",
+                          "/reporting/sales-report/locations": "reporting.locations",
+                          "/reporting/sales-report/categories": "reporting.categories",
+                        };
+                        return canAccess(permMap[item.href] || "reporting");
+                      }))}
                     </div>
                   )}
                 </li>
+                )}
 
                 {/* Transaction Report */}
                 {renderSubMenu([
                   { href: "/reporting/transaction-report/completed-transactions", label: "Completed Transactions", indent: true },
-                ])}
+                ].filter(item => canAccess("reporting.transaction-report")))}
               </ul>
             </li>
             )}

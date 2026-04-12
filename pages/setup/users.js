@@ -90,8 +90,14 @@ function getAllPermissionKeys() {
 function getDefaultPermissions(role) {
   switch (role) {
     case "admin": return getAllPermissionKeys();
-    case "inventory": return ["manage", "manage.products", "manage.archived", "manage.categories", "stock", "stock.management", "stock.movement", "stock.stock-take", "stock.stock-take-report", "stock.expiration-report"];
-    case "account": return ["expenses", "expenses.entry", "expenses.analysis", "expenses.tax-analysis", "expenses.tax-personal", "reporting", "reporting.sales-report", "reporting.eod", "reporting.transactions"];
+    case "inventory": return [
+      "manage", "manage.products", "manage.archived", "manage.categories",
+      "stock", "stock.management", "stock.movement", "stock.stock-take", "stock.stock-take-report", "stock.expiration-report",
+    ];
+    case "account": return [
+      "expenses", "expenses.entry", "expenses.analysis", "expenses.tax-analysis", "expenses.tax-personal",
+      "reporting", "reporting.sales-report", "reporting.eod", "reporting.transactions",
+    ];
     default: return [];
   }
 }

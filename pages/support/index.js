@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Layout from "@/components/Layout";
 import { apiClient } from "@/lib/api-client";
+import BizFaceLogo from "@/components/BizFaceLogo";
 import { MessageCircle, Send, TicketIcon, ArrowLeft, ChevronDown, ChevronUp, HelpCircle, X, Check, CheckCheck } from "lucide-react";
 
 const STATUS_OPTIONS = [
@@ -32,79 +33,154 @@ const CATEGORY_OPTIONS = [
 // Knowledge base for instant Q&A answers
 const KNOWLEDGE_BASE = [
   {
-    keywords: ["add product", "new product", "create product"],
+    keywords: ["add product", "new product", "create product", "product list"],
     question: "How do I add a new product?",
-    answer: "Go to **Products** from the sidebar, then click **Add Product**. Fill in the product name, price, category, and other details. Click **Save** to add it to your inventory.",
+    answer: "Go to **Manage** → **Product List** from the sidebar. Click **Add Product**, then fill in the product name, description, cost price, sale price (inc. tax), category, and optional details like barcode, stock levels, and expiry date. Upload product images if needed. Click **Save** to add it to your inventory. Products marked as **stock managed** will be tracked across locations.",
   },
   {
-    keywords: ["stock", "inventory level", "low stock", "out of stock"],
+    keywords: ["stock", "inventory level", "low stock", "out of stock", "stock management", "restock"],
     question: "How do I manage stock levels?",
-    answer: "Navigate to **Stock Management** under the Manage menu. You can view current stock levels, add stock movements (receive, transfer, adjust), and set up low-stock alerts for each product.",
+    answer: "Navigate to **Stock** → **Stock Management** to view current stock levels by product and location. To restock, go to **Stock** → **Stock Movement** and create a **Restock** movement from Vendor to a location. To transfer stock between locations, use a **Transfer** movement. You can set **min/max stock** alerts on each product so the system warns you when levels drop. The **Expiration Report** under Stock helps track products nearing expiry.",
   },
   {
-    keywords: ["expense", "add expense", "record expense"],
+    keywords: ["stock movement", "transfer", "restock", "return", "move stock"],
+    question: "How do stock movements work?",
+    answer: "Stock movements track all inventory changes. Go to **Stock** → **Stock Movement** to create one. There are three types: **Restock** (brings stock in from a vendor to a location), **Transfer** (moves stock between your locations), and **Return** (sends stock back to a vendor). Each movement requires a source, destination, products, and quantities. Movements automatically update stock levels at the relevant locations.",
+  },
+  {
+    keywords: ["stock take", "count", "physical count", "inventory count", "cycle count"],
+    question: "How do I perform a stock take?",
+    answer: "Go to **Stock** → **Stock Take** to start a new count. You can do a **Full Count** (all products), **Partial Count** (specific products), or **Cycle Count** (by category). Select a location, then enter the actual counted quantities for each product. The system calculates the variance between expected and counted stock. Once submitted, review results in **Stock Take Report** which shows discrepancies and trends over time.",
+  },
+  {
+    keywords: ["expense", "add expense", "record expense", "expense entry", "track expenses"],
     question: "How do I record an expense?",
-    answer: "Go to **Expenses** → **Expenses Entry**. Fill in the title, amount, category, location, and optional staff member. Click **Add Expense** to record it.",
+    answer: "Go to **Expenses** → **Expenses Entry**. Fill in the expense title, amount, select a category (or create new ones), choose the location, and optionally assign a staff member. You can add notes for reference. Click **Add Expense** to save. View all expense summaries in **Expenses Analysis** which shows breakdowns by category, location, and time period with charts.",
   },
   {
-    keywords: ["vendor", "supplier", "purchase order"],
-    question: "How do I place a purchase order?",
-    answer: "Navigate to **Manage** → **Vendors**. Select a vendor and click **Place Order**. Add the items you want to order, specify quantities and costs, then submit the order.",
+    keywords: ["vendor", "supplier", "add vendor", "manage vendor", "vendor management"],
+    question: "How do I manage vendors?",
+    answer: "Navigate to **Manage** → **Procurement** → **Vendors**. Click **Add Vendor** to create a new supplier with their company name, contact person, phone, email, address, main product, and bank details. You can also attach specific products that the vendor supplies (with cost prices and pack types). To place an order, expand a vendor card and click **Place Order** — this lets you specify products, quantities, and costs, then submits a purchase order to the **Payment Tracker**.",
   },
   {
-    keywords: ["report", "sales report", "analytics", "reporting"],
+    keywords: ["purchase order", "payment tracker", "vendor payment", "pay vendor"],
+    question: "How does the Vendor Payment Tracker work?",
+    answer: "Go to **Manage** → **Procurement** → **Payment Tracker**. This page tracks all vendor purchase orders and their payment status (**Not Paid**, **Partly Paid**, **Paid**, **Credit**). Use the **Quick Entry** button for fast payment recording. The dashboard shows overdue orders, outstanding balances, credit orders, and total paid amounts. You can filter by vendor, time period, and status. Click **Edit** on any row to update payment amounts directly.",
+  },
+  {
+    keywords: ["report", "sales report", "analytics", "reporting", "sales data"],
     question: "How do I view sales reports?",
-    answer: "Go to **Reporting** in the sidebar. You can view sales by time intervals, employees, products, and more. Use the date range and location filters to narrow down your data.",
+    answer: "Go to **Reporting** in the sidebar. **Sales Report** shows overall sales overview. Under the **Sales Report** submenu, you can view: **Time Intervals** (daily/weekly/monthly trends), **Time Comparisons** (compare periods side by side), **Sales by Product** (top sellers), **Employees** (staff performance), **Locations** (per-location sales), and **Categories** (product category performance). Use date range and location filters to narrow your data.",
   },
   {
-    keywords: ["staff", "employee", "add staff", "onboarding"],
+    keywords: ["staff", "employee", "add staff", "onboarding", "staff management"],
     question: "How do I add and manage staff?",
-    answer: "Go to **Manage** → **Staff**. Click **Add New Staff** to create a staff member with their name, role, location, and password. Once created, you can copy their onboarding link for them to complete their profile.",
+    answer: "Go to **Manage** → **Staff** → **Staff Page**. Click **Add New Staff** to create a member with their name, 4-digit PIN, role, location, salary, and bank details. After creation, you'll see options to **Copy Onboarding Link** or **Send Onboarding Link** via email. The onboarding form collects personal details (DOB, address, state of origin, next of kin) and guarantor information. View completed profiles by clicking **View Profile** on any staff card.",
   },
   {
-    keywords: ["transaction", "refund", "void", "edit transaction"],
+    keywords: ["staff role", "role", "permissions", "staff roles"],
+    question: "How do staff roles work?",
+    answer: "Go to **Manage** → **Staff** → **Staff Roles** to define custom POS roles. For admin system access, go to **Setup** → **Users** to create users with specific roles: **Admin** (full access), **Sub-Admin** (custom permissions), **Inventory** (manage & stock), **Account** (expenses & reporting), **Manager**, **Staff**, or **Viewer**. Each role can have granular submenu-level permissions — you can control exactly which pages each user can see.",
+  },
+  {
+    keywords: ["transaction", "refund", "void", "edit transaction", "completed transaction"],
     question: "How do I edit or refund a transaction?",
-    answer: "Go to **Reporting** → **Completed Transactions**. Find the transaction, expand it, and use the action buttons to request an edit, void, or refund. All actions require a reason and may need manager approval.",
+    answer: "Go to **Reporting** → **Completed Transactions**. Find the transaction using search or filters. Expand it to see details. Use the action buttons to **Edit** (modify items/prices), **Void** (cancel entirely), or **Refund** (return payment). All actions require a reason and may need manager approval depending on your role. Voided and refunded transactions are tracked separately in reports.",
   },
   {
-    keywords: ["location", "add location", "store location"],
+    keywords: ["location", "add location", "store location", "multi-location"],
     question: "How do I manage store locations?",
-    answer: "Navigate to **Setup** from the sidebar. Under the store settings, you can add, edit, or remove locations. Each location can be assigned to staff and used for tracking sales and expenses.",
+    answer: "Navigate to **Setup** → **Company Details**. Here you can add, edit, or remove locations for your business. Each location has a name and can be assigned to staff members, tenders, and stock. Locations are used throughout the system for filtering sales, tracking stock levels, and assigning expenses. Go to **Setup** → **Location Tenders** to configure payment methods available at each location.",
   },
   {
-    keywords: ["asset", "equipment", "maintenance"],
+    keywords: ["asset", "equipment", "maintenance", "asset management"],
     question: "How do I track assets and maintenance?",
-    answer: "Go to **Manage** → **Assets** to add and manage equipment and assets. You can add custom properties, schedule maintenance, and track disposal. Maintenance expenses can be linked to specific assets through the Expenses page.",
+    answer: "Go to **Setup** → **Assets** to add and manage business equipment and assets. Each asset can have custom properties, purchase date, cost, and condition status. You can schedule maintenance tasks and track disposal. Maintenance costs can be linked to specific assets through the **Expenses** page by selecting the asset category when recording an expense.",
   },
   {
-    keywords: ["promotion", "discount", "promo code"],
+    keywords: ["promotion", "discount", "promo", "sale", "deal"],
     question: "How do I set up promotions?",
-    answer: "Navigate to **Manage** → **Promotions**. Create new promotions with discount types (percentage or fixed), set date ranges, and assign them to specific products or categories.",
+    answer: "Navigate to **Manage** → **Promotions**. Create promotions with: discount type (**Percentage** or **Fixed** amount), discount direction (**Discount** to reduce price or **Increment** to increase), date ranges (or set as **Indefinite** for ongoing promos), and assign to specific products. The promo price is calculated automatically. Customer-specific promotions can be created in **Manage** → **Customer Promotions** for targeted deals.",
   },
   {
-    keywords: ["password", "login", "access", "permission", "role"],
-    question: "How do I manage access and permissions?",
-    answer: "Staff roles determine access levels: **Admin** has full access, **Manager** can manage most operations, **Staff** handles day-to-day tasks, **Junior Staff** has limited access, and **Viewer** is read-only. Edit a staff member's role under **Manage** → **Staff**.",
+    keywords: ["password", "login", "access", "permission", "user", "pin"],
+    question: "How do I manage user access and permissions?",
+    answer: "Go to **Setup** → **Users** to manage system access. Create users with name, email, and a 4-digit PIN. Assign a role: **Admin** has all permissions, **Sub-Admin/Manager/Staff/Viewer** get custom permissions. Use the checkbox grid to assign specific page access — each submenu item can be individually granted or revoked. Deactivate users to temporarily block access without deleting them. Note: this is separate from POS staff/till access.",
   },
   {
-    keywords: ["till", "pos", "point of sale", "checkout"],
+    keywords: ["till", "pos", "point of sale", "checkout", "register"],
     question: "How do I access the Point of Sale (Till)?",
-    answer: "Click **Till** in the sidebar to open the Point of Sale application in a new tab. Use it to process sales, apply discounts, and handle split payments.",
+    answer: "Click **Till** in the sidebar to open the POS application in a new tab. The POS system allows you to: ring up sales, search products by name or barcode, apply discounts, handle split payments across multiple tender types, hold transactions for later, and process customer-specific promotions. POS staff access is managed separately in **Manage** → **Staff** with POS-specific permissions.",
   },
   {
-    keywords: ["tax", "tax report", "tax analysis"],
+    keywords: ["tax", "tax report", "tax analysis", "vat", "tax calculator"],
     question: "How do I view tax reports?",
-    answer: "Go to **Expenses** → **Tax Analysis** for business tax summaries, or **Personal Tax Calculator** for individual tax calculations. These tools help you track and plan for tax obligations.",
+    answer: "Go to **Expenses** → **Tax Analysis** for a comprehensive business tax summary showing your sales tax collected, expense deductions, and net tax obligations. Use **Personal Tax Calculator** under Expenses for individual income tax calculations with Nigerian tax brackets. Products can have individual tax rates set during creation, and these are automatically applied during POS sales and reflected in tax reports.",
   },
   {
-    keywords: ["eod", "end of day", "close day", "daily report"],
+    keywords: ["eod", "end of day", "close day", "daily report", "reconciliation"],
     question: "How does End of Day (EOD) work?",
-    answer: "The EOD system automatically generates daily summaries of sales, expenses, and transactions. Navigate to **Reporting** to review daily performance. EOD reports help track cash flow and reconcile daily operations.",
+    answer: "Navigate to **Reporting** → **End of Day Reports** to view daily summaries. EOD reports include: total sales by tender type, expected vs actual cash counts, variance analysis, transaction count, average sale value, and staff performance for the day. Reports can be generated for each location. This helps with daily cash reconciliation and identifying any discrepancies between expected and actual drawer amounts.",
   },
   {
-    keywords: ["held", "hold transaction", "pending"],
+    keywords: ["held", "hold transaction", "pending", "saved transaction"],
     question: "What are held transactions?",
-    answer: "Held transactions are sales that have been started but not yet completed (e.g., customer is still shopping). They are NOT counted in your sales totals or reports. You can find and complete them from the Till/POS system.",
+    answer: "Held transactions are sales started on the POS/Till that haven't been completed yet — for example, when a customer is still shopping or needs to come back later. They are **NOT** counted in your sales totals or reports. You can find and resume them from the Till system. Multiple transactions can be held simultaneously, and each is tagged with the staff member who created it.",
+  },
+  {
+    keywords: ["category", "product category", "categories", "organize"],
+    question: "How do I manage product categories?",
+    answer: "Go to **Manage** → **Categories** to create and edit product categories. Categories help organize your products for easier browsing in the POS and better reporting. You can create hierarchical categories (parent/child). Special categories like **Room** automatically set products as non-stock-managed. Categories are used in reporting for sales-by-category analysis.",
+  },
+  {
+    keywords: ["customer", "customer management", "loyalty", "customer promotions"],
+    question: "How do I manage customers?",
+    answer: "Navigate to **Manage** → **Customers** to add and manage your customer database. Store customer details like name, phone, email, and address. Customers can be linked to transactions for purchase history tracking. Use **Manage** → **Customer Promotions** to create personalized promotions targeted at specific customers or customer groups.",
+  },
+  {
+    keywords: ["campaign", "marketing", "email campaign"],
+    question: "How do campaigns work?",
+    answer: "Go to **Manage** → **Campaigns** to create marketing campaigns. Campaigns let you send promotional messages to your customer base. You can target specific customer segments, set campaign dates, and track engagement. Campaigns integrate with your customer database and promotion system for targeted marketing.",
+  },
+  {
+    keywords: ["receipt", "print receipt", "receipt setup"],
+    question: "How do I customize receipts?",
+    answer: "Go to **Setup** → **Receipts** to configure your receipt template. You can customize the header (business name, address, phone), footer message, and choose what information to display (tax breakdown, staff name, location, etc.). Receipt settings apply to all POS transactions. Receipts can be printed or shared digitally from the Till system.",
+  },
+  {
+    keywords: ["tender", "payment method", "pos tender", "cash", "card", "mobile money"],
+    question: "How do I set up payment methods (tenders)?",
+    answer: "Go to **Setup** → **POS Tenders** to create payment methods like Cash, Card, Mobile Money, Transfer, etc. Each tender can be toggled active/inactive. Use **Setup** → **Location Tenders** to configure which tenders are available at specific locations. Customers can split payments across multiple tender types during checkout at the POS.",
+  },
+  {
+    keywords: ["order", "online order", "manage order", "order status"],
+    question: "How do I manage orders?",
+    answer: "Go to **Manage** → **Orders** to view and manage all orders. Orders can be filtered by status (Pending, Processing, Completed, Cancelled). Each order shows customer details, products, quantities, and total amount. You can update order status, add notes, and track fulfillment. Orders from the POS Till and online channels appear here.",
+  },
+  {
+    keywords: ["archive", "archived product", "delete product", "remove product"],
+    question: "How do I archive or restore products?",
+    answer: "Instead of deleting products (which would destroy sales history), you can archive them. Go to **Manage** → **Product List**, find the product, and click **Archive**. Provide a reason for archiving. Archived products are moved to **Manage** → **Archived Products** where they can be viewed, restored, or permanently managed. Archived products don't appear in POS searches.",
+  },
+  {
+    keywords: ["hero", "promo setup", "hero promo", "banner"],
+    question: "What is Hero-Promo Setup?",
+    answer: "Go to **Setup** → **Hero-Promo Setup** to configure promotional banners and featured content that displays on your customer-facing pages. You can upload hero images, set promotional text, link to specific products or categories, and control display timing. This is useful for highlighting seasonal sales, new arrivals, or special offers.",
+  },
+  {
+    keywords: ["support", "ticket", "help", "issue", "support ticket"],
+    question: "How do I create a support ticket?",
+    answer: "If this Q&A doesn't answer your question, click the **Tickets** tab at the top of this page. Click **New Ticket**, fill in the subject, description, category (General, Technical, Tax, Inventory, Billing), and priority level. Submit the ticket and our team will respond. You can track ticket status, add comments, and view the conversation history all from this page.",
+  },
+  {
+    keywords: ["pack", "bundle", "pack product", "child product", "unit"],
+    question: "How do pack/bundle products work?",
+    answer: "When adding products to a vendor in **Manage** → **Vendors**, you can set a product as type **Pack** and specify the quantity per pack. When saved, the system automatically creates a **child product** with the name appended (e.g., 'Rice (Pack of 12)'). The child product's cost price is calculated as the unit cost × quantity per pack. You can then set the sale price manually in the **Product List**. This allows you to sell both individual units and packs.",
+  },
+  {
+    keywords: ["expiry", "expired", "expiration", "shelf life"],
+    question: "How does expiry tracking work?",
+    answer: "When adding or editing a product, you can set an **Expiry Date**. The system automatically marks products as expired when the date passes. View all products approaching or past expiry in **Stock** → **Expiration Report**. This report helps you identify products that need to be sold quickly, discounted, or removed from shelves. Expired flags update automatically on each page load.",
   },
 ];
 
@@ -151,6 +227,7 @@ export default function SupportPage() {
   ]);
   const [chatInput, setChatInput] = useState("");
   const [showQuickTopics, setShowQuickTopics] = useState(true);
+  const [isTalking, setIsTalking] = useState(false);
   const chatEndRef = useRef(null);
 
   // Ticket state
@@ -218,7 +295,7 @@ export default function SupportPage() {
     const userMsg = { id: Date.now(), role: "user", text };
     setChatMessages(prev => [...prev, userMsg]);
     setChatInput("");
-    setShowQuickTopics(false);
+    setIsTalking(true);
 
     // Search knowledge base
     const results = searchKnowledgeBase(text);
@@ -241,14 +318,19 @@ export default function SupportPage() {
         };
         setChatMessages(prev => [...prev, noMatch]);
       }
+      setIsTalking(false);
     }, 400);
   };
 
   const handleQuickTopic = (entry) => {
     const userMsg = { id: Date.now(), role: "user", text: entry.question };
-    const answer = { id: Date.now() + 1, role: "system", text: entry.answer };
-    setChatMessages(prev => [...prev, userMsg, answer]);
-    setShowQuickTopics(false);
+    setIsTalking(true);
+    setChatMessages(prev => [...prev, userMsg]);
+    setTimeout(() => {
+      const answer = { id: Date.now() + 1, role: "system", text: entry.answer };
+      setChatMessages(prev => [...prev, answer]);
+      setIsTalking(false);
+    }, 300);
   };
 
   const handleRelatedQuestion = (question) => {
@@ -348,8 +430,8 @@ export default function SupportPage() {
             <div className="flex flex-col rounded-xl overflow-hidden shadow-lg border border-gray-200" style={{ height: "calc(100vh - 220px)", minHeight: "500px" }}>
               {/* WhatsApp-style Header */}
               <div className="bg-gradient-to-r from-[#4c63ae] to-[#5398d2] px-4 py-3 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center overflow-hidden shadow-md ring-2 ring-white/30">
-                  <img src="/images/bizsuits-icon.svg" alt="BizSuits" className="w-8 h-8 animate-pulse" style={{ animationDuration: "3s" }} />
+                <div className="w-10 h-10 rounded-2xl overflow-hidden shadow-md ring-2 ring-white/30 flex items-center justify-center">
+                  <BizFaceLogo size={40} isTalking={isTalking} />
                 </div>
                 <div className="flex-1">
                   <h3 className="text-white font-semibold text-sm">BizSuits Support</h3>
@@ -365,8 +447,8 @@ export default function SupportPage() {
                     className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                   >
                     {msg.role === "system" && (
-                      <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center overflow-hidden shadow-sm shrink-0 mr-2 mt-auto mb-1">
-                        <img src="/images/bizsuits-icon.svg" alt="" className="w-5 h-5" />
+                      <div className="w-7 h-7 rounded-xl overflow-hidden shadow-sm shrink-0 mr-2 mt-auto mb-1">
+                        <BizFaceLogo size={28} isTalking={isTalking && msg.id === chatMessages[chatMessages.length - 1]?.id} />
                       </div>
                     )}
                     <div className="relative max-w-[85%] sm:max-w-[70%]">
@@ -416,26 +498,24 @@ export default function SupportPage() {
                 <div ref={chatEndRef} />
               </div>
 
-              {/* Quick Topics */}
-              {showQuickTopics && (
-                <div className="px-3 py-2 bg-white border-t border-gray-200">
-                  <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
-                    <HelpCircle className="w-3.5 h-3.5" />
-                    Common topics:
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {KNOWLEDGE_BASE.slice(0, 6).map((entry, i) => (
-                      <button
-                        key={i}
-                        onClick={() => handleQuickTopic(entry)}
-                        className="text-xs px-3 py-1.5 rounded-full bg-gray-100 text-gray-700 hover:bg-[#4c63ae]/10 hover:text-[#4c63ae] transition-colors border border-gray-200"
-                      >
-                        {entry.question}
-                      </button>
-                    ))}
-                  </div>
+              {/* Quick Topics - Always visible */}
+              <div className="px-3 py-2 bg-white border-t border-gray-200">
+                <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+                  <HelpCircle className="w-3.5 h-3.5" />
+                  Common topics:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {KNOWLEDGE_BASE.slice(0, 10).map((entry, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handleQuickTopic(entry)}
+                      className="text-xs px-3 py-1.5 rounded-full bg-gray-100 text-gray-700 hover:bg-[#4c63ae]/10 hover:text-[#4c63ae] transition-colors border border-gray-200"
+                    >
+                      {entry.question}
+                    </button>
+                  ))}
                 </div>
-              )}
+              </div>
 
               {/* Chat Input - WhatsApp style */}
               <div className="bg-[#f0f0f0] px-3 py-2">

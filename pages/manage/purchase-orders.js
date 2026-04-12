@@ -620,12 +620,12 @@ export default function PurchaseOrdersPage() {
           {/* Desktop Table */}
           <div className="hidden md:block bg-white rounded-xl shadow overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-300 text-sm select-none">
-              <thead className="bg-blue-50 text-gray-700 font-semibold uppercase tracking-wide">
+              <thead className="bg-gradient-to-r from-[#4c63ae] to-[#5398d2] text-white font-semibold uppercase tracking-wide">
                 <tr>
                   <th className="px-4 py-3 text-left">Date</th>
                   <th className="px-4 py-3 text-left">Ref</th>
                   <th className="px-4 py-3 text-left">Vendor</th>
-                  <th className="px-4 py-3 text-left">Products</th>
+                  <th className="px-4 py-3 text-left">Main Product</th>
                   <th className="px-4 py-3 text-right">Total</th>
                   <th className="px-4 py-3 text-right">Paid</th>
                   <th className="px-4 py-3 text-left">Pay Date</th>
@@ -648,10 +648,8 @@ export default function PurchaseOrdersPage() {
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-gray-600">{order.orderRef || "—"}</td>
                     <td className="px-4 py-3 font-medium text-gray-800">{order.vendorName || "—"}</td>
-                    <td className="px-4 py-3">
-                      {order.products?.map((p, i) => (
-                        <div key={i} className="text-xs text-gray-600">{p.name} x{p.quantity}</div>
-                      )) || "—"}
+                    <td className="px-4 py-3 text-gray-600 text-xs">
+                      {order.products?.[0]?.name || "—"}
                     </td>
                     <td className="px-4 py-3 text-right">
                       {editIndex === idx ? (
@@ -810,7 +808,11 @@ export default function PurchaseOrdersPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Vendor *</label>
                 <select
                   value={quickForm.vendor}
-                  onChange={(e) => setQuickForm({ ...quickForm, vendor: e.target.value })}
+                  onChange={(e) => {
+                    const vendorId = e.target.value;
+                    const vendor = vendors.find((v) => v._id === vendorId);
+                    setQuickForm({ ...quickForm, vendor: vendorId, products: vendor?.mainProduct || "" });
+                  }}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   required
                 >
@@ -821,7 +823,7 @@ export default function PurchaseOrdersPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Amount Paid *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Amount *</label>
                 <input
                   type="number"
                   min="0"
@@ -829,7 +831,7 @@ export default function PurchaseOrdersPage() {
                   value={quickForm.amount}
                   onChange={(e) => setQuickForm({ ...quickForm, amount: e.target.value })}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter payment amount"
+                  placeholder="Enter amount"
                   required
                 />
               </div>
@@ -843,13 +845,13 @@ export default function PurchaseOrdersPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Products (comma separated, optional)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Main Product</label>
                 <input
                   type="text"
                   value={quickForm.products}
                   onChange={(e) => setQuickForm({ ...quickForm, products: e.target.value })}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="e.g. Rice, Beans, Sugar"
+                  placeholder="e.g. Rice"
                 />
               </div>
               <div>

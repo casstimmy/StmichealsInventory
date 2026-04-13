@@ -2,6 +2,7 @@
 import { mongooseConnect } from "@/lib/mongodb";
 import Expense from "@/models/Expense";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
+import { postExpenseEntry } from "@/lib/accounting";
 
 export default async function handler(req, res) {
   const authError = authMiddleware(req, res);
@@ -62,6 +63,13 @@ export default async function handler(req, res) {
         assetId: assetId || null,
         assetName: assetName || "",
       });
+
+      // Auto-post accounting journal entry
+      try {
+        await postExpenseEntry(expense);
+      } catch (acctErr) {
+        console.error("Accounting auto-post failed for expense:", expense._id, acctErr.message);
+      }
 
       return res.status(201).json({
         success: true,

@@ -2,6 +2,7 @@ import { mongooseConnect } from "@/lib/mongoose";
 import { Transaction } from "@/models/Transactions";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 import { applyInventoryDelta } from "@/lib/transaction-utils";
+import { postRefundEntry } from "@/lib/accounting";
 
 export default async function handler(req, res) {
   const authError = authMiddleware(req, res);
@@ -72,6 +73,15 @@ export default async function handler(req, res) {
         new: true,
         runValidators: true,
       });
+
+      // Auto-post refund journal entry
+      if (status === "refunded" && updated) {
+        try {
+          await postRefundEntry(updated);
+        } catch (acctErr) {
+          console.error("Accounting auto-post failed for refund:", updated._id, acctErr.message);
+        }
+      }
 
       return res.status(200).json({ success: true, transaction: updated });
     } catch (err) {

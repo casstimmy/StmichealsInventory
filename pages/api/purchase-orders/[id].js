@@ -4,6 +4,7 @@ import StockMovement from "@/models/StockMovement";
 import Product from "@/models/Product";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 import { isValidObjectId } from "mongoose";
+import { postPurchaseOrderPayment } from "@/lib/accounting";
 
 function generateTransRef() {
   const d = new Date();
@@ -64,6 +65,17 @@ export default async function handler(req, res) {
         }
         order.balance = Math.max(0, order.balance);
         await order.save();
+
+        // Auto-post accounting journal entry for PO payment
+        try {
+          const paymentAmount = paymentMade !== undefined ? Number(paymentMade) : 0;
+          if (paymentAmount > 0) {
+            await postPurchaseOrderPayment(order, paymentAmount);
+          }
+        } catch (acctErr) {
+          console.error("Accounting auto-post failed for PO payment:", order._id, acctErr.message);
+        }
+
         return res.status(200).json({ success: true, order });
       }
 

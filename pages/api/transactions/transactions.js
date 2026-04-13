@@ -8,6 +8,7 @@ import {
   applyInventoryDelta,
   toSafeNumber,
 } from "@/lib/transaction-utils";
+import { postSaleEntry } from "@/lib/accounting";
 
 async function connectDB() {
   await mongooseConnect();
@@ -172,6 +173,13 @@ async function handlePOST(req, res) {
       await applyInventoryDelta(normalizedItems, "decrement");
       transaction.inventoryUpdated = true;
       await transaction.save();
+
+      // Auto-post accounting journal entry
+      try {
+        await postSaleEntry(transaction);
+      } catch (acctErr) {
+        console.error("Accounting auto-post failed for transaction:", transaction._id, acctErr.message);
+      }
     }
 
     return res.status(201).json({

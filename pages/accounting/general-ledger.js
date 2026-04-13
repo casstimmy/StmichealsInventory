@@ -1,0 +1,197 @@
+"use client";
+
+import Layout from "@/components/Layout";
+import { Loader } from "@/components/ui";
+import { formatCurrency } from "@/lib/format";
+import { useState, useEffect } from "react";
+import { BookOpen } from "lucide-react";
+
+export default function GeneralLedgerPage() {
+  const [accounts, setAccounts] = useState([]);
+  const [selectedAccount, setSelectedAccount] = useState("");
+  const [ledgerData, setLedgerData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [loadingLedger, setLoadingLedger] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetchAccounts();
+  }, []);
+
+  async function fetchAccounts() {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/accounting/accounts");
+      if (res.ok) {
+        const data = await res.json();
+        setAccounts((data.accounts || []).filter((a) => a.isActive));
+      }
+    } catch (err) {
+      setError("Failed to load accounts");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function fetchLedger() {
+    if (!selectedAccount) return;
+    try {
+      setLoadingLedger(true);
+      setError("");
+      const params = new URLSearchParams({ report: "general-ledger", accountId: selectedAccount });
+      if (dateFrom) params.set("from", dateFrom);
+      if (dateTo) params.set("to", dateTo);
+      const res = await fetch(`/api/accounting/reports?${params}`);
+      if (res.ok) {
+        const data = await res.json();
+        setLedgerData(data);
+      } else {
+        const data = await res.json();
+        setError(data.message || "Failed to load ledger");
+      }
+    } catch (err) {
+      setError("Failed to load ledger");
+    } finally {
+      setLoadingLedger(false);
+    }
+  }
+
+  useEffect(() => {
+    if (selectedAccount) fetchLedger();
+  }, [selectedAccount, dateFrom, dateTo]);
+
+  // Group accounts by type for the dropdown
+  const groupedAccounts = {};
+  for (const acc of accounts) {
+    if (!groupedAccounts[acc.type]) groupedAccounts[acc.type] = [];
+    groupedAccounts[acc.type].push(acc);
+  }
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex justify-center items-center py-20">
+          <Loader size="lg" text="Loading..." />
+        </div>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <div className="page-container">
+        <div className="mb-6">
+          <h1 className="page-title">General Ledger</h1>
+          <p className="page-subtitle">View transaction history for any account</p>
+        </div>
+
+        {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">{error}</div>}
+
+        {/* Filters */}
+        <div className="content-card mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="md:col-span-2">
+              <label className="form-label">Account</label>
+              <select value={selectedAccount} onChange={(e) => setSelectedAccount(e.target.value)} className="form-select">
+                <option value="">Select an account...</option>
+                {Object.entries(groupedAccounts).map(([type, accs]) => (
+                  <optgroup key={type} label={type}>
+                    {accs.map((a) => <option key={a._id} value={a._id}>{a.code} - {a.name}</option>)}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="form-label">From</label>
+              <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="form-input" />
+            </div>
+            <div>
+              <label className="form-label">To</label>
+              <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="form-input" />
+            </div>
+          </div>
+        </div>
+
+        {/* Ledger */}
+        {loadingLedger ? (
+          <div className="flex justify-center py-10"><Loader size="md" text="Loading ledger..." /></div>
+        ) : ledgerData ? (
+          <div className="content-card !p-0 overflow-hidden">
+            {/* Account Header */}
+            <div className="px-6 py-4 bg-gradient-to-r from-blue-50 to-white border-b">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <BookOpen size={20} className="text-blue-600" />
+                    {ledgerData.account?.code} - {ledgerData.account?.name}
+                  </h2>
+                  <p className="text-sm text-gray-500">{ledgerData.account?.type}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-gray-500">Closing Balance</p>
+                  <p className="text-2xl font-bold text-gray-900">{(ledgerData.closingBalance || 0).toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr>
+                    <th className="text-left px-4 py-3 font-semibold">Date</th>
+                    <th className="text-left px-4 py-3 font-semibold">Entry #</th>
+                    <th className="text-left px-4 py-3 font-semibold">Description</th>
+                    <th className="text-left px-4 py-3 font-semibold">Type</th>
+                    <th className="text-right px-4 py-3 font-semibold">Debit</th>
+                    <th className="text-right px-4 py-3 font-semibold">Credit</th>
+                    <th className="text-right px-4 py-3 font-semibold">Balance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {/* Opening Balance Row */}
+                  <tr className="bg-blue-50 font-medium">
+                    <td colSpan={4} className="px-4 py-2 text-blue-700">Opening Balance</td>
+                    <td className="px-4 py-2"></td>
+                    <td className="px-4 py-2"></td>
+                    <td className="px-4 py-2 text-right font-bold text-blue-700">{(ledgerData.openingBalance || 0).toLocaleString()}</td>
+                  </tr>
+                  {ledgerData.rows?.length === 0 ? (
+                    <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">No transactions found for this account</td></tr>
+                  ) : ledgerData.rows?.map((row, i) => (
+                    <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="px-4 py-2 text-gray-600">{new Date(row.date).toLocaleDateString()}</td>
+                      <td className="px-4 py-2 font-mono text-blue-600">{row.entryNumber}</td>
+                      <td className="px-4 py-2 text-gray-900">{row.description}{row.lineDescription ? ` — ${row.lineDescription}` : ""}</td>
+                      <td className="px-4 py-2 text-xs text-gray-500">{row.referenceType}</td>
+                      <td className="px-4 py-2 text-right text-gray-700">{row.debit ? row.debit.toLocaleString() : ""}</td>
+                      <td className="px-4 py-2 text-right text-gray-700">{row.credit ? row.credit.toLocaleString() : ""}</td>
+                      <td className="px-4 py-2 text-right font-semibold text-gray-900">{row.balance.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                  {/* Closing Balance Row */}
+                  <tr className="bg-gray-100 font-bold border-t-2 border-gray-300">
+                    <td colSpan={4} className="px-4 py-3 text-gray-800">Closing Balance</td>
+                    <td className="px-4 py-3 text-right">
+                      {ledgerData.rows?.reduce((s, r) => s + (r.debit || 0), 0).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {ledgerData.rows?.reduce((s, r) => s + (r.credit || 0), 0).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3 text-right text-lg">{(ledgerData.closingBalance || 0).toLocaleString()}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <div className="content-card text-center py-12">
+            <BookOpen size={48} className="mx-auto text-gray-300 mb-3" />
+            <p className="text-gray-500">Select an account to view its ledger</p>
+          </div>
+        )}
+      </div>
+    </Layout>
+  );
+}

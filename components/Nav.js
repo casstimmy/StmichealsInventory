@@ -11,6 +11,7 @@ import {
   faCoins,
   faBars,
   faTimes,
+  faBook,
 } from "@fortawesome/free-solid-svg-icons";
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
@@ -123,6 +124,9 @@ export default function Sidebar() {
       }
     } else if (pathname.startsWith("/expenses")) {
       setOpenMenu("expenses");
+      setOpenSubMenu(null);
+    } else if (pathname.startsWith("/accounting")) {
+      setOpenMenu("accounting");
       setOpenSubMenu(null);
     } else if (pathname === "/till") {
       setOpenMenu("till");
@@ -592,6 +596,57 @@ export default function Sidebar() {
               </ul>
             </li>
             )}
+            {canAccessAny(["accounting", "accounting.chart-of-accounts", "accounting.journal-entries", "accounting.general-ledger", "accounting.trial-balance", "accounting.profit-loss", "accounting.balance-sheet"]) && (
+            <li
+              className={`${
+                pathname.startsWith("/accounting") ? activeLink : baseLink
+              } relative`}
+            >
+              <div
+                className="flex flex-col items-center justify-center cursor-pointer"
+                onClick={() => toggleMenu("accounting")}
+              >
+                <FontAwesomeIcon icon={faBook} className="w-6 h-6" />
+                <span className="text-xs">Accounting</span>
+                <FontAwesomeIcon
+                  icon={faChevronRight}
+                  className={`w-3 h-3 mt-1 transition-transform duration-300 ${
+                    openMenu === "accounting" ? "rotate-90" : ""
+                  }`}
+                />
+              </div>
+              <ul
+                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-40 ${
+                  openMenu === "accounting"
+                    ? "translate-x-0 opacity-100 visible"
+                    : "translate-x-4 opacity-0 invisible"
+                }`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="px-4 py-3 border-b border-gray-200 sticky top-0 bg-white">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Accounting</p>
+                </div>
+                {renderSubMenu([
+                  { href: "/accounting/chart-of-accounts", label: "Chart of Accounts" },
+                  { href: "/accounting/journal-entries", label: "Journal Entries" },
+                  { href: "/accounting/general-ledger", label: "General Ledger" },
+                  { href: "/accounting/trial-balance", label: "Trial Balance" },
+                  { href: "/accounting/profit-loss", label: "Profit & Loss" },
+                  { href: "/accounting/balance-sheet", label: "Balance Sheet" },
+                ].filter(item => {
+                  const permMap = {
+                    "/accounting/chart-of-accounts": "accounting.chart-of-accounts",
+                    "/accounting/journal-entries": "accounting.journal-entries",
+                    "/accounting/general-ledger": "accounting.general-ledger",
+                    "/accounting/trial-balance": "accounting.trial-balance",
+                    "/accounting/profit-loss": "accounting.profit-loss",
+                    "/accounting/balance-sheet": "accounting.balance-sheet",
+                  };
+                  return canAccess(permMap[item.href] || "accounting");
+                }))}
+              </ul>
+            </li>
+            )}
             {canAccess("till") && (
             <li key="/till" className={baseLink}>
               <a href="https://sales-point-app.vercel.app" target="_blank" rel="noopener noreferrer">
@@ -1056,6 +1111,66 @@ export default function Sidebar() {
                   <li onClick={closeMenu}>
                     <Link href="/expenses/tax-personal" className={`block px-8 py-3 text-sm transition-all ${pathname === "/expenses/tax-personal" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Personal Tax Calculator
+                    </Link>
+                  </li>
+                  )}
+                </ul>
+              )}
+            </li>
+            )}
+
+            {/* Accounting */}
+            {canAccessAny(["accounting", "accounting.chart-of-accounts", "accounting.journal-entries", "accounting.general-ledger", "accounting.trial-balance", "accounting.profit-loss", "accounting.balance-sheet"]) && (
+            <li>
+              <button
+                onClick={() => toggleMenu("accounting")}
+                className={`w-full ${pathname.startsWith("/accounting") ? mobileActiveLink : mobileBaseLink}`}
+              >
+                <FontAwesomeIcon icon={faBook} className="w-5 h-5" />
+                <span>Accounting</span>
+                <FontAwesomeIcon icon={faChevronRight} className={`w-4 h-4 ml-auto transition-transform ${openMenu === "accounting" ? "rotate-90" : ""}`} />
+              </button>
+              {openMenu === "accounting" && (
+                <ul className="bg-gray-50 border-l-4 border-blue-600">
+                  {canAccess("accounting.chart-of-accounts") && (
+                  <li onClick={closeMenu}>
+                    <Link href="/accounting/chart-of-accounts" className={`block px-8 py-3 text-sm transition-all ${pathname === "/accounting/chart-of-accounts" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                      Chart of Accounts
+                    </Link>
+                  </li>
+                  )}
+                  {canAccess("accounting.journal-entries") && (
+                  <li onClick={closeMenu}>
+                    <Link href="/accounting/journal-entries" className={`block px-8 py-3 text-sm transition-all ${pathname === "/accounting/journal-entries" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                      Journal Entries
+                    </Link>
+                  </li>
+                  )}
+                  {canAccess("accounting.general-ledger") && (
+                  <li onClick={closeMenu}>
+                    <Link href="/accounting/general-ledger" className={`block px-8 py-3 text-sm transition-all ${pathname === "/accounting/general-ledger" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                      General Ledger
+                    </Link>
+                  </li>
+                  )}
+                  {canAccess("accounting.trial-balance") && (
+                  <li onClick={closeMenu}>
+                    <Link href="/accounting/trial-balance" className={`block px-8 py-3 text-sm transition-all ${pathname === "/accounting/trial-balance" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                      Trial Balance
+                    </Link>
+                  </li>
+                  )}
+                  {canAccess("accounting.profit-loss") && (
+                  <li onClick={closeMenu}>
+                    <Link href="/accounting/profit-loss" className={`block px-8 py-3 text-sm transition-all ${pathname === "/accounting/profit-loss" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                      Profit & Loss
+                    </Link>
+                  </li>
+                  )}
+                  {canAccess("accounting.balance-sheet") && (
+                  <li onClick={closeMenu}>
+                    <Link href="/accounting/balance-sheet" className={`block px-8 py-3 text-sm transition-all ${pathname === "/accounting/balance-sheet" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                      Balance Sheet
                     </Link>
                   </li>
                   )}

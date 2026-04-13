@@ -45,6 +45,9 @@ export default function ProductForm(props) {
   const [images, setImages] = useState(props.images || []);
   const [properties, setProperties] = useState(props.properties || []);
   const [minStock, setMinStock] = useState(props.minStock ?? "");
+  const [selectedVendors, setSelectedVendors] = useState(props.vendors || []);
+  const [allVendors, setAllVendors] = useState([]);
+  const [vendorsLoading, setVendorsLoading] = useState(true);
 
   const [isPromotion, setIsPromotion] = useState(props.isPromotion || false);
   const [promoPrice, setPromoPrice] = useState(props.promoPrice ?? "");
@@ -87,6 +90,7 @@ export default function ProductForm(props) {
     setImages(props.images || []);
     setProperties(props.properties || []);
     setMinStock(props.minStock ?? "");
+    setSelectedVendors(props.vendors || []);
     setIsPromotion(props.isPromotion || false);
     setPromoPrice(props.promoPrice ?? "");
     setPromoStart(toDateInputValue(props.promoStart));
@@ -109,6 +113,17 @@ export default function ProductForm(props) {
         complete();
       });
   }, [start, onFetch, onProcess, complete]);
+
+  // Load vendors
+  useEffect(() => {
+    axios.get("/api/vendors?active=true")
+      .then((res) => {
+        const list = res.data?.vendors || res.data;
+        setAllVendors(Array.isArray(list) ? list : []);
+      })
+      .catch(() => {})
+      .finally(() => setVendorsLoading(false));
+  }, []);
 
   // Reset promo fields if unchecked
   useEffect(() => {
@@ -209,6 +224,7 @@ export default function ProductForm(props) {
       promoStart: isPromotion ? promoStart : "",
       promoEnd: isPromotion ? promoEnd : "",
       effectivePrice, // ✅ enforce effective price
+      vendors: selectedVendors,
     };
 
     try {
@@ -375,6 +391,57 @@ export default function ProductForm(props) {
           {fieldErrors.category && (
             <p className="mt-1 text-xs text-red-600">{fieldErrors.category}</p>
           )}
+        </div>
+
+        {/* Vendor Selection */}
+        <div className="form-group">
+          <label className="form-label">Vendor(s)</label>
+          <div className="space-y-2">
+            <select
+              className="form-select"
+              value=""
+              onChange={(e) => {
+                const vendorId = e.target.value;
+                if (vendorId && !selectedVendors.includes(vendorId)) {
+                  setSelectedVendors((prev) => [...prev, vendorId]);
+                }
+              }}
+            >
+              <option value="">
+                {vendorsLoading ? "Loading vendors..." : "— Select vendor to add —"}
+              </option>
+              {allVendors
+                .filter((v) => !selectedVendors.includes(v._id))
+                .map((v) => (
+                  <option key={v._id} value={v._id}>
+                    {v.companyName}
+                  </option>
+                ))}
+            </select>
+            {selectedVendors.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {selectedVendors.map((vId) => {
+                  const vendor = allVendors.find((v) => v._id === vId);
+                  return (
+                    <span
+                      key={vId}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-medium"
+                    >
+                      {vendor?.companyName || vId}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedVendors((prev) => prev.filter((id) => id !== vId))}
+                        className="hover:text-red-500 transition-colors"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+            <p className="text-xs text-gray-400">Multiple vendors can supply the same product.</p>
+          </div>
         </div>
       </Section>
 

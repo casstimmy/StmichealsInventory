@@ -238,7 +238,7 @@ export default function Sidebar() {
           <ul className="space-y-1">
             {canAccess("dashboard") && renderMenuItem("/", faHome, "Home")}
             {/* Setup Menu with Submenu */}
-            {canAccessAny(["setup", "setup.company", "setup.hero-promo", "setup.receipts", "setup.pos-tenders", "setup.location-items", "setup.assets", "setup.users"]) && (
+            {canAccessAny(["setup", "setup.company", "setup.hero-promo", "setup.receipts", "setup.pos-tenders", "setup.location-items", "setup.assets", "setup.users", "setup.color-theme"]) && (
             <li
               className={`${pathname.startsWith("/setup") ? activeLink : baseLink} relative`}
             >
@@ -274,6 +274,7 @@ export default function Sidebar() {
                   { href: "/setup/location-items", label: "Location Tenders" },
                   { href: "/setup/assets", label: "Assets" },
                   { href: "/setup/users", label: "Users" },
+                  { href: "/setup/color-theme", label: "Color Theme" },
                 ].filter(item => {
                   const permMap = {
                     "/setup/setup": "setup.company",
@@ -283,6 +284,7 @@ export default function Sidebar() {
                     "/setup/location-items": "setup.location-items",
                     "/setup/assets": "setup.assets",
                     "/setup/users": "setup.users",
+                    "/setup/color-theme": "setup.color-theme",
                   };
                   return canAccess(permMap[item.href] || "setup");
                 }))}
@@ -341,7 +343,7 @@ export default function Sidebar() {
                   };
                   return canAccess(permMap[item.href] || "manage");
                 }))}
-                {canAccessAny(["manage.staff", "manage.staff-roles", "manage"]) && (
+                {canAccessAny(["manage.staff", "manage.staff-roles"]) && (
                 <li className="border-b border-gray-100 transition-all duration-300 group">
                   <button
                     onClick={() => toggleSubMenu("staff-menu")}
@@ -369,7 +371,7 @@ export default function Sidebar() {
                   )}
                 </li>
                 )}
-                {canAccessAny(["manage.vendors", "manage.purchase-orders", "manage"]) && (
+                {canAccessAny(["manage.vendors", "manage.purchase-orders"]) && (
                 <li className="border-b border-gray-100 transition-all duration-300 group">
                   <button
                     onClick={() => toggleSubMenu("procurement-menu")}
@@ -636,7 +638,7 @@ export default function Sidebar() {
             )}
 
             {/* Setup Menu */}
-            {canAccessAny(["setup", "setup.company", "setup.hero-promo", "setup.receipts", "setup.pos-tenders", "setup.location-items", "setup.assets", "setup.users"]) && (
+            {canAccessAny(["setup", "setup.company", "setup.hero-promo", "setup.receipts", "setup.pos-tenders", "setup.location-items", "setup.assets", "setup.users", "setup.color-theme"]) && (
             <li>
               <button
                 onClick={() => toggleMenu("setup")}
@@ -699,6 +701,13 @@ export default function Sidebar() {
                   <li onClick={closeMenu}>
                     <Link href="/setup/users" className={`block px-8 py-3 text-sm transition-all ${pathname === "/setup/users" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Users
+                    </Link>
+                  </li>
+                  )}
+                  {canAccess("setup.color-theme") && (
+                  <li onClick={closeMenu}>
+                    <Link href="/setup/color-theme" className={`block px-8 py-3 text-sm transition-all ${pathname === "/setup/color-theme" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                      Color Theme
                     </Link>
                   </li>
                   )}
@@ -767,7 +776,7 @@ export default function Sidebar() {
                     </Link>
                   </li>
                   )}
-                  {canAccessAny(["manage.staff", "manage.staff-roles", "manage"]) && (
+                  {canAccessAny(["manage.staff", "manage.staff-roles"]) && (
                   <li>
                     <button
                       onClick={() => toggleSubMenu("mobile-staff-menu")}
@@ -813,7 +822,7 @@ export default function Sidebar() {
                     </Link>
                   </li>
                   )}
-                  {canAccessAny(["manage.vendors", "manage.purchase-orders", "manage"]) && (
+                  {canAccessAny(["manage.vendors", "manage.purchase-orders"]) && (
                   <li>
                     <button
                       onClick={() => toggleSubMenu("mobile-procurement-menu")}

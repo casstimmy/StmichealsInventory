@@ -83,6 +83,11 @@ const ProductSchema = new Schema(
     isArchived: { type: Boolean, default: false, index: true },
     archivedAt: { type: Date },
     archivedReason: { type: String, default: "" },
+
+    /* =====================
+       VENDOR ASSOCIATION
+    ===================== */
+    vendors: [{ type: Schema.Types.ObjectId, ref: "Vendor" }],
   },
   { timestamps: true }
 );

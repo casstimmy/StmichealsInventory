@@ -3,6 +3,7 @@ import '../styles/globals.css';
 import { useRouter } from 'next/router';
 import { useEffect } from 'react';
 import Layout from '@/components/Layout';
+import { ThemeProvider } from '@/components/ThemeProvider';
 import axios from "axios";
 import { fetchAndCacheLogo } from '@/lib/storeLogo';
 import {
@@ -220,9 +221,11 @@ export default function App({
       </Head>
       
       {showLayout ? (
-        <Layout>
-          <Component {...pageProps} />
-        </Layout>
+        <ThemeProvider>
+          <Layout>
+            <Component {...pageProps} />
+          </Layout>
+        </ThemeProvider>
       ) : (
         <Component {...pageProps} />
       )}

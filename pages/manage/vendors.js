@@ -28,6 +28,7 @@ export default function VendorsPage() {
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [productSearch, setProductSearch] = useState("");
+  const [activeProductDropdown, setActiveProductDropdown] = useState(null);
 
   // Order form state
   const [selectedVendor, setSelectedVendor] = useState(null);
@@ -724,24 +725,31 @@ export default function VendorsPage() {
                         <div className="flex-1 relative">
                           <input
                             type="text"
-                            placeholder="Search product..."
+                            placeholder="Search or select product..."
                             value={vp.productName || ""}
                             onChange={(e) => {
                               updateVendorProduct(i, "productName", e.target.value);
                               setProductSearch(e.target.value);
+                              setActiveProductDropdown(i);
                             }}
-                            onFocus={() => setProductSearch(vp.productName || "")}
+                            onFocus={() => {
+                              setProductSearch(vp.productName || "");
+                              setActiveProductDropdown(i);
+                            }}
+                            onBlur={() => setTimeout(() => setActiveProductDropdown(null), 200)}
                             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
                           />
-                          {productSearch && !vp.product && (
-                            <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto">
-                              {filteredProductOptions.slice(0, 20).map((p) => (
+                          {activeProductDropdown === i && !vp.product && (
+                            <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto">
+                              {filteredProductOptions.slice(0, 30).map((p) => (
                                 <button
                                   key={p._id}
                                   type="button"
+                                  onMouseDown={(e) => e.preventDefault()}
                                   onClick={() => {
                                     updateVendorProduct(i, "product", p._id);
                                     setProductSearch("");
+                                    setActiveProductDropdown(null);
                                   }}
                                   className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 border-b border-gray-100 last:border-0"
                                 >
@@ -754,7 +762,7 @@ export default function VendorsPage() {
                             </div>
                           )}
                           {vp.product && (
-                            <button type="button" onClick={() => { updateVendorProduct(i, "product", ""); updateVendorProduct(i, "productName", ""); }} className="absolute right-2 top-2.5 text-gray-400 hover:text-red-500"><X size={14} /></button>
+                            <button type="button" onClick={() => { updateVendorProduct(i, "product", ""); updateVendorProduct(i, "productName", ""); setActiveProductDropdown(null); }} className="absolute right-2 top-2.5 text-gray-400 hover:text-red-500"><X size={14} /></button>
                           )}
                         </div>
                         <button type="button" onClick={() => removeVendorProduct(i)} className="p-1 text-red-400 hover:text-red-600"><Trash2 size={14} /></button>

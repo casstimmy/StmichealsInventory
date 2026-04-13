@@ -620,7 +620,7 @@ export default function PurchaseOrdersPage() {
           {/* Desktop Table */}
           <div className="hidden md:block bg-white rounded-xl shadow overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-300 text-sm select-none">
-              <thead className="bg-gradient-to-r from-[#4c63ae] to-[#5398d2] text-white font-semibold uppercase tracking-wide">
+              <thead className="text-white font-semibold uppercase tracking-wide" style={{ background: "linear-gradient(to right, var(--table-header-from), var(--table-header-to))" }}>
                 <tr>
                   <th className="px-4 py-3 text-left">Date</th>
                   <th className="px-4 py-3 text-left">Ref</th>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
 import useProgress from "@/lib/useProgress";
@@ -322,7 +322,8 @@ export default function StaffPage() {
                     </thead>
                     <tbody>
                   {staffList.map((staff) => (
-                    <tr key={staff._id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <React.Fragment key={staff._id}>
+                    <tr className="border-b border-gray-100 hover:bg-gray-50">
                       {editingId === staff._id ? (
                         <td colSpan={6} className="px-4 py-4">
                         <div className="space-y-3 max-w-xl">
@@ -445,6 +446,7 @@ export default function StaffPage() {
                         </td>
                       </tr>
                     )}
+                    </React.Fragment>
                   ))}
                     </tbody>
                   </table>

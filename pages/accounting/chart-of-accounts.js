@@ -67,7 +67,7 @@ export default function ChartOfAccountsPage() {
     }
 
     try {
-      const url = editing ? `/api/accounting/${editing}` : "/api/accounting/accounts";
+      const url = editing ? `/api/accounting/accounts/${editing}` : "/api/accounting/accounts";
       const method = editing ? "PUT" : "POST";
       const res = await fetch(url, {
         method,
@@ -87,7 +87,7 @@ export default function ChartOfAccountsPage() {
   async function handleDelete(id) {
     if (!confirm("Delete this account?")) return;
     try {
-      const res = await fetch(`/api/accounting/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/accounting/accounts/${id}`, { method: "DELETE" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
       setSuccess("Account deleted");

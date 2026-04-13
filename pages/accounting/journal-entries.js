@@ -134,7 +134,7 @@ export default function JournalEntriesPage() {
 
   async function postEntry(id) {
     try {
-      const res = await fetch(`/api/accounting/${id}`, {
+      const res = await fetch(`/api/accounting/entries/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "post" }),
@@ -152,7 +152,7 @@ export default function JournalEntriesPage() {
     const reason = prompt("Reason for voiding this entry:");
     if (!reason) return;
     try {
-      const res = await fetch(`/api/accounting/${id}`, {
+      const res = await fetch(`/api/accounting/entries/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "void", voidReason: reason }),
@@ -169,7 +169,7 @@ export default function JournalEntriesPage() {
   async function deleteEntry(id) {
     if (!confirm("Delete this draft entry?")) return;
     try {
-      const res = await fetch(`/api/accounting/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/accounting/entries/${id}`, { method: "DELETE" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
       setSuccess("Entry deleted");

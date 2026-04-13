@@ -19,6 +19,18 @@
         "/^Copy-Item \"C:\\\\Users\\\\hp\\\\Desktop\\\\Projects\\\\BizSuits\\\\BizSuits_System\\\\public\\\\images\\\\Icon\\.svg\" \"c:\\\\Users\\\\hp\\\\Desktop\\\\Projects\\\\Inventory-sales\\\\Inventory\\\\inventory-admin-app\\\\public\\\\images\\\\bizsuits-icon\\.svg\"$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^npx next build 2>&1 \\| Select-String -Pattern \"error\\|Error\\|failed\\|Failed\" \\| Select-Object -First 20$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^npx next build 2>&1 \\| Out-String$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^npx next dev -p 3099$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     }
 }

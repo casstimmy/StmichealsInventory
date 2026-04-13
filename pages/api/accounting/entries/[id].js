@@ -8,17 +8,17 @@ export default async function handler(req, res) {
   if (!isStaff(req)) return res.status(403).json({ error: "Insufficient permissions" });
 
   await mongooseConnect();
-  const { entryId } = req.query;
+  const { id } = req.query;
 
   try {
     if (req.method === "GET") {
-      const entry = await JournalEntry.findById(entryId).lean();
+      const entry = await JournalEntry.findById(id).lean();
       if (!entry) return res.status(404).json({ success: false, message: "Entry not found" });
       return res.status(200).json({ success: true, entry });
     }
 
     if (req.method === "PUT") {
-      const entry = await JournalEntry.findById(entryId);
+      const entry = await JournalEntry.findById(id);
       if (!entry) return res.status(404).json({ success: false, message: "Entry not found" });
 
       const { action } = req.body;
@@ -64,12 +64,12 @@ export default async function handler(req, res) {
     }
 
     if (req.method === "DELETE") {
-      const entry = await JournalEntry.findById(entryId);
+      const entry = await JournalEntry.findById(id);
       if (!entry) return res.status(404).json({ success: false, message: "Entry not found" });
       if (entry.status === "POSTED") {
         return res.status(400).json({ success: false, message: "Cannot delete posted entries. Void them instead." });
       }
-      await JournalEntry.findByIdAndDelete(entryId);
+      await JournalEntry.findByIdAndDelete(id);
       return res.status(200).json({ success: true, message: "Entry deleted" });
     }
 

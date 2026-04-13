@@ -60,7 +60,7 @@ export default function VendorsPage() {
   async function fetchProducts() {
     try {
       const res = await apiClient.get("/api/products?minimal=true&limit=1000");
-      const list = res.data?.products || res.data;
+      const list = res.data?.data || res.data?.products || res.data;
       setAllProducts(Array.isArray(list) ? list : []);
     } catch { }
   }
@@ -729,6 +729,7 @@ export default function VendorsPage() {
                             value={vp.productName || ""}
                             onChange={(e) => {
                               updateVendorProduct(i, "productName", e.target.value);
+                              updateVendorProduct(i, "product", "");
                               setProductSearch(e.target.value);
                               setActiveProductDropdown(i);
                             }}
@@ -739,7 +740,7 @@ export default function VendorsPage() {
                             onBlur={() => setTimeout(() => setActiveProductDropdown(null), 200)}
                             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
                           />
-                          {activeProductDropdown === i && !vp.product && (
+                          {activeProductDropdown === i && (
                             <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto">
                               {filteredProductOptions.slice(0, 30).map((p) => (
                                 <button

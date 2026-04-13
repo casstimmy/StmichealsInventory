@@ -88,6 +88,11 @@ const ProductSchema = new Schema(
        VENDOR ASSOCIATION
     ===================== */
     vendors: [{ type: Schema.Types.ObjectId, ref: "Vendor" }],
+
+    /* =====================
+       LOCATION ASSIGNMENT
+    ===================== */
+    locations: [{ type: String }],
   },
   { timestamps: true }
 );

@@ -284,12 +284,12 @@ export default function StockMovementAdd() {
                   }}
                 />
                 {loadingSearch && (
-                  <div className="absolute top-12 left-0 w-full bg-white border-2 border-gray-300 rounded-lg p-4 shadow-lg">
+                  <div className="absolute top-full mt-1 left-0 w-full bg-white border-2 border-gray-300 rounded-lg p-4 shadow-lg z-20">
                     <Loader size="sm" text="Searching..." />
                   </div>
                 )}
                 {!loadingSearch && products.length > 0 && (
-                  <ul className="absolute top-12 left-0 z-10 bg-white border-2 border-gray-300 w-full max-h-64 overflow-y-auto rounded-lg shadow-lg">
+                  <ul className="absolute top-full mt-1 left-0 z-20 bg-white border-2 border-gray-300 w-full max-h-64 overflow-y-auto rounded-lg shadow-lg">
                     {products.map((product) => (
                       <li
                         key={product._id}

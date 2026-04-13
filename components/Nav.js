@@ -154,10 +154,12 @@ export default function Sidebar() {
 
   const baseLink =
     "px-2 py-4 text-gray-600 transition-all duration-300 hover:bg-blue-50 hover:text-blue-600 flex items-center justify-center flex-col text-xs cursor-pointer border-l-4 border-transparent hidden md:flex";
-  const activeLink = `px-2 py-4 text-white bg-gradient-to-r from-blue-600 to-blue-700 flex items-center justify-center flex-col text-xs cursor-pointer font-semibold border-l-4 border-blue-900 transition-all duration-300 hidden md:flex shadow-md`;
+  const activeLinkStyle = { background: `linear-gradient(to right, var(--sidebar-active-from, #2563eb), var(--sidebar-active-to, #1d4ed8))`, borderLeftColor: `var(--sidebar-active-to, #1d4ed8)` };
+  const activeLink = `px-2 py-4 text-white nav-active-gradient flex items-center justify-center flex-col text-xs cursor-pointer font-semibold border-l-4 transition-all duration-300 hidden md:flex shadow-md`;
 
   const mobileBaseLink = "px-3 py-3 text-gray-700 transition-all duration-300 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent flex items-center gap-3 text-sm";
-  const mobileActiveLink = "px-3 py-3 text-white bg-gradient-to-r from-blue-600 to-blue-700 border-l-4 border-blue-900 flex items-center gap-3 text-sm font-semibold";
+  const mobileActiveLinkStyle = { background: `linear-gradient(to right, var(--sidebar-active-from, #2563eb), var(--sidebar-active-to, #1d4ed8))`, borderLeftColor: `var(--sidebar-active-to, #1d4ed8)` };
+  const mobileActiveLink = "px-3 py-3 text-white border-l-4 nav-active-gradient flex items-center gap-3 text-sm font-semibold";
 
   const renderMenuItem = (href, icon, label) => (
     <li key={href} className={pathname === href ? activeLink : baseLink}>
@@ -211,7 +213,8 @@ export default function Sidebar() {
       {isMobile && !isMobileMenuOpen && (
         <button
           onClick={() => setIsMobileMenuOpen(true)}
-          className="md:hidden fixed bottom-6 right-6 w-16 h-16 rounded-full bg-gradient-to-r from-blue-600 to-blue-700 text-white flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-110 z-40"
+          className="md:hidden fixed bottom-6 right-6 w-16 h-16 rounded-full text-white flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-110 z-40"
+          style={{ background: `linear-gradient(to right, var(--sidebar-active-from, #2563eb), var(--sidebar-active-to, #1d4ed8))` }}
           aria-label="Open menu"
         >
           <div className="flex flex-col items-center justify-center gap-1">
@@ -615,7 +618,7 @@ export default function Sidebar() {
       {isMobileMenuOpen && isMobile && (
         <nav className="fixed top-0 left-0 right-0 bottom-0 w-full bg-white shadow-2xl z-40 overflow-y-auto">
           {/* Mobile Header */}
-          <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-4 flex items-center justify-between border-b border-blue-800">
+          <div className="sticky top-0 text-white px-4 py-4 flex items-center justify-between" style={{ background: `linear-gradient(to right, var(--sidebar-active-from, #2563eb), var(--sidebar-active-to, #1d4ed8))` }}>
             <span className="text-lg font-bold">Menu</span>
             <button
               onClick={() => setIsMobileMenuOpen(false)}

@@ -256,7 +256,7 @@ export default function PromotionsManagementPage() {
       const res = await fetch(`/api/promotions/${id}`, { method: "DELETE" });
       if (res.ok) {
         setSuccess("Promotion deleted successfully!");
-        fetchData();
+        fetchPromotions();
       }
     } catch (err) {
       setError(err.message);
@@ -447,7 +447,7 @@ export default function PromotionsManagementPage() {
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 mb-3">Target Customer Types *</h3>
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                    {["REGULAR", "VIP", "NEW", "INACTIVE", "BULK_BUYER"].map((type) => (
+                    {["REGULAR", "VIP", "NEW", "INACTIVE", "BULK_BUYER", "ONLINE"].map((type) => (
                       <label key={type} className="flex items-center p-2 border-2 rounded-lg cursor-pointer hover:bg-gray-50" style={{
                         borderColor: formData.targetCustomerTypes.includes(type) ? "#06b6d4" : "#e5e7eb",
                         backgroundColor: formData.targetCustomerTypes.includes(type) ? "#ecf9fb" : "white",
@@ -738,7 +738,13 @@ export default function PromotionsManagementPage() {
                     </div>
                     <div>
                       <p className="text-gray-600">Apply To</p>
-                      <p className="font-semibold text-gray-900">{promo.applicationType}</p>
+                      <p className="font-semibold text-gray-900">
+                        {promo.applicationType === "ONE_PRODUCT" && promo.products?.length > 0
+                          ? promo.products.map(p => p.name || p).join(", ")
+                          : promo.applicationType === "CATEGORY" && promo.categories?.length > 0
+                          ? promo.categories.map(c => c.name || c).join(", ")
+                          : promo.applicationType?.replace(/_/g, " ")}
+                      </p>
                     </div>
                     <div>
                       <p className="text-gray-600">Period</p>

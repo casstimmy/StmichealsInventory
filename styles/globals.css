@@ -104,6 +104,12 @@ body {
   line-height: 1.6;
 }
 
+/* Theme-aware nav active gradient */
+.nav-active-gradient {
+  background: linear-gradient(to right, var(--sidebar-active-from, #2563eb), var(--sidebar-active-to, #1d4ed8)) !important;
+  border-left-color: var(--sidebar-active-to, #1d4ed8) !important;
+}
+
 .main {
   font-family: var(--font-family-base);
 }
@@ -497,7 +503,11 @@ a:active,
 }
 
 .btn-action-primary {
-  @apply btn-action bg-sky-600 text-white hover:bg-sky-700 focus:ring-sky-400;
+  @apply btn-action text-white focus:ring-sky-400;
+  background-color: var(--btn-primary-bg, #0284c7);
+}
+.btn-action-primary:hover {
+  background-color: var(--btn-primary-hover, #0369a1);
 }
 
 .btn-action-secondary {

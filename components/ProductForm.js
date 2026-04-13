@@ -48,6 +48,11 @@ export default function ProductForm(props) {
   const [selectedVendors, setSelectedVendors] = useState(props.vendors || []);
   const [allVendors, setAllVendors] = useState([]);
   const [vendorsLoading, setVendorsLoading] = useState(true);
+  const [packType, setPackType] = useState(props.packType || "unit");
+  const [qtyPerPack, setQtyPerPack] = useState(props.qtyPerPack ?? 1);
+  const [childSalePrice, setChildSalePrice] = useState(props.childSalePrice ?? "");
+  const [selectedLocations, setSelectedLocations] = useState(props.locations || []);
+  const [allLocations, setAllLocations] = useState([]);
 
   const [isPromotion, setIsPromotion] = useState(props.isPromotion || false);
   const [promoPrice, setPromoPrice] = useState(props.promoPrice ?? "");
@@ -91,6 +96,10 @@ export default function ProductForm(props) {
     setProperties(props.properties || []);
     setMinStock(props.minStock ?? "");
     setSelectedVendors(props.vendors || []);
+    setPackType(props.packType || "unit");
+    setQtyPerPack(props.qtyPerPack ?? 1);
+    setChildSalePrice(props.childSalePrice ?? "");
+    setSelectedLocations(props.locations || []);
     setIsPromotion(props.isPromotion || false);
     setPromoPrice(props.promoPrice ?? "");
     setPromoStart(toDateInputValue(props.promoStart));
@@ -123,6 +132,18 @@ export default function ProductForm(props) {
       })
       .catch(() => {})
       .finally(() => setVendorsLoading(false));
+  }, []);
+
+  // Load locations
+  useEffect(() => {
+    axios.get("/api/setup/get")
+      .then((res) => {
+        const store = res.data?.store;
+        if (store?.locations && Array.isArray(store.locations)) {
+          setAllLocations(store.locations.map((loc) => loc.name || loc));
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Reset promo fields if unchecked
@@ -225,6 +246,10 @@ export default function ProductForm(props) {
       promoEnd: isPromotion ? promoEnd : "",
       effectivePrice, // ✅ enforce effective price
       vendors: selectedVendors,
+      locations: selectedLocations,
+      packType,
+      qtyPerPack: packType === "pack" ? Number(qtyPerPack) || 1 : 1,
+      childSalePrice: packType === "pack" ? Number(childSalePrice) || 0 : undefined,
     };
 
     try {
@@ -281,7 +306,8 @@ export default function ProductForm(props) {
 
   function generateBarcode() {
     const base = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
-    setBarcode(base.slice(-13));
+    const newCode = base.slice(-13);
+    setBarcode((prev) => prev ? `${prev}, ${newCode}` : newCode);
   }
 
   return (
@@ -443,6 +469,50 @@ export default function ProductForm(props) {
             <p className="text-xs text-gray-400">Multiple vendors can supply the same product.</p>
           </div>
         </div>
+
+        {/* Location Assignment */}
+        <div className="form-group">
+          <label className="form-label">Location(s)</label>
+          <div className="space-y-2">
+            <select
+              className="form-select"
+              value=""
+              onChange={(e) => {
+                const loc = e.target.value;
+                if (loc && !selectedLocations.includes(loc)) {
+                  setSelectedLocations((prev) => [...prev, loc]);
+                }
+              }}
+            >
+              <option value="">— Select location to add —</option>
+              {allLocations
+                .filter((loc) => !selectedLocations.includes(loc))
+                .map((loc) => (
+                  <option key={loc} value={loc}>{loc}</option>
+                ))}
+            </select>
+            {selectedLocations.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {selectedLocations.map((loc) => (
+                  <span
+                    key={loc}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-medium"
+                  >
+                    {loc}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedLocations((prev) => prev.filter((l) => l !== loc))}
+                      className="hover:text-red-500 transition-colors"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <p className="text-xs text-gray-400">Assign product to specific store locations.</p>
+          </div>
+        </div>
       </Section>
 
       {/* Pricing */}
@@ -545,6 +615,47 @@ export default function ProductForm(props) {
             setValue={setQuantity}
           />
         </div>
+      </Section>
+
+      {/* Pack / Child Product */}
+      <Section title="Pack & Child Product">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+          <div className="form-group">
+            <label className="form-label">Pack Type</label>
+            <select
+              className="form-select"
+              value={packType}
+              onChange={(e) => setPackType(e.target.value)}
+            >
+              <option value="unit">Unit (Single Item)</option>
+              <option value="pack">Pack (Multiple Units)</option>
+            </select>
+          </div>
+          {packType === "pack" && (
+            <>
+              <InputField
+                label="Qty Per Pack"
+                type="number"
+                value={qtyPerPack}
+                setValue={setQtyPerPack}
+              />
+              <InputField
+                label="Child Sale Price (₦)"
+                type="number"
+                value={childSalePrice}
+                setValue={setChildSalePrice}
+              />
+            </>
+          )}
+        </div>
+        {packType === "pack" && Number(qtyPerPack) > 1 && (
+          <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg text-sm text-purple-700">
+            <p>
+              <strong>Pack of {qtyPerPack}:</strong> Cost per unit = {formatCurrency((Number(costPrice) || 0) / (Number(qtyPerPack) || 1))}
+              {childSalePrice ? ` | Child sale price = ${formatCurrency(Number(childSalePrice))}` : ""}
+            </p>
+          </div>
+        )}
       </Section>
 
       {/* Promotion */}

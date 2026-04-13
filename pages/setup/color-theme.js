@@ -396,28 +396,72 @@ export default function ColorThemePage() {
 }
 
 function ColorField({ label, value, onChange }) {
+  const [showSwatches, setShowSwatches] = useState(false);
+
+  const SWATCHES = [
+    // Reds
+    "#fecaca", "#fca5a5", "#f87171", "#ef4444", "#dc2626", "#b91c1c", "#991b1b", "#7f1d1d",
+    // Oranges
+    "#fed7aa", "#fdba74", "#fb923c", "#f97316", "#ea580c", "#c2410c", "#9a3412", "#7c2d12",
+    // Ambers
+    "#fde68a", "#fcd34d", "#fbbf24", "#f59e0b", "#d97706", "#b45309", "#92400e", "#78350f",
+    // Greens
+    "#bbf7d0", "#86efac", "#4ade80", "#22c55e", "#16a34a", "#15803d", "#166534", "#14532d",
+    // Emeralds
+    "#a7f3d0", "#6ee7b7", "#34d399", "#10b981", "#059669", "#047857", "#065f46", "#064e3b",
+    // Teals
+    "#99f6e4", "#5eead4", "#2dd4bf", "#14b8a6", "#0d9488", "#0f766e", "#115e59", "#134e4a",
+    // Cyans
+    "#a5f3fc", "#67e8f9", "#22d3ee", "#06b6d4", "#0891b2", "#0e7490", "#155e75", "#164e63",
+    // Sky Blues
+    "#bae6fd", "#7dd3fc", "#38bdf8", "#0ea5e9", "#0284c7", "#0369a1", "#075985", "#0c4a6e",
+    // Blues
+    "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8", "#1e40af", "#1e3a8a",
+    // Indigos
+    "#c7d2fe", "#a5b4fc", "#818cf8", "#6366f1", "#4f46e5", "#4338ca", "#3730a3", "#312e81",
+    // Violets
+    "#ddd6fe", "#c4b5fd", "#a78bfa", "#8b5cf6", "#7c3aed", "#6d28d9", "#5b21b6", "#4c1d95",
+    // Pinks
+    "#fbcfe8", "#f9a8d4", "#f472b6", "#ec4899", "#db2777", "#be185d", "#9d174d", "#831843",
+    // Grays
+    "#f3f4f6", "#e5e7eb", "#d1d5db", "#9ca3af", "#6b7280", "#4b5563", "#374151", "#1f2937",
+  ];
+
   return (
-    <div className="flex items-center gap-3">
-      <div className="relative">
+    <div className="space-y-1.5">
+      <label className="block text-xs font-medium text-gray-600">{label}</label>
+      <div className="flex items-center gap-2">
         <input
           type="color"
           value={value || "#000000"}
           onChange={(e) => onChange(e.target.value)}
-          className="w-10 h-10 rounded-lg border-2 border-gray-200 cursor-pointer p-0.5"
-          style={{ backgroundColor: value }}
+          className="w-10 h-10 rounded-lg border-2 border-gray-200 cursor-pointer p-0.5 shrink-0"
         />
+        <div
+          className="flex-1 h-10 rounded-lg border border-gray-200 flex items-center px-3 cursor-pointer hover:bg-gray-50 transition"
+          onClick={() => setShowSwatches(!showSwatches)}
+        >
+          <div className="w-5 h-5 rounded-full border border-gray-300 mr-2 shrink-0" style={{ backgroundColor: value }} />
+          <span className="text-sm font-mono text-gray-700">{value}</span>
+          <svg className={`w-4 h-4 ml-auto text-gray-400 transition-transform ${showSwatches ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+        </div>
       </div>
-      <div className="flex-1">
-        <label className="block text-xs font-medium text-gray-600">{label}</label>
-        <input
-          type="text"
-          value={value || ""}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="#000000"
-          className="w-full text-sm border border-gray-200 rounded px-2 py-1 font-mono"
-          maxLength={7}
-        />
-      </div>
+      {showSwatches && (
+        <div className="grid grid-cols-8 gap-1 p-2 bg-gray-50 rounded-lg border border-gray-200 max-h-40 overflow-y-auto">
+          {SWATCHES.map((color) => (
+            <button
+              key={color}
+              type="button"
+              onClick={() => { onChange(color); setShowSwatches(false); }}
+              className={`w-full aspect-square rounded-md border-2 transition-all hover:scale-110 ${
+                value === color ? "border-gray-900 ring-1 ring-gray-900 scale-110" : "border-transparent hover:border-gray-400"
+              }`}
+              style={{ backgroundColor: color }}
+              title={color}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

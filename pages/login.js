@@ -29,6 +29,18 @@ export default function Login({ staffList, locations }) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  // Determine if selected user is admin
+  const selectedUser = staffList.find((u) => u.name === name);
+  const isSelectedAdmin = selectedUser?.role === "admin";
+  const userAssignedLocation = selectedUser?.assignedLocation || "";
+
+  // When user changes, auto-set location for non-admins
+  useEffect(() => {
+    if (name && !isSelectedAdmin && userAssignedLocation) {
+      setLocation(userAssignedLocation);
+    }
+  }, [name, isSelectedAdmin, userAssignedLocation]);
+
   /* ===== Init Store ===== */
   useEffect(() => {
     async function init() {
@@ -181,14 +193,26 @@ export default function Login({ staffList, locations }) {
             <select
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              className="w-full mb-4 px-4 py-3 border-2 rounded-lg"
+              disabled={name && !isSelectedAdmin && !!userAssignedLocation}
+              className={`w-full mb-4 px-4 py-3 border-2 rounded-lg ${
+                name && !isSelectedAdmin && userAssignedLocation ? "bg-gray-100 text-gray-600 cursor-not-allowed" : ""
+              }`}
             >
-              {availableLocations.map((loc) => (
-                <option key={loc} value={loc}>
-                  {loc}
+              {(isSelectedAdmin || !name) ? (
+                availableLocations.map((loc) => (
+                  <option key={loc} value={loc}>{loc}</option>
+                ))
+              ) : (
+                <option value={userAssignedLocation || location}>
+                  {userAssignedLocation || location}
                 </option>
-              ))}
+              )}
             </select>
+            {name && !isSelectedAdmin && userAssignedLocation && (
+              <p className="text-xs text-gray-500 -mt-3 mb-3 text-center">
+                Assigned to {userAssignedLocation}
+              </p>
+            )}
 
             {/* PIN */}
             <div className="flex justify-center gap-3 mb-5">
@@ -257,11 +281,15 @@ export async function getServerSideProps() {
   const { connectToDatabase } = await import("@/lib/mongodb");
   const User = (await import("@/models/User")).default;
   const Store = (await import("@/models/Store")).default;
+  const Staff = (await import("@/models/Staff")).default;
 
   await connectToDatabase();
 
-  // ✅ Fetch ONLY admin users
+  // Fetch all users (for login dropdown)
   const adminUsers = await User.find({}, "name email role").lean();
+
+  // Fetch staff to get assigned locations
+  const staffData = await Staff.find({}, "name location role").lean();
 
   const store = await Store.findOne({}).lean();
 
@@ -269,9 +297,20 @@ export async function getServerSideProps() {
     typeof l === "string" ? l : l.name,
   ) || ["Default Location"];
 
+  // Create a map of user name to their assigned location from Staff
+  const staffLocationMap = {};
+  staffData.forEach((s) => {
+    if (s.name && s.location) {
+      staffLocationMap[s.name] = s.location;
+    }
+  });
+
   return {
     props: {
-      staffList: adminUsers,
+      staffList: adminUsers.map((u) => ({
+        ...JSON.parse(JSON.stringify(u)),
+        assignedLocation: staffLocationMap[u.name] || "",
+      })),
       locations,
     },
   };

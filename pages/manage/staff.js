@@ -308,11 +308,24 @@ export default function StaffPage() {
               ) : staffList.length === 0 ? (
                 <p className="text-gray-500">No staff created yet.</p>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="table-header-gradient text-white text-xs uppercase tracking-wider">
+                      <tr>
+                        <th className="text-left px-4 py-3 font-semibold">Staff</th>
+                        <th className="text-left px-4 py-3 font-semibold">Location</th>
+                        <th className="text-left px-4 py-3 font-semibold">Role</th>
+                        <th className="text-left px-4 py-3 font-semibold">Status</th>
+                        <th className="text-left px-4 py-3 font-semibold">Onboarding</th>
+                        <th className="text-right px-4 py-3 font-semibold">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
                   {staffList.map((staff) => (
-                    <div key={staff._id} className="p-4 rounded-lg shadow-sm hover:shadow-md transition border border-gray-200 bg-white">
+                    <tr key={staff._id} className="border-b border-gray-100 hover:bg-gray-50">
                       {editingId === staff._id ? (
-                        <div className="space-y-3">
+                        <td colSpan={6} className="px-4 py-4">
+                        <div className="space-y-3 max-w-xl">
                           <div className="flex items-center gap-3">
                             <div onClick={() => editPhotoRef.current?.click()} className="w-14 h-14 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-blue-400 transition overflow-hidden shrink-0">
                               {uploadingEditPhoto ? <Loader2 size={18} className="text-blue-400 animate-spin" /> : editPhotoPreview ? <img src={editPhotoPreview} alt="Staff" className="w-full h-full object-cover" /> : <Camera size={18} className="text-gray-400" />}
@@ -338,87 +351,103 @@ export default function StaffPage() {
                             <button onClick={cancelEdit} className="bg-gray-400 text-white px-4 py-1 rounded hover:bg-gray-500 text-sm font-semibold">Cancel</button>
                           </div>
                         </div>
+                        </td>
                       ) : (
-                        <div className="w-full">
-                          <div className="flex items-start gap-4 w-full">
-                            {staff.photo ? <img src={staff.photo} alt={staff.name} className="w-12 h-12 rounded-full object-cover shrink-0" /> : <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-lg shrink-0">{staff.name?.charAt(0).toUpperCase()}</div>}
-                            <div className="flex-1 min-w-0">
-                              <div className="text-lg font-semibold text-gray-800">{staff.name}</div>
-                              <div className="text-sm text-gray-600 mb-1">{staff.location}</div>
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                <span className={`text-xs font-medium px-2 py-1 rounded-full ${staff.role === "admin" || staff.role === "manager" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"}`}>
-                                  {STAFF_ROLE_OPTIONS.find((o) => o.value === staff.role)?.label || staff.role}
-                                </span>
-                                {staff.onboardingComplete ? (
-                                  <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 flex items-center gap-1"><CheckCircle size={10} /> Onboarded</span>
-                                ) : (
-                                  <span className="text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-700">Pending Form</span>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex flex-col gap-2 shrink-0">
-                              <button onClick={() => startEdit(staff)} className="text-xs px-3 py-1 border border-blue-500 text-blue-600 rounded-full hover:bg-blue-500 hover:text-white transition font-semibold">Edit</button>
-                              <button onClick={() => handleDelete(staff._id)} className="text-xs px-3 py-1 border border-red-500 text-red-600 rounded-full hover:bg-red-500 hover:text-white transition font-semibold">Delete</button>
+                        <>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            {staff.photo ? <img src={staff.photo} alt={staff.name} className="w-10 h-10 rounded-full object-cover shrink-0" /> : <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm shrink-0">{staff.name?.charAt(0).toUpperCase()}</div>}
+                            <div>
+                              <div className="font-semibold text-gray-800">{toCamelCase(staff.name || "")}</div>
+                              {staff.accountName && <div className="text-xs text-gray-400">{toCamelCase(staff.accountName)}</div>}
                             </div>
                           </div>
-                          <div className="mt-3 pt-2 border-t border-gray-100 flex flex-wrap items-center gap-2">
+                        </td>
+                        <td className="px-4 py-3 text-gray-600">{toCamelCase(staff.location || "—")}</td>
+                        <td className="px-4 py-3">
+                          <span className={`text-xs font-medium px-2 py-1 rounded-full ${staff.role === "admin" || staff.role === "manager" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"}`}>
+                            {toCamelCase(STAFF_ROLE_OPTIONS.find((o) => o.value === staff.role)?.label || staff.role)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          {staff.onboardingComplete ? (
+                            <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 inline-flex items-center gap-1"><CheckCircle size={10} /> Onboarded</span>
+                          ) : (
+                            <span className="text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-700">Pending</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap items-center gap-1.5">
                             {staff.onboardingToken && (
                               <>
-                                <button onClick={() => copyOnboardingLink(staff)} className="flex items-center gap-1 text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded hover:bg-indigo-100 transition">
-                                  {copiedLink === staff._id ? <><CheckCircle size={12} /> Copied!</> : <><Copy size={12} /> Copy Onboarding Link</>}
+                                <button onClick={() => copyOnboardingLink(staff)} className="flex items-center gap-1 text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded hover:bg-indigo-100 transition font-medium">
+                                  {copiedLink === staff._id ? <><CheckCircle size={12} /> Copied!</> : <><Copy size={12} /> Copy Link</>}
                                 </button>
-                                <button onClick={() => { setShowOnboardingEmailModal(staff._id); setOnboardingEmail(""); }} className="flex items-center gap-1 text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded hover:bg-blue-100 transition">
-                                  <Send size={12} /> Send Onboarding Link
+                                <button onClick={() => { setShowOnboardingEmailModal(staff._id); setOnboardingEmail(""); }} className="flex items-center gap-1 text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded hover:bg-blue-100 transition font-medium">
+                                  <Send size={12} /> Send
                                 </button>
-                                <a href={`${typeof window !== "undefined" ? window.location.origin : ""}/onboarding/${staff.onboardingToken}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs bg-green-50 text-green-600 px-2 py-1 rounded hover:bg-green-100 transition">
+                                <a href={`${typeof window !== "undefined" ? window.location.origin : ""}/onboarding/${staff.onboardingToken}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs bg-green-50 text-green-600 px-2 py-1 rounded hover:bg-green-100 transition font-medium">
                                   <Link2 size={12} /> Open Form
                                 </a>
                               </>
                             )}
                             {staff.onboardingComplete && (
                               <button onClick={() => setExpandedProfile(expandedProfile === staff._id ? null : staff._id)} className="flex items-center gap-1 text-xs bg-gray-50 text-gray-600 px-2 py-1 rounded hover:bg-gray-100 transition">
-                                {expandedProfile === staff._id ? <><ChevronUp size={12} /> Hide Profile</> : <><ChevronDown size={12} /> View Profile</>}
+                                {expandedProfile === staff._id ? <><ChevronUp size={12} /> Hide</> : <><ChevronDown size={12} /> View</>}
                               </button>
                             )}
                           </div>
-                          {expandedProfile === staff._id && staff.onboardingComplete && (
-                            <div className="mt-3 bg-gray-50 rounded-lg p-3 text-xs space-y-3">
-                              {staff.onboardingData && (
-                                <div>
-                                  <h4 className="font-semibold text-blue-700 mb-1">Personal Details</h4>
-                                  <div className="grid grid-cols-2 gap-1">
-                                    {staff.onboardingData.fullName && <p><span className="text-gray-500">Name:</span> {staff.onboardingData.fullName}</p>}
-                                    {staff.onboardingData.phone && <p><span className="text-gray-500">Phone:</span> {staff.onboardingData.phone}</p>}
-                                    {staff.onboardingData.email && <p><span className="text-gray-500">Email:</span> {staff.onboardingData.email}</p>}
-                                    {staff.onboardingData.dateOfBirth && <p><span className="text-gray-500">DOB:</span> {staff.onboardingData.dateOfBirth}</p>}
-                                    {staff.onboardingData.stateOfOrigin && <p><span className="text-gray-500">State:</span> {staff.onboardingData.stateOfOrigin}</p>}
-                                    {staff.onboardingData.address && <p className="col-span-2"><span className="text-gray-500">Address:</span> {staff.onboardingData.address}</p>}
-                                    {staff.onboardingData.nextOfKin && <p><span className="text-gray-500">Next of Kin:</span> {staff.onboardingData.nextOfKin}</p>}
-                                    {staff.onboardingData.nextOfKinPhone && <p><span className="text-gray-500">NoK Phone:</span> {staff.onboardingData.nextOfKinPhone}</p>}
-                                  </div>
-                                  {staff.onboardingData.photo && <img src={staff.onboardingData.photo} alt="Passport" className="w-16 h-16 rounded-lg object-cover mt-2 border" />}
-                                </div>
-                              )}
-                              {staff.guarantor?.name && (
-                                <div>
-                                  <h4 className="font-semibold text-blue-700 mb-1">Guarantor</h4>
-                                  <div className="grid grid-cols-2 gap-1">
-                                    <p><span className="text-gray-500">Name:</span> {staff.guarantor.name}</p>
-                                    {staff.guarantor.phone && <p><span className="text-gray-500">Phone:</span> {staff.guarantor.phone}</p>}
-                                    {staff.guarantor.email && <p><span className="text-gray-500">Email:</span> {staff.guarantor.email}</p>}
-                                    {staff.guarantor.relationship && <p><span className="text-gray-500">Relationship:</span> {staff.guarantor.relationship}</p>}
-                                    {staff.guarantor.occupation && <p><span className="text-gray-500">Occupation:</span> {staff.guarantor.occupation}</p>}
-                                    {staff.guarantor.address && <p className="col-span-2"><span className="text-gray-500">Address:</span> {staff.guarantor.address}</p>}
-                                  </div>
-                                  {staff.guarantor.photo && <img src={staff.guarantor.photo} alt="Guarantor" className="w-16 h-16 rounded-lg object-cover mt-2 border" />}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex justify-end gap-2">
+                            <button onClick={() => startEdit(staff)} className="text-xs px-3 py-1 border border-blue-500 text-blue-600 rounded-full hover:bg-blue-500 hover:text-white transition font-semibold">Edit</button>
+                            <button onClick={() => handleDelete(staff._id)} className="text-xs px-3 py-1 border border-red-500 text-red-600 rounded-full hover:bg-red-500 hover:text-white transition font-semibold">Delete</button>
+                          </div>
+                        </td>
+                        </>
                       )}
-                    </div>
+                    </tr>
+                    {expandedProfile === staff._id && staff.onboardingComplete && (
+                      <tr>
+                        <td colSpan={6} className="px-4 pb-4">
+                          <div className="bg-gray-50 rounded-lg p-3 text-xs space-y-3">
+                            {staff.onboardingData && (
+                              <div>
+                                <h4 className="font-semibold text-blue-700 mb-1">Personal Details</h4>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
+                                  {staff.onboardingData.fullName && <p><span className="text-gray-500">Name:</span> {toCamelCase(staff.onboardingData.fullName)}</p>}
+                                  {staff.onboardingData.phone && <p><span className="text-gray-500">Phone:</span> {staff.onboardingData.phone}</p>}
+                                  {staff.onboardingData.email && <p><span className="text-gray-500">Email:</span> {staff.onboardingData.email}</p>}
+                                  {staff.onboardingData.dateOfBirth && <p><span className="text-gray-500">DOB:</span> {staff.onboardingData.dateOfBirth}</p>}
+                                  {staff.onboardingData.stateOfOrigin && <p><span className="text-gray-500">State:</span> {toCamelCase(staff.onboardingData.stateOfOrigin)}</p>}
+                                  {staff.onboardingData.address && <p className="col-span-2"><span className="text-gray-500">Address:</span> {toCamelCase(staff.onboardingData.address)}</p>}
+                                  {staff.onboardingData.nextOfKin && <p><span className="text-gray-500">Next Of Kin:</span> {toCamelCase(staff.onboardingData.nextOfKin)}</p>}
+                                  {staff.onboardingData.nextOfKinPhone && <p><span className="text-gray-500">NoK Phone:</span> {staff.onboardingData.nextOfKinPhone}</p>}
+                                </div>
+                                {staff.onboardingData.photo && <img src={staff.onboardingData.photo} alt="Passport" className="w-16 h-16 rounded-lg object-cover mt-2 border" />}
+                              </div>
+                            )}
+                            {staff.guarantor?.name && (
+                              <div>
+                                <h4 className="font-semibold text-blue-700 mb-1">Guarantor</h4>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
+                                  <p><span className="text-gray-500">Name:</span> {toCamelCase(staff.guarantor.name)}</p>
+                                  {staff.guarantor.phone && <p><span className="text-gray-500">Phone:</span> {staff.guarantor.phone}</p>}
+                                  {staff.guarantor.email && <p><span className="text-gray-500">Email:</span> {staff.guarantor.email}</p>}
+                                  {staff.guarantor.relationship && <p><span className="text-gray-500">Relationship:</span> {toCamelCase(staff.guarantor.relationship)}</p>}
+                                  {staff.guarantor.occupation && <p><span className="text-gray-500">Occupation:</span> {toCamelCase(staff.guarantor.occupation)}</p>}
+                                  {staff.guarantor.address && <p className="col-span-2"><span className="text-gray-500">Address:</span> {toCamelCase(staff.guarantor.address)}</p>}
+                                </div>
+                                {staff.guarantor.photo && <img src={staff.guarantor.photo} alt="Guarantor" className="w-16 h-16 rounded-lg object-cover mt-2 border" />}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
                   ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
               <p className="text-sm text-gray-500 mt-6">Note: Passwords are hashed and not displayed for security.</p>
@@ -495,24 +524,24 @@ export default function StaffPage() {
               <>
                 <div className="overflow-x-auto">
                   <table className="salary-print-table w-full text-sm">
-                    <thead className="bg-blue-100 border-b-2 border-blue-300">
+                    <thead className="table-header-gradient text-white text-xs uppercase tracking-wider border-b-2 border-blue-300">
                       <tr>
-                        <th className="px-6 py-3 text-left font-bold text-gray-900">Staff Name</th>
-                        <th className="px-6 py-3 text-left font-bold text-gray-900">Location</th>
-                        <th className="px-6 py-3 text-left font-bold text-gray-900">Account Name</th>
-                        <th className="px-6 py-3 text-left font-bold text-gray-900">Bank Account</th>
-                        <th className="px-6 py-3 text-left font-bold text-gray-900">Bank Name</th>
-                        <th className="px-6 py-3 text-right font-bold text-gray-900">Amount</th>
+                        <th className="px-6 py-3 text-left font-bold">Staff Name</th>
+                        <th className="px-6 py-3 text-left font-bold">Location</th>
+                        <th className="px-6 py-3 text-left font-bold">Account Name</th>
+                        <th className="px-6 py-3 text-left font-bold">Bank Account</th>
+                        <th className="px-6 py-3 text-left font-bold">Bank Name</th>
+                        <th className="px-6 py-3 text-right font-bold">Amount</th>
                       </tr>
                     </thead>
                     <tbody>
                       {staffList.map((s) => (
                         <tr key={s._id} className="border-b border-gray-200 hover:bg-blue-50">
-                          <td className="px-6 py-3 font-medium text-gray-900">{s.name}</td>
-                          <td className="px-6 py-3 text-gray-700">{s.location || "-"}</td>
-                          <td className="px-6 py-3 text-gray-700">{s.accountName || "-"}</td>
+                          <td className="px-6 py-3 font-medium text-gray-900">{toCamelCase(s.name || "")}</td>
+                          <td className="px-6 py-3 text-gray-700">{toCamelCase(s.location || "-")}</td>
+                          <td className="px-6 py-3 text-gray-700">{toCamelCase(s.accountName || "-")}</td>
                           <td className="px-6 py-3 text-gray-700">{s.accountNumber || "-"}</td>
-                          <td className="px-6 py-3 text-gray-700">{s.bankName || "-"}</td>
+                          <td className="px-6 py-3 text-gray-700">{toCamelCase(s.bankName || "-")}</td>
                           <td className="px-6 py-3 text-right font-medium text-gray-900">{(parseFloat(s.salary) || 0).toLocaleString()}</td>
                         </tr>
                       ))}

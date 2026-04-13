@@ -59,7 +59,7 @@ export default function VendorsPage() {
 
   async function fetchProducts() {
     try {
-      const res = await apiClient.get("/api/products?minimal=true&limit=1000");
+      const res = await apiClient.get("/api/products?limit=1000");
       const list = res.data?.data || res.data?.products || res.data;
       setAllProducts(Array.isArray(list) ? list : []);
     } catch { }
@@ -84,7 +84,13 @@ export default function VendorsPage() {
       const products = [...prev.products];
       if (field === "product") {
         const selected = allProducts.find((p) => p._id === value);
-        products[idx] = { ...products[idx], product: value, productName: selected?.name || "" };
+        products[idx] = {
+          ...products[idx],
+          product: value,
+          productName: selected?.name || "",
+          packType: selected?.packType || "unit",
+          qtyPerPack: selected?.qtyPerPack || 1,
+        };
       } else {
         products[idx] = { ...products[idx], [field]: value };
       }
@@ -782,8 +788,8 @@ export default function VendorsPage() {
                           <label className="block text-xs text-gray-500 mb-1">Type</label>
                           <select
                             value={vp.packType || "unit"}
-                            onChange={(e) => updateVendorProduct(i, "packType", e.target.value)}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                            disabled
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-100 text-gray-500 cursor-not-allowed"
                           >
                             <option value="unit">Unit</option>
                             <option value="pack">Pack</option>
@@ -794,9 +800,9 @@ export default function VendorsPage() {
                           <input
                             type="number" min="1" placeholder="1"
                             value={vp.qtyPerPack || 1}
-                            onChange={(e) => updateVendorProduct(i, "qtyPerPack", Number(e.target.value))}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-right focus:ring-2 focus:ring-blue-500"
-                            disabled={vp.packType !== "pack"}
+                            readOnly
+                            disabled
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-right bg-gray-100 text-gray-500 cursor-not-allowed"
                           />
                         </div>
                       </div>

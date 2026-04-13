@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useRouter } from "next/router";
 import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
 import useProgress from "@/lib/useProgress";
@@ -48,6 +49,7 @@ const RECEIVED_COLORS = {
 
 export default function PurchaseOrdersPage() {
   const { progress, start, complete } = useProgress();
+  const router = useRouter();
   const [orders, setOrders] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -190,14 +192,8 @@ export default function PurchaseOrdersPage() {
     }
   }
 
-  async function handleConfirmReceived(orderId) {
-    if (!confirm("Confirm items received? This will update stock quantities.")) return;
-    try {
-      await apiClient.put(`/api/purchase-orders/${orderId}`, { action: "confirm-received" });
-      fetchOrders();
-    } catch (err) {
-      alert(err.response?.data?.error || "Failed to confirm");
-    }
+  function handleConfirmReceived(orderId) {
+    router.push(`/stock/add?poId=${orderId}`);
   }
 
   async function handleDelete(id) {
@@ -699,10 +695,10 @@ export default function PurchaseOrdersPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
                         {order.receivedStatus !== "Received" && (
-                          <button onClick={() => handleConfirmReceived(order._id)} className="p-1 text-green-600 hover:bg-green-50 rounded transition" title="Confirm Received"><Truck size={14} /></button>
+                          <button onClick={() => handleConfirmReceived(order._id)} className="px-2 py-1 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded transition">Received</button>
                         )}
                         {order.receivedStatus !== "Received" && (
-                          <button onClick={() => setDeleteConfirm(order._id)} className="p-1 text-red-500 hover:bg-red-50 rounded transition" title="Delete"><Trash2 size={14} /></button>
+                          <button onClick={() => setDeleteConfirm(order._id)} className="px-2 py-1 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded transition">Delete</button>
                         )}
                       </div>
                     </td>

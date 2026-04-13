@@ -25,6 +25,8 @@ export default function StockMovementAdd() {
   
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [loadingSearch, setLoadingSearch] = useState(false);
+  const [poRef, setPoRef] = useState(null);
+  const [poLoading, setPoLoading] = useState(false);
 
   useEffect(() => {
     fetch("/api/setup/setup")
@@ -48,6 +50,43 @@ export default function StockMovementAdd() {
       })
       .catch(err => console.error("Error fetching staff:", err));
   }, []);
+
+  // Load PO data if redirected from Purchase Orders page
+  useEffect(() => {
+    if (!router.isReady || !router.query.poId) return;
+    const poId = router.query.poId;
+    setPoLoading(true);
+    fetch(`/api/purchase-orders/${poId}`)
+      .then(res => res.json())
+      .then(async (data) => {
+        const order = data.order || data;
+        if (!order) return;
+        setPoRef({ id: poId, orderRef: order.orderRef, vendorName: order.vendorName });
+        setFromLocation("vendor");
+        setReason("Restock");
+        // Match PO products to actual products by name
+        const matched = [];
+        for (const poProduct of (order.products || [])) {
+          try {
+            const searchRes = await fetch(`/api/products?search=${encodeURIComponent(poProduct.name)}&stockManaged=true`);
+            const pData = await searchRes.json();
+            const productList = pData.data || (Array.isArray(pData) ? pData : []);
+            const match = productList.find(p => p.name.toLowerCase() === poProduct.name.toLowerCase()) || productList[0];
+            if (match) {
+              const existing = matched.find(m => m._id === match._id);
+              if (existing) {
+                existing.quantity += (poProduct.quantity || 1);
+              } else {
+                matched.push({ ...match, quantity: poProduct.quantity || 1 });
+              }
+            }
+          } catch {}
+        }
+        if (matched.length > 0) setAddedProducts(matched);
+      })
+      .catch(err => console.error("Error loading PO:", err))
+      .finally(() => setPoLoading(false));
+  }, [router.isReady]);
 
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
@@ -179,6 +218,17 @@ export default function StockMovementAdd() {
     console.log(" Stock movement saved successfully");
     alert("Stock movement added successfully!");
     
+    // Mark PO as received if this came from a purchase order
+    if (poRef?.id) {
+      try {
+        await fetch(`/api/purchase-orders/${poRef.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "confirm-received", toLocationId: toLocation }),
+        });
+      } catch {}
+    }
+
     // Reset form
     setFromLocation("");
     setToLocation("");
@@ -217,6 +267,23 @@ export default function StockMovementAdd() {
           <h1 className="page-title">Create Stock Movement</h1>
           <p className="page-subtitle">Transfer inventory between locations with full tracking and approval workflow</p>
         </div>
+
+        {/* PO Reference Banner */}
+        {poLoading && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <Loader size="sm" text="Loading purchase order details..." />
+          </div>
+        )}
+        {poRef && !poLoading && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <p className="text-sm font-semibold text-blue-800">
+              Receiving Purchase Order: {poRef.orderRef} from {poRef.vendorName}
+            </p>
+            <p className="text-xs text-blue-600 mt-1">
+              Products have been pre-populated. Review and adjust quantities before submitting.
+            </p>
+          </div>
+        )}
 
         {/* Form Container */}
         <div className="content-card !p-0 overflow-hidden">

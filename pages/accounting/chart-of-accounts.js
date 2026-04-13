@@ -20,7 +20,6 @@ const EMPTY_FORM = {
   type: "ASSET",
   subType: "",
   normalBalance: "DEBIT",
-  parent: "",
   description: "",
   openingBalance: 0,
 };
@@ -104,7 +103,6 @@ export default function ChartOfAccountsPage() {
       type: acc.type,
       subType: acc.subType || "",
       normalBalance: acc.normalBalance,
-      parent: acc.parent?._id || "",
       description: acc.description || "",
       openingBalance: acc.openingBalance || 0,
     });

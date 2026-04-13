@@ -226,38 +226,18 @@ export default function JournalEntriesPage() {
           <div className="content-card mb-6">
             <h2 className="text-lg font-bold text-gray-900 mb-4">New Journal Entry</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="form-label">Date *</label>
                   <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="form-input" required />
                 </div>
-                <div className="md:col-span-2">
+                <div>
                   <label className="form-label">Description *</label>
                   <input type="text" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="form-input" placeholder="What is this entry for?" required />
                 </div>
                 <div>
                   <label className="form-label">Reference</label>
                   <input type="text" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} className="form-input" placeholder="Optional ref" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="form-label">Type</label>
-                  <select value={form.referenceType} onChange={(e) => setForm({ ...form, referenceType: e.target.value })} className="form-select">
-                    {REF_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="form-label">Location</label>
-                  <input type="text" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className="form-input" placeholder="Optional" />
-                </div>
-                <div>
-                  <label className="form-label">Post Immediately?</label>
-                  <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className="form-select">
-                    <option value="DRAFT">Save as Draft</option>
-                    <option value="POSTED">Post Immediately</option>
-                  </select>
                 </div>
               </div>
 

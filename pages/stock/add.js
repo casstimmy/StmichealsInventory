@@ -12,7 +12,7 @@ export default function StockMovementAdd() {
   
   const [locations, setLocations] = useState([]);
   const [staffList, setStaffList] = useState([]);
-  const [reasons] = useState(["Restock", "Transfer", "Return"]);
+  const [reasons] = useState(["Restock", "Transfer", "Return", "Adjustment"]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [fromLocation, setFromLocation] = useState("");
@@ -71,18 +71,36 @@ export default function StockMovementAdd() {
         setFromLocation("vendor");
         setReason("Restock");
 
-        // Match PO products to actual products by name
+        // Match PO products to actual products — use productId first, fallback to name search
         const matched = [];
         const unmatched = [];
         for (const poProduct of (order.products || [])) {
-          if (!poProduct.name) continue;
+          if (!poProduct.name && !poProduct.productId) continue;
           try {
-            const pRes = await apiClient.get(`/api/products?search=${encodeURIComponent(poProduct.name)}`);
-            const productList = pRes.data?.data || (Array.isArray(pRes.data) ? pRes.data : []);
-            // Try exact match first, then partial
-            const exactMatch = productList.find(p => p.name.toLowerCase() === poProduct.name.toLowerCase());
-            const partialMatch = productList.find(p => p.name.toLowerCase().includes(poProduct.name.toLowerCase()) || poProduct.name.toLowerCase().includes(p.name.toLowerCase()));
-            const match = exactMatch || partialMatch || productList[0];
+            let match = null;
+
+            // 1. Try fetching by productId directly (most reliable)
+            if (poProduct.productId) {
+              try {
+                const idRes = await apiClient.get(`/api/products?id=${poProduct.productId}`);
+                const product = idRes.data?.data || idRes.data;
+                if (product && product._id) {
+                  match = product;
+                }
+              } catch {
+                // productId lookup failed, fall through to name search
+              }
+            }
+
+            // 2. Fallback: search by name if productId didn't match
+            if (!match && poProduct.name) {
+              const pRes = await apiClient.get(`/api/products?search=${encodeURIComponent(poProduct.name)}`);
+              const productList = pRes.data?.data || (Array.isArray(pRes.data) ? pRes.data : []);
+              const exactMatch = productList.find(p => p.name.toLowerCase() === poProduct.name.toLowerCase());
+              const partialMatch = productList.find(p => p.name.toLowerCase().includes(poProduct.name.toLowerCase()) || poProduct.name.toLowerCase().includes(p.name.toLowerCase()));
+              match = exactMatch || partialMatch || productList[0];
+            }
+
             if (match) {
               const existing = matched.find(m => m._id === match._id);
               if (existing) {
@@ -91,10 +109,10 @@ export default function StockMovementAdd() {
                 matched.push({ ...match, quantity: poProduct.quantity || 1 });
               }
             } else {
-              unmatched.push({ name: poProduct.name, quantity: poProduct.quantity || 1, price: poProduct.price || 0 });
+              unmatched.push({ name: poProduct.name || 'Unknown', quantity: poProduct.quantity || 1, price: poProduct.price || 0 });
             }
           } catch {
-            unmatched.push({ name: poProduct.name, quantity: poProduct.quantity || 1, price: poProduct.price || 0 });
+            unmatched.push({ name: poProduct.name || 'Unknown', quantity: poProduct.quantity || 1, price: poProduct.price || 0 });
           }
         }
         if (matched.length > 0) setAddedProducts(matched);
@@ -103,6 +121,25 @@ export default function StockMovementAdd() {
         console.error("Error loading PO:", err);
       } finally {
         setPoLoading(false);
+      }
+    })();
+  }, [router.isReady]);
+
+  // Load product data if redirected from Expiration Report for adjustment
+  useEffect(() => {
+    if (!router.isReady || !router.query.adjustProductId || router.query.poId) return;
+    const { adjustProductId, adjustQty, reason: qReason } = router.query;
+
+    (async () => {
+      try {
+        const res = await apiClient.get(`/api/products?id=${adjustProductId}`);
+        const product = res.data?.data || res.data;
+        if (product && product._id) {
+          setAddedProducts([{ ...product, quantity: parseInt(adjustQty) || 1 }]);
+          if (qReason) setReason(qReason);
+        }
+      } catch (err) {
+        console.error("Error loading adjustment product:", err);
       }
     })();
   }, [router.isReady]);

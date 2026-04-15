@@ -630,17 +630,13 @@ export default function Sidebar() {
                   { href: "/accounting/chart-of-accounts", label: "Chart of Accounts" },
                   { href: "/accounting/journal-entries", label: "Journal Entries" },
                   { href: "/accounting/general-ledger", label: "General Ledger" },
-                  { href: "/accounting/trial-balance", label: "Trial Balance" },
-                  { href: "/accounting/profit-loss", label: "Profit & Loss" },
-                  { href: "/accounting/balance-sheet", label: "Balance Sheet" },
+                  { href: "/accounting/reports", label: "Financial Reports" },
                 ].filter(item => {
                   const permMap = {
                     "/accounting/chart-of-accounts": "accounting.chart-of-accounts",
                     "/accounting/journal-entries": "accounting.journal-entries",
                     "/accounting/general-ledger": "accounting.general-ledger",
-                    "/accounting/trial-balance": "accounting.trial-balance",
-                    "/accounting/profit-loss": "accounting.profit-loss",
-                    "/accounting/balance-sheet": "accounting.balance-sheet",
+                    "/accounting/reports": "accounting.trial-balance",
                   };
                   return canAccess(permMap[item.href] || "accounting");
                 }))}
@@ -1155,22 +1151,8 @@ export default function Sidebar() {
                   )}
                   {canAccess("accounting.trial-balance") && (
                   <li onClick={closeMenu}>
-                    <Link href="/accounting/trial-balance" className={`block px-8 py-3 text-sm transition-all ${pathname === "/accounting/trial-balance" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
-                      Trial Balance
-                    </Link>
-                  </li>
-                  )}
-                  {canAccess("accounting.profit-loss") && (
-                  <li onClick={closeMenu}>
-                    <Link href="/accounting/profit-loss" className={`block px-8 py-3 text-sm transition-all ${pathname === "/accounting/profit-loss" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
-                      Profit & Loss
-                    </Link>
-                  </li>
-                  )}
-                  {canAccess("accounting.balance-sheet") && (
-                  <li onClick={closeMenu}>
-                    <Link href="/accounting/balance-sheet" className={`block px-8 py-3 text-sm transition-all ${pathname === "/accounting/balance-sheet" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
-                      Balance Sheet
+                    <Link href="/accounting/reports" className={`block px-8 py-3 text-sm transition-all ${pathname === "/accounting/reports" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                      Financial Reports
                     </Link>
                   </li>
                   )}

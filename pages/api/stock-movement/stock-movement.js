@@ -133,6 +133,9 @@ export default async function handler(req, res) {
         qtyChange = quantity;
       } else if (reason === "Return") {
         qtyChange = -quantity;
+      } else if (reason === "Adjustment") {
+        // Adjustment reduces stock (e.g., expired product write-off)
+        qtyChange = -quantity;
       } else if (reason === "Transfer") {
         qtyChange = 0; // ❗ NO GLOBAL STOCK CHANGE
       }

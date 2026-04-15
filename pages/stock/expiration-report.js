@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/router';
 import Layout from '@/components/Layout';
 import { Loader } from '@/components/ui';
 import useProgress from '@/lib/useProgress';
@@ -10,10 +11,12 @@ import {
   faSearch,
   faDownload,
   faClock,
-  faBox
+  faBox,
+  faExchangeAlt
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function ExpirationReport() {
+  const router = useRouter();
   const [batches, setBatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const { progress, start, onFetch, onProcess, complete } = useProgress();
@@ -383,6 +386,7 @@ export default function ExpirationReport() {
                       <th className="text-center">Days Remaining</th>
                       <th className="text-center">Batch Qty</th>
                       <th className="text-center">Status</th>
+                      <th className="text-center">Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -419,6 +423,16 @@ export default function ExpirationReport() {
                           <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusStyles(batch.status)}`}>
                             {getStatusLabel(batch.status)}
                           </span>
+                        </td>
+                        <td className="text-center">
+                          <button
+                            onClick={() => router.push(`/stock/add?adjustProductId=${batch.productId}&adjustQty=${batch.quantity}&reason=Adjustment`)}
+                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded transition"
+                            title="Create stock adjustment for this expiring batch"
+                          >
+                            <FontAwesomeIcon icon={faExchangeAlt} className="w-3 h-3" />
+                            Adjust
+                          </button>
                         </td>
                       </tr>
                     ))}

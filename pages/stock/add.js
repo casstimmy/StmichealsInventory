@@ -3,9 +3,12 @@ import { useRouter } from "next/router";
 import Layout from "@/components/Layout";
 import { formatCurrency } from "@/lib/format";
 import { Loader } from "@/components/ui";
+import { apiClient } from "@/lib/api-client";
+import { useAuth } from "@/lib/useAuth";
 
 export default function StockMovementAdd() {
   const router = useRouter();
+  const { isAdmin } = useAuth();
   
   const [locations, setLocations] = useState([]);
   const [staffList, setStaffList] = useState([]);
@@ -27,6 +30,8 @@ export default function StockMovementAdd() {
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [poRef, setPoRef] = useState(null);
   const [poLoading, setPoLoading] = useState(false);
+  const [unmatchedProducts, setUnmatchedProducts] = useState([]);
+  const [savingPrices, setSavingPrices] = useState({});
 
   useEffect(() => {
     fetch("/api/setup/setup")
@@ -56,22 +61,28 @@ export default function StockMovementAdd() {
     if (!router.isReady || !router.query.poId) return;
     const poId = router.query.poId;
     setPoLoading(true);
-    fetch(`/api/purchase-orders/${poId}`)
-      .then(res => res.json())
-      .then(async (data) => {
-        const order = data.order || data;
+
+    (async () => {
+      try {
+        const res = await apiClient.get(`/api/purchase-orders/${poId}`);
+        const order = res.data?.order || res.data;
         if (!order) return;
         setPoRef({ id: poId, orderRef: order.orderRef, vendorName: order.vendorName });
         setFromLocation("vendor");
         setReason("Restock");
+
         // Match PO products to actual products by name
         const matched = [];
+        const unmatched = [];
         for (const poProduct of (order.products || [])) {
+          if (!poProduct.name) continue;
           try {
-            const searchRes = await fetch(`/api/products?search=${encodeURIComponent(poProduct.name)}&stockManaged=true`);
-            const pData = await searchRes.json();
-            const productList = pData.data || (Array.isArray(pData) ? pData : []);
-            const match = productList.find(p => p.name.toLowerCase() === poProduct.name.toLowerCase()) || productList[0];
+            const pRes = await apiClient.get(`/api/products?search=${encodeURIComponent(poProduct.name)}`);
+            const productList = pRes.data?.data || (Array.isArray(pRes.data) ? pRes.data : []);
+            // Try exact match first, then partial
+            const exactMatch = productList.find(p => p.name.toLowerCase() === poProduct.name.toLowerCase());
+            const partialMatch = productList.find(p => p.name.toLowerCase().includes(poProduct.name.toLowerCase()) || poProduct.name.toLowerCase().includes(p.name.toLowerCase()));
+            const match = exactMatch || partialMatch || productList[0];
             if (match) {
               const existing = matched.find(m => m._id === match._id);
               if (existing) {
@@ -79,13 +90,21 @@ export default function StockMovementAdd() {
               } else {
                 matched.push({ ...match, quantity: poProduct.quantity || 1 });
               }
+            } else {
+              unmatched.push({ name: poProduct.name, quantity: poProduct.quantity || 1, price: poProduct.price || 0 });
             }
-          } catch {}
+          } catch {
+            unmatched.push({ name: poProduct.name, quantity: poProduct.quantity || 1, price: poProduct.price || 0 });
+          }
         }
         if (matched.length > 0) setAddedProducts(matched);
-      })
-      .catch(err => console.error("Error loading PO:", err))
-      .finally(() => setPoLoading(false));
+        if (unmatched.length > 0) setUnmatchedProducts(unmatched);
+      } catch (err) {
+        console.error("Error loading PO:", err);
+      } finally {
+        setPoLoading(false);
+      }
+    })();
   }, [router.isReady]);
 
   useEffect(() => {
@@ -159,6 +178,30 @@ export default function StockMovementAdd() {
     setAddedProducts((prev) => prev.filter((p) => p._id !== id));
   };
 
+  // Admin: update product price inline
+  const updateProductPrice = (productId, field, value) => {
+    setAddedProducts((prev) =>
+      prev.map((p) =>
+        p._id === productId ? { ...p, [field]: Number(value) || 0 } : p
+      )
+    );
+  };
+
+  const saveProductPrice = async (product) => {
+    setSavingPrices((prev) => ({ ...prev, [product._id]: true }));
+    try {
+      await apiClient.put("/api/products", {
+        _id: product._id,
+        costPrice: product.costPrice,
+        salePriceIncTax: product.salePriceIncTax,
+      });
+    } catch (err) {
+      alert("Failed to save price: " + (err.response?.data?.message || err.message));
+    } finally {
+      setSavingPrices((prev) => ({ ...prev, [product._id]: false }));
+    }
+  };
+
   const handleAddToStock = async () => {
   if (
     !fromLocation ||
@@ -221,10 +264,9 @@ export default function StockMovementAdd() {
     // Mark PO as received if this came from a purchase order
     if (poRef?.id) {
       try {
-        await fetch(`/api/purchase-orders/${poRef.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "confirm-received", toLocationId: toLocation }),
+        await apiClient.put(`/api/purchase-orders/${poRef.id}`, {
+          action: "confirm-received",
+          toLocationId: toLocation,
         });
       } catch {}
     }
@@ -282,6 +324,14 @@ export default function StockMovementAdd() {
             <p className="text-xs text-blue-600 mt-1">
               Products have been pre-populated. Review and adjust quantities before submitting.
             </p>
+            {unmatchedProducts.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-blue-200">
+                <p className="text-xs font-semibold text-amber-700 mb-1">Unmatched PO items (add manually):</p>
+                {unmatchedProducts.map((p, i) => (
+                  <p key={i} className="text-xs text-amber-600">• {p.name} — Qty: {p.quantity}, Price: {p.price.toLocaleString()}</p>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -477,41 +527,77 @@ export default function StockMovementAdd() {
                 {addedProducts.map((product, idx) => (
                   <div
                     key={idx}
-                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-gradient-to-r from-gray-50 to-gray-100 p-3 md:p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition gap-2"
+                    className="bg-gradient-to-r from-gray-50 to-gray-100 p-3 md:p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition space-y-2"
                   >
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-900 text-sm md:text-base">{product.name}</p>
-                      <p className="text-xs md:text-sm text-gray-600">Cost: {(product.costPrice || 0).toLocaleString()}</p>
-                      {product.expiryDate && (
-                        <p className="text-xs md:text-sm text-amber-600 font-medium">Expires: {new Date(product.expiryDate).toLocaleDateString()}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden bg-white">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-900 text-sm md:text-base">{product.name}</p>
+                        <p className="text-xs md:text-sm text-gray-600">Cost: {(product.costPrice || 0).toLocaleString()} | Sell: {(product.salePriceIncTax || 0).toLocaleString()}</p>
+                        {product.expiryDate && (
+                          <p className="text-xs md:text-sm text-amber-600 font-medium">Expires: {new Date(product.expiryDate).toLocaleDateString()}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden bg-white">
+                          <button
+                            onClick={() => updateProductQuantity(product._id, product.quantity - 1)}
+                            className="bg-gray-50 hover:bg-gray-100 w-8 h-8 flex items-center justify-center transition"
+                          >
+                            −
+                          </button>
+                          <span className="w-12 text-center font-semibold text-gray-900">{product.quantity}</span>
+                          <button
+                            onClick={() => updateProductQuantity(product._id, product.quantity + 1)}
+                            className="bg-gray-50 hover:bg-gray-100 w-8 h-8 flex items-center justify-center transition"
+                          >
+                            +
+                          </button>
+                        </div>
+                        <span className="font-semibold text-gray-900 min-w-fit">
+                          {(product.costPrice * product.quantity).toLocaleString()}
+                        </span>
                         <button
-                          onClick={() => updateProductQuantity(product._id, product.quantity - 1)}
-                          className="bg-gray-50 hover:bg-gray-100 w-8 h-8 flex items-center justify-center transition"
+                          onClick={() => removeProduct(product._id)}
+                          className="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2 rounded-lg transition font-medium"
                         >
-                          
-                        </button>
-                        <span className="w-12 text-center font-semibold text-gray-900">{product.quantity}</span>
-                        <button
-                          onClick={() => updateProductQuantity(product._id, product.quantity + 1)}
-                          className="bg-gray-50 hover:bg-gray-100 w-8 h-8 flex items-center justify-center transition"
-                        >
-                          +
+                          Remove
                         </button>
                       </div>
-                      <span className="font-semibold text-gray-900 min-w-fit">
-                        {(product.costPrice * product.quantity).toLocaleString()}
-                      </span>
-                      <button
-                        onClick={() => removeProduct(product._id)}
-                        className="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2 rounded-lg transition font-medium"
-                      >
-                        Remove
-                      </button>
                     </div>
+                    {/* Admin: Price Adjustment */}
+                    {isAdmin && (
+                      <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-200">
+                        <div className="flex items-center gap-1">
+                          <label className="text-xs font-medium text-gray-500 whitespace-nowrap">Cost:</label>
+                          <input
+                            type="number"
+                            value={product.costPrice || ""}
+                            onChange={(e) => updateProductPrice(product._id, "costPrice", e.target.value)}
+                            className="w-24 border border-gray-300 rounded px-2 py-1 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            step="0.01"
+                            min="0"
+                          />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <label className="text-xs font-medium text-gray-500 whitespace-nowrap">Sell:</label>
+                          <input
+                            type="number"
+                            value={product.salePriceIncTax || ""}
+                            onChange={(e) => updateProductPrice(product._id, "salePriceIncTax", e.target.value)}
+                            className="w-24 border border-gray-300 rounded px-2 py-1 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            step="0.01"
+                            min="0"
+                          />
+                        </div>
+                        <button
+                          onClick={() => saveProductPrice(product)}
+                          disabled={savingPrices[product._id]}
+                          className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 transition font-medium"
+                        >
+                          {savingPrices[product._id] ? "Saving..." : "Save Price"}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

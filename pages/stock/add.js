@@ -328,7 +328,7 @@ export default function StockMovementAdd() {
               <div className="mt-3 pt-3 border-t border-blue-200">
                 <p className="text-xs font-semibold text-amber-700 mb-1">Unmatched PO items (add manually):</p>
                 {unmatchedProducts.map((p, i) => (
-                  <p key={i} className="text-xs text-amber-600">• {p.name} — Qty: {p.quantity}, Price: {p.price.toLocaleString()}</p>
+                  <p key={i} className="text-xs text-amber-600">• {p.name} — Quantity: {p.quantity}, Price: {p.price.toLocaleString()}</p>
                 ))}
               </div>
             )}
@@ -348,7 +348,7 @@ export default function StockMovementAdd() {
                 label="From Location"
                 value={fromLocation}
                 onChange={setFromLocation}
-                options={[{ _id: "vendor", name: " Vendor" }, ...locations]}
+                options={[{ _id: "vendor", name: poRef?.vendorName || "Vendor" }, ...locations]}
                 required
               />
 

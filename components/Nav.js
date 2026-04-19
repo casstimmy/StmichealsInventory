@@ -340,7 +340,7 @@ export default function Sidebar() {
                   { href: "/manage/archived", label: "Archived Products" },
                   { href: "/manage/categories", label: "Categories" },
                   { href: "/manage/promotions", label: "Product Promotions" },
-                  { href: "/manage/promotions-management", label: "Promotions & Campaigns", indent: false },
+                  { href: "/manage/promotions-management", label: "Campaign Promotions ", indent: false },
                   { href: "/manage/orders", label: "Orders" },
                   { href: "/manage/customers", label: "Customers", indent: false },
                 ].filter(item => {
@@ -824,7 +824,7 @@ export default function Sidebar() {
                   {canAccess("manage.customer-promotions") && (
                   <li onClick={closeMenu}>
                     <Link href="/manage/promotions-management" className={`block px-8 py-3 text-sm transition-all ${pathname === "/manage/promotions-management" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
-                      Promotions & Campaigns
+                      Campaign Promotions 
                     </Link>
                   </li>
                   )}

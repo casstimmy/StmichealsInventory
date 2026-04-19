@@ -70,6 +70,5 @@ JournalEntrySchema.index({ date: -1 });
 JournalEntrySchema.index({ status: 1 });
 JournalEntrySchema.index({ referenceType: 1 });
 JournalEntrySchema.index({ "lines.account": 1 });
-JournalEntrySchema.index({ entryNumber: 1 });
 
 export default models.JournalEntry || mongoose.model("JournalEntry", JournalEntrySchema);

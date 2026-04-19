@@ -243,6 +243,7 @@ export default async function handler(req, res) {
         if (!existingChild) {
           const childCostPrice = (Number(body.costPrice) || 0) / (Number(body.qtyPerPack) || 1);
           const childSalePrice = Number(body.childSalePrice) || (Number(body.salePriceIncTax) || 0) / (Number(body.qtyPerPack) || 1);
+          const childQty = (Number(body.quantity) || 0) * (Number(body.qtyPerPack) || 1);
           await Product.create({
             name: `${body.name} (Unit)`,
             description: `${body.description || body.name} - Single unit from pack of ${body.qtyPerPack}`,
@@ -254,7 +255,7 @@ export default async function handler(req, res) {
             category: body.category || "Top Level",
             images: body.images || [],
             properties: body.properties || [],
-            quantity: 0,
+            quantity: childQty,
             isStockManaged: body.isStockManaged !== false,
             minStock: 0,
             packType: "unit",
@@ -381,6 +382,7 @@ export default async function handler(req, res) {
         const childCostPrice = (Number(updated.costPrice) || 0) / (Number(updated.qtyPerPack) || 1);
         const childSalePrice = Number(updateData.childSalePrice) || (Number(updated.salePriceIncTax) || 0) / (Number(updated.qtyPerPack) || 1);
         if (existingChild) {
+          const childQty = (Number(updated.quantity) || 0) * (Number(updated.qtyPerPack) || 1);
           await Product.findByIdAndUpdate(existingChild._id, {
             name: `${updated.name} (Unit)`,
             description: `${updated.description || updated.name} - Single unit from pack of ${updated.qtyPerPack}`,
@@ -391,6 +393,7 @@ export default async function handler(req, res) {
             images: updated.images || [],
             vendors: updated.vendors || [],
             locations: updated.locations || [],
+            quantity: childQty,
           });
         } else {
           await Product.create({
@@ -404,7 +407,7 @@ export default async function handler(req, res) {
             category: updated.category || "Top Level",
             images: updated.images || [],
             properties: updated.properties || [],
-            quantity: 0,
+            quantity: (Number(updated.quantity) || 0) * (Number(updated.qtyPerPack) || 1),
             isStockManaged: updated.isStockManaged !== false,
             minStock: 0,
             packType: "unit",

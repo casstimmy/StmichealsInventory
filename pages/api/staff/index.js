@@ -41,6 +41,22 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     try {
       const staff = await Staff.find().select("-password").lean();
+
+      // Auto-generate onboardingToken for any staff missing it
+      const needTokens = staff.filter((s) => !s.onboardingToken);
+      if (needTokens.length > 0) {
+        const bulkOps = needTokens.map((s) => ({
+          updateOne: {
+            filter: { _id: s._id, onboardingToken: { $exists: false } },
+            update: { $set: { onboardingToken: crypto.randomBytes(24).toString("hex") } },
+          },
+        }));
+        await Staff.bulkWrite(bulkOps).catch(() => {});
+        // Re-fetch to include newly generated tokens
+        const refreshed = await Staff.find().select("-password").lean();
+        return res.status(200).json(refreshed);
+      }
+
       return res.status(200).json(staff);
     } catch (error) {
       console.error("Error fetching staff:", error);

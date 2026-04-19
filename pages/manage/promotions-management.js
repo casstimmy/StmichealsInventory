@@ -305,7 +305,7 @@ export default function PromotionsManagementPage() {
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-            <h1 className="text-2xl md:text-4xl font-bold text-gray-900">Promotions & Campaigns</h1>
+            <h1 className="text-2xl md:text-4xl font-bold text-gray-900">Campaign Promotions </h1>
             <button
               onClick={() => {
                 resetForm();

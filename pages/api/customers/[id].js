@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     try {
       await mongooseConnect();
 
-      const { name, email, phone, address } = req.body;
+      const { name, email, phone, address, type } = req.body;
 
       if (!name || !email || !phone) {
         return res.status(400).json({
@@ -26,9 +26,12 @@ export default async function handler(req, res) {
         });
       }
 
+      const updateData = { name, email, phone, address: address || "" };
+      if (type) updateData.type = type;
+
       const customer = await Customer.findByIdAndUpdate(
         id,
-        { name, email, phone, address: address || "" },
+        updateData,
         { new: true }
       );
 

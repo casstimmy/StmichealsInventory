@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     try {
       await mongooseConnect();
 
-      const { name, email, phone, address } = req.body;
+      const { name, email, phone, address, type } = req.body;
 
       if (!name || !email || !phone) {
         return res.status(400).json({
@@ -48,6 +48,7 @@ export default async function handler(req, res) {
         email,
         phone,
         address: address || "",
+        type: type || "REGULAR",
       });
 
       return res.status(201).json({

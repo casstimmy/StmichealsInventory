@@ -159,10 +159,10 @@ export default function CustomersPage() {
                 <p className="text-xs md:text-sm text-gray-600 mt-1">Manage all customers</p>
               </div>
             </Link>
-            <Link href="/manage/campaigns">
+            <Link href="/manage/promotions-management">
               <div className="content-card hover:shadow-md cursor-pointer border-l-4 border-l-sky-600 transition-shadow">
-                <p className="font-bold text-gray-900 text-sm md:text-base">📢 Campaigns</p>
-                <p className="text-xs md:text-sm text-gray-600 mt-1">Create marketing campaigns</p>
+                <p className="font-bold text-gray-900 text-sm md:text-base">📢 Promotions & Campaigns</p>
+                <p className="text-xs md:text-sm text-gray-600 mt-1">Manage customer promotions</p>
               </div>
             </Link>
           </div>
@@ -301,18 +301,20 @@ export default function CustomersPage() {
                         </span>
                       </td>
                       <td className="px-2 md:px-6 py-2 md:py-4 text-center">
-                        <button
-                          onClick={() => handleEdit(customer)}
-                          className="text-blue-600 hover:text-blue-900 font-semibold mr-1 md:mr-3 text-xs md:text-sm"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(customer._id)}
-                          className="text-red-600 hover:text-red-900 font-semibold text-xs md:text-sm"
-                        >
-                          Delete
-                        </button>
+                        <div className="flex justify-center gap-2">
+                          <button
+                            onClick={() => handleEdit(customer)}
+                            className="text-xs px-3 py-1 border border-blue-500 text-blue-600 rounded-full hover:bg-blue-500 hover:text-white transition font-semibold"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(customer._id)}
+                            className="text-xs px-3 py-1 border border-red-500 text-red-600 rounded-full hover:bg-red-500 hover:text-white transition font-semibold"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

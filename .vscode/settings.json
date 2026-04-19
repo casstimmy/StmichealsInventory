@@ -31,6 +31,18 @@
         "/^npx next dev -p 3099$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^cd \"c:\\\\Users\\\\hp\\\\Desktop\\\\Projects\\\\Inventory-sales\\\\Inventory\\\\webpage-app\" ; npm install nodemailer ; npm uninstall mogoose$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^npm install nodemailer --legacy-peer-deps ; npm uninstall mogoose --legacy-peer-deps$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^npx next build 2>&1 \\| Select-Object -Last 40$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     }
 }

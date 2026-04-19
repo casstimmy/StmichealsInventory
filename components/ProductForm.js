@@ -8,6 +8,7 @@ import useProgress from "@/lib/useProgress";
 import { formatCurrency } from "@/lib/format";
 import { getCachedCategories } from "@/lib/categoriesCache";
 import { clearCache } from "@/lib/useIndexedDBCache";
+import { useAuth } from "@/lib/useAuth";
 import {
   calculateMarginPercent,
   calculateProfit,
@@ -26,6 +27,7 @@ function toDateInputValue(v) {
 
 export default function ProductForm(props) {
   const router = useRouter();
+  const { isAdmin } = useAuth();
 
   // --- State ---
   const [name, setName] = useState(props.name || "");
@@ -607,13 +609,15 @@ export default function ProductForm(props) {
             value={minStock}
             setValue={setMinStock}
           />
-          <InputField
-            label="Qty (optional)"
-            name="quantity"
-            type="number"
-            value={quantity}
-            setValue={setQuantity}
-          />
+          {isAdmin && (
+            <InputField
+              label="Qty (optional)"
+              name="quantity"
+              type="number"
+              value={quantity}
+              setValue={setQuantity}
+            />
+          )}
         </div>
       </Section>
 

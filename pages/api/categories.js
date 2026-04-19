@@ -1,5 +1,6 @@
 import { mongooseConnect } from "@/lib/mongodb";
 import { Category } from "@/models/Category";
+import Store from "@/models/Store";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 
 // Simple in-memory cache for categories (cleared on mutations)
@@ -21,6 +22,31 @@ function resolveStockManaged(name, requestedValue) {
 function invalidateCache() {
   categoriesCache = null;
   categoriesCacheTime = 0;
+}
+
+// Sync Store location.categories when a category's locations change
+async function syncStoreLocationCategories(categoryId, locationNames) {
+  try {
+    const store = await Store.findOne({});
+    if (!store?.locations) return;
+    let changed = false;
+    for (const loc of store.locations) {
+      const catIdStr = String(categoryId);
+      const hasCategory = loc.categories?.some((c) => String(c) === catIdStr);
+      const shouldHave = locationNames.includes(loc.name) || locationNames.length === 0;
+      if (shouldHave && !hasCategory) {
+        if (!loc.categories) loc.categories = [];
+        loc.categories.push(categoryId);
+        changed = true;
+      } else if (!shouldHave && hasCategory) {
+        loc.categories = loc.categories.filter((c) => String(c) !== catIdStr);
+        changed = true;
+      }
+    }
+    if (changed) await store.save();
+  } catch (err) {
+    console.error("Store location-category sync error:", err);
+  }
 }
 
 export default async function handler(req, res) {
@@ -71,6 +97,7 @@ export default async function handler(req, res) {
 
       invalidateCache();
       const populatedCategory = await Category.findById(category._id).populate("parent");
+      await syncStoreLocationCategories(category._id, Array.isArray(locations) ? locations : []);
       return res.json(populatedCategory);
     }
 
@@ -99,6 +126,7 @@ export default async function handler(req, res) {
       ).populate("parent");
 
       invalidateCache();
+      await syncStoreLocationCategories(_id, Array.isArray(locations) ? locations : []);
       return res.json(updatedCategory);
     }
 

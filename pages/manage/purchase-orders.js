@@ -6,6 +6,7 @@ import Loader from "@/components/Loader";
 import useProgress from "@/lib/useProgress";
 import { apiClient } from "@/lib/api-client";
 import { formatCurrency } from "@/lib/format";
+import { useAuth } from "@/lib/useAuth";
 import {
   Plus, Search, X, ChevronDown, ChevronUp, Package,
   CreditCard, CheckCircle, Truck, Trash2, Filter,
@@ -62,6 +63,7 @@ export default function PurchaseOrdersPage() {
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const { isAdmin } = useAuth();
   const [tableFilter, setTableFilter] = useState("all");
   const [paidFilter, setPaidFilter] = useState("tillDate");
   const [currentPage, setCurrentPage] = useState(1);
@@ -697,7 +699,7 @@ export default function PurchaseOrdersPage() {
                         {order.receivedStatus !== "Received" && (
                           <button onClick={() => handleConfirmReceived(order._id)} className="px-2 py-1 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded transition">Received</button>
                         )}
-                        {order.receivedStatus !== "Received" && (
+                        {order.receivedStatus !== "Received" && isAdmin && (
                           <button onClick={() => setDeleteConfirm(order._id)} className="px-2 py-1 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded transition">Delete</button>
                         )}
                       </div>
@@ -756,7 +758,7 @@ export default function PurchaseOrdersPage() {
                   {order.receivedStatus !== "Received" && (
                     <>
                       <button onClick={() => handleConfirmReceived(order._id)} className="bg-green-100 text-green-700 px-3 py-1.5 rounded text-xs hover:bg-green-200">Received</button>
-                      <button onClick={() => setDeleteConfirm(order._id)} className="bg-red-100 text-red-600 px-3 py-1.5 rounded text-xs hover:bg-red-200">Delete</button>
+                      {isAdmin && <button onClick={() => setDeleteConfirm(order._id)} className="bg-red-100 text-red-600 px-3 py-1.5 rounded text-xs hover:bg-red-200">Delete</button>}
                     </>
                   )}
                 </div>

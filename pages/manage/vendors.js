@@ -59,7 +59,7 @@ export default function VendorsPage() {
 
   async function fetchProducts() {
     try {
-      const res = await apiClient.get("/api/products?limit=1000");
+      const res = await apiClient.get("/api/products?names=true");
       const list = res.data?.data || res.data?.products || res.data;
       setAllProducts(Array.isArray(list) ? list : []);
     } catch { }

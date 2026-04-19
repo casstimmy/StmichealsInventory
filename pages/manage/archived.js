@@ -3,12 +3,15 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { Loader } from "@/components/ui";
 import { formatCurrency } from "@/lib/format";
+import { useAuth } from "@/lib/useAuth";
 
 
 export default function Archived() {
   const [archivedProducts, setArchivedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [restoringId, setRestoringId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+  const { isAdmin } = useAuth();
 
   useEffect(() => {
     async function loadArchived() {
@@ -39,6 +42,20 @@ export default function Archived() {
       alert("Failed to restore product.");
     } finally {
       setRestoringId(null);
+    }
+  };
+
+  const handlePermanentDelete = async (productId) => {
+    if (!confirm("Are you sure you want to PERMANENTLY delete this product? This action cannot be undone.")) return;
+    try {
+      setDeletingId(productId);
+      await axios.delete(`/api/products?id=${productId}&permanent=true`);
+      setArchivedProducts((prev) => prev.filter((p) => p._id !== productId));
+    } catch (error) {
+      console.error("Delete failed", error);
+      alert(error?.response?.data?.message || "Failed to delete product.");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -79,14 +96,26 @@ export default function Archived() {
                         {item.archivedAt ? new Date(item.archivedAt).toLocaleString() : "-"}
                       </td>
                       <td className="p-3">
-                        <button
-                          type="button"
-                          onClick={() => handleRestore(item._id)}
-                          className="py-1 px-3 rounded bg-emerald-600 text-white text-xs disabled:opacity-60"
-                          disabled={restoringId === item._id}
-                        >
-                          {restoringId === item._id ? "Restoring..." : "Restore"}
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleRestore(item._id)}
+                            className="py-1 px-3 rounded bg-emerald-600 text-white text-xs disabled:opacity-60"
+                            disabled={restoringId === item._id}
+                          >
+                            {restoringId === item._id ? "Restoring..." : "Restore"}
+                          </button>
+                          {isAdmin && (
+                            <button
+                              type="button"
+                              onClick={() => handlePermanentDelete(item._id)}
+                              className="py-1 px-3 rounded bg-red-600 text-white text-xs disabled:opacity-60"
+                              disabled={deletingId === item._id}
+                            >
+                              {deletingId === item._id ? "Deleting..." : "Delete"}
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}

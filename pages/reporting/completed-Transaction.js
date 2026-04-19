@@ -351,6 +351,10 @@ export default function SalesReport() {
                 {formatNumber(transactions.length)}
                 <span className="text-sm font-normal text-gray-600 ml-2">transactions found</span>
               </p>
+              <p className="text-lg font-bold text-green-600 mt-1">
+                {formatCurrency(transactions.filter(tx => tx.status !== "held").reduce((sum, tx) => sum + (tx.total || 0), 0))}
+                <span className="text-sm font-normal text-gray-600 ml-2">total sales</span>
+              </p>
             </div>
             <div>
               <p className="text-sm font-semibold text-gray-700 mb-2">Export Options</p>

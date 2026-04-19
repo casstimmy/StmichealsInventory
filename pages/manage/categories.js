@@ -24,6 +24,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import Loader from "@/components/Loader";
 import { getCachedCategories, invalidateCategoriesCache } from "@/lib/categoriesCache";
+import axios from "axios";
 
 const ICON_OPTIONS = [
   { value: "", label: "No Icon", icon: faImages },
@@ -63,6 +64,8 @@ export default function Categories() {
   });
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [selectedLocations, setSelectedLocations] = useState([]);
+  const [allLocations, setAllLocations] = useState([]);
 
   // ✅ Fetch categories once
   useEffect(() => {
@@ -75,6 +78,18 @@ export default function Categories() {
         alert("Failed to fetch categories");
       }
     })();
+  }, []);
+
+  // Fetch locations
+  useEffect(() => {
+    axios.get("/api/setup/get")
+      .then((res) => {
+        const store = res.data?.store;
+        if (store?.locations && Array.isArray(store.locations)) {
+          setAllLocations(store.locations.map((loc) => loc.name || loc));
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // ✅ Image upload handler
@@ -178,6 +193,7 @@ export default function Categories() {
         isStockManaged,
         images: formattedImages,
         properties,
+        locations: selectedLocations,
       });
       invalidateCategoriesCache();
       setCategories((prev) => [...prev, res.data]);
@@ -187,6 +203,7 @@ export default function Categories() {
       setIsStockManaged(true);
       setImages([]);
       setProperties([]);
+      setSelectedLocations([]);
     } catch (err) {
       console.error(err);
       alert("Failed to save category");
@@ -204,6 +221,7 @@ export default function Categories() {
       isStockManaged: cat.isStockManaged !== false,
       images: cat.images || [],
       properties: cat.properties || [],
+      locations: cat.locations || [],
     });
   };
 
@@ -221,6 +239,7 @@ export default function Categories() {
         _id: id,
         ...editedCategory,
         images: formattedImages,
+        locations: editedCategory.locations || [],
       });
       invalidateCategoriesCache();
       setCategories((prev) =>
@@ -234,6 +253,7 @@ export default function Categories() {
         isStockManaged: true,
         images: [],
         properties: [],
+        locations: [],
       });
     } catch (err) {
       console.error(err);
@@ -344,6 +364,41 @@ export default function Categories() {
                 </div>
               </div>
 
+              {/* Location Assignment */}
+              <div className="form-group">
+                <label className="form-label">Available at Locations</label>
+                <p className="text-xs text-gray-400 mb-2">Leave empty to make available at all locations.</p>
+                <div className="space-y-2">
+                  <select
+                    className="form-select"
+                    value=""
+                    onChange={(e) => {
+                      const loc = e.target.value;
+                      if (loc && !selectedLocations.includes(loc)) {
+                        setSelectedLocations((prev) => [...prev, loc]);
+                      }
+                    }}
+                  >
+                    <option value="">— Select location —</option>
+                    {allLocations
+                      .filter((loc) => !selectedLocations.includes(loc))
+                      .map((loc) => (
+                        <option key={loc} value={loc}>{loc}</option>
+                      ))}
+                  </select>
+                  {selectedLocations.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedLocations.map((loc) => (
+                        <span key={loc} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-medium">
+                          {loc}
+                          <button type="button" onClick={() => setSelectedLocations((prev) => prev.filter((l) => l !== loc))} className="hover:text-red-500 transition-colors">×</button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Image Upload */}
               <div className="form-group">
                 <label className="form-label mb-2">
@@ -398,6 +453,7 @@ export default function Categories() {
                   <th>Name</th>
                   <th>Parent</th>
                   <th>Properties</th>
+                  <th>Locations</th>
                   <th className="text-center">Actions</th>
                 </tr>
               </thead>
@@ -441,18 +497,27 @@ export default function Categories() {
                         </span>
                       ))}
                     </td>
+                    <td className="p-3">
+                      {(cat.locations || []).length === 0 ? (
+                        <span className="text-xs text-gray-400">All locations</span>
+                      ) : (
+                        (cat.locations || []).map((loc, k) => (
+                          <span key={k} className="bg-emerald-100 text-emerald-700 text-xs px-2 py-1 rounded-md border border-emerald-300 mr-1 mb-1 inline-block">{loc}</span>
+                        ))
+                      )}
+                    </td>
                     <td className="p-3 flex justify-center gap-3">
                       <button
                         onClick={() => handleEditClick(i, cat)}
-                        className="text-cyan-600 hover:text-gray-900"
+                        className="py-1 px-3 rounded bg-cyan-600 text-white text-xs font-medium hover:bg-cyan-700 transition-colors"
                       >
-                        <FontAwesomeIcon icon={faEdit} />
+                        Edit
                       </button>
                       <button
                         onClick={() => handleDelete(cat._id)}
-                        className="text-red-500 hover:text-red-700"
+                        className="py-1 px-3 rounded bg-red-500 text-white text-xs font-medium hover:bg-red-600 transition-colors"
                       >
-                        <FontAwesomeIcon icon={faTrash} />
+                        Delete
                       </button>
                     </td>
                   </tr>
@@ -460,7 +525,7 @@ export default function Categories() {
                 {filteredCategories.length === 0 && (
                   <tr>
                     <td
-                      colSpan="5"
+                      colSpan="7"
                       className="p-4 text-center text-gray-400"
                     >
                       No categories found
@@ -569,6 +634,39 @@ export default function Categories() {
                           />
                           Track stock for this category
                         </label>
+                      </div>
+
+                      {/* Locations in edit modal */}
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-cyan-700 mb-2">Available at Locations</label>
+                        <p className="text-xs text-gray-400 mb-2">Leave empty to make available at all locations.</p>
+                        <select
+                          className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-cyan-600 focus:border-transparent mb-2"
+                          value=""
+                          onChange={(e) => {
+                            const loc = e.target.value;
+                            if (loc && !(editedCategory.locations || []).includes(loc)) {
+                              setEditedCategory((prev) => ({ ...prev, locations: [...(prev.locations || []), loc] }));
+                            }
+                          }}
+                        >
+                          <option value="">— Select location —</option>
+                          {allLocations
+                            .filter((loc) => !(editedCategory.locations || []).includes(loc))
+                            .map((loc) => (
+                              <option key={loc} value={loc}>{loc}</option>
+                            ))}
+                        </select>
+                        {(editedCategory.locations || []).length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {editedCategory.locations.map((loc) => (
+                              <span key={loc} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-medium">
+                                {loc}
+                                <button type="button" onClick={() => setEditedCategory((prev) => ({ ...prev, locations: prev.locations.filter((l) => l !== loc) }))} className="hover:text-red-500 transition-colors">×</button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
 

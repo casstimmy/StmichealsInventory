@@ -54,7 +54,7 @@ export default async function handler(req, res) {
       const { active } = req.query;
       const filter = {};
       if (active === "true") filter.isActive = true;
-      const vendors = await Vendor.find(filter).sort({ companyName: 1 }).lean();
+      const vendors = await Vendor.find(filter).populate("products.product", "name costPrice salePriceIncTax packType qtyPerPack barcode").sort({ companyName: 1 }).lean();
       return res.status(200).json({ success: true, vendors });
     } catch (err) {
       return res.status(500).json({ error: err.message });

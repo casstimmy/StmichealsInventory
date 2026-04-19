@@ -28,18 +28,12 @@ export default async function handler(req, res) {
       targetCustomerTypes: customerType,
       startDate: { $lte: now },
       endDate: { $gte: now },
+      $or: [
+        { maxUses: null },
+        { maxUses: { $exists: false } },
+        { $expr: { $lt: ["$timesUsed", "$maxUses"] } },
+      ],
     };
-
-    // Apply max uses limit if present
-    if (true) {
-      // Get all and filter in JS to handle null maxUses
-      query.$expr = {
-        $or: [
-          { maxUses: null },
-          { $lt: ["$timesUsed", "$maxUses"] }
-        ]
-      };
-    }
 
     let promotions = await Promotion.find(query)
       .populate("products", "name")

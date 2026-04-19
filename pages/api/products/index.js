@@ -177,6 +177,16 @@ export default async function handler(req, res) {
         return res.json({ success: true, data: products });
       }
 
+      // Names-only mode for dropdowns - returns all products without pagination
+      if (req.query.names === "true") {
+        const products = await Product.find(filter)
+          .select("name costPrice salePriceIncTax packType qtyPerPack barcode")
+          .sort({ name: 1 })
+          .lean();
+        res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
+        return res.json({ success: true, data: products });
+      }
+
       // Pagination support
       const pageNum = Math.max(1, parseInt(page) || 1);
       const limit = Math.min(200, Math.max(1, parseInt(limitParam) || 100));
@@ -222,6 +232,41 @@ export default async function handler(req, res) {
       }
 
       const product = await Product.create(body);
+
+      // Auto-create child product when pack type is selected
+      if (body.packType === "pack" && Number(body.qtyPerPack) > 1) {
+        const existingChild = await Product.findOne({
+          parentProduct: product._id,
+          isChildProduct: true,
+          isArchived: { $ne: true },
+        });
+        if (!existingChild) {
+          const childCostPrice = (Number(body.costPrice) || 0) / (Number(body.qtyPerPack) || 1);
+          const childSalePrice = Number(body.childSalePrice) || (Number(body.salePriceIncTax) || 0) / (Number(body.qtyPerPack) || 1);
+          await Product.create({
+            name: `${body.name} (Unit)`,
+            description: `${body.description || body.name} - Single unit from pack of ${body.qtyPerPack}`,
+            costPrice: Math.round(childCostPrice * 100) / 100,
+            taxRate: body.taxRate || 0,
+            salePriceIncTax: Math.round(childSalePrice * 100) / 100,
+            margin: body.margin || 0,
+            barcode: body.barcode ? `${body.barcode}-U` : "",
+            category: body.category || "Top Level",
+            images: body.images || [],
+            properties: body.properties || [],
+            quantity: 0,
+            isStockManaged: body.isStockManaged !== false,
+            minStock: 0,
+            packType: "unit",
+            qtyPerPack: 1,
+            isChildProduct: true,
+            parentProduct: product._id,
+            vendors: body.vendors || [],
+            locations: body.locations || [],
+            isArchived: false,
+          });
+        }
+      }
 
       return res.status(201).json({
         success: true,
@@ -326,6 +371,53 @@ export default async function handler(req, res) {
         });
       }
 
+      // Auto-create/update child product when pack type is set
+      if (updated.packType === "pack" && Number(updated.qtyPerPack) > 1) {
+        const existingChild = await Product.findOne({
+          parentProduct: updated._id,
+          isChildProduct: true,
+          isArchived: { $ne: true },
+        });
+        const childCostPrice = (Number(updated.costPrice) || 0) / (Number(updated.qtyPerPack) || 1);
+        const childSalePrice = Number(updateData.childSalePrice) || (Number(updated.salePriceIncTax) || 0) / (Number(updated.qtyPerPack) || 1);
+        if (existingChild) {
+          await Product.findByIdAndUpdate(existingChild._id, {
+            name: `${updated.name} (Unit)`,
+            description: `${updated.description || updated.name} - Single unit from pack of ${updated.qtyPerPack}`,
+            costPrice: Math.round(childCostPrice * 100) / 100,
+            taxRate: updated.taxRate || 0,
+            salePriceIncTax: Math.round(childSalePrice * 100) / 100,
+            category: updated.category,
+            images: updated.images || [],
+            vendors: updated.vendors || [],
+            locations: updated.locations || [],
+          });
+        } else {
+          await Product.create({
+            name: `${updated.name} (Unit)`,
+            description: `${updated.description || updated.name} - Single unit from pack of ${updated.qtyPerPack}`,
+            costPrice: Math.round(childCostPrice * 100) / 100,
+            taxRate: updated.taxRate || 0,
+            salePriceIncTax: Math.round(childSalePrice * 100) / 100,
+            margin: updated.margin || 0,
+            barcode: updated.barcode ? `${updated.barcode}-U` : "",
+            category: updated.category || "Top Level",
+            images: updated.images || [],
+            properties: updated.properties || [],
+            quantity: 0,
+            isStockManaged: updated.isStockManaged !== false,
+            minStock: 0,
+            packType: "unit",
+            qtyPerPack: 1,
+            isChildProduct: true,
+            parentProduct: updated._id,
+            vendors: updated.vendors || [],
+            locations: updated.locations || [],
+            isArchived: false,
+          });
+        }
+      }
+
       return res.json({
         success: true,
         message: "Product updated successfully",
@@ -337,12 +429,33 @@ export default async function handler(req, res) {
        DELETE PRODUCT
     ===================== */
     if (method === "DELETE") {
-      const { id } = req.query;
+      const { id, permanent } = req.query;
 
       if (!id) {
         return res.status(400).json({
           success: false,
           message: "Product ID required",
+        });
+      }
+
+      // Permanent delete - Admin only
+      if (permanent === "true") {
+        if (req.user?.role !== "admin") {
+          return res.status(403).json({
+            success: false,
+            message: "Only Admin can permanently delete products",
+          });
+        }
+        const removed = await Product.findByIdAndDelete(id);
+        if (!removed) {
+          return res.status(404).json({
+            success: false,
+            message: "Product not found",
+          });
+        }
+        return res.json({
+          success: true,
+          message: "Product permanently deleted",
         });
       }
 

@@ -101,7 +101,7 @@ export default function Sidebar() {
     if (pathname.startsWith("/setup")) {
       setOpenMenu("setup");
       setOpenSubMenu(null);
-    } else if (pathname.startsWith("/manage")) {
+    } else if (pathname.startsWith("/manage") || pathname.startsWith("/products")) {
       setOpenMenu("manage");
       // Auto-open staff sub-menu if on a staff page
       if (pathname.startsWith("/manage/staff")) {
@@ -176,9 +176,16 @@ export default function Sidebar() {
     </li>
   );
 
+  const isLinkActive = (href) => {
+    if (pathname === href) return true;
+    // Product form/edit pages should highlight "Product List"
+    if (href === "/manage/products" && pathname.startsWith("/products")) return true;
+    return false;
+  };
+
   const renderSubMenu = (items) =>
     items.map(({ href, label, indent }, index) => {
-      const isActive = pathname === href;
+      const isActive = isLinkActive(href);
       return (
         <li
           key={href}
@@ -302,7 +309,7 @@ export default function Sidebar() {
             {/* Manage */}
             {canAccessAny(["manage", "manage.products", "manage.archived", "manage.categories", "manage.promotions", "manage.customer-promotions", "manage.orders", "manage.customers", "manage.campaigns", "manage.staff", "manage.staff-roles", "manage.vendors", "manage.purchase-orders"]) && (
             <li
-              className={`${pathname.startsWith("/manage") ? activeLink : baseLink} relative`}
+              className={`${(pathname.startsWith("/manage") || pathname.startsWith("/products")) ? activeLink : baseLink} relative`}
             >
               <div
                 className="flex flex-col items-center justify-center cursor-pointer"
@@ -332,11 +339,10 @@ export default function Sidebar() {
                   { href: "/manage/products", label: "Product List" },
                   { href: "/manage/archived", label: "Archived Products" },
                   { href: "/manage/categories", label: "Categories" },
-                  { href: "/manage/promotions", label: "Promotions" },
-                  { href: "/manage/promotions-management", label: "Customer Promotions", indent: false },
+                  { href: "/manage/promotions", label: "Product Promotions" },
+                  { href: "/manage/promotions-management", label: "Promotions & Campaigns", indent: false },
                   { href: "/manage/orders", label: "Orders" },
                   { href: "/manage/customers", label: "Customers", indent: false },
-                  { href: "/manage/campaigns", label: "Campaigns", indent: true },
                 ].filter(item => {
                   const permMap = {
                     "/manage/products": "manage.products",
@@ -346,7 +352,6 @@ export default function Sidebar() {
                     "/manage/promotions-management": "manage.customer-promotions",
                     "/manage/orders": "manage.orders",
                     "/manage/customers": "manage.customers",
-                    "/manage/campaigns": "manage.campaigns",
                   };
                   return canAccess(permMap[item.href] || "manage");
                 }))}
@@ -775,7 +780,7 @@ export default function Sidebar() {
             <li>
               <button
                 onClick={() => toggleMenu("manage")}
-                className={`w-full ${pathname.startsWith("/manage") ? mobileActiveLink : mobileBaseLink} justify-between`}
+                className={`w-full ${(pathname.startsWith("/manage") || pathname.startsWith("/products")) ? mobileActiveLink : mobileBaseLink} justify-between`}
               >
                 <div className="flex items-center gap-3">
                   <FontAwesomeIcon icon={faList} className="w-5 h-5" />
@@ -790,7 +795,7 @@ export default function Sidebar() {
                 <ul className="bg-gray-50 border-l-4 border-blue-600">
                   {canAccess("manage.products") && (
                   <li onClick={closeMenu}>
-                    <Link href="/manage/products" className={`block px-8 py-3 text-sm transition-all ${pathname === "/manage/products" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                    <Link href="/manage/products" className={`block px-8 py-3 text-sm transition-all ${(pathname === "/manage/products" || pathname.startsWith("/products")) ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Product List
                     </Link>
                   </li>
@@ -819,7 +824,7 @@ export default function Sidebar() {
                   {canAccess("manage.customer-promotions") && (
                   <li onClick={closeMenu}>
                     <Link href="/manage/promotions-management" className={`block px-8 py-3 text-sm transition-all ${pathname === "/manage/promotions-management" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
-                      Customer Promotions
+                      Promotions & Campaigns
                     </Link>
                   </li>
                   )}
@@ -869,13 +874,7 @@ export default function Sidebar() {
                     </Link>
                   </li>
                   )}
-                  {canAccess("manage.campaigns") && (
-                  <li onClick={closeMenu}>
-                    <Link href="/manage/campaigns" className={`block px-12 py-3 text-sm transition-all ${pathname === "/manage/campaigns" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
-                      Campaigns
-                    </Link>
-                  </li>
-                  )}
+
                   {canAccessAny(["manage.vendors", "manage.purchase-orders"]) && (
                   <li>
                     <button

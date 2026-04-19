@@ -77,6 +77,7 @@ const ProductSchema = new Schema(
     ===================== */
     isChildProduct: { type: Boolean, default: false },
     parentProduct: { type: Schema.Types.ObjectId, ref: "Product" },
+    childSalePrice: { type: Number },
     packType: { type: String, enum: ["unit", "pack"], default: "unit" },
     qtyPerPack: { type: Number, default: 1 },
 

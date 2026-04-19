@@ -49,7 +49,7 @@ export default async function handler(req, res) {
     }
 
     if (method === "POST") {
-      let { name, parentCategory, properties, images, icon, isStockManaged } = req.body;
+      let { name, parentCategory, properties, images, icon, isStockManaged, locations } = req.body;
       if (!name)
         return res.status(400).json({ success: false, message: "Name is required" });
 
@@ -65,6 +65,7 @@ export default async function handler(req, res) {
         properties: properties || [],
         icon: String(icon || "").trim(),
         isStockManaged: resolveStockManaged(name, isStockManaged),
+        locations: Array.isArray(locations) ? locations : [],
         images,
       });
 
@@ -74,7 +75,7 @@ export default async function handler(req, res) {
     }
 
     if (method === "PUT") {
-      let { _id, name, parentCategory, properties, images, icon, isStockManaged } = req.body;
+      let { _id, name, parentCategory, properties, images, icon, isStockManaged, locations } = req.body;
       if (!_id) return res.status(400).json({ success: false, message: "Category ID is required" });
 
       // --- FIX: Normalize images ---
@@ -91,6 +92,7 @@ export default async function handler(req, res) {
           properties: properties || [],
           icon: String(icon || "").trim(),
           isStockManaged: resolveStockManaged(name, isStockManaged),
+          locations: Array.isArray(locations) ? locations : [],
           images,
         },
         { new: true }

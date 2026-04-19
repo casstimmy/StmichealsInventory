@@ -6,6 +6,7 @@ const CategorySchema = new Schema({
     properties: [{type: Object}],
     icon: { type: String, default: "" },
     isStockManaged: { type: Boolean, default: true },
+    locations: [{ type: String }],
     images: [{
         full: {type: String},
         thumb: {type: String}

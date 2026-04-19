@@ -24,7 +24,6 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import Loader from "@/components/Loader";
 import { getCachedCategories, invalidateCategoriesCache } from "@/lib/categoriesCache";
-import axios from "axios";
 
 const ICON_OPTIONS = [
   { value: "", label: "No Icon", icon: faImages },

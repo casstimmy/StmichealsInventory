@@ -266,6 +266,7 @@ export default async function handler(req, res) {
         const existingChild = await Product.findOne({
           parentProduct: product._id,
           isChildProduct: true,
+          packType: { $ne: "pack" },
           isArchived: { $ne: true },
         });
         if (!existingChild) {
@@ -405,6 +406,7 @@ export default async function handler(req, res) {
         const existingChild = await Product.findOne({
           parentProduct: updated._id,
           isChildProduct: true,
+          packType: { $ne: "pack" },
           isArchived: { $ne: true },
         });
         const childCostPrice = (Number(updated.costPrice) || 0) / (Number(updated.qtyPerPack) || 1);

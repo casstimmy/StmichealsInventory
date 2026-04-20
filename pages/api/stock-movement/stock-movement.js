@@ -83,15 +83,15 @@ export default async function handler(req, res) {
         });
       }
 
-      const product = await Product.findById(id).select("_id costPrice isStockManaged isChildProduct");
+      const product = await Product.findById(id).select("_id costPrice isStockManaged isChildProduct packType");
       if (!product) {
         return res.status(404).json({
           message: `Product not found with ID: ${id}`,
         });
       }
 
-      // Child products cannot have independent stock movements — their qty is derived from parent
-      if (product.isChildProduct) {
+      // Only true derived children (unit from pack) cannot have independent stock movements
+      if (product.isChildProduct && product.packType !== "pack") {
         return res.status(400).json({
           message: `"${product.name || id}" is a unit product linked to a pack. Adjust the pack product instead.`,
         });

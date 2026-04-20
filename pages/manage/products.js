@@ -528,7 +528,15 @@ export default function Products() {
                             className="w-32 md:w-36 border p-1 rounded text-xs"
                           />
                         ) : (
-                          p.name
+                          <span>
+                            {p.name}
+                            {p.isChildProduct && p.packType !== "pack" && (
+                              <span className="ml-1 text-[10px] text-blue-500 font-normal">(unit from pack)</span>
+                            )}
+                            {p.packType === "pack" && (
+                              <span className="ml-1 text-[10px] text-purple-500 font-normal">(pack of {p.qtyPerPack})</span>
+                            )}
+                          </span>
                         )}
                       </td>
 

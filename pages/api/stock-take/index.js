@@ -55,8 +55,8 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, message: "title and locationName are required" });
       }
 
-      // Build product filter
-      const productFilter = { isArchived: { $ne: true }, isStockManaged: true };
+      // Build product filter — exclude child products (their qty is derived from parent)
+      const productFilter = { isArchived: { $ne: true }, isStockManaged: true, isChildProduct: { $ne: true } };
       if (category && category !== "all") productFilter.category = category;
 
       const products = await Product.find(productFilter)

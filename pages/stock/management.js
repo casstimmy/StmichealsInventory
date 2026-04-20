@@ -83,17 +83,21 @@ export default function StockManagement() {
         .reduce((sum, item) => sum + (item.quantity || 0), 0),
     [products]
   );
-  const totalIncoming = useMemo(
-    () => products.filter((p) => (p.quantity || 0) > (p.minStock || 0)).length,
+  const parentProducts = useMemo(
+    () => products.filter((p) => !p.isChildProduct),
     [products]
+  );
+  const totalIncoming = useMemo(
+    () => parentProducts.filter((p) => (p.quantity || 0) > (p.minStock || 0)).length,
+    [parentProducts]
   );
   const totalOutgoing = useMemo(
-    () => products.filter((p) => (p.quantity || 0) < (p.minStock || 0) / 2).length,
-    [products]
+    () => parentProducts.filter((p) => (p.quantity || 0) < (p.minStock || 0) / 2).length,
+    [parentProducts]
   );
   const lowStockCount = useMemo(
-    () => products.filter((p) => p.quantity < (p.minStock || 0)).length,
-    [products]
+    () => parentProducts.filter((p) => p.quantity < (p.minStock || 0)).length,
+    [parentProducts]
   );
 
   return (
@@ -172,8 +176,10 @@ export default function StockManagement() {
                   ) : (
                     filteredItems.map((product) => {
                       const qty = product.quantity ?? 0;
-                      const status =
-                        qty < 0
+                      const isChild = product.isChildProduct;
+                      const status = isChild
+                        ? "Linked"
+                        : qty < 0
                           ? "Negative Stock"
                           : qty === 0
                           ? "Out of Stock"
@@ -182,17 +188,22 @@ export default function StockManagement() {
                           : "In Stock";
 
                       return (
-                        <tr key={product._id} className={`hover:bg-gray-50 ${qty < 0 ? "bg-red-50" : ""}`}>
-                          <td className="px-6 py-4 font-medium text-gray-900">{product.name || "N/A"}</td>
+                        <tr key={product._id} className={`hover:bg-gray-50 ${isChild ? "bg-blue-50/40" : qty < 0 ? "bg-red-50" : ""}`}>
+                          <td className="px-6 py-4 font-medium text-gray-900">
+                            {product.name || "N/A"}
+                            {isChild && <span className="ml-2 text-xs text-blue-600 font-normal">(unit from pack)</span>}
+                          </td>
                           <td className="px-6 py-4 text-gray-700">{categoryMap[product.category] || product.category || "Uncategorized"}</td>
                           <td className={`px-6 py-4 font-semibold ${qty < 0 ? "text-red-600" : "text-gray-900"}`}>
-                            {qty}
+                            {parseFloat(qty.toFixed(2))}
                           </td>
                           <td className="px-6 py-4 text-gray-700">{product.minStock ?? 0}</td>
                           <td className="px-6 py-4">{formatCurrency(product.costPrice || 0, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
                           <td
                             className={`px-6 py-4 font-semibold ${
-                              status === "In Stock"
+                              status === "Linked"
+                                ? "text-blue-600"
+                                : status === "In Stock"
                                 ? "text-green-600"
                                 : status === "Low Stock"
                                 ? "text-yellow-600"

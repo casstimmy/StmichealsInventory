@@ -149,7 +149,7 @@ export default function StockMovementAdd() {
       const trimmed = searchTerm.trim();
       if (trimmed.length >= 2) {
         setLoadingSearch(true);
-        fetch(`/api/products?search=${encodeURIComponent(trimmed)}&stockManaged=true`)
+        fetch(`/api/products?search=${encodeURIComponent(trimmed)}&stockManaged=true&excludeChild=true`)
           .then((res) => res.json())
           .then(data => {
             const productList = data.data || (Array.isArray(data) ? data : []);

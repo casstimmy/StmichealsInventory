@@ -143,6 +143,7 @@ export default async function handler(req, res) {
         limit: limitParam,
         archived,
         stockManaged,
+        excludeChild,
       } = req.query;
 
       if (minimal !== "true" && !id && !search) {
@@ -187,6 +188,7 @@ export default async function handler(req, res) {
       if (expired === "false") filter.isExpired = false;
       if (stockManaged === "true") filter.isStockManaged = true;
       if (stockManaged === "false") filter.isStockManaged = false;
+      if (excludeChild === "true") filter.isChildProduct = { $ne: true };
 
       // Minimal mode for stock management - only essential fields
       if (minimal === "true") {

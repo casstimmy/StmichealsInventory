@@ -88,9 +88,20 @@ export default async function handler(req, res) {
 
         const { toLocationId } = req.body;
 
-        // Create stock movement from this purchase order
-        const movementProducts = order.products
-          .filter((p) => p.productId && p.quantity > 0)
+        // Create stock movement from this purchase order — skip child products
+        const allProducts = order.products.filter((p) => p.productId && p.quantity > 0);
+        const childIds = new Set();
+        // Pre-fetch to identify child products
+        if (allProducts.length > 0) {
+          const productDocs = await Product.find({
+            _id: { $in: allProducts.map((p) => p.productId) },
+          }).select("_id isChildProduct").lean();
+          for (const doc of productDocs) {
+            if (doc.isChildProduct) childIds.add(String(doc._id));
+          }
+        }
+        const movementProducts = allProducts
+          .filter((p) => !childIds.has(String(p.productId)))
           .map((p) => ({
             productId: p.productId,
             quantity: p.quantity,

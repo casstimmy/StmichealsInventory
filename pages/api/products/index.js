@@ -189,7 +189,13 @@ export default async function handler(req, res) {
       if (expired === "false") filter.isExpired = false;
       if (stockManaged === "true") filter.isStockManaged = true;
       if (stockManaged === "false") filter.isStockManaged = false;
-      if (excludeChild === "true") filter.isChildProduct = { $ne: true };
+      if (excludeChild === "true") {
+        // Exclude true derived children (unit from pack), not pack products
+        filter.$or = [
+          { isChildProduct: { $ne: true } },
+          { isChildProduct: true, packType: "pack" },
+        ];
+      }
 
       // Minimal mode for stock management - only essential fields
       if (minimal === "true") {

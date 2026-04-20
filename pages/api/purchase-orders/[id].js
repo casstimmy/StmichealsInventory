@@ -95,9 +95,10 @@ export default async function handler(req, res) {
         if (allProducts.length > 0) {
           const productDocs = await Product.find({
             _id: { $in: allProducts.map((p) => p.productId) },
-          }).select("_id isChildProduct").lean();
+          }).select("_id isChildProduct packType").lean();
           for (const doc of productDocs) {
-            if (doc.isChildProduct) childIds.add(String(doc._id));
+            // Only skip true derived children (unit from pack), not pack products
+            if (doc.isChildProduct && doc.packType !== "pack") childIds.add(String(doc._id));
           }
         }
         const movementProducts = allProducts

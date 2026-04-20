@@ -86,7 +86,7 @@ export default function TimeIntervals() {
           buckets[key].transactionQty += 1;
           buckets[key].itemQty += tx.items?.reduce((s, i) => s + (i.qty || 0), 0) || 0;
           buckets[key].salesIncTax += tx.total || 0;
-          buckets[key].discounts += tx.discount || 0;
+          buckets[key].discounts += (tx.promotionValueType === 'INCREMENT' ? 0 : (tx.discount || 0));
         } else if (tx.status === "refunded") {
           buckets[key].refundQty += 1;
           buckets[key].refundValue += tx.total || 0;

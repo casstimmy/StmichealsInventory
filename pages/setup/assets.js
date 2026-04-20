@@ -258,34 +258,38 @@ export default function AssetsPage() {
           )}
           {assets.map((a) => (
             <div key={a._id} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-              {/* Row */}
+              {/* Row - Collapsed view: image and concise identity/details only */}
               <div className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-50" onClick={() => setExpandedAsset(expandedAsset === a._id ? null : a._id)}>
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                  {a.image && (
-                    <img src={a.image} alt={a.name} className="w-10 h-10 rounded-lg object-cover shrink-0 border border-gray-200" />
-                  )}
+                  <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-gray-200 bg-gray-100 flex items-center justify-center">
+                    {a.image ? (
+                      <img src={a.image} alt={a.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <Package size={18} className="text-gray-400" />
+                    )}
+                  </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-mono text-xs text-gray-400">{a.assetTag}</span>
                       <h3 className="font-semibold text-gray-800 truncate">{a.name}</h3>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[a.status] || ""}`}>{a.status}</span>
                     </div>
-                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
-                      <span>{a.category}</span>
-                      {a.location && <><span>•</span><span>{a.location}</span></>}
-                      {a.assignedTo && <><span>•</span><span>Assigned: {a.assignedTo}</span></>}
-                      <span>•</span>
-                    <span>Value: {formatCurrency(a.currentValue ?? a.purchasePrice)}</span>
-                  </div>
+                    <div className="mt-1 flex flex-wrap gap-1.5 text-xs text-gray-500">
+                      {a.assetTag && <span className="font-mono text-[11px] text-gray-400">{a.assetTag}</span>}
+                      {a.category && <span className="rounded-full bg-gray-100 px-2 py-0.5">{a.category}</span>}
+                      {a.location && <span className="rounded-full bg-gray-100 px-2 py-0.5">{a.location}</span>}
+                      {a.assignedTo && <span className="rounded-full bg-gray-100 px-2 py-0.5">Assigned: {a.assignedTo}</span>}
+                      {(a.customProperties || []).slice(0, 2).map((prop, index) => (
+                        <span key={`${a._id}-prop-${index}`} className="rounded-full bg-blue-50 px-2 py-0.5 text-blue-700">
+                          {prop.key}: {prop.value || "-"}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="mt-1 hidden sm:flex items-center gap-3 text-xs text-gray-500">
+                      <span>Value: {formatCurrency(a.currentValue ?? a.purchasePrice)}</span>
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 ml-3 shrink-0">
-                  <button onClick={(e) => { e.stopPropagation(); openEdit(a); }} className="text-xs px-3 py-1 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition font-medium">Edit</button>
-                  <button onClick={(e) => { e.stopPropagation(); setShowMaintenance(a._id); }} className="text-xs px-3 py-1 text-amber-600 border border-amber-300 rounded-lg hover:bg-amber-50 transition font-medium">Maintain</button>
-                  {a.status !== "Disposed" && (
-                    <button onClick={(e) => { e.stopPropagation(); setShowDispose(a._id); }} className="text-xs px-3 py-1 text-red-500 border border-red-300 rounded-lg hover:bg-red-50 transition font-medium">Dispose</button>
-                  )}
-                  <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(a._id); }} className="text-xs px-3 py-1 text-red-400 border border-red-200 rounded-lg hover:bg-red-50 transition font-medium">Delete</button>
                   {expandedAsset === a._id ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
                 </div>
               </div>
@@ -293,6 +297,15 @@ export default function AssetsPage() {
               {/* Expanded */}
               {expandedAsset === a._id && (
                 <div className="border-t border-gray-100 bg-gray-50 px-4 py-4 space-y-4 text-sm">
+                  {/* Action buttons - only visible when expanded */}
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <button onClick={(e) => { e.stopPropagation(); openEdit(a); }} className="text-xs px-3 py-1 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition font-medium">Edit</button>
+                    <button onClick={(e) => { e.stopPropagation(); setShowMaintenance(a._id); }} className="text-xs px-3 py-1 text-amber-600 border border-amber-300 rounded-lg hover:bg-amber-50 transition font-medium">Maintain</button>
+                    {a.status !== "Disposed" && (
+                      <button onClick={(e) => { e.stopPropagation(); setShowDispose(a._id); }} className="text-xs px-3 py-1 text-red-500 border border-red-300 rounded-lg hover:bg-red-50 transition font-medium">Dispose</button>
+                    )}
+                    <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(a._id); }} className="text-xs px-3 py-1 text-red-400 border border-red-200 rounded-lg hover:bg-red-50 transition font-medium">Delete</button>
+                  </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                     {[
                       ["Serial #", a.serialNumber],

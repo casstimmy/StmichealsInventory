@@ -296,11 +296,12 @@ function applyFilters() {
 
   const exportCSV = () => {
     const headers = [
-      "Staff,Location,Device,Date,Customer,Discount,DiscountReason,Total,Tender,Change",
+      "Staff,Held By,Location,Device,Date,Customer,Discount,DiscountReason,Total,Tender,Change",
     ];
     const rows = transactions.map((tx) =>
       [
-        tx.staff?.name || tx.staff || "N/A",
+        tx.staff?.name || tx.staffName || tx.staff || "N/A",
+        tx.heldByStaffName || "-",
         tx.location || "N/A",
         tx.device,
         new Date(tx.createdAt).toLocaleString(),
@@ -669,6 +670,7 @@ function applyFilters() {
                 <thead className="sticky top-0">
                   <tr>
                     <th className="px-4 py-3 text-left font-semibold">Staff</th>
+                    <th className="px-4 py-3 text-left font-semibold">Held By</th>
                     <th className="px-4 py-3 text-left font-semibold">Location</th>
                     <th className="px-4 py-3 text-left font-semibold">Date/Time</th>
                     <th className="px-4 py-3 text-left font-semibold">Customer</th>
@@ -682,7 +684,8 @@ function applyFilters() {
                   {transactions.map((tx, idx) => (
                     [
                       <tr key={tx._id} className={`transition-colors ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-gray-50`}>
-                        <td className="px-4 py-3 font-medium text-gray-800">{tx.staff?.name || tx.staff || "N/A"}</td>
+                        <td className="px-4 py-3 font-medium text-gray-800">{tx.staff?.name || tx.staffName || tx.staff || "N/A"}</td>
+                        <td className="px-4 py-3 text-gray-600 text-xs">{tx.heldByStaffName || "-"}</td>
                         <td className="px-4 py-3">
                           <span className="badge badge-success">
                             {tx.location || "N/A"}
@@ -740,8 +743,18 @@ function applyFilters() {
                       </tr>,
                       expandedTxId === tx._id ? (
                         <tr key={`${tx._id}-expanded`} className="bg-gray-100">
-                          <td colSpan={8} className="px-6 py-4">
+                          <td colSpan={9} className="px-6 py-4">
                             <div className="bg-white rounded-lg p-4 border border-gray-200">
+                              <div className="mb-3 grid gap-2 text-sm text-gray-600 sm:grid-cols-2">
+                                <div>
+                                  <span className="font-semibold text-gray-700">Cashier:</span>{" "}
+                                  {tx.staff?.name || tx.staffName || tx.staff || "N/A"}
+                                </div>
+                                <div>
+                                  <span className="font-semibold text-gray-700">Held By:</span>{" "}
+                                  {tx.heldByStaffName || "-"}
+                                </div>
+                              </div>
                               <p className="text-sm font-semibold text-gray-700 mb-3">Order Items ({tx.items?.length || 0} items)</p>
                               <div className="overflow-x-auto">
                                 <table className="w-full text-sm">

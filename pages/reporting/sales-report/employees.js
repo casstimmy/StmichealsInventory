@@ -69,7 +69,7 @@ export default function EmployeesSales() {
           staffMap[staffName].transactionQty += 1;
           staffMap[staffName].itemQty += tx.items?.reduce((s, i) => s + (i.qty || 0), 0) || 0;
           staffMap[staffName].salesIncTax += tx.total || 0;
-          staffMap[staffName].discounts += tx.discount || 0;
+          staffMap[staffName].discounts += (tx.promotionValueType === 'INCREMENT' ? 0 : (tx.discount || 0));
         } else if (tx.status === "refunded") {
           staffMap[staffName].refundQty += 1;
           staffMap[staffName].refundValue += tx.total || 0;

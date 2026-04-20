@@ -86,10 +86,11 @@ export default function TimeComparisons() {
       if (!buckets[key]) {
         buckets[key] = { totalSales: 0, transactionCount: 0, itemsSold: 0, discounts: 0, refunds: 0, refundValue: 0 };
       }
+      const actualDiscount = tx.promotionValueType === "INCREMENT" ? 0 : (tx.discount || 0);
       buckets[key].totalSales += tx.total || 0;
       buckets[key].transactionCount += 1;
       buckets[key].itemsSold += tx.items?.reduce((s, i) => s + (i.qty || 0), 0) || 0;
-      buckets[key].discounts += tx.discount || 0;
+      buckets[key].discounts += actualDiscount;
     });
 
     return Object.entries(buckets)

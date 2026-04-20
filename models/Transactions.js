@@ -37,10 +37,17 @@ const TransactionSchema = new mongoose.Schema({
   staff: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
   staffName: { type: String }, // Staff name for reference (redundant but useful)
   location: { type: String }, // Store location as string (location name or 'online')
+  
+  // Held-by tracking (who originally held the transaction)
+  heldByStaffName: { type: String },
+  heldByStaffId: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
   device: String,
   tableName: String,
   discount: Number,
   discountReason: String,
+  incrementAmount: { type: Number }, // Amount added by INCREMENT promotions
+  promotionValueType: { type: String }, // "DISCOUNT" or "INCREMENT"
+  customerType: { type: String }, // Customer type / promotion name
   customerName: String,
   transactionType: { type: String, enum: ["pos"], default: "pos" }, // Only POS transactions
   status: { 

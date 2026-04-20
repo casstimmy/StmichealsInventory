@@ -77,7 +77,10 @@ export default function StockManagement() {
   }, [products, searchTerm, categoryMap]);
 
   const totalStock = useMemo(
-    () => products.reduce((sum, item) => sum + (item.quantity || 0), 0),
+    () =>
+      products
+        .filter((item) => !item.isChildProduct)
+        .reduce((sum, item) => sum + (item.quantity || 0), 0),
     [products]
   );
   const totalIncoming = useMemo(
@@ -130,7 +133,7 @@ export default function StockManagement() {
         ) : (
           <>
             <section className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-              <StatCard label="Total Stock" value={`${totalStock} units`} />
+              <StatCard label="Total Stock" value={`${parseFloat(totalStock.toFixed(2))} units`} />
               <StatCard label="Well Stocked" value={`${totalIncoming} products`} />
               <StatCard label="Critical Level" value={`${totalOutgoing} products`} />
               <StatCard label="Low Stock Alerts" value={lowStockCount} highlight />

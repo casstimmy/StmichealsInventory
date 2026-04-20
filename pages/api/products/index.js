@@ -6,6 +6,28 @@ import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 let lastRoomSyncAt = 0;
 const ROOM_SYNC_INTERVAL_MS = 10 * 60 * 1000;
 
+/**
+ * Derive child product quantities from their parent in-place.
+ * Child qty = parent.qty × qtyPerPack (always computed, never independent).
+ */
+async function deriveChildQuantities(products) {
+  const children = products.filter((p) => p.isChildProduct && p.parentProduct);
+  if (children.length === 0) return;
+
+  const parentIds = [...new Set(children.map((p) => String(p.parentProduct)))];
+  const parents = await Product.find({ _id: { $in: parentIds } })
+    .select("_id quantity qtyPerPack")
+    .lean();
+  const parentMap = new Map(parents.map((p) => [String(p._id), p]));
+
+  for (const child of children) {
+    const parent = parentMap.get(String(child.parentProduct));
+    if (parent && parent.qtyPerPack > 0) {
+      child.quantity = parent.quantity * parent.qtyPerPack;
+    }
+  }
+}
+
 /* =====================
    AUTO-DISABLE EXPIRED PROMOTIONS
 ===================== */
@@ -170,9 +192,10 @@ export default async function handler(req, res) {
       if (minimal === "true") {
         filter.isStockManaged = true;
         const products = await Product.find(filter)
-          .select("name quantity minStock category barcode costPrice salePriceIncTax isStockManaged")
+          .select("name quantity minStock category barcode costPrice salePriceIncTax isStockManaged isChildProduct parentProduct packType qtyPerPack")
           .sort({ name: 1 })
           .lean();
+        await deriveChildQuantities(products);
         res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
         return res.json({ success: true, data: products });
       }
@@ -206,6 +229,8 @@ export default async function handler(req, res) {
       res.setHeader('X-Total-Count', total);
       res.setHeader('X-Page', pageNum);
       res.setHeader('X-Total-Pages', Math.ceil(total / limit));
+
+      await deriveChildQuantities(products);
       
       res.setHeader("Cache-Control", "public, s-maxage=30, stale-while-revalidate=120");
       return res.json({ success: true, data: products, total });

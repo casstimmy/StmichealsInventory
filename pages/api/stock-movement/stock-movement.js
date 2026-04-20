@@ -1,6 +1,7 @@
 import { mongooseConnect } from "@/lib/mongodb";
 import Product from "@/models/Product";
 import StockMovement from "@/models/StockMovement";
+import { deriveChildQty } from "@/lib/syncPackQty";
 import { isValidObjectId } from "mongoose";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 
@@ -151,6 +152,11 @@ export default async function handler(req, res) {
     if (bulkOps.length > 0) {
       const bulkResult = await Product.bulkWrite(bulkOps);
       console.log("📦 Stock update result:", bulkResult);
+
+      // Sync parent-child quantities for all affected products
+      for (const { productId } of productsToCreate.filter(p => p.isStockManaged)) {
+        await deriveChildQty(productId);
+      }
       
       // Check for low stock items and send notification
       const updatedProducts = await Product.find({

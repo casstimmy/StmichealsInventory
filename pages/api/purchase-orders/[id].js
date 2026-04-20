@@ -2,6 +2,7 @@ import { mongooseConnect } from "@/lib/mongodb";
 import PurchaseOrder from "@/models/PurchaseOrder";
 import StockMovement from "@/models/StockMovement";
 import Product from "@/models/Product";
+import { deriveChildQty } from "@/lib/syncPackQty";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 import { isValidObjectId } from "mongoose";
 import { postPurchaseOrderPayment } from "@/lib/accounting";
@@ -122,6 +123,8 @@ export default async function handler(req, res) {
             await Product.findByIdAndUpdate(item.productId, {
               $inc: { quantity: item.quantity },
             });
+            // Sync parent-child qty after restock
+            await deriveChildQty(item.productId);
           }
 
           order.stockMovementId = stockMovement._id;

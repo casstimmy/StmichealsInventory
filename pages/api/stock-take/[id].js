@@ -2,6 +2,7 @@
 import { mongooseConnect } from "@/lib/mongodb";
 import StockTake from "@/models/StockTake";
 import Product from "@/models/Product";
+import { deriveChildQty } from "@/lib/syncPackQty";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 import { isValidObjectId } from "mongoose";
 
@@ -128,6 +129,13 @@ export default async function handler(req, res) {
 
         if (bulkOps.length > 0) {
           await Product.bulkWrite(bulkOps);
+
+          // Sync parent-child quantities for all adjusted products
+          for (const item of stockTake.items) {
+            if (item.status === "counted" && item.countedQty !== null && item.variance !== 0) {
+              await deriveChildQty(item.productId);
+            }
+          }
         }
 
         stockTake.adjustmentApplied = true;

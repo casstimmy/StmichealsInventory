@@ -469,7 +469,12 @@ export default function StockTakeDetail() {
                     }`}>
                       <td className="py-2 px-2 text-gray-400 text-xs">{idx + 1}</td>
                       <td className="py-2 px-2">
-                        <div className="font-medium text-gray-900 text-sm">{item.productName}</div>
+                        <div className="font-medium text-gray-900 text-sm">
+                          {item.productName}
+                          {item.countType === "loose-units" && (
+                            <span className="ml-1 text-xs text-orange-600 font-normal">({item.qtyPerPack} per pack)</span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-2 px-2 font-mono text-xs text-gray-500 hidden md:table-cell">{item.barcode || "—"}</td>
                       <td className="py-2 px-2 text-center font-medium text-gray-700">{item.systemQty}</td>

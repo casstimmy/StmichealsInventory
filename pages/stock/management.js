@@ -76,15 +76,19 @@ export default function StockManagement() {
     });
   }, [products, searchTerm, categoryMap]);
 
+  // A "true derived child" is isChildProduct=true AND packType is NOT "pack"
+  // Pack products are parents even if incorrectly flagged as isChildProduct
+  const isDerivedChild = (p) => p.isChildProduct && p.packType !== "pack";
+
   const totalStock = useMemo(
     () =>
       products
-        .filter((item) => !item.isChildProduct)
+        .filter((item) => !isDerivedChild(item))
         .reduce((sum, item) => sum + (item.quantity || 0), 0),
     [products]
   );
   const parentProducts = useMemo(
-    () => products.filter((p) => !p.isChildProduct),
+    () => products.filter((p) => !isDerivedChild(p)),
     [products]
   );
   const totalIncoming = useMemo(
@@ -176,7 +180,7 @@ export default function StockManagement() {
                   ) : (
                     filteredItems.map((product) => {
                       const qty = product.quantity ?? 0;
-                      const isChild = product.isChildProduct;
+                      const isChild = isDerivedChild(product);
                       const status = isChild
                         ? "Linked"
                         : qty < 0

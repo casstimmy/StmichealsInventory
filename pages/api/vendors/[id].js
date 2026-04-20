@@ -10,13 +10,13 @@ async function createChildProductsForPacks(products) {
     if (vp.packType === "pack" && vp.product && vp.qtyPerPack > 1) {
       const parentProduct = await Product.findById(vp.product).lean();
       if (!parentProduct) continue;
-      const existingChild = await Product.findOne({
+      const existingPack = await Product.findOne({
         parentProduct: parentProduct._id,
         qtyPerPack: vp.qtyPerPack,
-        isChildProduct: true,
+        packType: "pack",
       }).lean();
-      if (existingChild) {
-        createdChildren.push(existingChild);
+      if (existingPack) {
+        createdChildren.push(existingPack);
         continue;
       }
       const childCostPrice = (vp.price || parentProduct.costPrice) * vp.qtyPerPack;
@@ -28,11 +28,28 @@ async function createChildProductsForPacks(products) {
         salePriceIncTax: 0,
         category: parentProduct.category,
         isStockManaged: parentProduct.isStockManaged,
-        isChildProduct: true,
+        isChildProduct: false,
         parentProduct: parentProduct._id,
         packType: "pack",
         qtyPerPack: vp.qtyPerPack,
       });
+
+      // Auto-create derived unit child for this pack
+      const unitCostPrice = Math.round((childCostPrice / vp.qtyPerPack) * 100) / 100;
+      await Product.create({
+        name: `${parentProduct.name} (Pack of ${vp.qtyPerPack}) (Unit)`,
+        description: `Single unit from pack of ${vp.qtyPerPack} - ${parentProduct.name}`,
+        costPrice: unitCostPrice,
+        taxRate: parentProduct.taxRate || 0,
+        salePriceIncTax: 0,
+        category: parentProduct.category,
+        isStockManaged: parentProduct.isStockManaged,
+        isChildProduct: true,
+        parentProduct: child._id,
+        packType: "unit",
+        qtyPerPack: 1,
+      });
+
       createdChildren.push(child);
     }
   }

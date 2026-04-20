@@ -115,26 +115,50 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, message: "Adjustments already applied" });
         }
 
-        const bulkOps = [];
+        // Combine standard counts + loose unit counts per product
+        const productQtyMap = new Map(); // productId -> { packs, looseUnits, qtyPerPack }
         for (const item of stockTake.items) {
-          if (item.status === "counted" && item.countedQty !== null && item.variance !== 0) {
-            bulkOps.push({
-              updateOne: {
-                filter: { _id: item.productId },
-                update: { $set: { quantity: item.countedQty } },
-              },
-            });
+          if (item.status !== "counted" || item.countedQty === null) continue;
+
+          const pid = String(item.productId);
+          if (!productQtyMap.has(pid)) {
+            productQtyMap.set(pid, { packs: null, looseUnits: 0, qtyPerPack: 1 });
           }
+          const entry = productQtyMap.get(pid);
+
+          if (item.countType === "loose-units") {
+            entry.looseUnits = item.countedQty || 0;
+            entry.qtyPerPack = item.qtyPerPack || 1;
+          } else {
+            entry.packs = item.countedQty;
+          }
+        }
+
+        const bulkOps = [];
+        for (const [productId, { packs, looseUnits, qtyPerPack }] of productQtyMap.entries()) {
+          if (packs === null) continue; // No standard count — skip
+
+          // Final qty = counted packs + (loose units converted to fractional packs)
+          const finalQty = packs + (looseUnits / qtyPerPack);
+
+          // Fetch current qty to check for variance
+          const current = await Product.findById(productId).select("quantity").lean();
+          if (!current || current.quantity === finalQty) continue;
+
+          bulkOps.push({
+            updateOne: {
+              filter: { _id: productId },
+              update: { $set: { quantity: finalQty } },
+            },
+          });
         }
 
         if (bulkOps.length > 0) {
           await Product.bulkWrite(bulkOps);
 
           // Sync parent-child quantities for all adjusted products
-          for (const item of stockTake.items) {
-            if (item.status === "counted" && item.countedQty !== null && item.variance !== 0) {
-              await deriveChildQty(item.productId);
-            }
+          for (const [productId] of productQtyMap.entries()) {
+            await deriveChildQty(productId);
           }
         }
 

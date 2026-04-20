@@ -11,7 +11,8 @@ const ROOM_SYNC_INTERVAL_MS = 10 * 60 * 1000;
  * Child qty = parent.qty × qtyPerPack (always computed, never independent).
  */
 async function deriveChildQuantities(products) {
-  const children = products.filter((p) => p.isChildProduct && p.parentProduct);
+  // Only derive for true unit children (isChildProduct=true AND packType != "pack")
+  const children = products.filter((p) => p.isChildProduct && p.parentProduct && p.packType !== "pack");
   if (children.length === 0) return;
 
   const parentIds = [...new Set(children.map((p) => String(p.parentProduct)))];

@@ -19,6 +19,8 @@ const StockTakeItemSchema = new Schema({
   notes: { type: String, default: "" },
   countedAt: { type: Date, default: null },
   countedBy: { type: String, default: "" },
+  countType: { type: String, enum: ["standard", "loose-units"], default: "standard" },
+  qtyPerPack: { type: Number, default: 0 },
 });
 
 const StockTakeSchema = new Schema(

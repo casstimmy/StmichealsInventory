@@ -28,6 +28,12 @@ const PromotionSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  // For FIXED discount: apply to each product or to the cart total
+  fixedAmountApplyMode: {
+    type: String,
+    enum: ["PER_ITEM", "TOTAL"],
+    default: "PER_ITEM",
+  },
   
   // Application scope
   applicationType: {

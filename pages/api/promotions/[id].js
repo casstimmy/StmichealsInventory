@@ -45,6 +45,7 @@ export default async function handler(req, res) {
           valueType: valueType || "DISCOUNT",
           discountType,
           discountValue,
+          fixedAmountApplyMode: req.body.fixedAmountApplyMode || "PER_ITEM",
           applicationType,
           products: applicationType === "ONE_PRODUCT" ? products : [],
           categories: applicationType === "CATEGORY" ? categories : [],

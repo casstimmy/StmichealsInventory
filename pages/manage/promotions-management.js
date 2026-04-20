@@ -30,6 +30,7 @@ export default function PromotionsManagementPage() {
     valueType: "DISCOUNT",
     discountType: "PERCENTAGE",
     discountValue: 0,
+    fixedAmountApplyMode: "PER_ITEM",
     applicationType: "ALL_PRODUCTS",
     products: [],
     categories: [],
@@ -224,6 +225,7 @@ export default function PromotionsManagementPage() {
       valueType: "DISCOUNT",
       discountType: "PERCENTAGE",
       discountValue: 0,
+      fixedAmountApplyMode: "PER_ITEM",
       applicationType: "ALL_PRODUCTS",
       products: [],
       categories: [],
@@ -441,6 +443,47 @@ export default function PromotionsManagementPage() {
                       />
                     </div>
                   </div>
+
+                  {/* Fixed Amount Apply Mode - Only show when FIXED is selected */}
+                  {formData.discountType === "FIXED" && (
+                    <div className="mt-4">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Apply Fixed Amount To *
+                      </label>
+                      <div className="flex gap-2">
+                        <label className="flex-1 flex items-center p-3 border-2 rounded-lg cursor-pointer" style={{
+                          borderColor: formData.fixedAmountApplyMode === "PER_ITEM" ? "#06b6d4" : "#e5e7eb",
+                          backgroundColor: formData.fixedAmountApplyMode === "PER_ITEM" ? "#ecf9fb" : "white",
+                        }}>
+                          <input
+                            type="radio"
+                            name="fixedAmountApplyMode"
+                            value="PER_ITEM"
+                            checked={formData.fixedAmountApplyMode === "PER_ITEM"}
+                            onChange={(e) => setFormData({ ...formData, fixedAmountApplyMode: e.target.value })}
+                            className="w-4 h-4"
+                          />
+                          <span className="ml-2 font-semibold text-gray-700">Each Product</span>
+                          <span className="ml-1 text-xs text-gray-500">(deduct/add per item)</span>
+                        </label>
+                        <label className="flex-1 flex items-center p-3 border-2 rounded-lg cursor-pointer" style={{
+                          borderColor: formData.fixedAmountApplyMode === "TOTAL" ? "#06b6d4" : "#e5e7eb",
+                          backgroundColor: formData.fixedAmountApplyMode === "TOTAL" ? "#ecf9fb" : "white",
+                        }}>
+                          <input
+                            type="radio"
+                            name="fixedAmountApplyMode"
+                            value="TOTAL"
+                            checked={formData.fixedAmountApplyMode === "TOTAL"}
+                            onChange={(e) => setFormData({ ...formData, fixedAmountApplyMode: e.target.value })}
+                            className="w-4 h-4"
+                          />
+                          <span className="ml-2 font-semibold text-gray-700">Cart Total</span>
+                          <span className="ml-1 text-xs text-gray-500">(deduct/add once on total)</span>
+                        </label>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Customer Types */}
@@ -722,8 +765,13 @@ export default function PromotionsManagementPage() {
                     </div>
                     <div className="text-right">
                       <div className={`text-2xl font-bold ${promo.valueType === "DISCOUNT" ? (promo.discountType === "PERCENTAGE" ? "text-green-600" : "text-green-600") : (promo.discountType === "PERCENTAGE" ? "text-orange-600" : "text-orange-600")}`}>
-                        {promo.valueType === "DISCOUNT" ? "-" : "+"}{promo.discountValue}{promo.discountType === "PERCENTAGE" ? "%" : ""}
+                        {promo.valueType === "DISCOUNT" ? "-" : "+"}{promo.discountValue}{promo.discountType === "PERCENTAGE" ? "%" : "₦"}
                       </div>
+                      {promo.discountType === "FIXED" && (
+                        <div className="text-xs text-gray-500 mt-0.5">
+                          {promo.fixedAmountApplyMode === "TOTAL" ? "Applied to total" : "Per item"}
+                        </div>
+                      )}
                       <span className={`text-xs font-semibold px-2 py-1 rounded-full ${promo.active ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}>
                         {promo.active ? "Active" : "Inactive"}
                       </span>

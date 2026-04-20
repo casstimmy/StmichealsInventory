@@ -43,6 +43,18 @@
         "/^npx next build 2>&1 \\| Select-Object -Last 40$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^cd \"c:\\\\Users\\\\hp\\\\Desktop\\\\Projects\\\\Inventory-sales\\\\Inventory\\\\inventory-admin-app\" ; npx next build 2>&1 \\| Select-Object -Last 15$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cd \"c:\\\\Users\\\\hp\\\\Desktop\\\\Projects\\\\Inventory-sales\\\\Inventory\\\\sales-point-app\" ; npx next build 2>&1 \\| Select-Object -Last 15$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^npx next build$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     }
 }

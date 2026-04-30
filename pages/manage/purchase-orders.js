@@ -236,7 +236,6 @@ export default function PurchaseOrdersPage() {
         grandTotal: Number(quickForm.amount),
         paymentMade: Number(quickForm.amount),
         paymentDate: quickForm.paymentDate,
-        status: "Paid",
       };
       await apiClient.post("/api/purchase-orders", payload);
       setShowQuickEntry(false);
@@ -276,18 +275,12 @@ export default function PurchaseOrdersPage() {
     if (!Number.isFinite(payNum) || payNum < 0) return;
     if (!Number.isFinite(totalNum) || totalNum < 0) return;
 
-    let status;
-    if (payNum === 0) status = "Not Paid";
-    else if (payNum < totalNum) status = "Partly Paid";
-    else if (payNum >= totalNum) status = "Paid";
-
     setIsBusy(true);
     try {
       await apiClient.put(`/api/purchase-orders/${order._id}`, {
         action: "update-payment",
         paymentMade: payNum,
         paymentDate: editedPaymentDate || order.paymentDate || new Date().toISOString(),
-        status,
       });
       handleCancelEdit();
       fetchOrders();
@@ -349,7 +342,7 @@ export default function PurchaseOrdersPage() {
   [outstandingOrders]);
 
   const totalCreditValue = useMemo(() =>
-    creditOrders.reduce((sum, o) => sum + Math.abs(toNumber(o.balance ?? 0)), 0),
+    creditOrders.reduce((sum, o) => sum + toNumber(o.paymentMade || o.grandTotal || 0), 0),
   [creditOrders]);
 
   const totalPaid = useMemo(() => {
@@ -502,7 +495,7 @@ export default function PurchaseOrdersPage() {
                         <div className="flex gap-3">
                           <span className="text-gray-600">Total: {formatCurrency(order.grandTotal)}</span>
                           <span className="text-green-700 font-medium">Paid: {formatCurrency(order.paymentMade)}</span>
-                          <span className="text-blue-700 font-bold">Credit: {formatCurrency(Math.abs(toNumber(order.balance)))}</span>
+                          <span className="text-blue-700 font-bold">Credit: {formatCurrency(toNumber(order.paymentMade || order.grandTotal || 0))}</span>
                         </div>
                       </div>
                     ))}

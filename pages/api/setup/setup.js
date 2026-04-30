@@ -114,14 +114,39 @@ async function handlePost(req, res) {
     }
 
     let store = await Store.findOne({});
-    const preparedLocations = (Array.isArray(locations) ? locations : []).map((loc) => ({
-      name: loc.name || "Unnamed Location",
-      address: loc.address || "",
-      phone: loc.phone || "",
-      email: loc.email || "",
-      code: loc.code || "",
-      isActive: loc.isActive !== false,
-    }));
+    const existingLocations = Array.isArray(store?.locations) ? store.locations : [];
+    const existingLocationsById = new Map(
+      existingLocations
+        .filter((loc) => loc?._id)
+        .map((loc) => [String(loc._id), loc])
+    );
+    const preparedLocations = [];
+
+    for (const loc of Array.isArray(locations) ? locations : []) {
+      const locationId = loc?._id ? String(loc._id) : "";
+
+      if (locationId && !existingLocationsById.has(locationId)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid location reference: ${locationId}`,
+        });
+      }
+
+      const existingLocation = locationId ? existingLocationsById.get(locationId) : null;
+
+      preparedLocations.push({
+        ...(locationId ? { _id: loc._id } : {}),
+        name: loc.name || "Unnamed Location",
+        address: loc.address || "",
+        phone: loc.phone || "",
+        email: loc.email || "",
+        code: loc.code || "",
+        isActive: loc.isActive !== false,
+        // Preserve location-linked references when saving company details.
+        tenders: Array.isArray(loc.tenders) ? loc.tenders : existingLocation?.tenders || [],
+        categories: Array.isArray(loc.categories) ? loc.categories : existingLocation?.categories || [],
+      });
+    }
 
     if (!store) {
       store = new Store({

@@ -28,6 +28,36 @@ function debounce(func, wait) {
   };
 }
 
+function formatPropertiesForInput(properties = []) {
+  return (Array.isArray(properties) ? properties : [])
+    .map((property) => {
+      const propName = property?.propName ?? property?.name ?? "";
+      const propValue = property?.propValue ?? property?.value ?? "";
+      return propValue ? `${propName}: ${propValue}` : propName;
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
+function parsePropertiesInput(value = "") {
+  return String(value)
+    .split(/\r?\n|,/)
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => {
+      const separatorIndex = entry.indexOf(":");
+      if (separatorIndex === -1) {
+        return { propName: entry, propValue: "" };
+      }
+
+      return {
+        propName: entry.slice(0, separatorIndex).trim(),
+        propValue: entry.slice(separatorIndex + 1).trim(),
+      };
+    })
+    .filter((property) => property.propName);
+}
+
 export default function Products() {
   const router = useRouter();
   const fetchProducts = useCallback(() => fetcher("/api/products"), []);
@@ -47,10 +77,10 @@ export default function Products() {
   const [categoryMap, setCategoryMap] = useState({});
   const [editIndex, setEditIndex] = useState(null);
   const [editableProduct, setEditableProduct] = useState({});
+  const [propertiesText, setPropertiesText] = useState("");
   const [searchTerm, setSearchTerm] = useState(
     typeof window !== "undefined" ? sessionStorage.getItem("products:searchTerm") || "" : ""
   );
-  const [properties, setProperties] = useState([]);
   const [expandedRow, setExpandedRow] = useState(null);
   const [isInitializing, setIsInitializing] = useState(true); // Track first load
   const [isRefreshingList, setIsRefreshingList] = useState(false);
@@ -84,6 +114,13 @@ export default function Products() {
     });
     return rows.sort((a, b) => a.label.localeCompare(b.label));
   }, [allProducts, categoryMap]);
+
+  const allCategoryOptions = useMemo(
+    () => Object.entries(categoryMap)
+      .map(([id, label]) => ({ id, label }))
+      .sort((a, b) => a.label.localeCompare(b.label)),
+    [categoryMap]
+  );
 
   const applyFilters = useCallback((term, categoryId) => {
     const t = term.trim().toLowerCase();
@@ -217,7 +254,7 @@ export default function Products() {
   const handleEditClick = (index, product) => {
     setEditIndex(index);
     setEditableProduct({ ...product });
-    setProperties(product.properties || []);
+    setPropertiesText(formatPropertiesForInput(product.properties || []));
     // set highlight now so when user leaves/returns it remains
     setHighlightedId(product._id);
   };
@@ -225,7 +262,7 @@ export default function Products() {
   const handleCancelClick = () => {
     setEditIndex(null);
     setEditableProduct({});
-    setProperties([]);
+    setPropertiesText("");
     // keep highlight (helpful)  comment out to clear highlight on cancel
     // setHighlightedId(null);
   };
@@ -256,7 +293,10 @@ export default function Products() {
   const handleUpdateClick = async (_id) => {
     try {
       setSavingProductId(_id);
-      const updatedProduct = { ...editableProduct, properties };
+      const updatedProduct = {
+        ...editableProduct,
+        properties: parsePropertiesInput(propertiesText),
+      };
       const response = await axios.put("/api/products", { ...updatedProduct, _id });
       const saved = response?.data?.data || { ...updatedProduct, _id };
 
@@ -304,16 +344,6 @@ export default function Products() {
       alert("Archive failed.");
     }
   };
-
-  // properties management helpers (kept from your original)
-  const addProperty = () => setProperties((prev) => [...prev, { propName: "", propValue: "" }]);
-  const removeProperty = (i) => setProperties((prev) => prev.filter((_, idx) => idx !== i));
-  const handlePropertyChange = (i, key, value) =>
-    setProperties((prev) => {
-      const updated = [...prev];
-      updated[i][key] = value;
-      return updated;
-    });
 
   const formatCurrency = (num) => formatCurrencyValue(num || 0);
 
@@ -475,14 +505,20 @@ export default function Products() {
                           <div className="flex flex-col gap-1">
                             <button
                               type="button"
-                              onClick={() => handleUpdateClick(p._id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleUpdateClick(p._id);
+                              }}
                               className="w-16 py-1 bg-green-600 text-white rounded text-xs"
                               disabled={savingProductId === p._id}
                             >
                               {savingProductId === p._id ? "Saving..." : "Save"}
                             </button>
                             <button
-                              onClick={handleCancelClick}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCancelClick();
+                              }}
                               className="w-16 py-1 bg-gray-300 text-gray-700 rounded text-xs"
                               disabled={savingProductId === p._id}
                             >
@@ -525,6 +561,7 @@ export default function Products() {
                             name="name"
                             value={editableProduct.name || ""}
                             onChange={handleChange}
+                            onClick={(e) => e.stopPropagation()}
                             className="w-32 md:w-36 border p-1 rounded text-xs"
                           />
                         ) : (
@@ -540,7 +577,21 @@ export default function Products() {
                         )}
                       </td>
 
-                      <td className="p-2 hidden sm:table-cell max-w-[150px] truncate text-xs">{p.description}</td>
+                      <td className="p-2 hidden sm:table-cell max-w-[190px] text-xs align-top">
+                        {editIndex === realIndex ? (
+                          <textarea
+                            name="description"
+                            value={editableProduct.description || ""}
+                            onChange={handleChange}
+                            onClick={(e) => e.stopPropagation()}
+                            rows={3}
+                            className="w-full min-w-[180px] border p-1 rounded text-xs resize-none"
+                          />
+                        ) : (
+                          <div className="truncate">{p.description}</div>
+                        )}
+                      </td>
+
 
                       <td className="p-2 text-xs md:text-sm">
                         {editIndex === realIndex ? (
@@ -548,6 +599,7 @@ export default function Products() {
                             name="costPrice"
                             value={editableProduct.costPrice || ""}
                             onChange={handleChange}
+                            onClick={(e) => e.stopPropagation()}
                             onWheel={(e) => e.currentTarget.blur()}
                             type="number"
                             className="w-16 md:w-20 border p-1 rounded text-xs"
@@ -563,6 +615,7 @@ export default function Products() {
                             name="taxRate"
                             value={editableProduct.taxRate || ""}
                             onChange={handleChange}
+                            onClick={(e) => e.stopPropagation()}
                             className="w-16 md:w-20 border p-1 rounded text-xs"
                           >
                             <option value="4.5">4.5%</option>
@@ -579,6 +632,7 @@ export default function Products() {
                             name="salePriceIncTax"
                             value={editableProduct.salePriceIncTax || ""}
                             onChange={handleChange}
+                            onClick={(e) => e.stopPropagation()}
                             onWheel={(e) => e.currentTarget.blur()}
                             type="number"
                             className="w-16 md:w-20 border p-1 rounded text-xs"
@@ -594,6 +648,7 @@ export default function Products() {
                             name="margin"
                             value={editableProduct.margin || ""}
                             onChange={handleChange}
+                            onClick={(e) => e.stopPropagation()}
                             onWheel={(e) => e.currentTarget.blur()}
                             type="number"
                             className="w-14 md:w-16 border p-1 rounded text-xs"
@@ -602,7 +657,19 @@ export default function Products() {
                           p.margin
                         )}
                       </td>
-                      <td className="p-2 hidden lg:table-cell text-xs">{p.barcode}</td>
+                      <td className="p-2 hidden lg:table-cell text-xs">
+                        {editIndex === realIndex ? (
+                          <input
+                            name="barcode"
+                            value={editableProduct.barcode || ""}
+                            onChange={handleChange}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-28 border p-1 rounded text-xs"
+                          />
+                        ) : (
+                          p.barcode
+                        )}
+                      </td>
 
                       <td className="p-2 text-xs md:text-sm">
                         {editIndex === realIndex ? (
@@ -610,6 +677,7 @@ export default function Products() {
                             name="minStock"
                             value={editableProduct.minStock ?? ""}
                             onChange={handleChange}
+                            onClick={(e) => e.stopPropagation()}
                             onWheel={(e) => e.currentTarget.blur()}
                             type="number"
                             className="w-16 md:w-20 border p-1 rounded text-xs"
@@ -619,13 +687,48 @@ export default function Products() {
                         )}
                       </td>
 
-                      <td className="p-2 hidden lg:table-cell text-gray-600 text-xs">
-                        {p.properties?.length > 0
-                          ? p.properties.map((pr) => `${pr.propName}: ${pr.propValue}`).join(", ")
-                          : ""}
+                      <td className="p-2 hidden lg:table-cell text-gray-600 text-xs align-top">
+                        {editIndex === realIndex ? (
+                          <textarea
+                            value={propertiesText}
+                            onChange={(e) => setPropertiesText(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            rows={3}
+                            placeholder="Size: Large\nColor: Red"
+                            className="w-full min-w-[180px] border p-1 rounded text-xs resize-none"
+                          />
+                        ) : (
+                          p.properties?.length > 0
+                            ? p.properties.map((pr) => `${pr.propName}: ${pr.propValue}`).join(", ")
+                            : ""
+                        )}
                       </td>
 
-                      <td className="p-2 text-xs md:text-sm">{categoryMap[p.category] || ""}</td>
+                      <td className="p-2 text-xs md:text-sm">
+                        {editIndex === realIndex ? (
+                          <select
+                            name="category"
+                            value={editableProduct.category || ""}
+                            onChange={handleChange}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-32 border p-1 rounded text-xs"
+                          >
+                            <option value="">Select category</option>
+                            {allCategoryOptions.map((category) => (
+                              <option key={category.id} value={category.id}>
+                                {category.label}
+                              </option>
+                            ))}
+                            {!allCategoryOptions.some((category) => category.id === editableProduct.category) && (
+                              <option value={editableProduct.category || "Top Level"}>
+                                {editableProduct.category || "Top Level"}
+                              </option>
+                            )}
+                          </select>
+                        ) : (
+                          categoryMap[p.category] || p.category || ""
+                        )}
+                      </td>
 
                       <td className="p-2 hidden sm:table-cell text-xs">
                         {p.isPromotion ? (

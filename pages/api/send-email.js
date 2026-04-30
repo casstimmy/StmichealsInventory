@@ -12,22 +12,35 @@ export default async function handler(req, res) {
   if (req.method !== "POST")
     return res.status(405).json({ message: "Method not allowed" });
 
-  const { status, customer } = req.body;
+  const { status, customer, to } = req.body;
 
   if (!customer || !status)
     return res
       .status(400)
       .json({ message: "Missing status or customer info" });
 
+  const recipient = to || customer?.email || customer?.shippingDetails?.email || process.env.EMAIL_USER;
+
+  if (!recipient) {
+    return res.status(400).json({ message: "Missing recipient email" });
+  }
+
   // Dynamic message setup
   let subject, header, message, color;
 
   switch (status.toLowerCase()) {
+    case "pending":
     case "received":
       subject = "Order Received - St's Micheals";
       header = "Your Order Has Been Received!";
       message = `We’ve received your order <strong>${customer.orderId}</strong> and our team is preparing it for shipment.`;
       color = "#1e3a8a";
+      break;
+    case "processing":
+      subject = "Order Processing - St's Micheals";
+      header = "Your Order Is Being Processed";
+      message = `Your order <strong>${customer.orderId}</strong> is now being processed by our team.`;
+      color = "#d97706";
       break;
     case "shipped":
       subject = "Order Shipped - St's Micheals";
@@ -40,6 +53,12 @@ export default async function handler(req, res) {
       header = "Your Order Has Been Delivered 🎉";
       message = `We’re excited to let you know your order <strong>${customer.orderId}</strong> has been successfully delivered.`;
       color = "#1e40af";
+      break;
+    case "cancelled":
+      subject = "Order Cancelled - St's Micheals";
+      header = "Your Order Has Been Cancelled";
+      message = `Your order <strong>${customer.orderId}</strong> has been cancelled. Please contact us if you need further assistance.`;
+      color = "#dc2626";
       break;
     case "salary":
       subject = "Salary Information - St's Micheals";
@@ -170,7 +189,7 @@ export default async function handler(req, res) {
   try {
     await transporter.sendMail({
       from: `"St's Micheals" <${process.env.EMAIL_USER}>`,
-      to: process.env.EMAIL_USER,
+      to: recipient,
       subject,
       html: htmlBody,
     });

@@ -27,7 +27,7 @@ export default function VendorsPage() {
   const [search, setSearch] = useState("");
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [productSearch, setProductSearch] = useState("");
+  const [productSearchMap, setProductSearchMap] = useState({});
   const [activeProductDropdown, setActiveProductDropdown] = useState(null);
 
   // Order form state
@@ -37,6 +37,7 @@ export default function VendorsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [editingOrder, setEditingOrder] = useState(false);
   const orderFormRef = useRef(null);
+  const orderSummaryRef = useRef(null);
 
   const emptyForm = {
     companyName: "", vendorRep: "", repPhone: "", email: "",
@@ -98,11 +99,20 @@ export default function VendorsPage() {
     });
   }
 
-  const filteredProductOptions = useMemo(() => {
-    if (!productSearch.trim()) return allProducts;
-    const s = productSearch.toLowerCase();
-    return allProducts.filter((p) => p.name?.toLowerCase().includes(s));
-  }, [allProducts, productSearch]);
+  function setProductSearchValue(index, value) {
+    setProductSearchMap((prev) => ({ ...prev, [index]: value }));
+  }
+
+  function getFilteredProductOptions(index) {
+    const searchValue = String(productSearchMap[index] || "").trim().toLowerCase();
+    if (!searchValue) return allProducts;
+
+    return allProducts.filter((product) =>
+      [product?.name, product?.barcode, product?.description, product?.category]
+        .filter(Boolean)
+        .some((field) => String(field).toLowerCase().includes(searchValue))
+    );
+  }
 
   async function handleSave(e) {
     e.preventDefault();
@@ -116,6 +126,7 @@ export default function VendorsPage() {
       setShowForm(false);
       setEditingVendor(null);
       setForm(emptyForm);
+      setProductSearchMap({});
       fetchVendors();
     } catch (err) {
       alert(err.response?.data?.error || "Failed to save vendor");
@@ -153,12 +164,14 @@ export default function VendorsPage() {
       })),
     });
     setEditingVendor(vendor);
+    setProductSearchMap({});
     setShowForm(true);
   }
 
   function openAdd() {
     setForm(emptyForm);
     setEditingVendor(null);
+    setProductSearchMap({});
     setShowForm(true);
   }
 
@@ -197,7 +210,13 @@ export default function VendorsPage() {
       price: Number(prod.costPrice),
       total: Number(prod.quantity) * Number(prod.costPrice),
     }));
-    setOrders((prev) => [...prev, ...newOrders]);
+    setOrders((prev) => {
+      const nextOrders = [...prev, ...newOrders];
+      setTimeout(() => {
+        orderSummaryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 0);
+      return nextOrders;
+    });
     // Reset quantities
     setOrderForm((prev) => ({
       ...prev,
@@ -310,7 +329,6 @@ export default function VendorsPage() {
                   return (
                     <motion.div
                       key={vendor._id}
-                      layout
                       className={`rounded-xl border shadow-sm cursor-pointer transition-all duration-200 ${
                         isExpanded
                           ? "col-span-2 sm:col-span-3 lg:col-span-4 bg-blue-50 border-blue-300"
@@ -340,7 +358,7 @@ export default function VendorsPage() {
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: "auto" }}
                             exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.2 }}
+                            transition={{ duration: 0.12, ease: "easeOut" }}
                             className="overflow-hidden"
                           >
                             <div className="px-3 sm:px-4 pb-3 sm:pb-4 space-y-3 border-t border-blue-200 pt-3">
@@ -581,7 +599,7 @@ export default function VendorsPage() {
 
           {/* Order Review / Summary */}
           {orders.length > 0 && (
-            <section className="bg-white p-3 sm:p-6 rounded-xl shadow-lg space-y-4 sm:space-y-6">
+            <section ref={orderSummaryRef} className="bg-white p-3 sm:p-6 rounded-xl shadow-lg space-y-4 sm:space-y-6">
               <h2 className="text-lg sm:text-xl font-bold text-gray-800 border-b pb-2">Purchase Order Summary</h2>
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm text-left border border-gray-200">
@@ -727,6 +745,11 @@ export default function VendorsPage() {
                 <div className="space-y-2">
                   {form.products.map((vp, i) => (
                     <div key={i} className="border border-gray-200 rounded-lg p-3 space-y-2 bg-gray-50">
+                      {(() => {
+                        const filteredOptions = getFilteredProductOptions(i);
+
+                        return (
+                          <>
                       <div className="flex items-center gap-2">
                         <div className="flex-1 relative">
                           <input
@@ -736,11 +759,11 @@ export default function VendorsPage() {
                             onChange={(e) => {
                               updateVendorProduct(i, "productName", e.target.value);
                               updateVendorProduct(i, "product", "");
-                              setProductSearch(e.target.value);
+                              setProductSearchValue(i, e.target.value);
                               setActiveProductDropdown(i);
                             }}
                             onFocus={() => {
-                              setProductSearch(vp.productName || "");
+                              setProductSearchValue(i, vp.productName || "");
                               setActiveProductDropdown(i);
                             }}
                             onBlur={() => setTimeout(() => setActiveProductDropdown(null), 200)}
@@ -748,28 +771,29 @@ export default function VendorsPage() {
                           />
                           {activeProductDropdown === i && (
                             <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto">
-                              {filteredProductOptions.slice(0, 30).map((p) => (
+                              {filteredOptions.slice(0, 30).map((p) => (
                                 <button
                                   key={p._id}
                                   type="button"
                                   onMouseDown={(e) => e.preventDefault()}
                                   onClick={() => {
                                     updateVendorProduct(i, "product", p._id);
-                                    setProductSearch("");
+                                    setProductSearchValue(i, p.name || "");
                                     setActiveProductDropdown(null);
                                   }}
                                   className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 border-b border-gray-100 last:border-0"
                                 >
-                                  {p.name}
+                                  <div className="font-medium text-gray-800">{p.name}</div>
+                                  {p.barcode && <div className="text-xs text-gray-400">Barcode: {p.barcode}</div>}
                                 </button>
                               ))}
-                              {filteredProductOptions.length === 0 && (
+                              {filteredOptions.length === 0 && (
                                 <div className="px-3 py-2 text-xs text-gray-400">No products found</div>
                               )}
                             </div>
                           )}
                           {vp.product && (
-                            <button type="button" onClick={() => { updateVendorProduct(i, "product", ""); updateVendorProduct(i, "productName", ""); setActiveProductDropdown(null); }} className="absolute right-2 top-2.5 text-gray-400 hover:text-red-500"><X size={14} /></button>
+                            <button type="button" onClick={() => { updateVendorProduct(i, "product", ""); updateVendorProduct(i, "productName", ""); setProductSearchValue(i, ""); setActiveProductDropdown(null); }} className="absolute right-2 top-2.5 text-gray-400 hover:text-red-500"><X size={14} /></button>
                           )}
                         </div>
                         <button type="button" onClick={() => removeVendorProduct(i)} className="p-1 text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
@@ -811,13 +835,16 @@ export default function VendorsPage() {
                           A child product &quot;{vp.productName} (Pack of {vp.qtyPerPack})&quot; will be auto-created with cost price {formatCurrency((vp.price || 0) * (vp.qtyPerPack || 1))}. You can set the sale price later in the Product List.
                         </p>
                       )}
+                          </>
+                        );
+                      })()}
                     </div>
                   ))}
                 </div>
               </div>
 
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => { setShowForm(false); setEditingVendor(null); }} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+                <button type="button" onClick={() => { setShowForm(false); setEditingVendor(null); setProductSearchMap({}); }} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
                 <button type="submit" disabled={saving} className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium text-white transition ${saving ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}>
                   {saving ? "Saving..." : editingVendor ? "Update Vendor" : "Add Vendor"}
                 </button>

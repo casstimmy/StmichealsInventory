@@ -2,7 +2,7 @@ import { mongooseConnect } from "@/lib/mongodb";
 import Product from "@/models/Product";
 import Order from "@/models/Order";
 import Transaction from "@/models/Transactions";
-import { authMiddleware, isStaff } from "@/lib/auth-middleware";
+import { authMiddleware, isAdmin, isStaff } from "@/lib/auth-middleware";
 import { applyInventoryDelta } from "@/lib/transaction-utils";
 
 export default async function handler(req, res) {
@@ -15,6 +15,26 @@ export default async function handler(req, res) {
 
   await mongooseConnect();
   const { id } = req.query;
+
+  if (req.method === "DELETE") {
+    if (!isAdmin(req)) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    try {
+      const order = await Order.findById(id);
+      if (!order) return res.status(404).json({ error: "Order not found" });
+      if (order.status !== "Cancelled") {
+        return res.status(400).json({ error: "Only cancelled orders can be deleted" });
+      }
+
+      await order.deleteOne();
+      return res.status(200).json({ success: true, message: "Order deleted" });
+    } catch (error) {
+      console.error("Order delete failed:", error);
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+  }
 
   if (req.method !== "PUT") {
     return res.status(405).json({ error: "Method Not Allowed" });
@@ -109,11 +129,15 @@ export default async function handler(req, res) {
 
     order.status = status;
     if (deliveryPerson && (status === "Shipped" || status === "Delivered")) {
-      order.deliveryPerson = deliveryPerson;
+      order.deliveryPerson = {
+        name: deliveryPerson.name || "",
+        phone: deliveryPerson.phone || "",
+      };
     }
     await order.save();
 
-    return res.status(200).json(order);
+    const updatedOrder = await Order.findById(id).populate("customer").lean();
+    return res.status(200).json(updatedOrder);
   } catch (error) {
     console.error("Order update failed:", error);
     return res.status(500).json({ error: "Internal Server Error" });

@@ -3,6 +3,17 @@ import PurchaseOrder from "@/models/PurchaseOrder";
 import Vendor from "@/models/Vendor";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 
+function derivePaymentStatus({ paymentMade = 0, grandTotal = 0, payBeforeSupply = false, receivedStatus = "Pending" }) {
+  const paidAmount = Number(paymentMade) || 0;
+  const totalAmount = Number(grandTotal) || 0;
+  const fullyPaid = totalAmount > 0 && paidAmount >= totalAmount;
+
+  if (paidAmount <= 0) return "Not Paid";
+  if (payBeforeSupply && receivedStatus !== "Received" && fullyPaid) return "Credit";
+  if (fullyPaid) return "Paid";
+  return "Partly Paid";
+}
+
 function generateOrderRef() {
   const d = new Date();
   const pad = (n) => String(n).padStart(2, "0");
@@ -46,7 +57,21 @@ export default async function handler(req, res) {
 
   if (req.method === "POST") {
     try {
-      const { vendor, date, contact, location, locationId, products, grandTotal, notes, payBeforeSupply, staffName } = req.body;
+      const {
+        vendor,
+        date,
+        contact,
+        location,
+        locationId,
+        products,
+        grandTotal,
+        notes,
+        payBeforeSupply,
+        staffName,
+        paymentMade,
+        paymentDate,
+        receivedStatus,
+      } = req.body;
 
       if (!vendor || !products || products.length === 0) {
         return res.status(400).json({ error: "Vendor and products are required" });
@@ -57,6 +82,19 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: "Vendor not found" });
       }
 
+      const grandTotalValue = Number(
+        grandTotal || products.reduce((sum, product) => sum + (product.total || product.price * product.quantity || 0), 0)
+      );
+      const paymentMadeValue = Number(paymentMade || 0);
+      const receivedState = receivedStatus || "Pending";
+      const payBeforeSupplyFlag = Boolean(payBeforeSupply);
+      const status = derivePaymentStatus({
+        paymentMade: paymentMadeValue,
+        grandTotal: grandTotalValue,
+        payBeforeSupply: payBeforeSupplyFlag,
+        receivedStatus: receivedState,
+      });
+
       const order = await PurchaseOrder.create({
         orderRef: generateOrderRef(),
         date: date || new Date(),
@@ -66,12 +104,16 @@ export default async function handler(req, res) {
         location: location || "",
         locationId: locationId || null,
         products,
-        grandTotal: grandTotal || products.reduce((sum, p) => sum + (p.total || p.price * p.quantity || 0), 0),
-        balance: grandTotal || products.reduce((sum, p) => sum + (p.total || p.price * p.quantity || 0), 0),
+        grandTotal: grandTotalValue,
+        paymentMade: paymentMadeValue,
+        paymentDate: paymentDate || "",
+        balance: Math.max(0, grandTotalValue - paymentMadeValue),
+        status,
         staff: req.user?.id || null,
         staffName: staffName || req.user?.name || "",
         notes: notes || "",
-        payBeforeSupply: payBeforeSupply || false,
+        payBeforeSupply: payBeforeSupplyFlag,
+        receivedStatus: receivedState,
       });
 
       return res.status(201).json({ success: true, order });

@@ -58,6 +58,11 @@ const orderSchema = new mongoose.Schema(
       default: "Pending",
     },
 
+    deliveryPerson: {
+      name: { type: String, default: "" },
+      phone: { type: String, default: "" },
+    },
+
     paid: { type: Boolean, default: false },
   },
   { timestamps: true }

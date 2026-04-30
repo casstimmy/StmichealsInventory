@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Layout from "@/components/Layout";
 import { getCachedSetup, clearSetupCache } from "@/lib/setupCache";
+import { useAuth } from "@/lib/useAuth";
 
 // Field component - defined outside to prevent re-creation on each render
 const Field = ({ label, ...props }) => (
@@ -14,6 +15,7 @@ const Field = ({ label, ...props }) => (
 );
 
 export default function Setup() {
+  const { isAdmin } = useAuth();
   const [storeName, setStoreName] = useState("");
   const [storePhone, setStorePhone] = useState("");
   const [country, setCountry] = useState("");
@@ -36,6 +38,7 @@ export default function Setup() {
   const [logoLoading, setLogoLoading] = useState(false);
 
   const [loading, setLoading] = useState(false);
+  const [checkingLocationId, setCheckingLocationId] = useState(null);
   const [message, setMessage] = useState("");
 
   /* =====================
@@ -156,9 +159,51 @@ export default function Setup() {
     }, 1000);
   }, [locationForm]);
 
-  const removeLocation = (index) => {
-    setLocations(locations.filter((_, i) => i !== index));
-  };
+  const removeLocation = useCallback(async (index) => {
+    const location = locations[index];
+    if (!location) return;
+
+    if (location._id && !isAdmin) {
+      setMessage("⚠️ Only admin users can delete saved locations");
+      return;
+    }
+
+    if (!location._id) {
+      setLocations((prev) => prev.filter((_, currentIndex) => currentIndex !== index));
+      setMessage("✅ Unsaved location removed");
+      return;
+    }
+
+    try {
+      setCheckingLocationId(String(location._id));
+      const response = await fetch(`/api/setup/location-references?locationId=${location._id}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to check location references");
+      }
+
+      const referencedItems = Object.entries(data.references || {})
+        .filter(([, count]) => Number(count) > 0)
+        .map(([key, count]) => `${key}: ${count}`);
+
+      const confirmationMessage = referencedItems.length > 0
+        ? `This location is still referenced elsewhere:\n\n${referencedItems.join("\n")}\n\nDelete it from store setup anyway?`
+        : `Delete ${location.name} from store setup?`;
+
+      if (!window.confirm(confirmationMessage)) {
+        return;
+      }
+
+      setLocations((prev) => prev.filter((_, currentIndex) => currentIndex !== index));
+      setMessage(referencedItems.length > 0 ? "⚠️ Location removed from setup draft. Save configuration to apply it." : "✅ Location removed from setup draft");
+    } catch (error) {
+      console.error("Failed to remove location:", error);
+      setMessage(`❌ ${error.message}`);
+    } finally {
+      setCheckingLocationId(null);
+    }
+  }, [isAdmin, locations]);
 
   /* =====================
      SUBMIT
@@ -264,13 +309,32 @@ export default function Setup() {
                   <h3 className="font-bold text-gray-900 mb-4">Locations ({locations.length})</h3>
                   <div className="space-y-3">
                     {locations.length ? locations.map((l, i) => (
-                      <div key={i} className="bg-cyan-50 border border-cyan-200 p-4 rounded-lg">
-                        <div className="font-semibold text-gray-900">{l.name}</div>
-                        <div className="text-sm text-gray-600 mt-1">{l.address}</div>
-                        <div className="text-sm text-gray-600">{l.phone}</div>
+                      <div key={l._id || `${l.name}-${i}`} className="bg-cyan-50 border border-cyan-200 p-4 rounded-lg">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="font-semibold text-gray-900">{l.name}</div>
+                            <div className="text-sm text-gray-600 mt-1">{l.address}</div>
+                            <div className="text-sm text-gray-600">{l.phone}</div>
+                            {l._id && <div className="mt-1 text-[11px] text-cyan-700">ID locked: {l._id}</div>}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeLocation(i)}
+                            disabled={checkingLocationId === String(l._id || "") || (!!l._id && !isAdmin)}
+                            className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                            title={l._id && !isAdmin ? "Only admins can delete saved locations" : "Remove location"}
+                          >
+                            {checkingLocationId === String(l._id || "") ? "Checking..." : "Delete"}
+                          </button>
+                        </div>
                       </div>
                     )) : <p className="text-gray-500 text-sm italic">No locations added yet</p>}
                   </div>
+                  {!isAdmin && locations.some((location) => location?._id) && (
+                    <p className="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                      Saved locations can only be deleted by an admin.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

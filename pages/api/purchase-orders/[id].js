@@ -7,6 +7,17 @@ import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 import { isValidObjectId } from "mongoose";
 import { postPurchaseOrderPayment } from "@/lib/accounting";
 
+function derivePaymentStatus({ paymentMade = 0, grandTotal = 0, payBeforeSupply = false, receivedStatus = "Pending" }) {
+  const paidAmount = Number(paymentMade) || 0;
+  const totalAmount = Number(grandTotal) || 0;
+  const fullyPaid = totalAmount > 0 && paidAmount >= totalAmount;
+
+  if (paidAmount <= 0) return "Not Paid";
+  if (payBeforeSupply && receivedStatus !== "Received" && fullyPaid) return "Credit";
+  if (fullyPaid) return "Paid";
+  return "Partly Paid";
+}
+
 function generateTransRef() {
   const d = new Date();
   const pad = (n) => String(n).padStart(2, "0");
@@ -47,24 +58,16 @@ export default async function handler(req, res) {
 
       // Update payment
       if (action === "update-payment") {
-        const { paymentMade, paymentDate, status } = req.body;
+        const { paymentMade, paymentDate } = req.body;
         order.paymentMade = paymentMade !== undefined ? Number(paymentMade) : order.paymentMade;
-        order.balance = order.grandTotal - order.paymentMade;
+        order.balance = Math.max(0, Number(order.grandTotal || 0) - Number(order.paymentMade || 0));
         order.paymentDate = paymentDate || order.paymentDate;
-
-        if (status) {
-          order.status = status;
-        } else {
-          // Auto-determine status
-          if (order.paymentMade >= order.grandTotal) {
-            order.status = "Paid";
-          } else if (order.paymentMade > 0) {
-            order.status = "Partly Paid";
-          } else {
-            order.status = "Not Paid";
-          }
-        }
-        order.balance = Math.max(0, order.balance);
+        order.status = derivePaymentStatus({
+          paymentMade: order.paymentMade,
+          grandTotal: order.grandTotal,
+          payBeforeSupply: order.payBeforeSupply,
+          receivedStatus: order.receivedStatus,
+        });
         await order.save();
 
         // Auto-post accounting journal entry for PO payment
@@ -144,6 +147,12 @@ export default async function handler(req, res) {
 
         order.receivedStatus = "Received";
         order.receivedAt = new Date();
+        order.status = derivePaymentStatus({
+          paymentMade: order.paymentMade,
+          grandTotal: order.grandTotal,
+          payBeforeSupply: order.payBeforeSupply,
+          receivedStatus: "Received",
+        });
         await order.save();
 
         return res.status(200).json({
@@ -160,6 +169,14 @@ export default async function handler(req, res) {
         if (req.body[field] !== undefined) {
           order[field] = req.body[field];
         }
+      }
+      if (req.body.payBeforeSupply !== undefined) {
+        order.status = derivePaymentStatus({
+          paymentMade: order.paymentMade,
+          grandTotal: order.grandTotal,
+          payBeforeSupply: order.payBeforeSupply,
+          receivedStatus: order.receivedStatus,
+        });
       }
       await order.save();
       return res.status(200).json({ success: true, order });

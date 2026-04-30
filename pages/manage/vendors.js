@@ -19,8 +19,15 @@ function getToday() {
   return d.toISOString().split("T")[0];
 }
 
-function createEmptyVendorProduct() {
-  return { product: "", productName: "", price: 0, packType: "unit", qtyPerPack: 1 };
+function createEmptyVendorProduct({ isNewProductCard = false } = {}) {
+  return {
+    product: "",
+    productName: "",
+    price: 0,
+    packType: "unit",
+    qtyPerPack: 1,
+    isNewProductCard,
+  };
 }
 
 const VENDOR_DRAFT_KEY = "vendors:formDraft";
@@ -76,7 +83,11 @@ export default function VendorsPage() {
         ...createEmptyForm(),
         ...draft.form,
         products: Array.isArray(draft.form.products) && draft.form.products.length > 0
-          ? draft.form.products
+          ? draft.form.products.map((product) => ({
+              ...createEmptyVendorProduct(),
+              ...product,
+              isNewProductCard: Boolean(product?.isNewProductCard),
+            }))
           : [createEmptyVendorProduct()],
       });
       setEditingVendor(draft.editingVendor || null);
@@ -154,7 +165,7 @@ export default function VendorsPage() {
   function addVendorProduct() {
     setForm((prev) => ({
       ...prev,
-      products: [...prev.products, createEmptyVendorProduct()],
+      products: [...prev.products, createEmptyVendorProduct({ isNewProductCard: true })],
     }));
   }
 
@@ -235,10 +246,15 @@ export default function VendorsPage() {
     e.preventDefault();
     setSaving(true);
     try {
+      const payload = {
+        ...form,
+        products: (form.products || []).map(({ isNewProductCard, ...product }) => product),
+      };
+
       if (editingVendor) {
-        await apiClient.put(`/api/vendors/${editingVendor._id}`, form);
+        await apiClient.put(`/api/vendors/${editingVendor._id}`, payload);
       } else {
-        await apiClient.post("/api/vendors", form);
+        await apiClient.post("/api/vendors", payload);
       }
       setShowForm(false);
       setEditingVendor(null);
@@ -288,6 +304,7 @@ export default function VendorsPage() {
             price: p.price || 0,
             packType: p.packType || "unit",
             qtyPerPack: p.qtyPerPack || 1,
+            isNewProductCard: false,
           }))
         : [createEmptyVendorProduct()],
     });
@@ -891,12 +908,37 @@ export default function VendorsPage() {
                 )}
                 <div className="space-y-2">
                   {form.products.map((vp, i) => (
-                    <div key={i} className="border border-gray-200 rounded-lg p-3 space-y-2 bg-gray-50">
+                    <div
+                      key={i}
+                      className={`rounded-xl border-2 p-4 shadow-sm space-y-3 ${
+                        vp.isNewProductCard
+                          ? "border-blue-200 bg-blue-50/40"
+                          : "border-gray-200 bg-white"
+                      }`}
+                    >
                       {(() => {
                         const filteredOptions = getFilteredProductOptions(i);
+                        const isNewProductCard = Boolean(vp.isNewProductCard);
+                        const showCreateProductAction = isNewProductCard && !vp.product;
 
                         return (
                           <>
+                      <div className={`flex items-start justify-between gap-3 rounded-lg border px-3 py-2 ${isNewProductCard ? "border-blue-200 bg-white/80" : "border-gray-200 bg-gray-50"}`}>
+                        <div>
+                          <p className="text-sm font-semibold text-gray-800">Product Card {i + 1}</p>
+                          <p className="text-xs text-gray-500">
+                            {isNewProductCard
+                              ? "This card can create a brand-new product if it is not already in the main product list."
+                              : "Use this card to attach an existing product from the main product list to this vendor."}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${isNewProductCard ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"}`}>
+                            {isNewProductCard ? "New product card" : "Existing product card"}
+                          </span>
+                          <button type="button" onClick={() => removeVendorProduct(i)} className="p-1 text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
+                        </div>
+                      </div>
                       <div className="flex items-center gap-2">
                         <div className="flex-1 relative">
                           <input
@@ -936,16 +978,22 @@ export default function VendorsPage() {
                               ))}
                               {filteredOptions.length === 0 ? (
                                 <div className="space-y-2 px-3 py-3 text-xs text-gray-500">
-                                  <div>No products found in the main product list.</div>
-                                  <button
-                                    type="button"
-                                    onMouseDown={(e) => e.preventDefault()}
-                                    onClick={() => openCreateProduct(i)}
-                                    className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
-                                  >
-                                    <Plus size={12} />
-                                    Create New Product
-                                  </button>
+                                  <div>
+                                    {isNewProductCard
+                                      ? "No products found in the main product list."
+                                      : "No products found in the main product list. Use Add Product to open a new product card if you need to create one."}
+                                  </div>
+                                  {showCreateProductAction && (
+                                    <button
+                                      type="button"
+                                      onMouseDown={(e) => e.preventDefault()}
+                                      onClick={() => openCreateProduct(i)}
+                                      className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
+                                    >
+                                      <Plus size={12} />
+                                      Create New Product
+                                    </button>
+                                  )}
                                 </div>
                               ) : null}
                             </div>
@@ -954,22 +1002,23 @@ export default function VendorsPage() {
                             <button type="button" onClick={() => { updateVendorProduct(i, "product", ""); updateVendorProduct(i, "productName", ""); setProductSearchValue(i, ""); setActiveProductDropdown(null); }} className="absolute right-2 top-2.5 text-gray-400 hover:text-red-500"><X size={14} /></button>
                           )}
                         </div>
-                        <button type="button" onClick={() => removeVendorProduct(i)} className="p-1 text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
                       </div>
-                      <div className="flex items-center justify-between gap-3 text-xs">
+                      <div className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-xs ${isNewProductCard ? "border-blue-100 bg-white/70" : "border-gray-200 bg-gray-50"}`}>
                         <p className="text-gray-500">
                           Selecting an existing product only attaches it to this vendor.
                         </p>
-                        <Link
-                          href={{
-                            pathname: "/products/new",
-                            query: { returnTo: "/manage/vendors", returnRow: String(i) },
-                          }}
-                          onClick={() => persistVendorDraft()}
-                          className="font-semibold text-blue-600 hover:text-blue-700"
-                        >
-                          Create new product
-                        </Link>
+                        {showCreateProductAction && (
+                          <Link
+                            href={{
+                              pathname: "/products/new",
+                              query: { returnTo: "/manage/vendors", returnRow: String(i) },
+                            }}
+                            onClick={() => persistVendorDraft()}
+                            className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 font-semibold text-white hover:bg-blue-700"
+                          >
+                            Create new product
+                          </Link>
+                        )}
                       </div>
                       <div className="grid grid-cols-3 gap-2">
                         <div>

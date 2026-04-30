@@ -2,6 +2,7 @@ import { createToken } from '@/lib/jwt';
 import User from '@/models/User';
 import bcrypt from 'bcryptjs';
 import { connectToDatabase } from '@/lib/mongodb';
+import { normalizePermissions } from '@/lib/permission-utils';
 
 const LOGIN_WINDOW_MS = 10 * 60 * 1000;
 const MAX_FAILED_ATTEMPTS = 5;
@@ -95,7 +96,7 @@ export default async function handler(req, res) {
         email: user.email,
         name: user.name,
         role: user.role,
-        permissions: user.permissions || [],
+        permissions: normalizePermissions(user.permissions || []),
       },
     });
   } catch (err) {

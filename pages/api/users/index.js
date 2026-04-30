@@ -60,7 +60,7 @@ export default async function handler(req, res) {
           "manage", "manage.products", "manage.archived", "manage.categories", "manage.promotions", "manage.customer-promotions", "manage.orders", "manage.customers", "manage.campaigns", "manage.staff", "manage.staff-roles", "manage.vendors", "manage.purchase-orders",
           "stock", "stock.management", "stock.movement", "stock.stock-take", "stock.stock-take-report", "stock.expiration-report",
           "reporting", "reporting.sales-report", "reporting.eod", "reporting.time-intervals", "reporting.time-comparisons", "reporting.sales-by-product", "reporting.employees", "reporting.locations", "reporting.categories", "reporting.transaction-report",
-          "expenses", "expenses.expenses", "expenses.analysis", "expenses.tax-analysis", "expenses.tax-personal",
+          "expenses", "expenses.entry", "expenses.analysis", "expenses.tax-analysis", "expenses.tax-personal",
           "support", "till",
         ];
       } else if (safeRole === "inventory") {
@@ -70,7 +70,7 @@ export default async function handler(req, res) {
         ];
       } else if (safeRole === "account") {
         safePermissions = [
-          "expenses", "expenses.expenses", "expenses.analysis", "expenses.tax-analysis", "expenses.tax-personal",
+          "expenses", "expenses.entry", "expenses.analysis", "expenses.tax-analysis", "expenses.tax-personal",
           "reporting", "reporting.sales-report", "reporting.eod", "reporting.transaction-report",
         ];
       }

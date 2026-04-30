@@ -551,7 +551,7 @@ export default function Sidebar() {
             </li>
             )}
 
-            {canAccessAny(["expenses", "expenses.expenses", "expenses.analysis", "expenses.tax-analysis", "expenses.tax-personal"]) && (
+            {canAccessAny(["expenses", "expenses.entry", "expenses.analysis", "expenses.tax-analysis", "expenses.tax-personal"]) && (
             <li
               className={`${
                 pathname.startsWith("/expenses") ? activeLink : baseLink
@@ -591,7 +591,7 @@ export default function Sidebar() {
                   },
                 ].filter(item => {
                   const permMap = {
-                    "/expenses/expenses": "expenses.expenses",
+                    "/expenses/expenses": "expenses.entry",
                     "/expenses/analysis": "expenses.analysis",
                     "/expenses/tax-analysis": "expenses.tax-analysis",
                     "/expenses/tax-personal": "expenses.tax-personal",
@@ -1064,7 +1064,7 @@ export default function Sidebar() {
             )}
 
             {/* Expenses Menu */}
-            {canAccessAny(["expenses", "expenses.expenses", "expenses.analysis", "expenses.tax-analysis", "expenses.tax-personal"]) && (
+            {canAccessAny(["expenses", "expenses.entry", "expenses.analysis", "expenses.tax-analysis", "expenses.tax-personal"]) && (
             <li>
               <button
                 onClick={() => toggleMenu("expenses")}
@@ -1081,7 +1081,7 @@ export default function Sidebar() {
               </button>
               {openMenu === "expenses" && (
                 <ul className="bg-gray-50 border-l-4 border-blue-600">
-                  {canAccess("expenses.expenses") && (
+                  {canAccess("expenses.entry") && (
                   <li onClick={closeMenu}>
                     <Link href="/expenses/expenses" className={`block px-8 py-3 text-sm transition-all ${pathname === "/expenses/expenses" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Expenses Entry

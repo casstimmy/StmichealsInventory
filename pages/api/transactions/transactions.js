@@ -14,6 +14,27 @@ async function connectDB() {
   await mongooseConnect();
 }
 
+function isOnlineTransaction(tx = {}) {
+  const location = String(tx.location || "").toLowerCase();
+  const tenderType = String(tx.tenderType || "").toLowerCase();
+  const device = String(tx.device || "").toLowerCase();
+
+  return location === "online" || tenderType === "online" || device === "web";
+}
+
+function getNormalizedStaffName(tx = {}) {
+  const rawName = tx.staff?.name || tx.staffName || tx.staff || "";
+  const normalizedRawName = String(rawName).trim();
+
+  if (normalizedRawName) {
+    return normalizedRawName.toLowerCase() === "online"
+      ? "Online"
+      : normalizedRawName;
+  }
+
+  return isOnlineTransaction(tx) ? "Online" : "Unknown";
+}
+
 export default async function handler(req, res) {
   const authError = authMiddleware(req, res);
   if (authError) return authError;
@@ -109,9 +130,12 @@ async function handlePOST(req, res) {
     const normalizedLocation = String(
       location || req.user?.location || "Default Location"
     ).trim();
-    const normalizedStaffName = String(
-      staffName || req.user?.name || "Unknown"
-    ).trim();
+    const normalizedStaffName = getNormalizedStaffName({
+      staffName: staffName || req.user?.name,
+      location: normalizedLocation,
+      tenderType: primaryTender,
+      device,
+    });
 
     const externalId = requestExternalId
       ? String(requestExternalId).trim()
@@ -208,7 +232,13 @@ async function handleGET(req, res) {
 
     const enrichedTransactions = transactions.map((tx) => ({
       ...tx,
-      location: tx.location || "online",
+      location: tx.location || (isOnlineTransaction(tx) ? "online" : "Unknown"),
+      staffName: getNormalizedStaffName(tx),
+      staff: tx.staff?.name
+        ? tx.staff
+        : isOnlineTransaction(tx)
+          ? { name: "Online" }
+          : tx.staff,
     }));
 
     const totalSales = enrichedTransactions.reduce(
@@ -247,7 +277,7 @@ async function handleGET(req, res) {
 
     const byStaff = {};
     enrichedTransactions.forEach((tx) => {
-      const staff = tx.staff?.name || tx.staffName || "Unknown";
+      const staff = getNormalizedStaffName(tx);
       byStaff[staff] = (byStaff[staff] || 0) + (tx.total || 0);
     });
 

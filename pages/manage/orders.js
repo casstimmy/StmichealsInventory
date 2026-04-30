@@ -27,6 +27,24 @@ const NOTICE_CLASS = {
   error: "bg-red-50 border-red-200 text-red-700",
 };
 
+function getOrderCustomerDetails(order) {
+  const customer = order?.customer || {};
+  const shippingDetails = order?.shippingDetails || {};
+
+  return {
+    name: customer?.name || shippingDetails?.name || "N/A",
+    email: customer?.email || shippingDetails?.email || "N/A",
+    phone: shippingDetails?.phone || customer?.phone || "N/A",
+    address: shippingDetails?.address || customer?.address || "No address",
+    city:
+      shippingDetails?.city ||
+      customer?.city ||
+      order?.deliveryDetails?.city ||
+      order?.deliveryPerson?.city ||
+      "N/A",
+  };
+}
+
 function buildEmailPayload(order, status) {
   const products = Array.isArray(order.cartProducts) && order.cartProducts.length > 0
     ? order.cartProducts
@@ -244,6 +262,7 @@ export default function OrderInventoryPage() {
                   ) : (
                     orders.map((order, idx) => {
                       const isExpanded = expandedOrderId === order._id;
+                      const customerDetails = getOrderCustomerDetails(order);
                       const products = Array.isArray(order.cartProducts) && order.cartProducts.length > 0
                         ? order.cartProducts
                         : order.items || [];
@@ -263,7 +282,7 @@ export default function OrderInventoryPage() {
                                 {order._id.slice(-8)}
                               </div>
                             </td>
-                            <td className="text-gray-900">{order.customer?.name || order.shippingDetails?.name || "N/A"}</td>
+                            <td className="text-gray-900">{customerDetails.name}</td>
                             <td className="font-bold text-gray-900">{formatCurrency(order.total || 0)}</td>
                             <td>
                               <select
@@ -293,11 +312,11 @@ export default function OrderInventoryPage() {
                                   <div className="grid gap-4 lg:grid-cols-3">
                                     <div className="space-y-2 text-sm text-gray-700">
                                       <h3 className="font-semibold text-gray-900">Customer Details</h3>
-                                      <p><strong>Name:</strong> {order.customer?.name || order.shippingDetails?.name || "N/A"}</p>
-                                      <p><strong>Email:</strong> {order.customer?.email || order.shippingDetails?.email || "N/A"}</p>
-                                      <p><strong>Phone:</strong> {order.shippingDetails?.phone || "N/A"}</p>
-                                      <p><strong>Address:</strong> {order.shippingDetails?.address || "No address"}</p>
-                                      <p><strong>City:</strong> {order.shippingDetails?.city || "N/A"}</p>
+                                      <p><strong>Name:</strong> {customerDetails.name}</p>
+                                      <p><strong>Email:</strong> {customerDetails.email}</p>
+                                      <p><strong>Phone:</strong> {customerDetails.phone}</p>
+                                      <p><strong>Address:</strong> {customerDetails.address}</p>
+                                      <p><strong>City:</strong> {customerDetails.city}</p>
                                     </div>
 
                                     <div className="space-y-2 text-sm text-gray-700 lg:col-span-2">

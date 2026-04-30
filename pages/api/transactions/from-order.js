@@ -59,7 +59,7 @@ export default async function handler(req, res) {
       subtotal: Number(order.subtotal || order.total || 0),
       tax: 0,
       staff: null,
-      staffName: "online",
+      staffName: "Online",
       location: "online",
       device: "WEB",
       tableName: "OrderCheckout",

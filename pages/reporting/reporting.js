@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   Chart as ChartJS,
   BarElement,
@@ -108,12 +109,12 @@ export default function Reporting() {
               <h1 className="page-title">Sales Report</h1>
               <p className="page-subtitle">Track your business performance and metrics in real-time</p>
             </div>
-            <a
+            <Link
               href="/reporting/end-of-day-report"
               className="btn-action-primary whitespace-nowrap"
             >
                EOD Reports
-            </a>
+            </Link>
           </div>
 
           {/* FILTER BAR */}

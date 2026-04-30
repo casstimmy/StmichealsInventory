@@ -47,7 +47,11 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error("Fetch setup error:", err);
-    res.status(500).json({
+    if (res.headersSent || res.writableEnded) {
+      return;
+    }
+
+    return res.status(500).json({
       message: "Internal Server Error",
       error: process.env.NODE_ENV === "development" ? err.message : undefined,
     });

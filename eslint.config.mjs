@@ -1,3 +1,5 @@
+import nextPlugin from "@next/eslint-plugin-next";
+
 export default [
   {
     ignores: [
@@ -8,7 +10,10 @@ export default [
     ],
   },
   {
-    files: ["**/*.{js,jsx}"],
+    files: ["**/*.{js,jsx,mjs}"],
+    plugins: {
+      "@next/next": nextPlugin,
+    },
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",

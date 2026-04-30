@@ -28,6 +28,10 @@ function toDateInputValue(v) {
 export default function ProductForm(props) {
   const router = useRouter();
   const { isAdmin } = useAuth();
+  const returnTo = typeof router.query.returnTo === "string" ? router.query.returnTo : "";
+  const returnRow = typeof router.query.returnRow === "string"
+    ? Number(router.query.returnRow)
+    : null;
 
   // --- State ---
   const [name, setName] = useState(props.name || "");
@@ -303,8 +307,30 @@ export default function ProductForm(props) {
   }
 
   useEffect(() => {
-    if (goToProducts) router.push("/manage/products");
-  }, [goToProducts, router]);
+    if (!goToProducts) return;
+
+    if (typeof window !== "undefined" && returnTo) {
+      const pendingVendorProduct = {
+        rowIndex: Number.isInteger(returnRow) && returnRow >= 0 ? returnRow : 0,
+        product: {
+          _id: String(sessionStorage.getItem("products:highlight") || ""),
+          name,
+          packType,
+          qtyPerPack: packType === "pack" ? Number(qtyPerPack) || 1 : 1,
+          price: Number(costPrice) || 0,
+        },
+      };
+
+      sessionStorage.setItem(
+        "vendors:pendingProduct",
+        JSON.stringify(pendingVendorProduct)
+      );
+      router.push(returnTo);
+      return;
+    }
+
+    router.push("/manage/products");
+  }, [goToProducts, router, returnTo, returnRow, name, packType, qtyPerPack, costPrice]);
 
   function generateBarcode() {
     const base = `${Date.now()}${Math.floor(Math.random() * 1000)}`;

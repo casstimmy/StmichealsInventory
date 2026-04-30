@@ -1,61 +1,6 @@
 import { mongooseConnect } from "@/lib/mongodb";
 import Vendor from "@/models/Vendor";
-import Product from "@/models/Product";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
-
-async function createChildProductsForPacks(products) {
-  const createdChildren = [];
-  for (const vp of products) {
-    if (vp.packType === "pack" && vp.product && vp.qtyPerPack > 1) {
-      const parentProduct = await Product.findById(vp.product).lean();
-      if (!parentProduct) continue;
-      // Check if pack already exists for this product with same qtyPerPack
-      const existingPack = await Product.findOne({
-        parentProduct: parentProduct._id,
-        qtyPerPack: vp.qtyPerPack,
-        packType: "pack",
-      }).lean();
-      if (existingPack) {
-        createdChildren.push(existingPack);
-        continue;
-      }
-      // Cost price = parent cost * qty per pack
-      const childCostPrice = (vp.price || parentProduct.costPrice) * vp.qtyPerPack;
-      const child = await Product.create({
-        name: `${parentProduct.name} (Pack of ${vp.qtyPerPack})`,
-        description: `Pack of ${vp.qtyPerPack} - ${parentProduct.name}`,
-        costPrice: childCostPrice,
-        taxRate: parentProduct.taxRate || 0,
-        salePriceIncTax: 0, // to be set manually
-        category: parentProduct.category,
-        isStockManaged: parentProduct.isStockManaged,
-        isChildProduct: false,
-        parentProduct: parentProduct._id,
-        packType: "pack",
-        qtyPerPack: vp.qtyPerPack,
-      });
-
-      // Also auto-create the derived unit child for this pack
-      const unitCostPrice = Math.round((childCostPrice / vp.qtyPerPack) * 100) / 100;
-      await Product.create({
-        name: `${parentProduct.name} (Pack of ${vp.qtyPerPack}) (Unit)`,
-        description: `Single unit from pack of ${vp.qtyPerPack} - ${parentProduct.name}`,
-        costPrice: unitCostPrice,
-        taxRate: parentProduct.taxRate || 0,
-        salePriceIncTax: 0,
-        category: parentProduct.category,
-        isStockManaged: parentProduct.isStockManaged,
-        isChildProduct: true,
-        parentProduct: child._id,
-        packType: "unit",
-        qtyPerPack: 1,
-      });
-
-      createdChildren.push(child);
-    }
-  }
-  return createdChildren;
-}
 
 export default async function handler(req, res) {
   const authError = authMiddleware(req, res);
@@ -86,9 +31,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "Company name is required" });
       }
 
-      // Auto-create child products for pack items
       const safeProducts = Array.isArray(products) ? products : [];
-      const createdChildren = await createChildProductsForPacks(safeProducts);
 
       const vendor = await Vendor.create({
         companyName,
@@ -103,7 +46,7 @@ export default async function handler(req, res) {
         products: safeProducts,
       });
 
-      return res.status(201).json({ success: true, vendor, createdChildren });
+      return res.status(201).json({ success: true, vendor, createdChildren: [] });
     } catch (err) {
       return res.status(500).json({ error: err.message });
     }

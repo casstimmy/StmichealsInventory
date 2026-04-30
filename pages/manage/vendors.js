@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useState, useRef, useMemo } from "react";
+import Link from "next/link";
+import { useRouter } from "next/router";
 import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
 import useProgress from "@/lib/useProgress";
@@ -21,6 +23,9 @@ function createEmptyVendorProduct() {
   return { product: "", productName: "", price: 0, packType: "unit", qtyPerPack: 1 };
 }
 
+const VENDOR_DRAFT_KEY = "vendors:formDraft";
+const VENDOR_PENDING_PRODUCT_KEY = "vendors:pendingProduct";
+
 function createEmptyForm() {
   return {
     companyName: "", vendorRep: "", repPhone: "", email: "",
@@ -30,6 +35,7 @@ function createEmptyForm() {
 }
 
 export default function VendorsPage() {
+  const router = useRouter();
   const { progress, start, complete } = useProgress();
   const [vendors, setVendors] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
@@ -55,6 +61,77 @@ export default function VendorsPage() {
   const [form, setForm] = useState(() => createEmptyForm());
 
   useEffect(() => { fetchVendors(); fetchProducts(); }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const rawDraft = window.sessionStorage.getItem(VENDOR_DRAFT_KEY);
+    if (!rawDraft) return;
+
+    try {
+      const draft = JSON.parse(rawDraft);
+      if (!draft?.form) return;
+
+      setForm({
+        ...createEmptyForm(),
+        ...draft.form,
+        products: Array.isArray(draft.form.products) && draft.form.products.length > 0
+          ? draft.form.products
+          : [createEmptyVendorProduct()],
+      });
+      setEditingVendor(draft.editingVendor || null);
+      setShowForm(true);
+    } catch {
+      window.sessionStorage.removeItem(VENDOR_DRAFT_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const rawPendingProduct = window.sessionStorage.getItem(VENDOR_PENDING_PRODUCT_KEY);
+    if (!rawPendingProduct) return;
+
+    try {
+      const pending = JSON.parse(rawPendingProduct);
+      const rowIndex = Number.isInteger(pending?.rowIndex) ? pending.rowIndex : 0;
+      const matchedProduct = allProducts.find((product) => product._id === pending?.product?._id);
+      const resolvedProduct = matchedProduct || pending?.product;
+
+      if (!resolvedProduct?._id) return;
+
+      setForm((prev) => {
+        const products = Array.isArray(prev.products) && prev.products.length > 0
+          ? [...prev.products]
+          : [createEmptyVendorProduct()];
+
+        while (products.length <= rowIndex) {
+          products.push(createEmptyVendorProduct());
+        }
+
+        products[rowIndex] = {
+          ...products[rowIndex],
+          product: resolvedProduct._id,
+          productName: resolvedProduct.name || products[rowIndex].productName || "",
+          price: Number(products[rowIndex].price || resolvedProduct.price || 0),
+          packType: resolvedProduct.packType || products[rowIndex].packType || "unit",
+          qtyPerPack: resolvedProduct.qtyPerPack || products[rowIndex].qtyPerPack || 1,
+        };
+
+        return { ...prev, products };
+      });
+      setProductSearchMap((prev) => ({
+        ...prev,
+        [rowIndex]: resolvedProduct.name || "",
+      }));
+      setShowForm(true);
+    } catch {
+      // Ignore invalid session data.
+    } finally {
+      window.sessionStorage.removeItem(VENDOR_PENDING_PRODUCT_KEY);
+      window.sessionStorage.removeItem(VENDOR_DRAFT_KEY);
+    }
+  }, [allProducts]);
 
   async function fetchVendors() {
     try {
@@ -99,6 +176,7 @@ export default function VendorsPage() {
           ...products[idx],
           product: value,
           productName: selected?.name || "",
+          price: products[idx]?.price || Number(selected?.costPrice || 0),
           packType: selected?.packType || "unit",
           qtyPerPack: selected?.qtyPerPack || 1,
         };
@@ -111,6 +189,35 @@ export default function VendorsPage() {
 
   function setProductSearchValue(index, value) {
     setProductSearchMap((prev) => ({ ...prev, [index]: value }));
+  }
+
+  function clearVendorDraftState() {
+    if (typeof window === "undefined") return;
+    window.sessionStorage.removeItem(VENDOR_DRAFT_KEY);
+    window.sessionStorage.removeItem(VENDOR_PENDING_PRODUCT_KEY);
+  }
+
+  function persistVendorDraft() {
+    if (typeof window === "undefined") return;
+
+    window.sessionStorage.setItem(
+      VENDOR_DRAFT_KEY,
+      JSON.stringify({
+        form,
+        editingVendor: editingVendor ? { _id: editingVendor._id } : null,
+      })
+    );
+  }
+
+  function openCreateProduct(rowIndex) {
+    persistVendorDraft();
+    router.push({
+      pathname: "/products/new",
+      query: {
+        returnTo: "/manage/vendors",
+        returnRow: String(rowIndex),
+      },
+    });
   }
 
   function getFilteredProductOptions(index) {
@@ -137,6 +244,7 @@ export default function VendorsPage() {
       setEditingVendor(null);
       setForm(createEmptyForm());
       setProductSearchMap({});
+      clearVendorDraftState();
       fetchVendors();
     } catch (err) {
       await showAlertDialog({
@@ -192,6 +300,7 @@ export default function VendorsPage() {
     setForm(createEmptyForm());
     setEditingVendor(null);
     setProductSearchMap({});
+    clearVendorDraftState();
     setShowForm(true);
   }
 
@@ -825,9 +934,20 @@ export default function VendorsPage() {
                                   {p.barcode && <div className="text-xs text-gray-400">Barcode: {p.barcode}</div>}
                                 </button>
                               ))}
-                              {filteredOptions.length === 0 && (
-                                <div className="px-3 py-2 text-xs text-gray-400">No products found</div>
-                              )}
+                              {filteredOptions.length === 0 ? (
+                                <div className="space-y-2 px-3 py-3 text-xs text-gray-500">
+                                  <div>No products found in the main product list.</div>
+                                  <button
+                                    type="button"
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onClick={() => openCreateProduct(i)}
+                                    className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
+                                  >
+                                    <Plus size={12} />
+                                    Create New Product
+                                  </button>
+                                </div>
+                              ) : null}
                             </div>
                           )}
                           {vp.product && (
@@ -835,6 +955,21 @@ export default function VendorsPage() {
                           )}
                         </div>
                         <button type="button" onClick={() => removeVendorProduct(i)} className="p-1 text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
+                      </div>
+                      <div className="flex items-center justify-between gap-3 text-xs">
+                        <p className="text-gray-500">
+                          Selecting an existing product only attaches it to this vendor.
+                        </p>
+                        <Link
+                          href={{
+                            pathname: "/products/new",
+                            query: { returnTo: "/manage/vendors", returnRow: String(i) },
+                          }}
+                          onClick={() => persistVendorDraft()}
+                          className="font-semibold text-blue-600 hover:text-blue-700"
+                        >
+                          Create new product
+                        </Link>
                       </div>
                       <div className="grid grid-cols-3 gap-2">
                         <div>
@@ -870,7 +1005,7 @@ export default function VendorsPage() {
                       </div>
                       {vp.packType === "pack" && vp.product && vp.qtyPerPack > 1 && (
                         <p className="text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded">
-                          A child product &quot;{vp.productName} (Pack of {vp.qtyPerPack})&quot; will be auto-created with cost price {formatCurrency((vp.price || 0) * (vp.qtyPerPack || 1))}. You can set the sale price later in the Product List.
+                          This vendor is attached to the existing pack product &quot;{vp.productName}&quot; with qty per pack {vp.qtyPerPack}.
                         </p>
                       )}
                           </>
@@ -882,7 +1017,7 @@ export default function VendorsPage() {
               </div>
 
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => { setShowForm(false); setEditingVendor(null); setProductSearchMap({}); setForm(createEmptyForm()); }} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+                <button type="button" onClick={() => { setShowForm(false); setEditingVendor(null); setProductSearchMap({}); setForm(createEmptyForm()); clearVendorDraftState(); }} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
                 <button type="submit" disabled={saving} className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium text-white transition ${saving ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}>
                   {saving ? "Saving..." : editingVendor ? "Update Vendor" : "Add Vendor"}
                 </button>

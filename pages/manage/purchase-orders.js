@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
@@ -486,7 +487,7 @@ export default function PurchaseOrdersPage() {
               >
                 <Plus size={16} /> Quick Entry
               </button>
-              <p className="text-sm text-gray-500">Orders are placed from the <a href="/manage/vendors" className="text-blue-600 hover:underline font-medium">Vendor page</a></p>
+              <p className="text-sm text-gray-500">Orders are placed from the <Link href="/manage/vendors" className="font-medium text-blue-600 hover:underline">Vendor page</Link></p>
             </div>
           </div>
 

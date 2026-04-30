@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faStore, faRightFromBracket, faBell } from '@fortawesome/free-solid-svg-icons';
 
@@ -198,13 +199,13 @@ const TopBar = ({ user, logout }) => {
                           <p className="text-xs text-gray-600 mt-1">
                             {lowStockCount} product{lowStockCount > 1 ? 's' : ''} below minimum stock level
                           </p>
-                          <a
+                          <Link
                             href="/stock/management"
                             onClick={() => setShowNotifications(false)}
-                            className="inline-block mt-2 text-xs font-semibold text-yellow-700 hover:text-yellow-900 underline"
+                            className="inline-block mt-2 text-xs font-semibold text-yellow-700 underline hover:text-yellow-900"
                           >
                             View Details →
-                          </a>
+                          </Link>
                         </div>
                       </div>
                     </div>
@@ -220,13 +221,13 @@ const TopBar = ({ user, logout }) => {
                           <p className="text-xs text-gray-600 mt-1">
                             {expiringCount} batch{expiringCount > 1 ? 'es' : ''} expiring within 30 days
                           </p>
-                          <a
+                          <Link
                             href="/stock/expiration-report"
                             onClick={() => setShowNotifications(false)}
-                            className="inline-block mt-2 text-xs font-semibold text-orange-700 hover:text-orange-900 underline"
+                            className="inline-block mt-2 text-xs font-semibold text-orange-700 underline hover:text-orange-900"
                           >
                             View Details →
-                          </a>
+                          </Link>
                         </div>
                       </div>
                     </div>
@@ -254,13 +255,13 @@ const TopBar = ({ user, logout }) => {
 
                 {/* Footer */}
                 <div className="bg-gray-50 border-t border-gray-200 px-4 py-2">
-                  <a
+                  <Link
                     href="/stock/expiration-report"
                     onClick={() => setShowNotifications(false)}
-                    className="block text-center text-sm font-semibold text-blue-600 hover:text-blue-700 transition"
+                    className="block text-center text-sm font-semibold text-blue-600 transition hover:text-blue-700"
                   >
                     View Expiration Report →
-                  </a>
+                  </Link>
                 </div>
               </div>
             )}

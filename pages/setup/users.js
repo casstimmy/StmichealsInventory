@@ -6,7 +6,7 @@ import AccessDeniedState from "@/components/AccessDeniedState";
 import { useAuth } from "@/lib/useAuth";
 import { apiClient } from "@/lib/api-client";
 import { showToastMessage } from "@/lib/toast-state";
-import { Plus, Edit, Trash2, X, Check, UserPlus, Users, Eye, EyeOff } from "lucide-react";
+import { Plus, Edit, Trash2, X, Check, UserPlus, Users, Eye, EyeOff, Shield } from "lucide-react";
 
 const ALL_PERMISSIONS = [
   { key: "dashboard", label: "Dashboard", description: "Home dashboard access" },

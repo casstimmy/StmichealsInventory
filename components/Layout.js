@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/useAuth";
 import Nav from "@/components/Nav";
 import NavBar from "@/components/NavBar";
 import Loader from "@/components/Loader";
-import { Shield } from "lucide-react";
+import AccessDeniedState from "@/components/AccessDeniedState";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -64,6 +64,7 @@ function getRequiredPermission(pathname) {
 export default function Layout({ children, title = "Dashboard" }) {
   const router = useRouter();
   const { user, token, loading, isAuthenticated, isAdmin, hasPermission, getFirstAccessiblePage, logout } = useAuth();
+  const accessiblePath = getFirstAccessiblePage() || "/";
 
   if (loading) {
     return (
@@ -115,16 +116,11 @@ export default function Layout({ children, title = "Dashboard" }) {
             className="w-full min-h-[calc(100vh-56px)] md:min-h-[calc(100vh-64px)] px-3 md:px-6 bg-gray-50 overflow-y-auto"
           >
             {hasAccess ? children : (
-              <div className="flex items-center justify-center min-h-[60vh]">
-                <div className="text-center">
-                  <Shield className="mx-auto mb-4 text-red-400" size={48} />
-                  <h2 className="text-xl font-bold text-gray-700">Access Denied</h2>
-                  <p className="text-gray-500 mt-2">You don&apos;t have permission to access this page.</p>
-                  <button onClick={() => router.push(getFirstAccessiblePage())} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                    Go to Home
-                  </button>
-                </div>
-              </div>
+              <AccessDeniedState
+                message="You don't have permission to access this page."
+                actionLabel="Go to Available Page"
+                onAction={() => router.push(accessiblePath)}
+              />
             )}
           </div>
         </div>

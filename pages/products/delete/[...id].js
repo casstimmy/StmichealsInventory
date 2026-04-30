@@ -2,6 +2,7 @@ import Layout from "@/components/Layout";
 import axios from "axios";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import { showAlertDialog } from "@/lib/dialogs";
 
 export default function DeleteProductPage() {
   const router = useRouter();
@@ -25,7 +26,11 @@ export default function DeleteProductPage() {
       goBack();
     } catch (error) {
       console.error("Failed to delete product:", error);
-      alert("Failed to delete product. Please try again.");
+      await showAlertDialog({
+        title: "Archive failed",
+        message: "Failed to delete product. Please try again.",
+        tone: "danger",
+      });
     }
   }
 

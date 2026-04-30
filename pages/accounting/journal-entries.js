@@ -4,6 +4,7 @@ import Layout from "@/components/Layout";
 import { Loader } from "@/components/ui";
 import { formatCurrency } from "@/lib/format";
 import { useState, useEffect } from "react";
+import { showConfirmDialog, showPromptDialog, showToast } from "@/lib/dialogs";
 import { Plus, Trash2, Check, X, FileText, Play, Ban, Eye, ChevronDown, ChevronUp } from "lucide-react";
 
 const REF_TYPES = ["MANUAL", "SALE", "EXPENSE", "PURCHASE_ORDER", "SALARY", "REFUND", "OTHER"];
@@ -85,6 +86,18 @@ export default function JournalEntriesPage() {
     fetchEntries();
   }, [filterStatus, filterType, dateFrom, dateTo, page]);
 
+  useEffect(() => {
+    if (!error) return;
+    showToast({ title: "Journal entries", message: error, tone: "danger" });
+    setError("");
+  }, [error]);
+
+  useEffect(() => {
+    if (!success) return;
+    showToast({ title: "Journal entries", message: success, tone: "success" });
+    setSuccess("");
+  }, [success]);
+
   function addLine() {
     setForm({ ...form, lines: [...form.lines, { account: "", debit: "", credit: "", description: "" }] });
   }
@@ -149,7 +162,18 @@ export default function JournalEntriesPage() {
   }
 
   async function voidEntry(id) {
-    const reason = prompt("Reason for voiding this entry:");
+    const reason = await showPromptDialog({
+      title: "Void journal entry",
+      message: "Provide a reason for voiding this entry.",
+      label: "Void reason",
+      placeholder: "Enter reason",
+      required: true,
+      requiredMessage: "A void reason is required.",
+      confirmLabel: "Void entry",
+      cancelLabel: "Cancel",
+      tone: "warning",
+      multiline: true,
+    });
     if (!reason) return;
     try {
       const res = await fetch(`/api/accounting/entries/${id}`, {
@@ -167,7 +191,14 @@ export default function JournalEntriesPage() {
   }
 
   async function deleteEntry(id) {
-    if (!confirm("Delete this draft entry?")) return;
+    const shouldDelete = await showConfirmDialog({
+      title: "Delete draft entry?",
+      message: "This draft journal entry will be removed permanently.",
+      tone: "danger",
+      confirmLabel: "Delete entry",
+      cancelLabel: "Keep entry",
+    });
+    if (!shouldDelete) return;
     try {
       const res = await fetch(`/api/accounting/entries/${id}`, { method: "DELETE" });
       const data = await res.json();
@@ -217,9 +248,6 @@ export default function JournalEntriesPage() {
             <Plus size={18} /> {showForm ? "Close" : "New Entry"}
           </button>
         </div>
-
-        {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">{error}</div>}
-        {success && <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">{success}</div>}
 
         {/* Form */}
         {showForm && (

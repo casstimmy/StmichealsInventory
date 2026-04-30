@@ -88,10 +88,12 @@ export default async function handler(req, res) {
         }
 
         // Resolve location names synchronously from cache
-        const fromLocationName = !m.fromLocationId ? "Vendor" : 
-          (locationCache[m.fromLocationId?.toString()] || "Unknown");
-        const toLocationName = !m.toLocationId ? "Unknown" : 
-          (locationCache[m.toLocationId?.toString()] || "Unknown");
+        const fromLocationName = !m.fromLocationId
+          ? (m.reason === "Restock" ? "Vendor" : "Unknown")
+          : (locationCache[m.fromLocationId?.toString()] || "Unknown");
+        const toLocationName = !m.toLocationId
+          ? (m.reason === "Return" ? "Vendor" : m.reason === "Operational Loss" ? "Loss Register" : "Unknown")
+          : (locationCache[m.toLocationId?.toString()] || "Unknown");
 
         // Map products efficiently
         const mappedProducts = (m.products || []).map(p => ({
@@ -119,6 +121,7 @@ export default async function handler(req, res) {
           totalCostPrice,
           status: m.status || "Received",
           barcode: m.barcode || m.transRef || "",
+          notes: m.notes || "",
           productCount: mappedProducts.length,
           totalQuantity: mappedProducts.reduce((sum, p) => sum + (p.quantity || 0), 0),
           products: mappedProducts,

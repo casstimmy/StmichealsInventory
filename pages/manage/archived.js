@@ -2,6 +2,7 @@ import Layout from "@/components/Layout";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Loader } from "@/components/ui";
+import { showAlertDialog, showConfirmDialog } from "@/lib/dialogs";
 import { formatCurrency } from "@/lib/format";
 import { useAuth } from "@/lib/useAuth";
 
@@ -39,21 +40,36 @@ export default function Archived() {
       setArchivedProducts((prev) => prev.filter((p) => p._id !== productId));
     } catch (error) {
       console.error("Restore failed", error);
-      alert("Failed to restore product.");
+      await showAlertDialog({
+        title: "Restore failed",
+        message: "Failed to restore product.",
+        tone: "danger",
+      });
     } finally {
       setRestoringId(null);
     }
   };
 
   const handlePermanentDelete = async (productId) => {
-    if (!confirm("Are you sure you want to PERMANENTLY delete this product? This action cannot be undone.")) return;
+    const shouldDelete = await showConfirmDialog({
+      title: "Delete product permanently?",
+      message: "This action cannot be undone.",
+      tone: "danger",
+      confirmLabel: "Delete permanently",
+      cancelLabel: "Keep product",
+    });
+    if (!shouldDelete) return;
     try {
       setDeletingId(productId);
       await axios.delete(`/api/products?id=${productId}&permanent=true`);
       setArchivedProducts((prev) => prev.filter((p) => p._id !== productId));
     } catch (error) {
       console.error("Delete failed", error);
-      alert(error?.response?.data?.message || "Failed to delete product.");
+      await showAlertDialog({
+        title: "Delete failed",
+        message: error?.response?.data?.message || "Failed to delete product.",
+        tone: "danger",
+      });
     } finally {
       setDeletingId(null);
     }

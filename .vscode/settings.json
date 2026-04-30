@@ -83,6 +83,42 @@
         "/^Set-Location \"c:\\\\Users\\\\hp\\\\Desktop\\\\Projects\\\\Inventory-sales\\\\Inventory\\\\inventory-admin-app\"; npm run build$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^npx eslint components/DialogProvider\\.js lib/dialogs\\.js$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^Resolve-DnsName _mongodb\\._tcp\\.cluster0\\.z4yj0gu\\.mongodb\\.net -Type SRV; Resolve-DnsName cluster0-shard-00-00\\.z4yj0gu\\.mongodb\\.net; Resolve-DnsName cluster0-shard-00-01\\.z4yj0gu\\.mongodb\\.net; Resolve-DnsName cluster0-shard-00-02\\.z4yj0gu\\.mongodb\\.net$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^Resolve-DnsName cluster0\\.z4yj0gu\\.mongodb\\.net -Type TXT; Resolve-DnsName _mongodb\\._tcp\\.cluster0\\.z4yj0gu\\.mongodb\\.net -Type TXT; Resolve-DnsName ac-wosvnkt-shard-00-00\\.z4yj0gu\\.mongodb\\.net; Resolve-DnsName ac-wosvnkt-shard-00-01\\.z4yj0gu\\.mongodb\\.net; Resolve-DnsName ac-wosvnkt-shard-00-02\\.z4yj0gu\\.mongodb\\.net$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^node -e \"const bcrypt=require\\('bcryptjs'\\); const mongoose=require\\('mongoose'\\); const uri=process\\.env\\.MONGODB_URI; mongoose\\.connect\\(uri\\)\\.then\\(async\\(\\)=>\\{ const User=require\\('\\./models/User'\\)\\.default \\|\\| require\\('\\./models/User'\\); const users=await User\\.find\\(\\{\\}, 'name email password role'\\)\\.lean\\(\\); const guesses=\\['1234','0000','1111','2222','4321','9999','pass123'\\]; for \\(const user of users\\)\\{ const matches=\\[\\]; for \\(const guess of guesses\\)\\{ try\\{ if\\(await bcrypt\\.compare\\(guess,user\\.password\\)\\) matches\\.push\\(guess\\); \\}catch\\{\\} \\} console\\.log\\(JSON\\.stringify\\(\\{name:user\\.name,email:user\\.email,role:user\\.role,matches\\},null,2\\)\\); \\} await mongoose\\.disconnect\\(\\); \\}\\)\\.catch\\(err=>\\{ console\\.error\\(err\\); process\\.exit\\(1\\); \\}\\);\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^node -r dotenv/config -e \"const bcrypt=require\\('bcryptjs'\\); const mongoose=require\\('mongoose'\\); const uri=process\\.env\\.MONGODB_URI; mongoose\\.connect\\(uri\\)\\.then\\(async\\(\\)=>\\{ const UserModule=require\\('\\./models/User'\\); const User=UserModule\\.default \\|\\| UserModule; const users=await User\\.find\\(\\{\\}, 'name email password role'\\)\\.lean\\(\\); const guesses=\\['1234','0000','1111','2222','4321','9999','pass123','password123'\\]; for \\(const user of users\\)\\{ const matches=\\[\\]; for \\(const guess of guesses\\)\\{ try\\{ if\\(await bcrypt\\.compare\\(guess,user\\.password\\)\\) matches\\.push\\(guess\\); \\}catch\\{\\} \\} console\\.log\\(JSON\\.stringify\\(\\{name:user\\.name,email:user\\.email,role:user\\.role,matches\\},null,2\\)\\); \\} await mongoose\\.disconnect\\(\\); \\}\\)\\.catch\\(err=>\\{ console\\.error\\(err\\); process\\.exit\\(1\\); \\}\\);\" dotenv_config_path=\\.env$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^npx eslint pages/accounting/journal-entries\\.js$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^npx eslint lib/toast-state\\.js pages/accounting/journal-entries\\.js pages/accounting/chart-of-accounts\\.js pages/manage/campaigns\\.js pages/manage/promotions-management\\.js pages/manage/customers\\.js pages/manage/staff\\.js pages/manage/staff-roles\\.js pages/support/index\\.js pages/stock/stock-take/\\[id\\]\\.js pages/login\\.js pages/setup/users\\.js pages/setup/setup\\.js$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^npx eslint pages/stock/movement/index\\.js pages/expenses/tax-analysis\\.js$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^npx eslint components/AccessDeniedState\\.js components/Layout\\.js pages/setup/users\\.js pages/404\\.js pages/500\\.js models/PendingTransactionAction\\.js models/Till\\.js$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     }
 }

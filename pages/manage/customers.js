@@ -4,6 +4,8 @@ import Layout from "@/components/Layout";
 import { Loader } from "@/components/ui";
 import useProgress from "@/lib/useProgress";
 import Link from "next/link";
+import { showConfirmDialog } from "@/lib/dialogs";
+import { showToastMessage } from "@/lib/toast-state";
 import { useState, useEffect } from "react";
 
 export default function CustomersPage() {
@@ -20,6 +22,18 @@ export default function CustomersPage() {
   useEffect(() => {
     fetchCustomers();
   }, []);
+
+  useEffect(() => {
+    if (!error) return;
+    showToastMessage({ title: "Customers", text: error, fallbackTone: "danger" });
+    setError("");
+  }, [error]);
+
+  useEffect(() => {
+    if (!success) return;
+    showToastMessage({ title: "Customers", text: success, fallbackTone: "success" });
+    setSuccess("");
+  }, [success]);
 
   async function fetchCustomers() {
     try {
@@ -82,7 +96,14 @@ export default function CustomersPage() {
   }
 
   async function handleDelete(id) {
-    if (!confirm("Are you sure you want to delete this customer?")) return;
+    const shouldDelete = await showConfirmDialog({
+      title: "Delete customer?",
+      message: "This customer record will be removed permanently.",
+      tone: "danger",
+      confirmLabel: "Delete customer",
+      cancelLabel: "Keep customer",
+    });
+    if (!shouldDelete) return;
 
     try {
       const res = await fetch(`/api/customers/${id}`, { method: "DELETE" });
@@ -166,18 +187,6 @@ export default function CustomersPage() {
               </div>
             </Link>
           </div>
-
-          {/* Alerts */}
-          {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
-              {error}
-            </div>
-          )}
-          {success && (
-            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800">
-              {success}
-            </div>
-          )}
 
           {/* Form */}
           {showForm && (

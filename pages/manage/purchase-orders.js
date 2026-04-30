@@ -5,6 +5,7 @@ import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
 import useProgress from "@/lib/useProgress";
 import { apiClient } from "@/lib/api-client";
+import { showAlertDialog } from "@/lib/dialogs";
 import { formatCurrency } from "@/lib/format";
 import { useAuth } from "@/lib/useAuth";
 import {
@@ -40,12 +41,14 @@ const STATUS_COLORS = {
   "Not Paid": "bg-red-100 text-red-700",
   "Partly Paid": "bg-yellow-100 text-yellow-700",
   "Paid": "bg-green-100 text-green-700",
+  "Paid / Completed": "bg-green-100 text-green-700",
   "Credit": "bg-purple-100 text-purple-700",
 };
 const RECEIVED_COLORS = {
   Pending: "bg-gray-100 text-gray-600",
   "Partially Received": "bg-orange-100 text-orange-700",
   Received: "bg-green-100 text-green-700",
+  Completed: "bg-green-100 text-green-700",
 };
 
 export default function PurchaseOrdersPage() {
@@ -102,6 +105,12 @@ export default function PurchaseOrdersPage() {
     return Number.isFinite(n) ? n : 0;
   };
 
+  const getNormalizedStatus = (order) => String(order?.status || "").trim().toLowerCase();
+  const isCreditOrder = (order) => getNormalizedStatus(order) === "credit";
+  const isCompletedOrder = (order) => getNormalizedStatus(order) === "paid" && order?.receivedStatus === "Received";
+  const getDisplayStatus = (order) => (isCompletedOrder(order) ? "Paid / Completed" : order?.status || "Not Paid");
+  const getDisplayReceivedStatus = (order) => (isCompletedOrder(order) ? "Completed" : order?.receivedStatus || "Pending");
+
   useEffect(() => {
     fetchOrders();
     fetchVendors();
@@ -147,8 +156,22 @@ export default function PurchaseOrdersPage() {
 
   async function handleCreate(e) {
     e.preventDefault();
-    if (!form.vendor) { alert("Please select a vendor"); return; }
-    if (form.products.some((p) => !p.name)) { alert("All products must have a name"); return; }
+    if (!form.vendor) {
+      await showAlertDialog({
+        title: "Vendor required",
+        message: "Please select a vendor.",
+        tone: "warning",
+      });
+      return;
+    }
+    if (form.products.some((p) => !p.name)) {
+      await showAlertDialog({
+        title: "Incomplete products",
+        message: "All products must have a name.",
+        tone: "warning",
+      });
+      return;
+    }
     setSaving(true);
     try {
       const vendor = vendors.find((v) => v._id === form.vendor);
@@ -172,7 +195,11 @@ export default function PurchaseOrdersPage() {
       setForm(emptyForm);
       fetchOrders();
     } catch (err) {
-      alert(err.response?.data?.error || "Failed to create order");
+      await showAlertDialog({
+        title: "Create order failed",
+        message: err.response?.data?.error || "Failed to create order",
+        tone: "danger",
+      });
     } finally { setSaving(false); }
   }
 
@@ -190,7 +217,11 @@ export default function PurchaseOrdersPage() {
       setPaymentDate("");
       fetchOrders();
     } catch (err) {
-      alert(err.response?.data?.error || "Payment update failed");
+      await showAlertDialog({
+        title: "Payment update failed",
+        message: err.response?.data?.error || "Payment update failed",
+        tone: "danger",
+      });
     }
   }
 
@@ -204,14 +235,22 @@ export default function PurchaseOrdersPage() {
       setDeleteConfirm(null);
       fetchOrders();
     } catch (err) {
-      alert(err.response?.data?.error || "Failed to delete");
+      await showAlertDialog({
+        title: "Delete failed",
+        message: err.response?.data?.error || "Failed to delete",
+        tone: "danger",
+      });
     }
   }
 
   async function handleQuickEntrySubmit(e) {
     e.preventDefault();
     if (!quickForm.vendor || !quickForm.amount) {
-      alert("Vendor and amount are required");
+      await showAlertDialog({
+        title: "Missing quick entry fields",
+        message: "Vendor and amount are required.",
+        tone: "warning",
+      });
       return;
     }
     setSavingQuick(true);
@@ -242,7 +281,11 @@ export default function PurchaseOrdersPage() {
       setQuickForm({ vendor: "", amount: "", paymentDate: new Date().toISOString().split("T")[0], notes: "", products: "" });
       fetchOrders();
     } catch (err) {
-      alert(err.response?.data?.error || "Failed to create quick entry");
+      await showAlertDialog({
+        title: "Quick entry failed",
+        message: err.response?.data?.error || "Failed to create quick entry",
+        tone: "danger",
+      });
     } finally {
       setSavingQuick(false);
     }
@@ -285,7 +328,11 @@ export default function PurchaseOrdersPage() {
       handleCancelEdit();
       fetchOrders();
     } catch (err) {
-      alert("Failed to save payment");
+      await showAlertDialog({
+        title: "Save payment failed",
+        message: "Failed to save payment.",
+        tone: "danger",
+      });
     } finally { setIsBusy(false); }
   }
 
@@ -320,8 +367,8 @@ export default function PurchaseOrdersPage() {
       const dueDate = startOfDay(date);
       if (!dueDate) return false;
       dueDate.setDate(dueDate.getDate() + 14);
-      const status = (order.status || "").toLowerCase();
-      return status !== "paid" && dueDate < today;
+      const status = getNormalizedStatus(order);
+      return !["paid", "credit"].includes(status) && dueDate < today;
     });
   }, [orders]);
 
@@ -330,7 +377,7 @@ export default function PurchaseOrdersPage() {
   [orders]);
 
   const creditOrders = useMemo(() =>
-    orders.filter((o) => o?.status?.toLowerCase() === "credit"),
+    orders.filter((o) => isCreditOrder(o)),
   [orders]);
 
   const totalOverdueValue = useMemo(() =>
@@ -346,7 +393,7 @@ export default function PurchaseOrdersPage() {
   [creditOrders]);
 
   const totalPaid = useMemo(() => {
-    const validStatuses = ["paid", "partly paid", "credit"];
+    const validStatuses = ["paid", "partly paid"];
     let filtered = orders.filter((o) => validStatuses.includes(o.status?.toLowerCase()));
 
     // Apply period filter to totalPaid calculation
@@ -381,7 +428,7 @@ export default function PurchaseOrdersPage() {
     let list = orders;
     if (tableFilter === "overdue") list = overdueOrders;
     else if (tableFilter === "outstanding") list = outstandingOrders;
-    else if (tableFilter === "paid") list = orders.filter((o) => o.status === "Paid");
+    else if (tableFilter === "paid") list = orders.filter((o) => isCompletedOrder(o));
 
     if (search) {
       const s = search.toLowerCase();
@@ -485,6 +532,7 @@ export default function PurchaseOrdersPage() {
                     <span>{creditOrders.length} Credit Order{creditOrders.length > 1 ? "s" : ""}</span>
                     <span className="text-xs sm:text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-bold">{formatCurrency(totalCreditValue)}</span>
                   </div>
+                  <p className="text-xs text-blue-700/80 mb-3">These orders are fully prepaid but still waiting for stock to be received.</p>
                   <div className="space-y-2">
                     {creditOrders.map((order, i) => (
                       <div key={order._id ?? i} className="flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm bg-white px-3 py-2 rounded-lg border border-blue-100">
@@ -495,7 +543,7 @@ export default function PurchaseOrdersPage() {
                         <div className="flex gap-3">
                           <span className="text-gray-600">Total: {formatCurrency(order.grandTotal)}</span>
                           <span className="text-green-700 font-medium">Paid: {formatCurrency(order.paymentMade)}</span>
-                          <span className="text-blue-700 font-bold">Credit: {formatCurrency(toNumber(order.paymentMade || order.grandTotal || 0))}</span>
+                          <span className="text-blue-700 font-bold">Credit Held: {formatCurrency(toNumber(order.paymentMade || order.grandTotal || 0))}</span>
                         </div>
                       </div>
                     ))}
@@ -510,6 +558,7 @@ export default function PurchaseOrdersPage() {
               <div className="bg-gradient-to-br from-green-400 to-green-600 text-white p-4 sm:p-5 rounded-2xl shadow-lg text-center">
                 <div className="text-xs uppercase tracking-wide font-semibold opacity-90 mb-1">Total Paid</div>
                 <div className="text-2xl sm:text-3xl font-bold">{formatCurrency(totalPaid)}</div>
+                <div className="text-xs opacity-80 mt-1">Excludes prepaid credit awaiting supply</div>
               </div>
 
               <button onClick={() => { setTableFilter("all"); setStatusFilter(""); }}
@@ -672,8 +721,8 @@ export default function PurchaseOrdersPage() {
                     </td>
                     <td className="px-4 py-3 text-right">{formatCurrency(order.balance ?? (toNumber(order.grandTotal) - toNumber(order.paymentMade)))}</td>
                     <td className="px-4 py-3">
-                      <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold shadow-sm ${STATUS_COLORS[order.status] || "bg-gray-100 text-gray-700"}`}>
-                        {order.status || "Not Paid"}
+                      <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold shadow-sm ${STATUS_COLORS[getDisplayStatus(order)] || STATUS_COLORS[order.status] || "bg-gray-100 text-gray-700"}`}>
+                        {getDisplayStatus(order)}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -683,8 +732,8 @@ export default function PurchaseOrdersPage() {
                       </button>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <span className={`inline-block px-2 py-1 rounded-full text-[10px] font-semibold ${RECEIVED_COLORS[order.receivedStatus] || "bg-gray-100 text-gray-600"}`}>
-                        {order.receivedStatus || "Pending"}
+                      <span className={`inline-block px-2 py-1 rounded-full text-[10px] font-semibold ${RECEIVED_COLORS[getDisplayReceivedStatus(order)] || RECEIVED_COLORS[order.receivedStatus] || "bg-gray-100 text-gray-600"}`}>
+                        {getDisplayReceivedStatus(order)}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -726,7 +775,7 @@ export default function PurchaseOrdersPage() {
                     <h3 className="font-semibold text-gray-800">{order.vendorName || "Unknown"}</h3>
                     <p className="text-xs text-gray-500">{order.orderRef} — {order.date ? new Date(order.date).toLocaleDateString() : "—"}</p>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[order.status] || ""}`}>{order.status || "Not Paid"}</span>
+                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[getDisplayStatus(order)] || STATUS_COLORS[order.status] || "bg-gray-100 text-gray-700"}`}>{getDisplayStatus(order)}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-sm text-gray-700 border-t border-gray-100 pt-2">
                   <div><strong>Total:</strong> <div>{formatCurrency(order.grandTotal)}</div></div>
@@ -745,7 +794,7 @@ export default function PurchaseOrdersPage() {
                       </div>
                     )}
                   </div>
-                  <div><strong>Received:</strong> <div><span className={`px-2 py-0.5 rounded-full text-xs ${RECEIVED_COLORS[order.receivedStatus] || ""}`}>{order.receivedStatus || "Pending"}</span></div></div>
+                  <div><strong>Received:</strong> <div><span className={`px-2 py-0.5 rounded-full text-xs ${RECEIVED_COLORS[getDisplayReceivedStatus(order)] || RECEIVED_COLORS[order.receivedStatus] || "bg-gray-100 text-gray-600"}`}>{getDisplayReceivedStatus(order)}</span></div></div>
                 </div>
                 <div className="flex justify-end gap-2 pt-1">
                   {order.receivedStatus !== "Received" && (

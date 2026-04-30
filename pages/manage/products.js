@@ -12,6 +12,7 @@ import { mutate } from "swr";
 import { useIndexedDBCache, clearCache } from "@/lib/useIndexedDBCache";
 import { getCachedCategories } from "@/lib/categoriesCache";
 import { calculateMarginPercent } from "@/lib/pricing";
+import { showAlertDialog, showConfirmDialog } from "@/lib/dialogs";
 import { Loader } from "@/components/ui";
 
 const entriesPerPageDefault = 20;
@@ -318,14 +319,25 @@ export default function Products() {
       }
     } catch (err) {
       console.error("Failed to update product", err);
-      alert("Failed to update product.");
+      await showAlertDialog({
+        title: "Update failed",
+        message: "Failed to update product.",
+        tone: "danger",
+      });
     } finally {
       setSavingProductId(null);
     }
   };
 
   const handleDeleteClick = async (_id) => {
-    if (!window.confirm("Are you sure you want to archive this product?")) return;
+    const shouldArchive = await showConfirmDialog({
+      title: "Archive product?",
+      message: "The product will move to the archived list.",
+      tone: "warning",
+      confirmLabel: "Archive product",
+      cancelLabel: "Keep product",
+    });
+    if (!shouldArchive) return;
     try {
       await axios.delete(`/api/products?id=${_id}`);
       setFilteredProducts((prev) => prev.filter((p) => p._id !== _id));
@@ -338,10 +350,18 @@ export default function Products() {
       mutate("/api/products");
       await loadCategories();
       if (highlightedId === _id) setHighlightedId(null);
-      alert("Product archived successfully.");
+      await showAlertDialog({
+        title: "Product archived",
+        message: "The product was moved to the archived list.",
+        tone: "success",
+      });
     } catch (err) {
       console.error("delete failed", err);
-      alert("Archive failed.");
+      await showAlertDialog({
+        title: "Archive failed",
+        message: "The product could not be archived.",
+        tone: "danger",
+      });
     }
   };
 

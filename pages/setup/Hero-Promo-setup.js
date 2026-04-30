@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import Layout from "@/components/Layout";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDrag } from "@use-gesture/react";
+import { showAlertDialog } from "@/lib/dialogs";
 import PromotionManagement from "../../components/PromotionManagement";
 
 export default function HeroSetup() {
@@ -87,7 +88,11 @@ export default function HeroSetup() {
     try {
       await uploadFileToS3(file, setHeroImage, setHeroProgress);
     } catch {
-      alert("Hero image upload failed.");
+      await showAlertDialog({
+        title: "Upload failed",
+        message: "Hero image upload failed.",
+        tone: "danger",
+      });
     }
   };
 
@@ -96,13 +101,23 @@ export default function HeroSetup() {
     try {
       await uploadFileToS3(file, setHeroBgImage, setHeroBgProgress);
     } catch {
-      alert("Background image upload failed.");
+      await showAlertDialog({
+        title: "Upload failed",
+        message: "Background image upload failed.",
+        tone: "danger",
+      });
     }
   };
 
   const addOrUpdateHeroPage = async () => {
-    if (!heroTitle.trim() || heroImage.length === 0)
-      return alert("Title & Hero Image required");
+    if (!heroTitle.trim() || heroImage.length === 0) {
+      await showAlertDialog({
+        title: "Missing hero details",
+        message: "Title and Hero Image are required.",
+        tone: "warning",
+      });
+      return;
+    }
 
     const payload = {
       title: heroTitle,
@@ -145,7 +160,11 @@ export default function HeroSetup() {
       else setHeroPages((prev) => [normalized, ...prev]);
       resetForm();
     } catch (err) {
-      alert(err.message || "Save error");
+      await showAlertDialog({
+        title: "Save failed",
+        message: err.message || "Save error",
+        tone: "danger",
+      });
     } finally {
       setUploading(false);
     }
@@ -155,7 +174,13 @@ export default function HeroSetup() {
     const res = await fetch(`/api/heroes/${id}`, { method: "DELETE" });
     if (res.ok)
       setHeroPages((prev) => prev.filter((h) => h._id !== id));
-    else alert("Failed to delete hero");
+    else {
+      await showAlertDialog({
+        title: "Delete failed",
+        message: "Failed to delete hero.",
+        tone: "danger",
+      });
+    }
   };
 
   const editHeroPage = (hero) => {

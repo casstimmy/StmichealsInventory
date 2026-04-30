@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import Link from "next/link";
 import { formatCurrency } from "@/lib/format";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Loader } from "@/components/ui";
@@ -111,21 +112,29 @@ export default function StockManagement() {
         <header className="page-header">
           <h1 className="page-title">Stock Management</h1>
           <p className="page-subtitle">Monitor all stock levels and alerts in real-time.</p>
-          <button
-            type="button"
-            onClick={async () => {
-              setRefreshing(true);
-              try {
-                await refreshProducts();
-              } finally {
-                setRefreshing(false);
-              }
-            }}
-            disabled={refreshing}
-            className="btn-action-secondary mt-3"
-          >
-            {refreshing ? "Refreshing..." : "Refresh Data"}
-          </button>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <Link href="/stock/stock-take" className="btn-action-primary">
+              Start Stock Take
+            </Link>
+            <Link href="/stock/add?reason=Operational%20Loss" className="btn-action-danger">
+              Record Operational Loss
+            </Link>
+            <button
+              type="button"
+              onClick={async () => {
+                setRefreshing(true);
+                try {
+                  await refreshProducts();
+                } finally {
+                  setRefreshing(false);
+                }
+              }}
+              disabled={refreshing}
+              className="btn-action-secondary"
+            >
+              {refreshing ? "Refreshing..." : "Refresh Data"}
+            </button>
+          </div>
         </header>
 
         {error && (

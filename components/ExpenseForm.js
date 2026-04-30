@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { PlusCircle } from "lucide-react";
+import { showAlertDialog } from "@/lib/dialogs";
 import { Loader } from "@/components/ui";
 
 export default function ExpenseForm({ onSaved }) {
@@ -109,12 +110,20 @@ export default function ExpenseForm({ onSaved }) {
         if (newCat) {
           categoryToSave = newCat;
         } else {
-          alert("Failed to find new category after creation");
+          await showAlertDialog({
+            title: "Category creation failed",
+            message: "Failed to find new category after creation.",
+            tone: "danger",
+          });
           setLoading(false);
           return;
         }
       } else {
-        alert("Failed to create custom category");
+        await showAlertDialog({
+          title: "Category creation failed",
+          message: "Failed to create custom category.",
+          tone: "danger",
+        });
         setLoading(false);
         return;
       }
@@ -172,7 +181,11 @@ export default function ExpenseForm({ onSaved }) {
       setIsMaintenanceCategory(false);
       onSaved && onSaved();
     } else {
-      alert("Failed to save expense");
+      await showAlertDialog({
+        title: "Save expense failed",
+        message: "Failed to save expense.",
+        tone: "danger",
+      });
     }
 
     setLoading(false);

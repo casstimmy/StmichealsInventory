@@ -17,26 +17,31 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: "Method not allowed" });
   }
 
-  const { fromLocationId, toLocationId, staffId, reason, products } = req.body;
+  const { fromLocationId, toLocationId, staffId, reason, products, notes } = req.body;
+  const isOperationalLoss = reason === "Operational Loss";
 
   /* =========================
      BASIC VALIDATION
   ========================= */
-  if (!fromLocationId || !toLocationId || !reason) {
+  if (!fromLocationId || !reason || (!isOperationalLoss && !toLocationId)) {
     return res.status(400).json({
-      message: "Missing required fields: fromLocationId, toLocationId, reason",
+      message: isOperationalLoss
+        ? "Missing required fields: fromLocationId, reason"
+        : "Missing required fields: fromLocationId, toLocationId, reason",
     });
   }
 
-  if (typeof fromLocationId !== "string" || typeof toLocationId !== "string") {
+  if (typeof fromLocationId !== "string" || (!isOperationalLoss && typeof toLocationId !== "string")) {
     return res.status(400).json({
-      message: "fromLocationId and toLocationId must be strings",
+      message: isOperationalLoss
+        ? "fromLocationId must be a string"
+        : "fromLocationId and toLocationId must be strings",
     });
   }
 
   // Handle special cases and validate ObjectId format
   const isFromLocationVendor = fromLocationId.toLowerCase() === "vendor" || fromLocationId === "vendor";
-  const isToLocationVendor = toLocationId.toLowerCase() === "vendor" || toLocationId === "vendor";
+  const isToLocationVendor = typeof toLocationId === "string" && (toLocationId.toLowerCase() === "vendor" || toLocationId === "vendor");
   
   // Validate that actual location IDs (non-vendor) are valid ObjectIds
   if (!isFromLocationVendor && !isValidObjectId(fromLocationId)) {
@@ -45,7 +50,13 @@ export default async function handler(req, res) {
     });
   }
 
-  if (!isToLocationVendor && !isValidObjectId(toLocationId)) {
+  if (isOperationalLoss && isFromLocationVendor) {
+    return res.status(400).json({
+      message: "Operational loss must be recorded against a real stock location.",
+    });
+  }
+
+  if (!isOperationalLoss && !isToLocationVendor && !isValidObjectId(toLocationId)) {
     return res.status(400).json({
       message: `Invalid toLocationId format: "${toLocationId}". Must be a valid location ID or "vendor" for returns.`,
     });
@@ -103,6 +114,7 @@ export default async function handler(req, res) {
         productId: id,
         quantity,
         expiryDate: expiryDate || null,
+        notes: item.notes || "",
         isStockManaged: product.isStockManaged !== false,
       });
     }
@@ -116,7 +128,7 @@ export default async function handler(req, res) {
     const movement = await StockMovement.create({
       transRef,
       fromLocationId: isFromLocationVendor ? null : fromLocationId,
-      toLocationId: isToLocationVendor ? null : toLocationId,
+      toLocationId: isOperationalLoss || isToLocationVendor ? null : toLocationId,
       staffId: staffId || null,
       reason,
       status: "Received",
@@ -125,6 +137,7 @@ export default async function handler(req, res) {
       dateReceived: now,
       barcode: transRef,
       products: productsToCreate,
+      notes: notes || "",
     });
 
     /* =========================
@@ -141,7 +154,7 @@ export default async function handler(req, res) {
         qtyChange = quantity;
       } else if (reason === "Return") {
         qtyChange = -quantity;
-      } else if (reason === "Adjustment") {
+      } else if (reason === "Adjustment" || reason === "Operational Loss") {
         // Adjustment reduces stock (e.g., expired product write-off)
         qtyChange = -quantity;
       } else if (reason === "Transfer") {

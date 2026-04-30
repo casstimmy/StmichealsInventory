@@ -3,6 +3,7 @@
 import Layout from "@/components/Layout";
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { showAlertDialog, showConfirmDialog } from "@/lib/dialogs";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faTrash,
@@ -74,7 +75,11 @@ export default function Categories() {
         setCategories(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error(err);
-        alert("Failed to fetch categories");
+        void showAlertDialog({
+          title: "Load failed",
+          message: "Failed to fetch categories.",
+          tone: "danger",
+        });
       }
     })();
   }, []);
@@ -123,7 +128,11 @@ export default function Categories() {
       else setImages(formatted);
     } catch (err) {
       console.error(err);
-      alert("Image upload failed");
+      await showAlertDialog({
+        title: "Upload failed",
+        message: "Image upload failed.",
+        tone: "danger",
+      });
     } finally {
       setLoading(false);
     }
@@ -177,7 +186,14 @@ export default function Categories() {
   // ✅ Save New Category
   const saveCategory = async (e) => {
     e.preventDefault();
-    if (!name.trim()) return alert("Category name is required");
+    if (!name.trim()) {
+      await showAlertDialog({
+        title: "Category name required",
+        message: "Category name is required.",
+        tone: "warning",
+      });
+      return;
+    }
 
     const formattedImages = images.map((img) => ({
       full: img.full,
@@ -205,7 +221,11 @@ export default function Categories() {
       setSelectedLocations([]);
     } catch (err) {
       console.error(err);
-      alert("Failed to save category");
+      await showAlertDialog({
+        title: "Save failed",
+        message: "Failed to save category.",
+        tone: "danger",
+      });
     }
   };
 
@@ -225,8 +245,14 @@ export default function Categories() {
   };
 
   const handleUpdateClick = async (id) => {
-    if (!editedCategory.name.trim())
-      return alert("Category name is required");
+    if (!editedCategory.name.trim()) {
+      await showAlertDialog({
+        title: "Category name required",
+        message: "Category name is required.",
+        tone: "warning",
+      });
+      return;
+    }
 
     const formattedImages = editedCategory.images.map((img) => ({
       full: img.full,
@@ -256,19 +282,34 @@ export default function Categories() {
       });
     } catch (err) {
       console.error(err);
-      alert("Failed to update category");
+      await showAlertDialog({
+        title: "Update failed",
+        message: "Failed to update category.",
+        tone: "danger",
+      });
     }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Are you sure you want to delete this category?")) return;
+    const shouldDelete = await showConfirmDialog({
+      title: "Delete category?",
+      message: "This category will be removed permanently.",
+      tone: "danger",
+      confirmLabel: "Delete category",
+      cancelLabel: "Keep category",
+    });
+    if (!shouldDelete) return;
     try {
       await axios.delete("/api/categories?id=" + id);
       invalidateCategoriesCache();
       setCategories((prev) => prev.filter((c) => c._id !== id));
     } catch (err) {
       console.error(err);
-      alert("Delete failed");
+      await showAlertDialog({
+        title: "Delete failed",
+        message: "Delete failed.",
+        tone: "danger",
+      });
     }
   };
 

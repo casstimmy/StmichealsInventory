@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Layout from "@/components/Layout";
 import { apiClient } from "@/lib/api-client";
 import BizFaceLogo from "@/components/BizFaceLogo";
+import { showToastMessage } from "@/lib/toast-state";
 import { MessageCircle, Send, TicketIcon, ArrowLeft, ChevronDown, ChevronUp, HelpCircle, X, Check, CheckCheck } from "lucide-react";
 
 const STATUS_OPTIONS = [
@@ -261,6 +262,12 @@ export default function SupportPage() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages]);
 
+  useEffect(() => {
+    if (!message) return;
+    showToastMessage({ title: "Support center", text: message });
+    setMessage("");
+  }, [message]);
+
   async function fetchTickets() {
     try {
       setLoading(true);
@@ -418,12 +425,6 @@ export default function SupportPage() {
               </button>
             </div>
           </div>
-
-          {message && (
-            <div className="mb-4 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
-              {message}
-            </div>
-          )}
 
           {/* ======== CHAT Q&A VIEW ======== */}
           {view === "chat" && (

@@ -14,6 +14,7 @@ import {
 
 export default function NotFound() {
   const router = useRouter();
+  const currentYear = new Date().getFullYear();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
@@ -102,33 +103,34 @@ export default function NotFound() {
                     Reach out to our support team for assistance
                   </p>
                   <a
-                    href="mailto:hello.ayoola@gmail.com.com"
+                    href="mailto:support@stmichaelshub.com?subject=Page%20Not%20Found"
                     className="text-blue-600 hover:text-blue-700 font-semibold text-sm flex items-center justify-center transition"
                   >
-                    support@hetchtech.com
+                    support@stmichaelshub.com
                     <FontAwesomeIcon icon={faArrowRight} className="ml-2 text-xs" />
                   </a>
                 </div>
 
-                {/* Phone support */}
+                {/* Login help */}
                 <div className="flex flex-col items-center text-center">
                   <div className="w-12 h-12 bg-cyan-100 rounded-full flex items-center justify-center mb-4">
                     <FontAwesomeIcon
-                      icon={faPhone}
+                      icon={faHome}
                       className="text-cyan-600 text-xl"
                     />
                   </div>
-                  <h4 className="text-gray-900 font-semibold mb-2">Phone Support</h4>
+                  <h4 className="text-gray-900 font-semibold mb-2">Return to Login</h4>
                   <p className="text-gray-600 text-sm mb-3">
-                    Call us during business hours for immediate assistance
+                    Start a new session and navigate back into the app from a known entry point
                   </p>
-                  <a
-                    href="tel:+2349166843265"
+                  <Link href="/login">
+                    <a
                     className="text-cyan-600 hover:text-cyan-700 font-semibold text-sm flex items-center justify-center transition"
-                  >
-                    +234 (916) 684-3265
-                    <FontAwesomeIcon icon={faArrowRight} className="ml-2 text-xs" />
-                  </a>
+                    >
+                      Go to login
+                      <FontAwesomeIcon icon={faArrowRight} className="ml-2 text-xs" />
+                    </a>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -143,8 +145,8 @@ export default function NotFound() {
                   { label: "Products", href: "/manage/products" },
                   { label: "Customers", href: "/manage/customers" },
                   { label: "Orders", href: "/manage/orders" },
-                  { label: "Reports", href: "/reporting/sales-report" },
-                  { label: "Settings", href: "/setup/receipt-settings" },
+                  { label: "Reports", href: "/reporting/reporting" },
+                  { label: "Settings", href: "/setup/receipts" },
                 ].map((link) => (
                   <Link key={link.href} href={link.href}>
                     <a className="px-3 py-1 bg-gray-100 hover:bg-blue-100 text-gray-700 hover:text-blue-600 text-xs sm:text-sm rounded-full transition">
@@ -159,7 +161,7 @@ export default function NotFound() {
           {/* Footer */}
           <div className="bg-gray-50 px-6 sm:px-8 py-6 border-t border-gray-200">
             <p className="text-center text-gray-500 text-xs sm:text-sm">
-              © 2025 Hetch Tech All rights reserved. | Error Code: 404
+              © {currentYear} St Michaels Hub. | Error Code: 404
             </p>
           </div>
         </div>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Search } from "lucide-react";
+import { showAlertDialog, showConfirmDialog } from "@/lib/dialogs";
 import { formatCurrency } from "@/lib/format";
 
 export default function PromotionManagement() {
@@ -96,7 +97,11 @@ export default function PromotionManagement() {
       setEditIndex(null);
     } catch (err) {
       console.error("Failed to update promotion:", err);
-      alert("Error updating promotion!");
+      await showAlertDialog({
+        title: "Update failed",
+        message: "Error updating promotion.",
+        tone: "danger",
+      });
     }
   };
 
@@ -106,7 +111,14 @@ export default function PromotionManagement() {
   };
 
   const handleDeleteClick = async (_id) => {
-    if (!window.confirm("Remove promotion from this product?")) return;
+    const shouldDelete = await showConfirmDialog({
+      title: "Remove promotion?",
+      message: "This promotion will be removed from the product.",
+      tone: "danger",
+      confirmLabel: "Remove promotion",
+      cancelLabel: "Keep promotion",
+    });
+    if (!shouldDelete) return;
     try {
       await axios.put("/api/products", {
         _id,
@@ -139,7 +151,11 @@ export default function PromotionManagement() {
 
   const handleSavePromotion = async () => {
     if (!selectedProduct || !promoPrice) {
-      alert("Please select a product and enter a promo price");
+      await showAlertDialog({
+        title: "Missing promotion details",
+        message: "Please select a product and enter a promo price.",
+        tone: "warning",
+      });
       return;
     }
 

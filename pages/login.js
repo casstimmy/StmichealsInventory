@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { apiClient } from "@/lib/api-client";
 import { clearAllAppCaches } from "@/lib/clearAllCaches";
+import { showToastMessage } from "@/lib/toast-state";
 
 /* ===== Ripple Handler ===== */
 function createRipple(event) {
@@ -58,6 +59,12 @@ export default function Login({ staffList, locations }) {
     }
     init();
   }, []);
+
+  useEffect(() => {
+    if (!error) return;
+    showToastMessage({ title: "Login", text: error, fallbackTone: "danger" });
+    setError("");
+  }, [error]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -252,12 +259,6 @@ export default function Login({ staffList, locations }) {
                 </button>
               ))}
             </div>
-
-            {error && (
-              <div className="bg-red-50 text-red-700 px-4 py-2 rounded mb-4 text-sm text-center">
-                {error}
-              </div>
-            )}
 
             {/* LOGIN BUTTON */}
             <button

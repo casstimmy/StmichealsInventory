@@ -4,6 +4,7 @@ import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
 import useProgress from "@/lib/useProgress";
 import { apiClient } from "@/lib/api-client";
+import { showAlertDialog } from "@/lib/dialogs";
 import { formatCurrency } from "@/lib/format";
 import {
   Plus, Search, X, ChevronDown, ChevronUp, Edit, Trash2,
@@ -102,7 +103,11 @@ export default function AssetsPage() {
       setForm(emptyForm);
       fetchAssets();
     } catch (err) {
-      alert(err.response?.data?.error || "Failed to save asset");
+      await showAlertDialog({
+        title: "Save asset failed",
+        message: err.response?.data?.error || "Failed to save asset",
+        tone: "danger",
+      });
     } finally { setSaving(false); }
   }
 
@@ -112,7 +117,11 @@ export default function AssetsPage() {
       setDeleteConfirm(null);
       fetchAssets();
     } catch (err) {
-      alert(err.response?.data?.error || "Failed to delete");
+      await showAlertDialog({
+        title: "Delete failed",
+        message: err.response?.data?.error || "Failed to delete",
+        tone: "danger",
+      });
     }
   }
 
@@ -128,7 +137,11 @@ export default function AssetsPage() {
       setMaintenanceForm({ description: "", cost: "", performedBy: "", nextMaintenanceDate: "" });
       fetchAssets();
     } catch (err) {
-      alert(err.response?.data?.error || "Failed to add maintenance record");
+      await showAlertDialog({
+        title: "Maintenance update failed",
+        message: err.response?.data?.error || "Failed to add maintenance record",
+        tone: "danger",
+      });
     }
   }
 
@@ -144,7 +157,11 @@ export default function AssetsPage() {
       setDisposeForm({ disposalReason: "", disposalValue: "" });
       fetchAssets();
     } catch (err) {
-      alert(err.response?.data?.error || "Failed to dispose asset");
+      await showAlertDialog({
+        title: "Dispose failed",
+        message: err.response?.data?.error || "Failed to dispose asset",
+        tone: "danger",
+      });
     }
   }
 

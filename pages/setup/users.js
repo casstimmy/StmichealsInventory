@@ -2,9 +2,11 @@
 import { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
+import AccessDeniedState from "@/components/AccessDeniedState";
 import { useAuth } from "@/lib/useAuth";
 import { apiClient } from "@/lib/api-client";
-import { Plus, Edit, Trash2, X, Shield, Check, UserPlus, Users, Eye, EyeOff } from "lucide-react";
+import { showToastMessage } from "@/lib/toast-state";
+import { Plus, Edit, Trash2, X, Check, UserPlus, Users, Eye, EyeOff } from "lucide-react";
 
 const ALL_PERMISSIONS = [
   { key: "dashboard", label: "Dashboard", description: "Home dashboard access" },
@@ -129,6 +131,16 @@ export default function UsersPage() {
   };
 
   useEffect(() => { fetchUsers(); }, []);
+
+  useEffect(() => {
+    if (!message.text) return;
+    showToastMessage({
+      title: "User management",
+      text: message.text,
+      fallbackTone: message.type === "error" ? "danger" : "success",
+    });
+    setMessage({ text: "", type: "" });
+  }, [message]);
 
   const handleRoleChange = (role) => {
     const defaults = getDefaultPermissions(role);
@@ -263,13 +275,7 @@ export default function UsersPage() {
   if (!isAdmin) {
     return (
       <Layout title="Users">
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <Shield className="mx-auto mb-4 text-red-400" size={48} />
-            <h2 className="text-xl font-bold text-gray-700">Access Denied</h2>
-            <p className="text-gray-500 mt-2">Only administrators can access user management.</p>
-          </div>
-        </div>
+        <AccessDeniedState message="Only administrators can access user management." />
       </Layout>
     );
   }
@@ -294,14 +300,6 @@ export default function UsersPage() {
             <UserPlus size={18} /> Add User
           </button>
         </div>
-
-        {/* Messages */}
-        {message.text && (
-          <div className={`px-4 py-3 rounded-lg text-sm font-medium ${message.type === "error" ? "bg-red-50 text-red-700 border border-red-200" : "bg-green-50 text-green-700 border border-green-200"}`}>
-            {message.text}
-            <button onClick={() => setMessage({ text: "", type: "" })} className="float-right text-lg leading-none">&times;</button>
-          </div>
-        )}
 
         {/* Users Table */}
         {loading ? (

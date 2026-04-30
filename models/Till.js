@@ -64,7 +64,6 @@ const TillSchema = new mongoose.Schema(
 );
 
 // Index for efficient querying
-TillSchema.index({ storeId: 1, locationId: 1, status: 1 });
 TillSchema.index({ staffId: 1, status: 1 });
 TillSchema.index({ openedAt: -1 });
 TillSchema.index(

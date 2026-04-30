@@ -6,6 +6,8 @@ import Layout from "@/components/Layout";
 import { Loader } from "@/components/ui";
 import useProgress from "@/lib/useProgress";
 import { formatCurrency } from "@/lib/format";
+import { showConfirmDialog } from "@/lib/dialogs";
+import { showToastMessage } from "@/lib/toast-state";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faArrowLeft,
@@ -72,6 +74,16 @@ export default function StockTakeDetail() {
   useEffect(() => {
     fetchStockTake();
   }, [fetchStockTake]);
+
+  useEffect(() => {
+    if (!message.text) return;
+    showToastMessage({
+      title: "Stock take",
+      text: message.text,
+      fallbackTone: message.type === "error" ? "danger" : "success",
+    });
+    setMessage({ type: "", text: "" });
+  }, [message]);
 
   const filteredItems = useMemo(() => {
     if (!stockTake?.items) return [];
@@ -262,10 +274,16 @@ export default function StockTakeDetail() {
               )}
               {(stockTake.status === "draft" || stockTake.status === "in-progress") && (
                 <button
-                  onClick={() => {
-                    if (confirm("Zero ALL product counts? This sets every item's counted quantity to 0.")) {
-                      performAction("zero-all");
-                    }
+                  onClick={async () => {
+                    const shouldZero = await showConfirmDialog({
+                      title: "Zero all counts?",
+                      message: "This sets every item's counted quantity to 0.",
+                      tone: "danger",
+                      confirmLabel: "Zero all counts",
+                      cancelLabel: "Keep counts",
+                    });
+                    if (!shouldZero) return;
+                    performAction("zero-all");
                   }}
                   disabled={!!actionLoading}
                   className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
@@ -276,10 +294,16 @@ export default function StockTakeDetail() {
               )}
               {stockTake.status === "in-progress" && (
                 <button
-                  onClick={() => {
-                    if (confirm("Finalize this stock take? Ensure all items are counted.")) {
-                      performAction("complete");
-                    }
+                  onClick={async () => {
+                    const shouldComplete = await showConfirmDialog({
+                      title: "Complete stock take?",
+                      message: "Ensure all items are counted before finalizing.",
+                      tone: "warning",
+                      confirmLabel: "Complete stock take",
+                      cancelLabel: "Keep counting",
+                    });
+                    if (!shouldComplete) return;
+                    performAction("complete");
                   }}
                   disabled={!!actionLoading}
                   className="btn-action-primary flex items-center gap-2 text-sm"
@@ -300,10 +324,16 @@ export default function StockTakeDetail() {
               )}
               {stockTake.status === "approved" && !stockTake.adjustmentApplied && (
                 <button
-                  onClick={() => {
-                    if (confirm("Apply all variance adjustments to inventory? This cannot be undone.")) {
-                      performAction("apply-adjustments");
-                    }
+                  onClick={async () => {
+                    const shouldApply = await showConfirmDialog({
+                      title: "Apply inventory adjustments?",
+                      message: "All variance adjustments will be applied to inventory and cannot be undone.",
+                      tone: "danger",
+                      confirmLabel: "Apply adjustments",
+                      cancelLabel: "Cancel",
+                    });
+                    if (!shouldApply) return;
+                    performAction("apply-adjustments");
                   }}
                   disabled={!!actionLoading}
                   className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
@@ -324,8 +354,16 @@ export default function StockTakeDetail() {
               </button>
               {!stockTake.adjustmentApplied && !["approved", "cancelled"].includes(stockTake.status) && (
                 <button
-                  onClick={() => {
-                    if (confirm("Cancel this stock take?")) performAction("cancel");
+                  onClick={async () => {
+                    const shouldCancel = await showConfirmDialog({
+                      title: "Cancel stock take?",
+                      message: "The current stock take will be cancelled.",
+                      tone: "danger",
+                      confirmLabel: "Cancel stock take",
+                      cancelLabel: "Keep stock take",
+                    });
+                    if (!shouldCancel) return;
+                    performAction("cancel");
                   }}
                   disabled={!!actionLoading}
                   className="btn-action btn-action-danger flex items-center gap-2 text-sm"
@@ -336,18 +374,6 @@ export default function StockTakeDetail() {
               )}
             </div>
           </div>
-
-          {/* Messages */}
-          {message.text && (
-            <div className={`mb-4 px-4 py-3 rounded-lg flex items-center gap-2 text-sm ${
-              message.type === "error"
-                ? "bg-red-50 text-red-700 border border-red-200"
-                : "bg-green-50 text-green-700 border border-green-200"
-            }`}>
-              <FontAwesomeIcon icon={message.type === "error" ? faExclamationTriangle : faCheckCircle} className="w-4 h-4" />
-              {message.text}
-            </div>
-          )}
 
           {/* Summary Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">

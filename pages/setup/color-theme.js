@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
 import { apiClient } from "@/lib/api-client";
+import { showAlertDialog } from "@/lib/dialogs";
 import { useTheme, applyThemeToDOM } from "@/components/ThemeProvider";
 import { Palette, RotateCcw, Save, Check } from "lucide-react";
 
@@ -175,7 +176,11 @@ export default function ColorThemePage() {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
-      alert(err.response?.data?.error || "Failed to save theme");
+      await showAlertDialog({
+        title: "Save theme failed",
+        message: err.response?.data?.error || "Failed to save theme",
+        tone: "danger",
+      });
     } finally {
       setSaving(false);
     }

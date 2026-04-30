@@ -53,7 +53,6 @@ const PendingTransactionActionSchema = new mongoose.Schema({
   },
 });
 
-PendingTransactionActionSchema.index({ confirmationToken: 1 }, { unique: true });
 PendingTransactionActionSchema.index({ transactionId: 1, status: 1 });
 PendingTransactionActionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 

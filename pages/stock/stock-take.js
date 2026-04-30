@@ -36,6 +36,47 @@ const TYPE_LABELS = {
   "spot-check": "Spot Check",
 };
 
+const QUICK_CREATE_PRESETS = [
+  {
+    key: "full",
+    label: "Full Location Count",
+    helper: "Count everything in one location.",
+    type: "full",
+    categoryMode: "all",
+    description: "Full physical count for this location.",
+  },
+  {
+    key: "spot-check",
+    label: "Quick Spot Check",
+    helper: "Fast recount for urgent checks.",
+    type: "spot-check",
+    categoryMode: "all",
+    description: "Quick spot check for selected shelves or products.",
+  },
+  {
+    key: "cycle",
+    label: "Category Cycle Count",
+    helper: "Count one category at a time.",
+    type: "cycle",
+    categoryMode: "first-category",
+    description: "Cycle count focused on one product category.",
+  },
+];
+
+function getSuggestedTitle(form, categories) {
+  const typeLabel = TYPE_LABELS[form.type] || "Stock Take";
+  const categoryName = form.category && form.category !== "all"
+    ? categories.find((category) => category._id === form.category)?.name || ""
+    : "";
+  const dateLabel = new Date().toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+
+  return [typeLabel, categoryName, form.locationName, dateLabel].filter(Boolean).join(" - ");
+}
+
 export default function StockTakeList() {
   const router = useRouter();
   const { progress, start, onFetch, onProcess, complete } = useProgress();
@@ -60,6 +101,8 @@ export default function StockTakeList() {
   });
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
+
+  const suggestedTitle = useMemo(() => getSuggestedTitle(form, categories), [form, categories]);
 
   const fetchStockTakes = useCallback(async () => {
     try {
@@ -118,8 +161,11 @@ export default function StockTakeList() {
   }, [stockTakes, filterStatus, filterLocation, searchTerm]);
 
   const handleCreate = async () => {
-    if (!form.title.trim()) return setError("Title is required");
     if (!form.locationName) return setError("Please select a location");
+
+    const resolvedTitle = form.title.trim() || suggestedTitle;
+    if (!resolvedTitle.trim()) return setError("Title is required");
+
     setCreating(true);
     setError("");
     try {
@@ -129,6 +175,7 @@ export default function StockTakeList() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          title: resolvedTitle,
           createdBy: user?.name || "Admin",
         }),
       });
@@ -158,6 +205,18 @@ export default function StockTakeList() {
     };
   }, [stockTakes]);
 
+  const applyQuickPreset = (preset) => {
+    setError("");
+    setForm((current) => ({
+      ...current,
+      type: preset.type,
+      category: preset.categoryMode === "first-category" ? (categories[0]?._id || "all") : "all",
+      description: preset.description,
+      title: "",
+    }));
+    setShowCreateModal(true);
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -179,12 +238,26 @@ export default function StockTakeList() {
               <p className="page-subtitle">Physical inventory counts & reconciliation</p>
             </div>
             <button
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => { setError(""); setShowCreateModal(true); }}
               className="btn-action-primary flex items-center gap-2"
             >
               <FontAwesomeIcon icon={faPlus} className="w-4 h-4" />
               New Stock Take
             </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+            {QUICK_CREATE_PRESETS.map((preset) => (
+              <button
+                key={preset.key}
+                type="button"
+                onClick={() => applyQuickPreset(preset)}
+                className="text-left p-4 rounded-xl border border-gray-200 bg-white hover:border-blue-300 hover:shadow-sm transition"
+              >
+                <div className="text-sm font-semibold text-gray-900">{preset.label}</div>
+                <div className="text-xs text-gray-500 mt-1">{preset.helper}</div>
+              </button>
+            ))}
           </div>
 
           {/* Summary Cards */}
@@ -336,15 +409,32 @@ export default function StockTakeList() {
               {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">{error}</div>
               )}
+              <div>
+                <label className="form-label">Quick Setup</label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {QUICK_CREATE_PRESETS.map((preset) => (
+                    <button
+                      key={preset.key}
+                      type="button"
+                      onClick={() => applyQuickPreset(preset)}
+                      className={`rounded-lg border px-3 py-2 text-left text-sm transition ${form.type === preset.type ? "border-blue-300 bg-blue-50 text-blue-700" : "border-gray-200 hover:border-blue-200 hover:bg-gray-50"}`}
+                    >
+                      <div className="font-medium">{preset.label}</div>
+                      <div className="text-xs opacity-80 mt-1">{preset.helper}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="form-group">
-                <label className="form-label">Title *</label>
+                <label className="form-label">Title</label>
                 <input
                   type="text"
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                   className="form-input"
-                  placeholder="e.g., Monthly Full Count - March 2026"
+                  placeholder="Leave blank to auto-generate a clear title"
                 />
+                <p className="text-xs text-gray-500 mt-1">Suggested title: {suggestedTitle || "Choose a location first"}</p>
               </div>
               <div className="form-group">
                 <label className="form-label">Description</label>
@@ -373,7 +463,7 @@ export default function StockTakeList() {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Count Type</label>
+                  <label className="form-label">Count Mode</label>
                   <select
                     value={form.type}
                     onChange={(e) => setForm({ ...form, type: e.target.value })}
@@ -386,19 +476,25 @@ export default function StockTakeList() {
                   </select>
                 </div>
               </div>
-              <div className="form-group">
-                <label className="form-label">Category Filter</label>
-                <select
-                  value={form.category}
-                  onChange={(e) => setForm({ ...form, category: e.target.value })}
-                  className="form-select"
-                >
-                  <option value="all">All Categories (Full Inventory)</option>
-                  {categories.map((c) => (
-                    <option key={c._id} value={c._id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
+              {form.type === "full" ? (
+                <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-700">
+                  Full count will include every stock-managed product in this location.
+                </div>
+              ) : (
+                <div className="form-group">
+                  <label className="form-label">Category Filter</label>
+                  <select
+                    value={form.category}
+                    onChange={(e) => setForm({ ...form, category: e.target.value })}
+                    className="form-select"
+                  >
+                    <option value="all">All Categories</option>
+                    {categories.map((c) => (
+                      <option key={c._id} value={c._id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
             <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
               <button onClick={() => setShowCreateModal(false)} className="btn-action btn-action-danger">

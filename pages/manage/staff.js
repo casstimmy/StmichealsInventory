@@ -8,7 +8,9 @@ import { formatCurrency } from "@/lib/format";
 import { Printer, Mail, Camera, Copy, CheckCircle, ChevronDown, ChevronUp, Loader2, Send, Link2 } from "lucide-react";
 import { useRouter } from "next/router";
 import { apiClient } from "@/lib/api-client";
+import { showConfirmDialog } from "@/lib/dialogs";
 import { STAFF_ROLE_OPTIONS, normalizeStaffRole } from "@/lib/pos-permissions";
+import { showToastMessage } from "@/lib/toast-state";
 
 function toCamelCase(str) {
   return str
@@ -93,6 +95,12 @@ export default function StaffPage() {
   };
 
   useEffect(() => { fetchStaff(); fetchLocations(); }, []);
+
+  useEffect(() => {
+    if (!message) return;
+    showToastMessage({ title: "Manage staff", text: message });
+    setMessage("");
+  }, [message]);
 
   const handlePhotoUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -206,7 +214,14 @@ export default function StaffPage() {
   };
 
   const handleDeletePenalty = async (staffId, index) => {
-    if (!confirm("Delete this penalty?")) return;
+    const shouldDelete = await showConfirmDialog({
+      title: "Delete penalty?",
+      message: "This penalty record will be removed.",
+      tone: "danger",
+      confirmLabel: "Delete penalty",
+      cancelLabel: "Keep penalty",
+    });
+    if (!shouldDelete) return;
     try {
       await apiClient.delete(`/api/staff/penalties/${staffId}/${index}`);
       setMessage("Penalty deleted."); fetchStaff();
@@ -227,7 +242,14 @@ export default function StaffPage() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this staff member?")) return;
+    const shouldDelete = await showConfirmDialog({
+      title: "Delete staff member?",
+      message: "This staff account will be removed permanently.",
+      tone: "danger",
+      confirmLabel: "Delete staff",
+      cancelLabel: "Keep staff",
+    });
+    if (!shouldDelete) return;
     try { await apiClient.delete(`/api/staff/${id}`); setMessage("Staff deleted."); fetchStaff(); }
     catch (err) { setMessage(err.response?.data?.error || "Failed to delete staff"); }
   };
@@ -293,7 +315,6 @@ export default function StaffPage() {
                 <input type="text" name="bankName" placeholder="Bank Name" value={formData.bankName} onChange={handleInputChange} className="form-input" />
                 <input type="number" name="salary" placeholder="Salary Amount" value={formData.salary} onChange={handleInputChange} className="form-input" />
               </div>
-              {message && <p className="text-sm text-sky-700 mb-3">{message}</p>}
               <button type="submit" className="btn-action-primary w-full">Add Staff</button>
             </form>
           </div>

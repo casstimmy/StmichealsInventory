@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Loader from "@/components/Loader";
 import useProgress from "@/lib/useProgress";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { showToastMessage } from "@/lib/toast-state";
 import {
   faScaleBalanced,
   faMoneyBillWave,
@@ -25,6 +26,12 @@ export default function TaxAnalysisPage() {
   useEffect(() => {
     fetchTaxData();
   }, [period]);
+
+  useEffect(() => {
+    if (!error) return;
+    showToastMessage({ title: "Tax analysis", text: error, fallbackTone: "danger" });
+    setError(null);
+  }, [error]);
 
   const fetchTaxData = async () => {
     setLoading(true);
@@ -125,19 +132,6 @@ export default function TaxAnalysisPage() {
               </select>
             </div>
           </div>
-
-          {/* Error Alert */}
-          {error && (
-            <div className="mb-8 bg-red-50 border-l-4 border-red-500 p-6 rounded-r-lg shadow-sm">
-              <div className="flex items-start gap-3">
-                <FontAwesomeIcon icon={faExclamationTriangle} className="text-red-600 mt-1 text-lg" />
-                <div>
-                  <h3 className="font-semibold text-red-900 mb-1">Error Loading Tax Data</h3>
-                  <p className="text-red-800">{error}</p>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Loading State */}
           {loading ? (

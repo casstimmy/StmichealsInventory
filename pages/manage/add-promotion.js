@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import axios from "axios";
 import { ChevronDown } from "lucide-react";
+import { showAlertDialog } from "@/lib/dialogs";
 import Link from "next/link";
 import { useRouter } from "next/router";
 
@@ -118,8 +119,11 @@ export default function AddPromotion() {
   // Add category to promotion
   const handleAddCategory = () => {
     if (!selectedCategory) {
-      alert("Please select a category");
-      return;
+      return showAlertDialog({
+        title: "Category required",
+        message: "Please select a category.",
+        tone: "warning",
+      });
     }
     const category = categories.find((c) => c._id === selectedCategory);
     if (!addedItems.find((item) => item._id === selectedCategory && item.type === "category")) {
@@ -134,8 +138,11 @@ export default function AddPromotion() {
   // Add product to promotion
   const handleAddProduct = () => {
     if (!selectedProduct) {
-      alert("Please select a product");
-      return;
+      return showAlertDialog({
+        title: "Product required",
+        message: "Please select a product.",
+        tone: "warning",
+      });
     }
     const product = products.find((p) => p._id === selectedProduct);
     if (!addedItems.find((item) => item._id === selectedProduct && item.type === "product")) {
@@ -155,11 +162,19 @@ export default function AddPromotion() {
   // Submit promotion
   const handleSubmit = async () => {
     if (!promoData.name) {
-      alert("Please enter promotion name");
+      await showAlertDialog({
+        title: "Promotion name required",
+        message: "Please enter promotion name.",
+        tone: "warning",
+      });
       return;
     }
     if (addedItems.length === 0) {
-      alert("Please add at least one product or category");
+      await showAlertDialog({
+        title: "Promotion items required",
+        message: "Please add at least one product or category.",
+        tone: "warning",
+      });
       return;
     }
 
@@ -219,7 +234,11 @@ export default function AddPromotion() {
         }
       }
 
-      alert("Promotion created successfully!");
+      await showAlertDialog({
+        title: "Promotion created",
+        message: "Promotion created successfully.",
+        tone: "success",
+      });
       // Reset form
       setPromoData({
         name: "",
@@ -253,7 +272,11 @@ export default function AddPromotion() {
       router.push("/manage/promotions");
     } catch (err) {
       console.error("Error creating promotion:", err);
-      alert("Error creating promotion!");
+      await showAlertDialog({
+        title: "Promotion create failed",
+        message: "Error creating promotion.",
+        tone: "danger",
+      });
     }
   };
 

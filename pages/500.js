@@ -7,7 +7,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faHome,
   faEnvelope,
-  faPhone,
   faArrowRight,
   faCircleExclamation,
 } from "@fortawesome/free-solid-svg-icons";
@@ -81,7 +80,7 @@ export default function ServerError() {
             {/* Support section */}
             <div className="border-t border-gray-200 pt-12">
               <h3 className="text-gray-900 font-bold text-lg sm:text-xl mb-8 text-center">
-                Contact Support
+                Next Steps
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {/* Email support */}
@@ -105,25 +104,23 @@ export default function ServerError() {
                   </a>
                 </div>
 
-                {/* Phone support */}
+                {/* Login help */}
                 <div className="flex flex-col items-center text-center">
                   <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mb-4">
-                    <FontAwesomeIcon
-                      icon={faPhone}
-                      className="text-orange-600 text-xl"
-                    />
+                    <FontAwesomeIcon icon={faHome} className="text-orange-600 text-xl" />
                   </div>
-                  <h4 className="text-gray-900 font-semibold mb-2">Phone Support</h4>
+                  <h4 className="text-gray-900 font-semibold mb-2">Return to Login</h4>
                   <p className="text-gray-600 text-sm mb-3">
-                    Call us for immediate assistance
+                    Start a fresh session if the dashboard keeps failing after a refresh
                   </p>
-                  <a
-                    href="tel:+234XXXXXXXXXX"
+                  <Link href="/login">
+                    <a
                     className="text-orange-600 hover:text-orange-700 font-semibold text-sm flex items-center justify-center transition"
-                  >
-                    +234 (XXX) XXX-XXXX
-                    <FontAwesomeIcon icon={faArrowRight} className="ml-2 text-xs" />
-                  </a>
+                    >
+                      Go to login
+                      <FontAwesomeIcon icon={faArrowRight} className="ml-2 text-xs" />
+                    </a>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -131,10 +128,10 @@ export default function ServerError() {
             {/* Status information */}
             <div className="border-t border-gray-200 mt-12 pt-8 bg-gray-50 -mx-6 sm:-mx-8 px-6 sm:px-8 py-8 rounded-b-2xl">
               <p className="text-gray-600 text-center text-sm mb-4">
-                <strong>Error ID:</strong> {Math.random().toString(36).substr(2, 9).toUpperCase()}
+                <strong>Still seeing this page?</strong> Share the page URL and the approximate time of the error with support.
               </p>
               <p className="text-gray-500 text-center text-xs">
-                Please include this Error ID when contacting support to help us investigate the issue faster.
+                That gives the team a stable breadcrumb without relying on a placeholder client-side error ID.
               </p>
             </div>
           </div>

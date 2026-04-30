@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
 import { apiClient } from "@/lib/api-client";
+import { showToastMessage } from "@/lib/toast-state";
 import {
   getDefaultPosPermissions,
   POS_PERMISSION_KEYS,
@@ -46,6 +47,12 @@ export default function StaffRolesPage() {
   useEffect(() => {
     fetchStaff();
   }, []);
+
+  useEffect(() => {
+    if (!message) return;
+    showToastMessage({ title: "Staff roles", text: message });
+    setMessage("");
+  }, [message]);
 
   const groupedStaff = useMemo(() => {
     return [...staffList].sort((a, b) => a.name.localeCompare(b.name));
@@ -110,12 +117,6 @@ export default function StaffRolesPage() {
               </p>
             </div>
           </div>
-
-          {message && (
-            <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
-              {message}
-            </div>
-          )}
 
           <div className="content-card">
             <div className="mb-4 grid gap-3 md:grid-cols-4">

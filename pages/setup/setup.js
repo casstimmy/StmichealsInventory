@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import Layout from "@/components/Layout";
 import { getCachedSetup, clearSetupCache } from "@/lib/setupCache";
+import { useDialog } from "@/components/DialogProvider";
+import { showToastMessage } from "@/lib/toast-state";
 import { useAuth } from "@/lib/useAuth";
 
 // Field component - defined outside to prevent re-creation on each render
@@ -16,6 +18,7 @@ const Field = ({ label, ...props }) => (
 
 export default function Setup() {
   const { isAdmin } = useAuth();
+  const { alert: showAlert, confirm: showConfirm } = useDialog();
   const [storeName, setStoreName] = useState("");
   const [storePhone, setStorePhone] = useState("");
   const [country, setCountry] = useState("");
@@ -92,6 +95,12 @@ export default function Setup() {
       localStorage.setItem("setupLocations", JSON.stringify(locations));
     }
   }, [locations]);
+
+  useEffect(() => {
+    if (!message) return;
+    showToastMessage({ title: "Company details", text: message });
+    setMessage("");
+  }, [message]);
 
   /* =====================
      LOGO UPLOAD HANDLER
@@ -185,25 +194,45 @@ export default function Setup() {
 
       const referencedItems = Object.entries(data.references || {})
         .filter(([, count]) => Number(count) > 0)
-        .map(([key, count]) => `${key}: ${count}`);
+        .map(([key, count]) => ({
+          label: key
+            .replace(/([A-Z])/g, " $1")
+            .replace(/^./, (value) => value.toUpperCase()),
+          value: count,
+        }));
 
-      const confirmationMessage = referencedItems.length > 0
-        ? `This location is still referenced elsewhere:\n\n${referencedItems.join("\n")}\n\nDelete it from store setup anyway?`
-        : `Delete ${location.name} from store setup?`;
+      if (referencedItems.length > 0) {
+        await showAlert({
+          title: `Can't delete ${location.name}`,
+          message: "This location is still referenced elsewhere. Remove those linked records first, then try again.",
+          tone: "warning",
+          confirmLabel: "Close",
+          details: referencedItems,
+        });
+        return;
+      }
 
-      if (!window.confirm(confirmationMessage)) {
+      const shouldDelete = await showConfirm({
+        title: `Delete ${location.name}?`,
+        message: "This removes the location from the current setup draft. Save setup to apply the change permanently.",
+        tone: "danger",
+        confirmLabel: "Delete",
+        cancelLabel: "Keep location",
+      });
+
+      if (!shouldDelete) {
         return;
       }
 
       setLocations((prev) => prev.filter((_, currentIndex) => currentIndex !== index));
-      setMessage(referencedItems.length > 0 ? "⚠️ Location removed from setup draft. Save configuration to apply it." : "✅ Location removed from setup draft");
+      setMessage("✅ Location removed from setup draft");
     } catch (error) {
       console.error("Failed to remove location:", error);
       setMessage(`❌ ${error.message}`);
     } finally {
       setCheckingLocationId(null);
     }
-  }, [isAdmin, locations]);
+  }, [isAdmin, locations, showAlert, showConfirm]);
 
   /* =====================
      SUBMIT
@@ -456,11 +485,6 @@ export default function Setup() {
                   {loading ? "Saving..." : "Save Setup Configuration"}
                 </button>
 
-                {message && (
-                  <div className={`mt-4 p-3 rounded-lg text-center ${message.startsWith("✅") ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                    {message}
-                  </div>
-                )}
               </form>
             </div>
           </div>

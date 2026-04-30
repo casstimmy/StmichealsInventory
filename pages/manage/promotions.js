@@ -6,6 +6,7 @@ import Layout from "@/components/Layout";
 import axios from "axios";
 import Link from "next/link";
 import useSWR, { mutate } from "swr";
+import { showAlertDialog, showConfirmDialog } from "@/lib/dialogs";
 import { formatCurrency } from "@/lib/format";
 
 const entriesPerPageDefault = 20;
@@ -116,7 +117,11 @@ export default function Promotions() {
       setEditablePromotion({});
     } catch (err) {
       console.error("Failed to update promotion:", err);
-      alert("Error updating promotion!");
+      await showAlertDialog({
+        title: "Update failed",
+        message: "Error updating promotion.",
+        tone: "danger",
+      });
     }
   };
 
@@ -126,7 +131,14 @@ export default function Promotions() {
   };
 
   const handleDeleteClick = async (_id) => {
-    if (!window.confirm("Remove promotion from this product?")) return;
+    const shouldDelete = await showConfirmDialog({
+      title: "Remove promotion?",
+      message: "This promotion will be removed from the product.",
+      tone: "danger",
+      confirmLabel: "Remove promotion",
+      cancelLabel: "Keep promotion",
+    });
+    if (!shouldDelete) return;
     try {
       await axios.put("/api/products", {
         _id,
@@ -140,7 +152,11 @@ export default function Promotions() {
       setFilteredPromotions((prev) => prev.filter((p) => p._id !== _id));
     } catch (err) {
       console.error("Failed to remove promotion:", err);
-      alert("Error removing promotion!");
+      await showAlertDialog({
+        title: "Remove failed",
+        message: "Error removing promotion.",
+        tone: "danger",
+      });
     }
   };
 

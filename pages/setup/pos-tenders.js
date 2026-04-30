@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
+import { showConfirmDialog } from "@/lib/dialogs";
 import useProgress from "@/lib/useProgress";
 
 export default function PosTenders() {
@@ -173,27 +174,34 @@ export default function PosTenders() {
   };
 
   const handleDeleteTender = async (tenderId) => {
-    if (window.confirm("Are you sure you want to delete this tender?")) {
-      try {
-        setSaving(true);
-        const res = await fetch(`/api/setup/tenders/${tenderId}`, {
-          method: "DELETE",
-        });
-        const data = await res.json();
+    const shouldDelete = await showConfirmDialog({
+      title: "Delete tender?",
+      message: "This tender type will be removed from setup.",
+      tone: "danger",
+      confirmLabel: "Delete tender",
+      cancelLabel: "Keep tender",
+    });
+    if (!shouldDelete) return;
 
-        if (data.success) {
-          setSuccess("Tender deleted successfully!");
-          await fetchTenders();
-          setTimeout(() => setSuccess(""), 3000);
-        } else {
-          setError(data.message || "Failed to delete tender");
-        }
-      } catch (err) {
-        console.error("Error deleting tender:", err);
-        setError("Failed to delete tender");
-      } finally {
-        setSaving(false);
+    try {
+      setSaving(true);
+      const res = await fetch(`/api/setup/tenders/${tenderId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setSuccess("Tender deleted successfully!");
+        await fetchTenders();
+        setTimeout(() => setSuccess(""), 3000);
+      } else {
+        setError(data.message || "Failed to delete tender");
       }
+    } catch (err) {
+      console.error("Error deleting tender:", err);
+      setError("Failed to delete tender");
+    } finally {
+      setSaving(false);
     }
   };
 

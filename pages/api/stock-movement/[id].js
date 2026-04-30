@@ -80,8 +80,18 @@ export default async function handler(req, res) {
       const fromLocationId = movement.fromLocationId || movement.fromLocation || "";
       const toLocationId = movement.toLocationId || movement.toLocation || "";
       
-      const senderName = fromLocationId ? await resolveLocationName(fromLocationId, locationCache) : "Vendor";
-      const receiverName = toLocationId ? await resolveLocationName(toLocationId, locationCache) : "Unknown";
+      const senderName = fromLocationId
+        ? await resolveLocationName(fromLocationId, locationCache)
+        : movement.reason === "Restock"
+        ? "Vendor"
+        : "Unknown";
+      const receiverName = toLocationId
+        ? await resolveLocationName(toLocationId, locationCache)
+        : movement.reason === "Return"
+        ? "Vendor"
+        : movement.reason === "Operational Loss"
+        ? "Loss Register"
+        : "Unknown";
 
       return res.status(200).json({
         _id: movement._id,
@@ -94,6 +104,7 @@ export default async function handler(req, res) {
         dateReceived: movement.dateReceived || movement.updatedAt,
         status: movement.status || "Received",
         totalCostPrice,
+        notes: movement.notes || "",
         products: productsWithDetails,
       });
     } catch (err) {

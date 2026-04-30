@@ -4,6 +4,8 @@ import Layout from "@/components/Layout";
 import { Loader } from "@/components/ui";
 import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
+import { showConfirmDialog } from "@/lib/dialogs";
+import { showToastMessage } from "@/lib/toast-state";
 import useProgress from "@/lib/useProgress";
 
 export default function PromotionsManagementPage() {
@@ -73,6 +75,18 @@ export default function PromotionsManagementPage() {
     if (products.length && categories.length) return;
     loadReferenceData();
   }, [showForm, products.length, categories.length]);
+
+  useEffect(() => {
+    if (!error) return;
+    showToastMessage({ title: "Campaign promotions", text: error, fallbackTone: "danger" });
+    setError("");
+  }, [error]);
+
+  useEffect(() => {
+    if (!success) return;
+    showToastMessage({ title: "Campaign promotions", text: success, fallbackTone: "success" });
+    setSuccess("");
+  }, [success]);
 
   async function fetchPromotions() {
     try {
@@ -252,7 +266,14 @@ export default function PromotionsManagementPage() {
   }
 
   async function handleDelete(id) {
-    if (!confirm("Are you sure you want to delete this promotion?")) return;
+    const shouldDelete = await showConfirmDialog({
+      title: "Delete promotion?",
+      message: "This promotion will be removed permanently.",
+      tone: "danger",
+      confirmLabel: "Delete promotion",
+      cancelLabel: "Keep promotion",
+    });
+    if (!shouldDelete) return;
 
     try {
       const res = await fetch(`/api/promotions/${id}`, { method: "DELETE" });
@@ -318,18 +339,6 @@ export default function PromotionsManagementPage() {
               + Create Promotion
             </button>
           </div>
-
-          {/* Alerts */}
-          {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
-              {error}
-            </div>
-          )}
-          {success && (
-            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800">
-              {success}
-            </div>
-          )}
 
           {/* Form */}
           {showForm && (

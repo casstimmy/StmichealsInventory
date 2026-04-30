@@ -8,6 +8,7 @@ import { formatCurrency, formatNumber } from "@/lib/format";
 import { isInDateRange } from "@/lib/dateFilter";
 import useProgress from "@/lib/useProgress";
 import { apiClient } from "@/lib/api-client";
+import { showAlertDialog, showConfirmDialog } from "@/lib/dialogs";
 
 export default function CompletedTransactions() {
   const [transactions, setTransactions] = useState([]);
@@ -166,7 +167,14 @@ function applyFilters() {
 
   // Handle void held transaction — sets status to "refunded"
   async function handleVoidTransaction(txId) {
-    if (!confirm("Are you sure you want to void this held transaction? It will be marked as refunded.")) return;
+    const shouldVoid = await showConfirmDialog({
+      title: "Void held transaction?",
+      message: "It will be marked as refunded.",
+      tone: "danger",
+      confirmLabel: "Void transaction",
+      cancelLabel: "Keep transaction",
+    });
+    if (!shouldVoid) return;
     try {
       const res = await apiClient.put(`/api/transactions/${txId}`, { status: "refunded" });
       if (res.data?.success) {
@@ -176,7 +184,11 @@ function applyFilters() {
       }
     } catch (err) {
       console.error("Error voiding transaction:", err);
-      alert("Failed to void transaction. Please try again.");
+      await showAlertDialog({
+        title: "Void failed",
+        message: "Failed to void transaction. Please try again.",
+        tone: "danger",
+      });
     }
   }
 

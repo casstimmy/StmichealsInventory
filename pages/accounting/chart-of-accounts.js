@@ -3,6 +3,8 @@
 import Layout from "@/components/Layout";
 import { Loader } from "@/components/ui";
 import { useState, useEffect } from "react";
+import { showConfirmDialog } from "@/lib/dialogs";
+import { showToastMessage } from "@/lib/toast-state";
 import { Plus, Pencil, Trash2, X, Check, ChevronDown, ChevronRight } from "lucide-react";
 
 const ACCOUNT_TYPES = ["ASSET", "LIABILITY", "EQUITY", "REVENUE", "EXPENSE"];
@@ -39,6 +41,18 @@ export default function ChartOfAccountsPage() {
   useEffect(() => {
     fetchAccounts();
   }, []);
+
+  useEffect(() => {
+    if (!error) return;
+    showToastMessage({ title: "Chart of accounts", text: error, fallbackTone: "danger" });
+    setError("");
+  }, [error]);
+
+  useEffect(() => {
+    if (!success) return;
+    showToastMessage({ title: "Chart of accounts", text: success, fallbackTone: "success" });
+    setSuccess("");
+  }, [success]);
 
   async function fetchAccounts() {
     try {
@@ -84,7 +98,14 @@ export default function ChartOfAccountsPage() {
   }
 
   async function handleDelete(id) {
-    if (!confirm("Delete this account?")) return;
+    const shouldDelete = await showConfirmDialog({
+      title: "Delete account?",
+      message: "This chart of accounts entry will be removed.",
+      tone: "danger",
+      confirmLabel: "Delete account",
+      cancelLabel: "Keep account",
+    });
+    if (!shouldDelete) return;
     try {
       const res = await fetch(`/api/accounting/accounts/${id}`, { method: "DELETE" });
       const data = await res.json();
@@ -167,9 +188,6 @@ export default function ChartOfAccountsPage() {
             <Plus size={18} /> {showForm ? "Close" : "Add Account"}
           </button>
         </div>
-
-        {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">{error}</div>}
-        {success && <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">{success}</div>}
 
         {/* Form */}
         {showForm && (

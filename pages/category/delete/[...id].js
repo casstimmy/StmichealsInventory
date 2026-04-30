@@ -3,6 +3,7 @@ import axios from "axios";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { invalidateCategoriesCache } from "@/lib/categoriesCache";
+import { showAlertDialog } from "@/lib/dialogs";
 
 export default function DeleteCategoryPage() {
   const router = useRouter();
@@ -15,7 +16,11 @@ export default function DeleteCategoryPage() {
       setCategoryInfo(res.data);
     }).catch((err) => {
       console.error("Failed to fetch category:", err);
-      alert("Could not fetch category details.");
+      void showAlertDialog({
+        title: "Load failed",
+        message: "Could not fetch category details.",
+        tone: "danger",
+      });
     });
   }, [id]);
 
@@ -31,7 +36,11 @@ export default function DeleteCategoryPage() {
       goBack();
     } catch (error) {
       console.error("Failed to delete category:", error);
-      alert("Failed to delete category. Please try again.");
+      await showAlertDialog({
+        title: "Delete failed",
+        message: "Failed to delete category. Please try again.",
+        tone: "danger",
+      });
     }
   };
 

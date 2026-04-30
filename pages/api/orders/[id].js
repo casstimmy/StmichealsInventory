@@ -127,16 +127,28 @@ export default async function handler(req, res) {
       }
     }
 
-    order.status = status;
+    const updatePayload = {
+      status,
+    };
+
     if (deliveryPerson && (status === "Shipped" || status === "Delivered")) {
-      order.deliveryPerson = {
+      updatePayload.deliveryPerson = {
         name: deliveryPerson.name || "",
         phone: deliveryPerson.phone || "",
       };
     }
-    await order.save();
 
-    const updatedOrder = await Order.findById(id).populate("customer").lean();
+    const updatedOrder = await Order.findByIdAndUpdate(
+      id,
+      { $set: updatePayload },
+      {
+        new: true,
+        runValidators: true,
+      }
+    )
+      .populate("customer")
+      .lean();
+
     return res.status(200).json(updatedOrder);
   } catch (error) {
     console.error("Order update failed:", error);

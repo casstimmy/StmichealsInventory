@@ -4,6 +4,7 @@ import Layout from "@/components/Layout";
 import { formatCurrency } from "@/lib/format";
 import { Loader } from "@/components/ui";
 import { apiClient } from "@/lib/api-client";
+import { showAlertDialog } from "@/lib/dialogs";
 import { useAuth } from "@/lib/useAuth";
 
 export default function StockMovementAdd() {
@@ -12,13 +13,14 @@ export default function StockMovementAdd() {
   
   const [locations, setLocations] = useState([]);
   const [staffList, setStaffList] = useState([]);
-  const [reasons] = useState(["Restock", "Transfer", "Return", "Adjustment"]);
+  const [reasons] = useState(["Restock", "Transfer", "Return", "Adjustment", "Operational Loss"]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [fromLocation, setFromLocation] = useState("");
   const [toLocation, setToLocation] = useState("");
   const [staff, setStaff] = useState("");
   const [reason, setReason] = useState("");
+  const [movementNotes, setMovementNotes] = useState("");
 
   const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -32,6 +34,9 @@ export default function StockMovementAdd() {
   const [poLoading, setPoLoading] = useState(false);
   const [unmatchedProducts, setUnmatchedProducts] = useState([]);
   const [savingPrices, setSavingPrices] = useState({});
+
+  const isOperationalLoss = reason === "Operational Loss";
+  const requiresDestination = !isOperationalLoss;
 
   useEffect(() => {
     fetch("/api/setup/setup")
@@ -145,6 +150,24 @@ export default function StockMovementAdd() {
   }, [router.isReady]);
 
   useEffect(() => {
+    if (!router.isReady) return;
+
+    if (router.query.reason) {
+      setReason(String(router.query.reason));
+    }
+
+    if (router.query.lossNote) {
+      setMovementNotes(String(router.query.lossNote));
+    }
+  }, [router.isReady, router.query.reason, router.query.lossNote]);
+
+  useEffect(() => {
+    if (isOperationalLoss) {
+      setToLocation("");
+    }
+  }, [isOperationalLoss]);
+
+  useEffect(() => {
     const delayDebounce = setTimeout(() => {
       const trimmed = searchTerm.trim();
       if (trimmed.length >= 2) {
@@ -233,7 +256,11 @@ export default function StockMovementAdd() {
         salePriceIncTax: product.salePriceIncTax,
       });
     } catch (err) {
-      alert("Failed to save price: " + (err.response?.data?.message || err.message));
+      await showAlertDialog({
+        title: "Price save failed",
+        message: "Failed to save price: " + (err.response?.data?.message || err.message),
+        tone: "danger",
+      });
     } finally {
       setSavingPrices((prev) => ({ ...prev, [product._id]: false }));
     }
@@ -242,12 +269,16 @@ export default function StockMovementAdd() {
   const handleAddToStock = async () => {
   if (
     !fromLocation ||
-    !toLocation ||
+    (requiresDestination && !toLocation) ||
     !staff ||
     !reason ||
     addedProducts.length === 0
   ) {
-    alert("Please complete all fields and add at least one product.");
+    await showAlertDialog({
+      title: "Missing stock movement details",
+      message: "Please complete all fields and add at least one product.",
+      tone: "warning",
+    });
     return;
   }
 
@@ -263,9 +294,10 @@ export default function StockMovementAdd() {
     const payload = {
       transRef,
       fromLocationId: fromLocation,
-      toLocationId: toLocation,
+      toLocationId: requiresDestination ? toLocation : null,
       staffId: staff || null,
       reason,
+      notes: movementNotes,
       status: "Received",
       totalCostPrice,
       barcode: transRef,
@@ -296,7 +328,11 @@ export default function StockMovementAdd() {
     }
 
     console.log(" Stock movement saved successfully");
-    alert("Stock movement added successfully!");
+    await showAlertDialog({
+      title: "Stock movement saved",
+      message: "Stock movement added successfully.",
+      tone: "success",
+    });
     
     // Mark PO as received if this came from a purchase order
     if (poRef?.id) {
@@ -313,6 +349,7 @@ export default function StockMovementAdd() {
     setToLocation("");
     setStaff("");
     setReason("");
+    setMovementNotes("");
     setAddedProducts([]);
     setSearchTerm("");
     setQuantityInput(1);
@@ -326,7 +363,11 @@ export default function StockMovementAdd() {
     }, 1500);
   } catch (err) {
     console.error(" Stock movement error:", err.message);
-    alert("Error saving stock movement: " + err.message);
+    await showAlertDialog({
+      title: "Save failed",
+      message: "Error saving stock movement: " + err.message,
+      tone: "danger",
+    });
   } finally {
     setIsSubmitting(false);
   }
@@ -343,8 +384,8 @@ export default function StockMovementAdd() {
         <div className="page-content">
         {/* Header */}
         <div className="page-header">
-          <h1 className="page-title">Create Stock Movement</h1>
-          <p className="page-subtitle">Transfer inventory between locations with full tracking and approval workflow</p>
+          <h1 className="page-title">{isOperationalLoss ? "Record Operational Loss" : "Create Stock Movement"}</h1>
+          <p className="page-subtitle">{isOperationalLoss ? "Log damaged, wasted, expired, or missing stock with a traceable write-off." : "Transfer inventory between locations with full tracking and approval workflow"}</p>
         </div>
 
         {/* PO Reference Banner */}
@@ -385,17 +426,24 @@ export default function StockMovementAdd() {
                 label="From Location"
                 value={fromLocation}
                 onChange={setFromLocation}
-                options={[{ _id: "vendor", name: poRef?.vendorName || "Vendor" }, ...locations]}
+                options={isOperationalLoss ? locations : [{ _id: "vendor", name: poRef?.vendorName || "Vendor" }, ...locations]}
                 required
               />
 
-              <Dropdown
-                label="To Location"
-                value={toLocation}
-                onChange={setToLocation}
-                options={locations}
-                required
-              />
+              {requiresDestination ? (
+                <Dropdown
+                  label="To Location"
+                  value={toLocation}
+                  onChange={setToLocation}
+                  options={locations}
+                  required
+                />
+              ) : (
+                <div className="form-group">
+                  <label className="form-label">Loss Destination</label>
+                  <div className="form-input bg-red-50 border-red-200 text-red-700">Recorded against operational loss register</div>
+                </div>
+              )}
 
               <Dropdown
                 label="Responsible Staff"
@@ -406,12 +454,22 @@ export default function StockMovementAdd() {
               />
 
               <Dropdown
-                label="Reason for Transfer"
+                label="Movement Reason"
                 value={reason}
                 onChange={setReason}
                 options={reasons.map((r) => ({ name: r, _id: r }))}
                 required
               />
+
+              <div className="md:col-span-2">
+                <label className="form-label">Notes</label>
+                <textarea
+                  className="form-input min-h-24"
+                  value={movementNotes}
+                  onChange={(e) => setMovementNotes(e.target.value)}
+                  placeholder={isOperationalLoss ? "Describe the loss, for example: damaged during handling, expired on shelf, broken pack, missing after recount." : "Optional notes for this movement."}
+                />
+              </div>
             </div>
           </div>
 
@@ -670,10 +728,10 @@ export default function StockMovementAdd() {
               </button>
               <button
                 onClick={handleAddToStock}
-                disabled={isSubmitting || addedProducts.length === 0 || !fromLocation || !toLocation || !reason}
+                disabled={isSubmitting || addedProducts.length === 0 || !fromLocation || (requiresDestination && !toLocation) || !reason}
                 className="btn-action-success w-full sm:w-auto"
               >
-                {isSubmitting ? "Creating..." : "Create Stock Movement"}
+                {isSubmitting ? "Creating..." : isOperationalLoss ? "Record Operational Loss" : "Create Stock Movement"}
               </button>
             </div>
           </div>

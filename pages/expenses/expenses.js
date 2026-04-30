@@ -1,5 +1,6 @@
 import ExpenseForm from "@/components/ExpenseForm";
 import Layout from "@/components/Layout";
+import { showAlertDialog } from "@/lib/dialogs";
 import { formatCurrency } from "@/lib/format";
 import { useEffect, useState } from "react";
 import { Wrench } from "lucide-react";
@@ -148,11 +149,19 @@ export default function ManageExpenses() {
         setEditingExpense(null);
         fetchExpenses();
       } else {
-        alert("Failed to update expense");
+        await showAlertDialog({
+          title: "Update failed",
+          message: "Failed to update expense.",
+          tone: "danger",
+        });
       }
     } catch (err) {
       console.error("Error updating expense:", err);
-      alert("Failed to update expense");
+      await showAlertDialog({
+        title: "Update failed",
+        message: "Failed to update expense.",
+        tone: "danger",
+      });
     }
 
     setLoading(false);
@@ -169,11 +178,19 @@ export default function ManageExpenses() {
         setDeleteConfirm(null);
         fetchExpenses();
       } else {
-        alert("Failed to delete expense");
+        await showAlertDialog({
+          title: "Delete failed",
+          message: "Failed to delete expense.",
+          tone: "danger",
+        });
       }
     } catch (err) {
       console.error("Error deleting expense:", err);
-      alert("Failed to delete expense");
+      await showAlertDialog({
+        title: "Delete failed",
+        message: "Failed to delete expense.",
+        tone: "danger",
+      });
     }
     setLoading(false);
   };

@@ -130,6 +130,7 @@ if (!movement)
               </div>
               <div>
                 <strong>Note:</strong> 
+                <div className="mt-1 text-gray-600">{movement.notes || "—"}</div>
               </div>
             </div>
           </div>

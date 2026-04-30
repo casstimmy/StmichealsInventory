@@ -4,6 +4,7 @@ import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
 import useProgress from "@/lib/useProgress";
 import { apiClient } from "@/lib/api-client";
+import { showAlertDialog, showConfirmDialog } from "@/lib/dialogs";
 import { formatCurrency } from "@/lib/format";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -14,6 +15,18 @@ import {
 function getToday() {
   const d = new Date();
   return d.toISOString().split("T")[0];
+}
+
+function createEmptyVendorProduct() {
+  return { product: "", productName: "", price: 0, packType: "unit", qtyPerPack: 1 };
+}
+
+function createEmptyForm() {
+  return {
+    companyName: "", vendorRep: "", repPhone: "", email: "",
+    address: "", mainProduct: "", bankName: "", accountName: "",
+    accountNumber: "", isActive: true, products: [createEmptyVendorProduct()],
+  };
 }
 
 export default function VendorsPage() {
@@ -39,12 +52,7 @@ export default function VendorsPage() {
   const orderFormRef = useRef(null);
   const orderSummaryRef = useRef(null);
 
-  const emptyForm = {
-    companyName: "", vendorRep: "", repPhone: "", email: "",
-    address: "", mainProduct: "", bankName: "", accountName: "",
-    accountNumber: "", isActive: true, products: [],
-  };
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(() => createEmptyForm());
 
   useEffect(() => { fetchVendors(); fetchProducts(); }, []);
 
@@ -69,14 +77,16 @@ export default function VendorsPage() {
   function addVendorProduct() {
     setForm((prev) => ({
       ...prev,
-      products: [...prev.products, { product: "", productName: "", price: 0, packType: "unit", qtyPerPack: 1 }],
+      products: [...prev.products, createEmptyVendorProduct()],
     }));
   }
 
   function removeVendorProduct(idx) {
     setForm((prev) => ({
       ...prev,
-      products: prev.products.filter((_, i) => i !== idx),
+      products: prev.products.filter((_, i) => i !== idx).length > 0
+        ? prev.products.filter((_, i) => i !== idx)
+        : [createEmptyVendorProduct()],
     }));
   }
 
@@ -125,11 +135,15 @@ export default function VendorsPage() {
       }
       setShowForm(false);
       setEditingVendor(null);
-      setForm(emptyForm);
+      setForm(createEmptyForm());
       setProductSearchMap({});
       fetchVendors();
     } catch (err) {
-      alert(err.response?.data?.error || "Failed to save vendor");
+      await showAlertDialog({
+        title: "Vendor save failed",
+        message: err.response?.data?.error || "Failed to save vendor",
+        tone: "danger",
+      });
     } finally { setSaving(false); }
   }
 
@@ -139,7 +153,11 @@ export default function VendorsPage() {
       setDeleteConfirm(null);
       fetchVendors();
     } catch (err) {
-      alert(err.response?.data?.error || "Failed to delete vendor");
+      await showAlertDialog({
+        title: "Vendor delete failed",
+        message: err.response?.data?.error || "Failed to delete vendor",
+        tone: "danger",
+      });
     }
   }
 
@@ -155,13 +173,15 @@ export default function VendorsPage() {
       accountName: vendor.accountName || "",
       accountNumber: vendor.accountNumber || "",
       isActive: vendor.isActive !== false,
-      products: (vendor.products || []).map((p) => ({
-        product: p.product?._id || p.product || "",
-        productName: p.productName || p.product?.name || "",
-        price: p.price || 0,
-        packType: p.packType || "unit",
-        qtyPerPack: p.qtyPerPack || 1,
-      })),
+      products: (vendor.products || []).length > 0
+        ? (vendor.products || []).map((p) => ({
+            product: p.product?._id || p.product || "",
+            productName: p.productName || p.product?.name || "",
+            price: p.price || 0,
+            packType: p.packType || "unit",
+            qtyPerPack: p.qtyPerPack || 1,
+          }))
+        : [createEmptyVendorProduct()],
     });
     setEditingVendor(vendor);
     setProductSearchMap({});
@@ -169,7 +189,7 @@ export default function VendorsPage() {
   }
 
   function openAdd() {
-    setForm(emptyForm);
+    setForm(createEmptyForm());
     setEditingVendor(null);
     setProductSearchMap({});
     setShowForm(true);
@@ -196,11 +216,15 @@ export default function VendorsPage() {
     }, 100);
   }
 
-  function handleOrderFormSubmit(e) {
+  async function handleOrderFormSubmit(e) {
     e.preventDefault();
     const validProducts = orderForm.products.filter((p) => p.name && p.quantity > 0);
     if (validProducts.length === 0) {
-      alert("Please add at least one product with quantity");
+      await showAlertDialog({
+        title: "No products ready",
+        message: "Please add at least one product with quantity.",
+        tone: "warning",
+      });
       return;
     }
     const newOrders = validProducts.map((prod) => ({
@@ -242,11 +266,19 @@ export default function VendorsPage() {
         grandTotal: orders.reduce((sum, o) => sum + o.total, 0),
       };
       await apiClient.post("/api/purchase-orders", payload);
-      alert("Purchase order submitted successfully!");
+        await showAlertDialog({
+          title: "Order submitted",
+          message: "Purchase order submitted successfully.",
+          tone: "success",
+        });
       setOrders([]);
       setSelectedVendor(null);
     } catch (err) {
-      alert(err.response?.data?.error || "Failed to submit order");
+        await showAlertDialog({
+          title: "Order submission failed",
+          message: err.response?.data?.error || "Failed to submit order",
+          tone: "danger",
+        });
     } finally {
       setSubmitting(false);
     }
@@ -525,11 +557,17 @@ export default function VendorsPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => {
-                          if (confirm("Clear the entire form?")) {
-                            setSelectedVendor(null);
-                            setOrders([]);
-                          }
+                        onClick={async () => {
+                          const shouldClear = await showConfirmDialog({
+                            title: "Clear vendor order form?",
+                            message: "This will remove the current staged order lines.",
+                            tone: "warning",
+                            confirmLabel: "Clear form",
+                            cancelLabel: "Keep editing",
+                          });
+                          if (!shouldClear) return;
+                          setSelectedVendor(null);
+                          setOrders([]);
                         }}
                         className="text-sm text-red-600 bg-red-100 hover:bg-red-200 px-3 py-1 rounded"
                       >
@@ -755,7 +793,7 @@ export default function VendorsPage() {
                           <input
                             type="text"
                             placeholder="Search or select product..."
-                            value={vp.productName || ""}
+                            value={productSearchMap[i] ?? vp.productName ?? ""}
                             onChange={(e) => {
                               updateVendorProduct(i, "productName", e.target.value);
                               updateVendorProduct(i, "product", "");
@@ -844,7 +882,7 @@ export default function VendorsPage() {
               </div>
 
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => { setShowForm(false); setEditingVendor(null); setProductSearchMap({}); }} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+                <button type="button" onClick={() => { setShowForm(false); setEditingVendor(null); setProductSearchMap({}); setForm(createEmptyForm()); }} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
                 <button type="submit" disabled={saving} className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium text-white transition ${saving ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}>
                   {saving ? "Saving..." : editingVendor ? "Update Vendor" : "Add Vendor"}
                 </button>

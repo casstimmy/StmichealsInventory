@@ -4,6 +4,7 @@ import { Bar } from "react-chartjs-2";
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/router";
 import { apiClient } from "@/lib/api-client";
+import { showAlertDialog } from "@/lib/dialogs";
 import { motion } from "framer-motion";
 import { Loader } from "@/components/ui";
 import useProgress from "@/lib/useProgress";
@@ -284,9 +285,17 @@ export default function Home() {
   const handleDailyMail = async () => {
     try {
       const response = await apiClient.post("/api/daily-mail");
-      alert(`✅ Daily email sent successfully!\n\nSent to: ${response.data.sentTo}`);
+      await showAlertDialog({
+        title: "Daily email sent",
+        message: `Sent to: ${response.data.sentTo}`,
+        tone: "success",
+      });
     } catch (error) {
-      alert(`❌ Failed to send daily email\n\n${error.response?.data?.error || error.message}`);
+      await showAlertDialog({
+        title: "Daily email failed",
+        message: error.response?.data?.error || error.message,
+        tone: "danger",
+      });
     }
   };
 

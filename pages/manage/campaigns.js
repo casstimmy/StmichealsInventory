@@ -2,6 +2,8 @@
 
 import Layout from "@/components/Layout";
 import Link from "next/link";
+import { showConfirmDialog } from "@/lib/dialogs";
+import { showToastMessage } from "@/lib/toast-state";
 import { useState, useEffect } from "react";
 
 export default function CampaignsPage() {
@@ -25,6 +27,18 @@ export default function CampaignsPage() {
   useEffect(() => {
     fetchCampaigns();
   }, []);
+
+  useEffect(() => {
+    if (!error) return;
+    showToastMessage({ title: "Campaigns", text: error, fallbackTone: "danger" });
+    setError("");
+  }, [error]);
+
+  useEffect(() => {
+    if (!success) return;
+    showToastMessage({ title: "Campaigns", text: success, fallbackTone: "success" });
+    setSuccess("");
+  }, [success]);
 
   async function fetchCampaigns() {
     try {
@@ -85,8 +99,15 @@ export default function CampaignsPage() {
     setShowForm(true);
   }
 
-  function handleDelete(id) {
-    if (!confirm("Are you sure you want to delete this campaign?")) return;
+  async function handleDelete(id) {
+    const shouldDelete = await showConfirmDialog({
+      title: "Delete campaign?",
+      message: "This campaign will be removed permanently.",
+      tone: "danger",
+      confirmLabel: "Delete campaign",
+      cancelLabel: "Keep campaign",
+    });
+    if (!shouldDelete) return;
     const updated = campaigns.filter(c => c.id !== id);
     setCampaigns(updated);
     localStorage.setItem("campaigns", JSON.stringify(updated));
@@ -123,18 +144,6 @@ export default function CampaignsPage() {
               + Create Campaign
             </button>
           </div>
-
-          {/* Alerts */}
-          {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
-              {error}
-            </div>
-          )}
-          {success && (
-            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800">
-              {success}
-            </div>
-          )}
 
           {/* Form */}
           {showForm && (

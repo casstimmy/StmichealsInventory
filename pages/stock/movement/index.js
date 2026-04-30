@@ -6,6 +6,7 @@ import { faPlus, faSearch, faFilter, faCheckCircle, faClock, faTimes, faXmark, f
 import Loader from "@/components/Loader";
 import useProgress from "@/lib/useProgress";
 import { formatCurrency } from "@/lib/format";
+import { showToastMessage } from "@/lib/toast-state";
 
 const reasons = [
   "* All Reasons",
@@ -13,6 +14,7 @@ const reasons = [
   "Return",
   "Transfer",
   "Adjustment",
+  "Operational Loss",
 ];
 const statuses = ["All Statuses", "Pending", "Sent", "Received"];
 
@@ -113,6 +115,12 @@ export default function StockMovement() {
     fetchStockMovements();
   }, []);
 
+  useEffect(() => {
+    if (!error) return;
+    showToastMessage({ title: "Stock movements", text: error, fallbackTone: "danger" });
+    setError(null);
+  }, [error]);
+
   const parseDate = (dateStr) => (dateStr ? new Date(dateStr) : null);
 
   const filteredMovements = movements.filter((item) => {
@@ -169,7 +177,7 @@ export default function StockMovement() {
         <div className="page-header flex-row items-center justify-between">
           <div>
             <h1 className="page-title">Stock Movements</h1>
-            <p className="page-subtitle">Track and manage inventory transfers between locations</p>
+            <p className="page-subtitle">Track transfers, adjustments, and operational stock losses</p>
           </div>
           <Link href="../stock/add">
             <button className="btn-action btn-action-primary flex items-center gap-2">
@@ -178,12 +186,6 @@ export default function StockMovement() {
             </button>
           </Link>
         </div>
-
-        {error && (
-          <div className="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
-            <p className="text-red-800 font-medium">{error}</p>
-          </div>
-        )}
 
         {loading ? (
           <div className="content-card flex items-center justify-center min-h-96">

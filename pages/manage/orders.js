@@ -8,6 +8,7 @@ import Loader from "@/components/Loader";
 import useProgress from "@/lib/useProgress";
 import { formatCurrency } from "@/lib/format";
 import { apiClient } from "@/lib/api-client";
+import { showConfirmDialog } from "@/lib/dialogs";
 import { useAuth } from "@/lib/useAuth";
 
 const STATUS_OPTIONS = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"];
@@ -154,9 +155,13 @@ export default function OrderInventoryPage() {
 
   const handleDeleteOrder = async (order) => {
     if (!order?._id) return;
-    const shouldDelete = window.confirm(
-      `Delete cancelled order ${order._id.slice(-8)}? This cannot be undone.`
-    );
+    const shouldDelete = await showConfirmDialog({
+      title: `Delete order ${order._id.slice(-8)}?`,
+      message: "This cancelled order will be deleted permanently.",
+      tone: "danger",
+      confirmLabel: "Delete order",
+      cancelLabel: "Keep order",
+    });
     if (!shouldDelete) return;
 
     setBusyOrderId(order._id);

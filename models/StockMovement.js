@@ -28,7 +28,7 @@ const StockMovementSchema = new Schema(
     reason: { 
       type: String, 
       required: true,
-      enum: ["Restock", "Transfer", "Return", "Adjustment"],
+      enum: ["Restock", "Transfer", "Return", "Adjustment", "Operational Loss"],
     },
 
     status: {

@@ -27,6 +27,155 @@ const NOTICE_CLASS = {
   error: "bg-red-50 border-red-200 text-red-700",
 };
 
+function createNotice(type, title, text) {
+  return { type, title, text };
+}
+
+function getOrderReference(order) {
+  const orderId = order?._id ? String(order._id) : "";
+  return orderId ? `Order ${orderId.slice(-8)}` : "This order";
+}
+
+function getApiErrorMessage(error) {
+  return String(
+    error?.response?.data?.error || error?.response?.data?.message || ""
+  ).trim();
+}
+
+function getOrderErrorNotice({ error, action, order, nextStatus }) {
+  const apiError = getApiErrorMessage(error);
+  const orderRef = getOrderReference(order);
+
+  if (action === "load") {
+    if (apiError === "Insufficient permissions") {
+      return createNotice(
+        "error",
+        "Orders unavailable",
+        "You do not have permission to view orders from this page."
+      );
+    }
+
+    return createNotice(
+      "error",
+      "Couldn't load orders",
+      "We couldn't load the order list right now. Refresh the page and try again."
+    );
+  }
+
+  if (action === "status") {
+    if (apiError === "Order not found") {
+      return createNotice(
+        "error",
+        "Order not found",
+        `${orderRef} could not be found. Refresh the list and try again.`
+      );
+    }
+
+    if (apiError === "Status is required") {
+      return createNotice(
+        "error",
+        "Status not selected",
+        "Choose a valid order status before saving."
+      );
+    }
+
+    if (apiError.startsWith("Invalid status:")) {
+      return createNotice(
+        "error",
+        "Invalid status",
+        "The selected order status is not supported. Refresh the page and try again."
+      );
+    }
+
+    if (apiError === "Order already marked as Delivered") {
+      return createNotice(
+        "warning",
+        "Order already delivered",
+        `${orderRef} is already marked as Delivered.`
+      );
+    }
+
+    if (apiError === "Insufficient permissions") {
+      return createNotice(
+        "error",
+        "Status update blocked",
+        "You do not have permission to update this order."
+      );
+    }
+
+    return createNotice(
+      "error",
+      "Status update failed",
+      `We couldn't change ${orderRef} to ${nextStatus}. Please try again.`
+    );
+  }
+
+  if (action === "delete") {
+    if (apiError === "Order not found") {
+      return createNotice(
+        "error",
+        "Order not found",
+        `${orderRef} no longer exists. Refresh the list to see the latest orders.`
+      );
+    }
+
+    if (apiError === "Admin access required") {
+      return createNotice(
+        "error",
+        "Delete blocked",
+        "Only admins can delete cancelled orders."
+      );
+    }
+
+    if (apiError === "Only cancelled orders can be deleted") {
+      return createNotice(
+        "warning",
+        "Delete blocked",
+        `${orderRef} must be cancelled before it can be deleted.`
+      );
+    }
+
+    return createNotice(
+      "error",
+      "Delete failed",
+      `We couldn't delete ${orderRef}. Please try again.`
+    );
+  }
+
+  return createNotice(
+    "error",
+    "Order action failed",
+    "Please try again."
+  );
+}
+
+function getStatusSuccessNotice({ order, newStatus, emailState = "skipped" }) {
+  const orderRef = getOrderReference(order);
+  const details = [`${orderRef} is now ${newStatus}.`];
+
+  if (newStatus === "Delivered") {
+    details.push("Inventory and sales records were updated.");
+  }
+
+  if (newStatus === "Cancelled") {
+    details.push("This order can now be deleted if needed.");
+  }
+
+  if (emailState === "sent") {
+    details.push("A status email was sent to the customer.");
+  }
+
+  if (emailState === "failed") {
+    details.push("The order was updated, but the customer email could not be sent.");
+  }
+
+  return createNotice(
+    emailState === "failed" ? "warning" : "success",
+    emailState === "failed" ? "Order updated, email not sent" : "Order updated",
+    details.join(" ")
+  );
+}
+
 function getOrderCustomerDetails(order) {
   const customer = order?.customer || {};
   const shippingDetails = order?.shippingDetails || {};
@@ -105,10 +254,7 @@ export default function OrderInventoryPage() {
       console.error("Failed to fetch orders:", error);
       setOrders([]);
       setTotalPages(1);
-      setMessage({
-        type: "error",
-        text: error?.response?.data?.error || "Failed to load orders.",
-      });
+      setMessage(getOrderErrorNotice({ error, action: "load" }));
     } finally {
       setLoading(false);
       setInitialLoad(false);
@@ -137,20 +283,19 @@ export default function OrderInventoryPage() {
         )
       );
 
-      let nextMessage = `Order status updated to ${newStatus}.`;
-      let nextType = "success";
+      let emailState = "skipped";
+      const emailRecipient = order.customer?.email || order.shippingDetails?.email;
 
-      if (order.customer?.email) {
+      if (emailRecipient) {
         try {
           await apiClient.post("/api/send-email", {
-            to: order.customer.email,
+            to: emailRecipient,
             status: newStatus,
             customer: buildEmailPayload({ ...order, ...updatedOrder }, newStatus),
           });
-          nextMessage = `${nextMessage} Email sent.`;
+          emailState = "sent";
         } catch (emailError) {
-          nextType = "warning";
-          nextMessage = `${nextMessage} Email was not sent.`;
+          emailState = "failed";
           console.error("Order email failed:", emailError);
         }
       }
@@ -159,13 +304,21 @@ export default function OrderInventoryPage() {
         setExpandedOrderId(order._id);
       }
 
-      setMessage({ type: nextType, text: nextMessage });
+      setMessage(
+        getStatusSuccessNotice({
+          order: { ...order, ...updatedOrder },
+          newStatus,
+          emailState,
+        })
+      );
     } catch (error) {
       console.error("Failed to update status:", error);
-      setMessage({
-        type: "error",
-        text: error?.response?.data?.error || "Failed to update order status.",
-      });
+      setMessage(getOrderErrorNotice({
+        error,
+        action: "status",
+        order,
+        nextStatus: newStatus,
+      }));
     } finally {
       setBusyOrderId(null);
     }
@@ -193,13 +346,16 @@ export default function OrderInventoryPage() {
       if (isLastOrderOnPage) {
         setCurrentPage((prev) => Math.max(1, prev - 1));
       }
-      setMessage({ type: "success", text: "Order deleted successfully." });
+      setMessage(
+        createNotice(
+          "success",
+          "Order deleted",
+          `${getOrderReference(order)} was deleted successfully.`
+        )
+      );
     } catch (error) {
       console.error("Failed to delete order:", error);
-      setMessage({
-        type: "error",
-        text: error?.response?.data?.error || "Failed to delete order.",
-      });
+      setMessage(getOrderErrorNotice({ error, action: "delete", order }));
     } finally {
       setBusyOrderId(null);
     }
@@ -220,8 +376,9 @@ export default function OrderInventoryPage() {
             </div>
 
             {message?.text && (
-              <div className={clsx("mb-6 rounded-lg border px-4 py-3 text-sm font-medium", NOTICE_CLASS[message.type] || NOTICE_CLASS.success)}>
-                {message.text}
+              <div className={clsx("mb-6 rounded-lg border px-4 py-3", NOTICE_CLASS[message.type] || NOTICE_CLASS.success)}>
+                {message?.title ? <p className="text-sm font-semibold">{message.title}</p> : null}
+                <p className={clsx("text-sm", message?.title ? "mt-1" : "font-medium")}>{message.text}</p>
               </div>
             )}
 

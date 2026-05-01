@@ -3,6 +3,7 @@ import Loader from "@/components/Loader";
 import useProgress from "@/lib/useProgress";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { isInTimeRange } from "@/lib/dateFilter";
+import { aggregateProductSales } from "@/lib/product-sales-report";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Bar } from "react-chartjs-2";
@@ -52,17 +53,7 @@ export default function ProductsSales() {
         return tx.status === "completed" && isInTimeRange(tx.createdAt, timeRange);
       });
 
-      const productMap = {};
-      filteredTx.forEach((tx) => {
-        (tx.items || []).forEach((item) => {
-          const name = item.name || "Unknown";
-          if (!productMap[name]) productMap[name] = { name, totalSales: 0, unitsSold: 0 };
-          productMap[name].totalSales += (item.salePriceIncTax || item.price || 0) * (item.qty || 0);
-          productMap[name].unitsSold += item.qty || 0;
-        });
-      });
-
-      const products = Object.values(productMap).sort((a, b) => b.totalSales - a.totalSales);
+      const products = aggregateProductSales(filteredTx);
       const totalSales = products.reduce((s, p) => s + p.totalSales, 0);
       const totalUnits = products.reduce((s, p) => s + p.unitsSold, 0);
 

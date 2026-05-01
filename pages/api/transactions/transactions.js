@@ -8,6 +8,7 @@ import {
   applyInventoryDelta,
   toSafeNumber,
 } from "@/lib/transaction-utils";
+import { aggregateProductSales } from "@/lib/product-sales-report";
 import { postSaleEntry } from "@/lib/accounting";
 
 async function connectDB() {
@@ -255,23 +256,13 @@ async function handleGET(req, res) {
         totalTransactions > 0 ? totalSales / totalTransactions : 0,
     };
 
-    const productSalesMap = {};
-    enrichedTransactions.forEach((tx) => {
-      if (!tx.items || !Array.isArray(tx.items)) return;
-      tx.items.forEach((item) => {
-        if (!item || !item.name) return;
-        if (!productSalesMap[item.name]) {
-          productSalesMap[item.name] = { qty: 0, total: 0 };
-        }
-        const price = item.salePriceIncTax || item.price || 0;
-        const qty = item.qty || item.quantity || 0;
-        productSalesMap[item.name].qty += qty;
-        productSalesMap[item.name].total += qty * price;
-      });
-    });
-
-    const topProducts = Object.entries(productSalesMap)
-      .map(([name, data]) => ({ name, ...data }))
+    const topProducts = aggregateProductSales(enrichedTransactions)
+      .map((product) => ({
+        productId: product.productId,
+        name: product.name,
+        qty: product.unitsSold,
+        total: product.totalSales,
+      }))
       .sort((a, b) => b.qty - a.qty)
       .slice(0, 10);
 

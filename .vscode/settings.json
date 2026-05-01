@@ -119,6 +119,14 @@
         "/^npx eslint components/AccessDeniedState\\.js components/Layout\\.js pages/setup/users\\.js pages/404\\.js pages/500\\.js models/PendingTransactionAction\\.js models/Till\\.js$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^node --input-type=module -e \"import \\{ aggregateProductSales \\} from '\\./lib/product-sales-report\\.js'; const transactions = \\[\\{ items: \\[\\{ productId: '507f1f77bcf86cd799439011', name: 'Cway bottle water \\(Pack\\)', qty: 2, salePriceIncTax: 100 \\}\\] \\}, \\{ items: \\[\\{ productId: '507f1f77bcf86cd799439011', name: 'Cway bottle water \\(Pack of 12\\)', qty: 3, salePriceIncTax: 100 \\}\\] \\}\\]; console\\.log\\(JSON\\.stringify\\(aggregateProductSales\\(transactions\\), null, 2\\)\\);\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^node --input-type=module -e \"import 'dotenv/config'; import \\{ mongooseConnect \\} from '\\./lib/mongodb\\.js'; import Transaction from '\\./models/Transactions\\.js'; import \\{ aggregateProductSales \\} from '\\./lib/product-sales-report\\.js'; await mongooseConnect\\(\\); const transactions = await Transaction\\.find\\(\\{ status: 'completed', 'items\\.name': /cway bottle water/i \\}\\)\\.sort\\(\\{ createdAt: -1 \\}\\)\\.lean\\(\\); const rawItems = \\[\\]; for \\(const tx of transactions\\) \\{ const items = Array\\.isArray\\(tx\\.items\\) \\? tx\\.items : \\[\\]; for \\(const item of items\\) \\{ const itemName = item ; item\\.name \\? String\\(item\\.name\\) : ''; if \\(!/cway bottle water/i\\.test\\(itemName\\)\\) continue; const productId = item ; item\\.productId \\? \\(typeof item\\.productId\\.toString === 'function' \\? item\\.productId\\.toString\\(\\) : String\\(item\\.productId\\)\\) : null; const qtyValue = item ; item\\.qty != null \\? Number\\(item\\.qty\\) : item ; item\\.quantity != null \\? Number\\(item\\.quantity\\) : 0; const priceValue = item ; item\\.salePriceIncTax != null \\? Number\\(item\\.salePriceIncTax\\) : item ; item\\.price != null \\? Number\\(item\\.price\\) : 0; rawItems\\.push\\(\\{ productId, name: itemName, qty: Number\\.isFinite\\(qtyValue\\) \\? qtyValue : 0, price: Number\\.isFinite\\(priceValue\\) \\? priceValue : 0 \\}\\); \\} \\} const grouped = aggregateProductSales\\(transactions\\)\\.filter\\(\\(item\\) => /cway bottle water/i\\.test\\(String\\(item\\.name ; ''\\)\\)\\); console\\.log\\(JSON\\.stringify\\(\\{ rawItems: rawItems\\.slice\\(0, 10\\), grouped \\}, null, 2\\)\\); process\\.exit\\(0\\);\"$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     }
 }

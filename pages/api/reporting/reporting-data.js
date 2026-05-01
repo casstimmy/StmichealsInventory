@@ -1,4 +1,5 @@
 import { mongooseConnect } from "@/lib/mongodb";
+import { aggregateProductSales } from "@/lib/product-sales-report";
 import Transaction from "@/models/Transactions";
 import Product from "@/models/Product";
 import Store from "@/models/Store";
@@ -112,7 +113,6 @@ export default async function handler(req, res) {
     const txMap = {};
     const salesByLocation = {};
     const salesByTender = {};
-    const productSales = {};
 
     let totalSales = 0;
     let totalTransactions = 0;
@@ -149,12 +149,6 @@ export default async function handler(req, res) {
           (salesByTender[tx.tenderType] || 0) + tx.total;
       }
 
-      tx.items?.forEach((item) => {
-        if (!item.name) return;
-        productSales[item.name] =
-          (productSales[item.name] || 0) + (item.qty || 0);
-      });
-
       totalSales += tx.total || 0;
       totalTransactions += 1;
     }
@@ -168,7 +162,8 @@ export default async function handler(req, res) {
     /* ---------------------------------------------
        BEST SELLING PRODUCTS
     ---------------------------------------------- */
-    const bestSellingProducts = Object.entries(productSales)
+    const bestSellingProducts = aggregateProductSales(transactions)
+      .map((product) => [product.name, product.unitsSold])
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5);
 

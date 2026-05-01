@@ -39,6 +39,16 @@ const HotelBookingSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
+    roomRate: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    totalAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     nights: {
       type: Number,
       required: true,
@@ -71,6 +81,15 @@ const HotelBookingSchema = new mongoose.Schema(
     },
     cancelledAt: {
       type: Date,
+      default: null,
+    },
+    completedAt: {
+      type: Date,
+      default: null,
+    },
+    transactionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Transaction",
       default: null,
     },
   },

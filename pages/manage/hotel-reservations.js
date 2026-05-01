@@ -6,6 +6,7 @@ import { Search } from "lucide-react";
 import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
 import { apiClient } from "@/lib/api-client";
+import { formatCurrency } from "@/lib/format";
 
 const STATUS_OPTIONS = ["requested", "confirmed", "cancelled", "completed"];
 
@@ -52,6 +53,72 @@ function buildReservationDetail(reservation) {
     label: `${formatDate(reservation.reservationDate)} at ${reservation.reservationTime}`,
     meta: `Party of ${reservation.partySize}${reservation.areaPreference ? ` · ${reservation.areaPreference}` : ""}`,
     note: reservation.occasion || "Lounge reservation",
+  };
+}
+
+function getStayRevenueAmount(reservation) {
+  const totalAmount = Number(reservation?.totalAmount || 0);
+  if (Number.isFinite(totalAmount) && totalAmount > 0) {
+    return totalAmount;
+  }
+
+  const roomRate = Number(reservation?.roomRate || 0);
+  const nights = Number(reservation?.nights || 0);
+  const derivedAmount = roomRate * nights;
+
+  return Number.isFinite(derivedAmount) && derivedAmount > 0 ? derivedAmount : 0;
+}
+
+function getRevenueBadgeState(reservation) {
+  if (reservation.kind !== "stay") {
+    return {
+      label: "N/A",
+      detail: "Tracked only for stay bookings",
+      badgeClass: "bg-slate-100 text-slate-600",
+    };
+  }
+
+  const totalAmount = getStayRevenueAmount(reservation);
+
+  if (reservation.status === "completed" && reservation.transactionId) {
+    return {
+      label: "Recorded",
+      detail: `${formatCurrency(totalAmount)} completed${reservation.completedAt ? ` · ${formatDate(reservation.completedAt)}` : ""}`,
+      badgeClass: "bg-emerald-100 text-emerald-700",
+    };
+  }
+
+  if (reservation.status === "completed") {
+    return {
+      label: totalAmount > 0 ? "Missing transaction" : "Missing rate",
+      detail:
+        totalAmount > 0
+          ? `${formatCurrency(totalAmount)} expected but not linked`
+          : "Link this stay to a priced room before completing",
+      badgeClass: "bg-amber-100 text-amber-700",
+    };
+  }
+
+  if (reservation.status === "cancelled") {
+    return {
+      label: "Not recorded",
+      detail: "Cancelled stays do not count as completed revenue",
+      badgeClass: "bg-slate-100 text-slate-600",
+    };
+  }
+
+  if (totalAmount > 0) {
+    return {
+      label: "Pending completion",
+      detail: `${formatCurrency(totalAmount)} will be recorded when completed`,
+      badgeClass: "bg-sky-100 text-sky-700",
+    };
+  }
+
+  return {
+    label: "Needs room rate",
+    detail: "Link this stay to a priced room product first",
+    badgeClass: "bg-rose-100 text-rose-700",
   };
 }
 
@@ -169,16 +236,27 @@ export default function HotelReservationsPage() {
       });
 
       const emailState = updatedReservation?.emailState || "skipped";
+      const transactionState = updatedReservation?.transactionState || "skipped";
+      const transactionTotal = Number(updatedReservation?.transactionTotal || 0);
+      let transactionMessage = "";
+
+      if (reservation.kind === "stay" && nextStatus === "completed") {
+        if (transactionState === "created" || transactionState === "updated") {
+          transactionMessage = ` Room revenue of ${formatCurrency(transactionTotal)} was recorded as a completed transaction.`;
+        }
+      } else if (reservation.kind === "stay" && transactionState === "removed") {
+        transactionMessage = " The completed room transaction was removed because this stay is no longer marked as completed.";
+      }
 
       setMessage({
         type: emailState === "failed" ? "warning" : "success",
         title: emailState === "failed" ? "Reservation updated, email not sent" : "Reservation updated",
         text:
           emailState === "sent"
-            ? `${reservation.reference} is now marked as ${nextStatus}. A guest email was sent.`
+            ? `${reservation.reference} is now marked as ${nextStatus}. A guest email was sent.${transactionMessage}`
             : emailState === "failed"
-              ? `${reservation.reference} is now marked as ${nextStatus}, but the guest email could not be sent.`
-              : `${reservation.reference} is now marked as ${nextStatus}.`,
+              ? `${reservation.reference} is now marked as ${nextStatus}, but the guest email could not be sent.${transactionMessage}`
+              : `${reservation.reference} is now marked as ${nextStatus}.${transactionMessage}`,
       });
       await fetchReservations();
     } catch (error) {
@@ -299,25 +377,27 @@ export default function HotelReservationsPage() {
                       <th className="px-4 py-3 text-left font-semibold text-slate-600">Reservation</th>
                       <th className="px-4 py-3 text-left font-semibold text-slate-600">Submitted</th>
                       <th className="px-4 py-3 text-left font-semibold text-slate-600">Status</th>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-600">Revenue</th>
                       <th className="px-4 py-3 text-left font-semibold text-slate-600">Update</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 bg-white">
                     {loading ? (
                       <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center">
+                        <td colSpan={7} className="px-4 py-8 text-center">
                           <Loader size="sm" text="Refreshing reservations..." />
                         </td>
                       </tr>
                     ) : reservations.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                        <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
                           No hotel reservations matched the current filters.
                         </td>
                       </tr>
                     ) : (
                       reservations.map((reservation) => {
                         const detail = buildReservationDetail(reservation);
+                        const revenueState = getRevenueBadgeState(reservation);
                         const isBusy = busyReservationId === reservation._id;
                         const nextStatus = draftStatusById[reservation._id] || reservation.status;
 
@@ -350,6 +430,14 @@ export default function HotelReservationsPage() {
                               <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${STATUS_CLASS[reservation.status] || STATUS_CLASS.requested}`}>
                                 {reservation.status}
                               </span>
+                            </td>
+                            <td className="px-4 py-4">
+                              <div className="flex min-w-[210px] flex-col gap-2">
+                                <span className={`inline-flex w-fit rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${revenueState.badgeClass}`}>
+                                  {revenueState.label}
+                                </span>
+                                <p className="text-xs text-slate-500">{revenueState.detail}</p>
+                              </div>
                             </td>
                             <td className="px-4 py-4">
                               <div className="flex min-w-[190px] flex-col gap-2">

@@ -1,0 +1,228 @@
+import mongoose from "mongoose";
+import { mongooseConnect } from "@/lib/mongodb";
+import { authMiddleware, isStaff } from "@/lib/auth-middleware";
+import { createMailTransport, getMailFromAddress } from "@/lib/mail";
+import HotelBooking from "@/models/HotelBooking";
+import HotelTableReservation from "@/models/HotelTableReservation";
+import Store from "@/models/Store";
+
+const STATUS_OPTIONS = ["requested", "confirmed", "cancelled", "completed"];
+
+function normalizeString(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function serializeStayReservation(reservation) {
+  return {
+    _id: String(reservation._id),
+    kind: "stay",
+    reference: String(reservation._id),
+    guestName: reservation.guestName,
+    email: reservation.email,
+    phone: reservation.phone,
+    status: reservation.status,
+    roomName: reservation.roomName || "Any available room",
+    checkInDate: reservation.checkInDate,
+    checkOutDate: reservation.checkOutDate,
+    nights: reservation.nights,
+    adults: reservation.adults,
+    children: reservation.children,
+    preferredArrivalTime: reservation.preferredArrivalTime,
+    specialRequests: reservation.specialRequests,
+    createdAt: reservation.createdAt,
+    updatedAt: reservation.updatedAt,
+  };
+}
+
+function serializeTableReservation(reservation) {
+  return {
+    _id: String(reservation._id),
+    kind: "table",
+    reference: String(reservation._id),
+    guestName: reservation.guestName,
+    email: reservation.email,
+    phone: reservation.phone,
+    status: reservation.status,
+    reservationDate: reservation.reservationDate,
+    reservationTime: reservation.reservationTime,
+    partySize: reservation.partySize,
+    areaPreference: reservation.areaPreference,
+    occasion: reservation.occasion,
+    specialRequests: reservation.specialRequests,
+    createdAt: reservation.createdAt,
+    updatedAt: reservation.updatedAt,
+  };
+}
+
+function getStatusEmailContent({ kind, reservation, store }) {
+  const companyLabel =
+    store?.companyName ||
+    store?.storeName ||
+    "St Michael's Hotel";
+  const supportEmail = store?.email || process.env.EMAIL_USER || "the hotel team";
+  const supportPhone = store?.storePhone || "our reservations desk";
+  const guestName = reservation.guestName || "Guest";
+  const titlePrefix = kind === "stay" ? "stay request" : "table reservation";
+  const summaryLines =
+    kind === "stay"
+      ? [
+          `Reference: ${reservation._id}`,
+          `Room: ${reservation.roomName || "Any available room"}`,
+          `Stay: ${reservation.checkInDate.toISOString().slice(0, 10)} to ${reservation.checkOutDate.toISOString().slice(0, 10)}`,
+          `Guests: ${reservation.adults} adult${reservation.adults === 1 ? "" : "s"}${reservation.children ? `, ${reservation.children} child${reservation.children === 1 ? "" : "ren"}` : ""}`,
+          reservation.preferredArrivalTime ? `Arrival: ${reservation.preferredArrivalTime}` : null,
+          reservation.specialRequests ? `Notes: ${reservation.specialRequests}` : null,
+        ]
+      : [
+          `Reference: ${reservation._id}`,
+          `Date: ${reservation.reservationDate.toISOString().slice(0, 10)}`,
+          `Time: ${reservation.reservationTime}`,
+          `Party size: ${reservation.partySize}`,
+          reservation.areaPreference ? `Area: ${reservation.areaPreference}` : null,
+          reservation.occasion ? `Occasion: ${reservation.occasion}` : null,
+          reservation.specialRequests ? `Notes: ${reservation.specialRequests}` : null,
+        ];
+
+  const summary = summaryLines.filter(Boolean).join("<br/>");
+
+  const contentByStatus = {
+    confirmed: {
+      subject: kind === "stay" ? "Your hotel stay has been confirmed" : "Your lounge reservation has been confirmed",
+      heading: kind === "stay" ? "Your stay is confirmed" : "Your table is confirmed",
+      message:
+        kind === "stay"
+          ? `We have confirmed your ${titlePrefix}. Our team will be ready for your arrival.`
+          : `We have confirmed your ${titlePrefix}. Your table has been reserved by the hotel team.`,
+      color: "#059669",
+    },
+    completed: {
+      subject: kind === "stay" ? "Your hotel stay has been completed" : "Your lounge reservation has been completed",
+      heading: kind === "stay" ? "Your stay is marked completed" : "Your reservation is marked completed",
+      message:
+        kind === "stay"
+          ? `Your ${titlePrefix} has been marked as completed. Thank you for staying with ${companyLabel}.`
+          : `Your ${titlePrefix} has been marked as completed. Thank you for dining with ${companyLabel}.`,
+      color: "#1d4ed8",
+    },
+    cancelled: {
+      subject: kind === "stay" ? "Your hotel stay has been cancelled" : "Your lounge reservation has been cancelled",
+      heading: kind === "stay" ? "Your stay was cancelled" : "Your reservation was cancelled",
+      message: `Your ${titlePrefix} has been cancelled by the hotel team. Contact us if you need to reschedule or submit a new request.`,
+      color: "#dc2626",
+    },
+  };
+
+  const selectedContent = contentByStatus[reservation.status];
+  if (!selectedContent) {
+    return null;
+  }
+
+  return {
+    subject: selectedContent.subject,
+    html: `
+      <div style="font-family: 'Segoe UI', sans-serif; background: #f8fafc; padding: 20px;">
+        <div style="max-width: 640px; margin: auto; background: #ffffff; border-radius: 14px; overflow: hidden; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);">
+          <div style="background: ${selectedContent.color}; color: white; padding: 24px; text-align: center;">
+            <h1 style="margin: 0; font-size: 24px;">${companyLabel}</h1>
+            <p style="margin: 8px 0 0; font-size: 15px; opacity: 0.9;">${selectedContent.heading}</p>
+          </div>
+          <div style="padding: 24px; color: #0f172a; line-height: 1.6;">
+            <p>Hi <strong>${guestName}</strong>,</p>
+            <p>${selectedContent.message}</p>
+            <div style="margin-top: 20px; padding: 16px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0;">
+              ${summary}
+            </div>
+            <p style="margin-top: 20px;">If you need help, contact us via ${supportEmail} or ${supportPhone}.</p>
+          </div>
+        </div>
+      </div>
+    `,
+  };
+}
+
+async function sendReservationStatusEmail({ kind, reservation }) {
+  const transport = createMailTransport();
+  if (!transport) {
+    return "skipped";
+  }
+
+  const store = await Store.findOne({}).select("companyName storeName email storePhone").lean();
+  const content = getStatusEmailContent({ kind, reservation, store });
+  if (!content) {
+    return "skipped";
+  }
+
+  try {
+    await transport.sendMail({
+      from: getMailFromAddress(store?.companyName || store?.storeName || "St Michael's Hotel"),
+      to: reservation.email,
+      subject: content.subject,
+      html: content.html,
+    });
+    return "sent";
+  } catch (error) {
+    console.error("Hotel admin status email failed:", error);
+    return "failed";
+  }
+}
+
+export default async function handler(req, res) {
+  const authError = authMiddleware(req, res);
+  if (authError) return authError;
+
+  if (!isStaff(req)) {
+    return res.status(403).json({ error: "Insufficient permissions" });
+  }
+
+  if (req.method !== "PUT") {
+    return res.status(405).json({ error: "Method Not Allowed" });
+  }
+
+  await mongooseConnect();
+
+  const reservationId = Array.isArray(req.query.id) ? req.query.id[0] : req.query.id;
+  const kind = normalizeString(req.body.kind || req.query.kind).toLowerCase();
+  const status = normalizeString(req.body.status).toLowerCase();
+
+  if (!reservationId || !mongoose.Types.ObjectId.isValid(reservationId)) {
+    return res.status(400).json({ error: "Reservation id is required" });
+  }
+
+  if (!["stay", "table"].includes(kind)) {
+    return res.status(400).json({ error: "Reservation kind is required" });
+  }
+
+  if (!STATUS_OPTIONS.includes(status)) {
+    return res.status(400).json({ error: `Invalid status: ${status}` });
+  }
+
+  try {
+    const Model = kind === "stay" ? HotelBooking : HotelTableReservation;
+    const reservation = await Model.findById(reservationId);
+
+    if (!reservation) {
+      return res.status(404).json({ error: "Reservation not found" });
+    }
+
+    reservation.status = status;
+    reservation.cancelledAt = status === "cancelled" ? new Date() : null;
+    await reservation.save();
+
+    const emailState = ["confirmed", "completed", "cancelled"].includes(status)
+      ? await sendReservationStatusEmail({ kind, reservation })
+      : "skipped";
+
+    return res.status(200).json({
+      ...(kind === "stay"
+        ? serializeStayReservation(reservation)
+        : serializeTableReservation(reservation)),
+      emailState,
+    });
+  } catch (error) {
+    console.error("Failed to update hotel reservation:", error);
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+}

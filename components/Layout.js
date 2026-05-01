@@ -28,6 +28,7 @@ const ROUTE_PERMISSIONS = {
   "/manage/promotions-management": "manage.customer-promotions",
   "/manage/promotions": "manage.promotions",
   "/manage/orders": "manage.orders",
+  "/manage/hotel-reservations": "manage.orders",
   "/manage/customers": "manage.customers",
   "/manage/campaigns": "manage.campaigns",
   "/manage": "manage",

@@ -342,6 +342,7 @@ export default function Sidebar() {
                   { href: "/manage/promotions", label: "Product Promotions" },
                   { href: "/manage/promotions-management", label: "Campaign Promotions ", indent: false },
                   { href: "/manage/orders", label: "Orders" },
+                  { href: "/manage/hotel-reservations", label: "Hotel Reservations" },
                   { href: "/manage/customers", label: "Customers", indent: false },
                 ].filter(item => {
                   const permMap = {
@@ -351,6 +352,7 @@ export default function Sidebar() {
                     "/manage/promotions": "manage.promotions",
                     "/manage/promotions-management": "manage.customer-promotions",
                     "/manage/orders": "manage.orders",
+                    "/manage/hotel-reservations": "manage.orders",
                     "/manage/customers": "manage.customers",
                   };
                   return canAccess(permMap[item.href] || "manage");

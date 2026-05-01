@@ -12,6 +12,7 @@ import { mutate } from "swr";
 import { useIndexedDBCache, clearCache } from "@/lib/useIndexedDBCache";
 import { getCachedCategories } from "@/lib/categoriesCache";
 import { calculateMarginPercent } from "@/lib/pricing";
+import { apiClient } from "@/lib/api-client";
 import { showAlertDialog, showConfirmDialog } from "@/lib/dialogs";
 import { Loader } from "@/components/ui";
 
@@ -59,9 +60,14 @@ function parsePropertiesInput(value = "") {
     .filter((property) => property.propName);
 }
 
+function normalizeLocationValue(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
 export default function Products() {
   const router = useRouter();
   const fetchProducts = useCallback(() => fetcher("/api/products"), []);
+  const queryLocation = typeof router.query.location === "string" ? router.query.location : "";
 
   // ========== SMART CACHING STRATEGY ==========
   // Products: IndexedDB cache with 30-minute TTL (frequently changes)
@@ -91,6 +97,12 @@ export default function Products() {
   const [selectedCategory, setSelectedCategory] = useState(
     typeof window !== "undefined" ? sessionStorage.getItem("products:categoryFilter") || "all" : "all"
   );
+  const [selectedLocation, setSelectedLocation] = useState(
+    typeof window !== "undefined"
+      ? sessionStorage.getItem("products:locationFilter") || queryLocation || "all"
+      : queryLocation || "all"
+  );
+  const [availableLocations, setAvailableLocations] = useState([]);
 
   // pagination / lazy load
   const [entriesPerPage] = useState(entriesPerPageDefault);
@@ -123,11 +135,40 @@ export default function Products() {
     [categoryMap]
   );
 
-  const applyFilters = useCallback((term, categoryId) => {
+  const locationOptions = useMemo(() => {
+    const seenLocations = new Map();
+
+    [...availableLocations, ...(Array.isArray(allProducts) ? allProducts.flatMap((product) => product.locations || []) : [])]
+      .map((locationValue) => String(locationValue || "").trim())
+      .filter(Boolean)
+      .forEach((locationValue) => {
+        const normalizedValue = normalizeLocationValue(locationValue);
+        if (!seenLocations.has(normalizedValue)) {
+          seenLocations.set(normalizedValue, locationValue);
+        }
+      });
+
+    return Array.from(seenLocations.values()).sort((leftValue, rightValue) => leftValue.localeCompare(rightValue));
+  }, [availableLocations, allProducts]);
+
+  const applyFilters = useCallback((term, categoryId, locationId) => {
     const t = term.trim().toLowerCase();
     const filtered = (Array.isArray(allProducts) ? allProducts : []).filter((p) => {
       const matchesCategory = categoryId === "all" ? true : p.category === categoryId;
       if (!matchesCategory) return false;
+
+      const normalizedLocationFilter = normalizeLocationValue(locationId);
+      const productLocations = Array.isArray(p.locations)
+        ? p.locations.map((locationValue) => normalizeLocationValue(locationValue)).filter(Boolean)
+        : [];
+      const matchesLocation =
+        normalizedLocationFilter === "all"
+          ? true
+          : normalizedLocationFilter === "unassigned"
+            ? productLocations.length === 0
+            : productLocations.includes(normalizedLocationFilter);
+      if (!matchesLocation) return false;
+
       if (!t) return true;
       return [p.name, p.barcode, p.description, categoryMap[p.category]]
         .filter(Boolean)
@@ -149,6 +190,19 @@ export default function Products() {
     const filtered = list.filter((p) => {
       const matchesCategory = selectedCategory === "all" ? true : p.category === selectedCategory;
       if (!matchesCategory) return false;
+
+      const normalizedLocationFilter = normalizeLocationValue(selectedLocation);
+      const productLocations = Array.isArray(p.locations)
+        ? p.locations.map((locationValue) => normalizeLocationValue(locationValue)).filter(Boolean)
+        : [];
+      const matchesLocation =
+        normalizedLocationFilter === "all"
+          ? true
+          : normalizedLocationFilter === "unassigned"
+            ? productLocations.length === 0
+            : productLocations.includes(normalizedLocationFilter);
+      if (!matchesLocation) return false;
+
       if (!t) return true;
       return [p.name, p.barcode, p.description, categoryMap[p.category]]
         .filter(Boolean)
@@ -156,7 +210,7 @@ export default function Products() {
     });
     setFilteredProducts(filtered);
     setIsInitializing(false);
-  }, [cachedProducts, productsLoading, searchTerm, selectedCategory, categoryMap]);
+  }, [cachedProducts, productsLoading, searchTerm, selectedCategory, selectedLocation, categoryMap]);
 
   const loadCategories = useCallback(async () => {
     try {
@@ -174,6 +228,31 @@ export default function Products() {
   useEffect(() => {
     loadCategories();
   }, [loadCategories]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    apiClient.get("/api/setup/get")
+      .then((response) => {
+        if (!isMounted) {
+          return;
+        }
+
+        const storeLocations = Array.isArray(response.data?.store?.locations)
+          ? response.data.store.locations
+              .map((locationValue) => locationValue?.name || locationValue)
+              .map((locationValue) => String(locationValue || "").trim())
+              .filter(Boolean)
+          : [];
+
+        setAvailableLocations(storeLocations);
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     const onFocus = () => loadCategories();
@@ -207,6 +286,17 @@ export default function Products() {
     sessionStorage.setItem("products:categoryFilter", selectedCategory || "all");
   }, [selectedCategory]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    sessionStorage.setItem("products:locationFilter", selectedLocation || "all");
+  }, [selectedLocation]);
+
+  useEffect(() => {
+    if (!queryLocation) return;
+    setSelectedLocation(queryLocation);
+    applyFilters(searchTerm, selectedCategory, queryLocation);
+  }, [queryLocation, applyFilters, searchTerm, selectedCategory]);
+
   // Warm the add-product route bundle to make navigation faster.
   useEffect(() => {
     router.prefetch("/products/new");
@@ -234,9 +324,9 @@ export default function Products() {
   // Debounced search over the cached allProducts (safe - products array guarded)
   const debouncedFilter = useCallback(
     debounce((term) => {
-      applyFilters(term, selectedCategory);
+      applyFilters(term, selectedCategory, selectedLocation);
     }, 250),
-    [applyFilters, selectedCategory]
+    [applyFilters, selectedCategory, selectedLocation]
   );
 
   const handleSearchChange = (e) => {
@@ -248,7 +338,13 @@ export default function Products() {
   const handleCategoryFilterChange = (e) => {
     const value = e.target.value;
     setSelectedCategory(value);
-    applyFilters(searchTerm, value);
+    applyFilters(searchTerm, value, selectedLocation);
+  };
+
+  const handleLocationFilterChange = (e) => {
+    const value = e.target.value;
+    setSelectedLocation(value);
+    applyFilters(searchTerm, selectedCategory, value);
   };
 
   // Inline edit handlers
@@ -469,6 +565,19 @@ export default function Products() {
                 </option>
               ))}
             </select>
+            <select
+              className="form-select max-w-xs"
+              value={selectedLocation}
+              onChange={handleLocationFilterChange}
+            >
+              <option value="all">All Locations</option>
+              <option value="unassigned">Unassigned</option>
+              {locationOptions.map((locationValue) => (
+                <option key={locationValue} value={locationValue}>
+                  {locationValue}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -489,6 +598,7 @@ export default function Products() {
                 <th>Min Stock</th>
                 <th className="hidden lg:table-cell">Properties</th>
                 <th>Category</th>
+                <th className="hidden xl:table-cell">Locations</th>
                 <th className="hidden sm:table-cell">Promo</th>
                 <th className="!px-2">Del</th>
               </tr>
@@ -497,13 +607,13 @@ export default function Products() {
             <tbody className="bg-white divide-y divide-gray-100">
               {productsLoading ? (
                 <tr>
-                  <td colSpan={14} className="p-8 text-center">
+                  <td colSpan={15} className="p-8 text-center">
                     <Loader size="sm" text="Loading product list..." />
                   </td>
                 </tr>
               ) : visibleProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={14} className="p-6 text-center text-gray-500 italic">
+                  <td colSpan={15} className="p-6 text-center text-gray-500 italic">
                     No products found.
                   </td>
                 </tr>
@@ -748,6 +858,12 @@ export default function Products() {
                         ) : (
                           categoryMap[p.category] || p.category || ""
                         )}
+                      </td>
+
+                      <td className="p-2 hidden xl:table-cell text-xs text-gray-600 align-top">
+                        {Array.isArray(p.locations) && p.locations.length > 0
+                          ? p.locations.join(", ")
+                          : "Unassigned"}
                       </td>
 
                       <td className="p-2 hidden sm:table-cell text-xs">

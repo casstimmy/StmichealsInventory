@@ -64,6 +64,14 @@ function normalizeLocationValue(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+function normalizeRelationId(value) {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "object" && value._id) return String(value._id);
+  if (typeof value?.toString === "function") return value.toString();
+  return "";
+}
+
 export default function Products() {
   const router = useRouter();
   const fetchProducts = useCallback(() => fetcher("/api/products"), []);
@@ -103,6 +111,7 @@ export default function Products() {
       : queryLocation || "all"
   );
   const [availableLocations, setAvailableLocations] = useState([]);
+  const [vendorMap, setVendorMap] = useState({});
 
   // pagination / lazy load
   const [entriesPerPage] = useState(entriesPerPageDefault);
@@ -151,6 +160,12 @@ export default function Products() {
     return Array.from(seenLocations.values()).sort((leftValue, rightValue) => leftValue.localeCompare(rightValue));
   }, [availableLocations, allProducts]);
 
+  const getProductVendorNames = useCallback((product) => {
+    return (Array.isArray(product?.vendors) ? product.vendors : [])
+      .map((vendorId) => vendorMap[normalizeRelationId(vendorId)])
+      .filter(Boolean);
+  }, [vendorMap]);
+
   const applyFilters = useCallback((term, categoryId, locationId) => {
     const t = term.trim().toLowerCase();
     const filtered = (Array.isArray(allProducts) ? allProducts : []).filter((p) => {
@@ -170,13 +185,14 @@ export default function Products() {
       if (!matchesLocation) return false;
 
       if (!t) return true;
-      return [p.name, p.barcode, p.description, categoryMap[p.category]]
+      const vendorNames = getProductVendorNames(p).join(" ");
+      return [p.name, p.barcode, p.description, categoryMap[p.category], vendorNames]
         .filter(Boolean)
         .some((field) => String(field).toLowerCase().includes(t));
     });
     setFilteredProducts(filtered);
     setVisibleCount(entriesPerPage);
-  }, [allProducts, categoryMap, entriesPerPage]);
+  }, [allProducts, categoryMap, entriesPerPage, getProductVendorNames]);
 
   // Initialize from cache when data arrives
   useEffect(() => {
@@ -204,13 +220,14 @@ export default function Products() {
       if (!matchesLocation) return false;
 
       if (!t) return true;
-      return [p.name, p.barcode, p.description, categoryMap[p.category]]
+      const vendorNames = getProductVendorNames(p).join(" ");
+      return [p.name, p.barcode, p.description, categoryMap[p.category], vendorNames]
         .filter(Boolean)
         .some((field) => String(field).toLowerCase().includes(t));
     });
     setFilteredProducts(filtered);
     setIsInitializing(false);
-  }, [cachedProducts, productsLoading, searchTerm, selectedCategory, selectedLocation, categoryMap]);
+  }, [cachedProducts, productsLoading, searchTerm, selectedCategory, selectedLocation, categoryMap, getProductVendorNames]);
 
   const loadCategories = useCallback(async () => {
     try {
@@ -246,6 +263,35 @@ export default function Products() {
           : [];
 
         setAvailableLocations(storeLocations);
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    apiClient.get("/api/vendors")
+      .then((response) => {
+        if (!isMounted) {
+          return;
+        }
+
+        const vendors = Array.isArray(response.data?.vendors)
+          ? response.data.vendors
+          : Array.isArray(response.data)
+            ? response.data
+            : [];
+
+        const nextVendorMap = vendors.reduce((accumulator, vendor) => {
+          accumulator[vendor._id] = vendor.companyName;
+          return accumulator;
+        }, {});
+
+        setVendorMap(nextVendorMap);
       })
       .catch(() => {});
 
@@ -599,6 +645,7 @@ export default function Products() {
                 <th className="hidden lg:table-cell">Properties</th>
                 <th>Category</th>
                 <th className="hidden xl:table-cell">Locations</th>
+                <th className="hidden xl:table-cell">Vendors</th>
                 <th className="hidden sm:table-cell">Promo</th>
                 <th className="!px-2">Del</th>
               </tr>
@@ -607,13 +654,13 @@ export default function Products() {
             <tbody className="bg-white divide-y divide-gray-100">
               {productsLoading ? (
                 <tr>
-                  <td colSpan={15} className="p-8 text-center">
+                  <td colSpan={16} className="p-8 text-center">
                     <Loader size="sm" text="Loading product list..." />
                   </td>
                 </tr>
               ) : visibleProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={15} className="p-6 text-center text-gray-500 italic">
+                  <td colSpan={16} className="p-6 text-center text-gray-500 italic">
                     No products found.
                   </td>
                 </tr>
@@ -863,6 +910,12 @@ export default function Products() {
                       <td className="p-2 hidden xl:table-cell text-xs text-gray-600 align-top">
                         {Array.isArray(p.locations) && p.locations.length > 0
                           ? p.locations.join(", ")
+                          : "Unassigned"}
+                      </td>
+
+                      <td className="p-2 hidden xl:table-cell text-xs text-gray-600 align-top">
+                        {getProductVendorNames(p).length > 0
+                          ? getProductVendorNames(p).join(", ")
                           : "Unassigned"}
                       </td>
 

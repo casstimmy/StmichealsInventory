@@ -6,6 +6,7 @@ import { deriveChildQty } from "@/lib/syncPackQty";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 import { isValidObjectId } from "mongoose";
 import { postPurchaseOrderPayment } from "@/lib/accounting";
+import { sanitizeMultilineText, sanitizePlainText } from "@/lib/textSanitizers";
 
 function derivePaymentStatus({ paymentMade = 0, grandTotal = 0, payBeforeSupply = false, receivedStatus = "Pending" }) {
   const paidAmount = Number(paymentMade) || 0;
@@ -23,6 +24,18 @@ function generateTransRef() {
   const pad = (n) => String(n).padStart(2, "0");
   const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
   return `SM-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${rand}`;
+}
+
+function normalizeMovementProducts(products = []) {
+  return (Array.isArray(products) ? products : [])
+    .map((product) => ({
+      productId: product?.productId || product?.id || null,
+      quantity: Number(product?.quantity) || 0,
+      costPrice: Number(product?.costPrice ?? product?.price) || 0,
+      expiryDate: product?.expiryDate ? new Date(product.expiryDate) : null,
+      notes: sanitizePlainText(product?.notes),
+    }))
+    .filter((product) => isValidObjectId(product.productId) && product.quantity > 0);
 }
 
 export default async function handler(req, res) {
@@ -89,61 +102,84 @@ export default async function handler(req, res) {
           return res.status(400).json({ error: "Order already received" });
         }
 
-        const { toLocationId } = req.body;
+        const { toLocationId, staffId, notes, products: receivedProducts } = req.body;
+        const requestedProducts = normalizeMovementProducts(receivedProducts);
+        const sourceProducts =
+          requestedProducts.length > 0
+            ? requestedProducts
+            : order.products
+                .filter((product) => product.productId && product.quantity > 0)
+                .map((product) => ({
+                  productId: product.productId,
+                  quantity: Number(product.quantity) || 0,
+                  costPrice: Number(product.price) || 0,
+                  expiryDate: null,
+                  notes: `From PO: ${order.orderRef}`,
+                }));
 
         // Create stock movement from this purchase order — skip child products
-        const allProducts = order.products.filter((p) => p.productId && p.quantity > 0);
         const childIds = new Set();
         // Pre-fetch to identify child products
-        if (allProducts.length > 0) {
+        if (sourceProducts.length > 0) {
           const productDocs = await Product.find({
-            _id: { $in: allProducts.map((p) => p.productId) },
+            _id: { $in: sourceProducts.map((product) => product.productId) },
           }).select("_id isChildProduct packType").lean();
           for (const doc of productDocs) {
             // Only skip true derived children (unit from pack), not pack products
             if (doc.isChildProduct && doc.packType !== "pack") childIds.add(String(doc._id));
           }
         }
-        const movementProducts = allProducts
-          .filter((p) => !childIds.has(String(p.productId)))
-          .map((p) => ({
-            productId: p.productId,
-            quantity: p.quantity,
-            costPrice: p.price,
-            notes: `From PO: ${order.orderRef}`,
+        const movementProducts = sourceProducts
+          .filter((product) => !childIds.has(String(product.productId)))
+          .map((product) => ({
+            productId: product.productId,
+            quantity: product.quantity,
+            expiryDate: product.expiryDate,
+            costPrice: product.costPrice,
+            notes: product.notes || `From PO: ${order.orderRef}`,
           }));
 
-        if (movementProducts.length > 0) {
-          const totalCostPrice = movementProducts.reduce(
-            (sum, p) => sum + (p.costPrice || 0) * p.quantity,
-            0
-          );
-
-          const stockMovement = await StockMovement.create({
-            transRef: generateTransRef(),
-            fromLocationId: null, // Vendor (external)
-            toLocationId: toLocationId || null,
-            staffId: req.user?.id || order.staff || null,
-            reason: "Restock",
-            status: "Received",
-            totalCostPrice,
-            dateSent: new Date(),
-            dateReceived: new Date(),
-            products: movementProducts,
-            notes: `Auto-generated from Purchase Order ${order.orderRef}`,
-          });
-
-          // Update product quantities
-          for (const item of movementProducts) {
-            await Product.findByIdAndUpdate(item.productId, {
-              $inc: { quantity: item.quantity },
-            });
-            // Sync parent-child qty after restock
-            await deriveChildQty(item.productId);
-          }
-
-          order.stockMovementId = stockMovement._id;
+        if (movementProducts.length === 0) {
+          return res.status(400).json({ error: "No valid products available to receive" });
         }
+
+        const totalCostPrice = movementProducts.reduce(
+          (sum, product) => sum + (product.costPrice || 0) * product.quantity,
+          0
+        );
+
+        const movementNotes = [
+          `Auto-generated from Purchase Order ${order.orderRef}`,
+          sanitizeMultilineText(notes),
+        ]
+          .filter(Boolean)
+          .join("\n");
+
+        const stockMovement = await StockMovement.create({
+          transRef: generateTransRef(),
+          fromLocationId: null, // Vendor (external)
+          vendorName: order.vendorName || "",
+          toLocationId: toLocationId || null,
+          staffId: staffId || req.user?.id || order.staff || null,
+          reason: "Restock",
+          status: "Received",
+          totalCostPrice,
+          dateSent: new Date(),
+          dateReceived: new Date(),
+          products: movementProducts,
+          notes: movementNotes,
+        });
+
+        // Update product quantities
+        for (const item of movementProducts) {
+          await Product.findByIdAndUpdate(item.productId, {
+            $inc: { quantity: item.quantity },
+          });
+          // Sync parent-child qty after restock
+          await deriveChildQty(item.productId);
+        }
+
+        order.stockMovementId = stockMovement._id;
 
         order.receivedStatus = "Received";
         order.receivedAt = new Date();
@@ -167,7 +203,7 @@ export default async function handler(req, res) {
       const allowedFields = ["notes", "payBeforeSupply", "status"];
       for (const field of allowedFields) {
         if (req.body[field] !== undefined) {
-          order[field] = req.body[field];
+          order[field] = field === "notes" ? sanitizeMultilineText(req.body[field]) : req.body[field];
         }
       }
       if (req.body.payBeforeSupply !== undefined) {

@@ -1,6 +1,8 @@
 import { mongooseConnect } from "@/lib/mongodb";
 import Vendor from "@/models/Vendor";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
+import { syncProductVendorAssignmentsForVendor } from "@/lib/vendorProductSync";
+import { sanitizeMultilineText, sanitizePlainText } from "@/lib/textSanitizers";
 
 export default async function handler(req, res) {
   const authError = authMiddleware(req, res);
@@ -32,18 +34,28 @@ export default async function handler(req, res) {
       }
 
       const safeProducts = Array.isArray(products) ? products : [];
+      const sanitizedProducts = safeProducts.map((product) => ({
+        ...product,
+        productName: sanitizePlainText(product?.productName),
+      }));
 
       const vendor = await Vendor.create({
-        companyName,
-        vendorRep: vendorRep || "",
-        repPhone: repPhone || "",
-        email: email || "",
-        address: address || "",
-        mainProduct: mainProduct || "",
-        bankName: bankName || "",
-        accountName: accountName || "",
-        accountNumber: accountNumber || "",
-        products: safeProducts,
+        companyName: sanitizePlainText(companyName),
+        vendorRep: sanitizePlainText(vendorRep),
+        repPhone: sanitizePlainText(repPhone),
+        email: sanitizePlainText(email),
+        address: sanitizeMultilineText(address),
+        mainProduct: sanitizePlainText(mainProduct),
+        bankName: sanitizePlainText(bankName),
+        accountName: sanitizePlainText(accountName),
+        accountNumber: sanitizePlainText(accountNumber),
+        products: sanitizedProducts,
+      });
+
+      await syncProductVendorAssignmentsForVendor({
+        vendorId: vendor._id,
+        previousProducts: [],
+        nextProducts: sanitizedProducts,
       });
 
       return res.status(201).json({ success: true, vendor, createdChildren: [] });

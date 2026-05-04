@@ -2,6 +2,13 @@ import { mongooseConnect, withRetry } from "@/lib/mongodb";
 import Product from "@/models/Product";
 import { Category } from "@/models/Category";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
+import { syncVendorAssignmentsForProduct } from "@/lib/vendorProductSync";
+import {
+  sanitizeMultilineText,
+  sanitizePlainText,
+  sanitizeProperties,
+  sanitizeStringArray,
+} from "@/lib/textSanitizers";
 
 let lastRoomSyncAt = 0;
 const ROOM_SYNC_INTERVAL_MS = 10 * 60 * 1000;
@@ -117,6 +124,31 @@ async function resolveStockManagedFromCategory(categoryIdOrName, requestedValue)
     // Category lookup can fail for non-ObjectId values like "Top Level"
   }
   return typeof requestedValue === "boolean" ? requestedValue : true;
+}
+
+function sanitizeProductPayload(payload = {}) {
+  const nextPayload = { ...payload };
+
+  if (Object.prototype.hasOwnProperty.call(nextPayload, "name")) {
+    nextPayload.name = sanitizePlainText(nextPayload.name);
+  }
+  if (Object.prototype.hasOwnProperty.call(nextPayload, "description")) {
+    nextPayload.description = sanitizeMultilineText(nextPayload.description);
+  }
+  if (Object.prototype.hasOwnProperty.call(nextPayload, "barcode")) {
+    nextPayload.barcode = sanitizePlainText(nextPayload.barcode);
+  }
+  if (Object.prototype.hasOwnProperty.call(nextPayload, "category")) {
+    nextPayload.category = sanitizePlainText(nextPayload.category);
+  }
+  if (Object.prototype.hasOwnProperty.call(nextPayload, "properties")) {
+    nextPayload.properties = sanitizeProperties(nextPayload.properties);
+  }
+  if (Object.prototype.hasOwnProperty.call(nextPayload, "locations")) {
+    nextPayload.locations = sanitizeStringArray(nextPayload.locations);
+  }
+
+  return nextPayload;
 }
 
 export default async function handler(req, res) {
@@ -249,7 +281,7 @@ export default async function handler(req, res) {
        CREATE PRODUCT
     ===================== */
     if (method === "POST") {
-      const body = req.body;
+      const body = sanitizeProductPayload(req.body);
       body.isArchived = false;
       body.archivedAt = null;
       body.archivedReason = "";
@@ -266,6 +298,12 @@ export default async function handler(req, res) {
       }
 
       const product = await Product.create(body);
+
+      await syncVendorAssignmentsForProduct({
+        product,
+        previousVendorIds: [],
+        nextVendorIds: body.vendors || [],
+      });
 
       // Auto-create child product when pack type is selected
       if (body.packType === "pack" && Number(body.qtyPerPack) > 1) {
@@ -332,6 +370,17 @@ export default async function handler(req, res) {
         });
       }
 
+      const existingProduct = await Product.findById(_id)
+        .select("vendors packType qtyPerPack")
+        .lean();
+
+      if (!existingProduct) {
+        return res.status(404).json({
+          success: false,
+          message: "Product not found",
+        });
+      }
+
       /* 🔒 Promotion Validation */
       if (isPromotion) {
         if (!promoPrice || !promoStart || !promoEnd) {
@@ -363,9 +412,7 @@ export default async function handler(req, res) {
         }
       }
 
-      const updateData = {
-        ...req.body,
-      };
+      const updateData = sanitizeProductPayload(req.body);
 
       if (restore) {
         updateData.isArchived = false;
@@ -407,6 +454,12 @@ export default async function handler(req, res) {
         });
       }
 
+      await syncVendorAssignmentsForProduct({
+        product: updated,
+        previousVendorIds: existingProduct.vendors || [],
+        nextVendorIds: updated.vendors || [],
+      });
+
       // Auto-create/update child product when pack type is set
       if (updated.packType === "pack" && Number(updated.qtyPerPack) > 1) {
         const existingChild = await Product.findOne({
@@ -432,28 +485,33 @@ export default async function handler(req, res) {
             quantity: childQty,
           });
         } else {
-          await Product.create({
-            name: `${updated.name} (Unit)`,
-            description: `${updated.description || updated.name} - Single unit from pack of ${updated.qtyPerPack}`,
-            costPrice: Math.round(childCostPrice * 100) / 100,
-            taxRate: updated.taxRate || 0,
-            salePriceIncTax: Math.round(childSalePrice * 100) / 100,
-            margin: updated.margin || 0,
-            barcode: updated.barcode ? `${updated.barcode}-U` : "",
-            category: updated.category || "Top Level",
-            images: updated.images || [],
-            properties: updated.properties || [],
-            quantity: (Number(updated.quantity) || 0) * (Number(updated.qtyPerPack) || 1),
-            isStockManaged: updated.isStockManaged !== false,
-            minStock: 0,
-            packType: "unit",
-            qtyPerPack: 1,
-            isChildProduct: true,
-            parentProduct: updated._id,
-            vendors: updated.vendors || [],
-            locations: updated.locations || [],
-            isArchived: false,
-          });
+          const previouslyQualifiedForChild =
+            existingProduct.packType === "pack" && Number(existingProduct.qtyPerPack) > 1;
+
+          if (!previouslyQualifiedForChild) {
+            await Product.create({
+              name: `${updated.name} (Unit)`,
+              description: `${updated.description || updated.name} - Single unit from pack of ${updated.qtyPerPack}`,
+              costPrice: Math.round(childCostPrice * 100) / 100,
+              taxRate: updated.taxRate || 0,
+              salePriceIncTax: Math.round(childSalePrice * 100) / 100,
+              margin: updated.margin || 0,
+              barcode: updated.barcode ? `${updated.barcode}-U` : "",
+              category: updated.category || "Top Level",
+              images: updated.images || [],
+              properties: updated.properties || [],
+              quantity: (Number(updated.quantity) || 0) * (Number(updated.qtyPerPack) || 1),
+              isStockManaged: updated.isStockManaged !== false,
+              minStock: 0,
+              packType: "unit",
+              qtyPerPack: 1,
+              isChildProduct: true,
+              parentProduct: updated._id,
+              vendors: updated.vendors || [],
+              locations: updated.locations || [],
+              isArchived: false,
+            });
+          }
         }
       }
 

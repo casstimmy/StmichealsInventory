@@ -18,7 +18,7 @@ export default function Receipts() {
   const [website, setWebsite] = useState("");
   const [refundDays, setRefundDays] = useState(0);
   const [receiptMessage, setReceiptMessage] = useState("");
-  const [fontSize, setFontSize] = useState("10.0");
+  const [fontSize, setFontSize] = useState("8.0");
   const [barcodeType, setBarcodeType] = useState("Default - Code 39");
   const [companyLogo, setCompanyLogo] = useState("/images/logo.png");
   const [qrUrl, setQrUrl] = useState("");
@@ -35,6 +35,13 @@ export default function Receipts() {
   const [success, setSuccess] = useState("");
   const GUID = "75c09f89-1d79-47cd-8afa-065873c6f43b";
   const companyNameDisplay = "St's Michael Hub";
+  const previewLocation = locations.find((loc) => loc.name === selectedLocation);
+  const previewDisplayName = companyDisplayName || companyName || companyNameDisplay;
+  const previewContactLine = [
+    storePhone ? `Tel: ${storePhone}` : "",
+    website,
+    email,
+  ].filter(Boolean).join(" • ");
 
   useEffect(() => {
     fetchSetupData();
@@ -55,6 +62,17 @@ export default function Receipts() {
         setStorePhone(data.store.storePhone || "");
         setCountry(data.store.country || "");
         setEmail(data.store.email || "");
+        setCompanyDisplayName(data.store.companyDisplayName || "");
+        setTaxNumber(data.store.taxNumber || "");
+        setWebsite(data.store.website || "");
+        setRefundDays(data.store.refundDays || 0);
+        setReceiptMessage(data.store.receiptMessage || "");
+        setFontSize(data.store.fontSize || "8.0");
+        setBarcodeType(data.store.barcodeType || "Default - Code 39");
+        setQrUrl(data.store.qrUrl || "");
+        setQrDescription(data.store.qrDescription || "");
+        setQrDataUrl(data.store.qrDataUrl || "");
+        setPaymentStatus(data.store.paymentStatus || "paid");
         
         // Load locations from store
         if (data.store.locations && data.store.locations.length > 0) {
@@ -71,17 +89,17 @@ export default function Receipts() {
         const receiptSettings = localStorage.getItem("receiptSettings");
         if (receiptSettings) {
           const settings = JSON.parse(receiptSettings);
-          setCompanyDisplayName(settings.companyDisplayName || "");
-          setTaxNumber(settings.taxNumber || "");
-          setWebsite(settings.website || "");
-          setRefundDays(settings.refundDays || 0);
-          setReceiptMessage(settings.receiptMessage || "");
-          setFontSize(settings.fontSize || "10.0");
-          setBarcodeType(settings.barcodeType || "Default - Code 39");
-          setQrUrl(settings.qrUrl || "");
-          setQrDescription(settings.qrDescription || "");
-          setQrDataUrl(settings.qrDataUrl || "");
-          setPaymentStatus(settings.paymentStatus || "paid");
+          setCompanyDisplayName(settings.companyDisplayName || data.store.companyDisplayName || "");
+          setTaxNumber(settings.taxNumber || data.store.taxNumber || "");
+          setWebsite(settings.website || data.store.website || "");
+          setRefundDays(settings.refundDays || data.store.refundDays || 0);
+          setReceiptMessage(settings.receiptMessage || data.store.receiptMessage || "");
+          setFontSize(settings.fontSize || data.store.fontSize || "8.0");
+          setBarcodeType(settings.barcodeType || data.store.barcodeType || "Default - Code 39");
+          setQrUrl(settings.qrUrl || data.store.qrUrl || "");
+          setQrDescription(settings.qrDescription || data.store.qrDescription || "");
+          setQrDataUrl(settings.qrDataUrl || data.store.qrDataUrl || "");
+          setPaymentStatus(settings.paymentStatus || data.store.paymentStatus || "paid");
           // Load logo from localStorage if it exists
           if (settings.companyLogo) {
             setCompanyLogo(settings.companyLogo);
@@ -173,7 +191,9 @@ export default function Receipts() {
         body: JSON.stringify({
           storeName,
           storePhone,
+          email,
           country: country || "Unknown",
+          logo: companyLogo,
           receiptSettings: payload,
         }),
       });
@@ -361,9 +381,10 @@ export default function Receipts() {
                     onChange={(e) => setFontSize(e.target.value)}
                     className="form-select"
                   >
-                    <option value="8.0">8.0</option>
-                    <option value="9.0">9.0</option>
-                    <option value="10.0">10.0</option>
+                    <option value="7.5">Eco Compact - 7.5pt</option>
+                    <option value="8.0">Compact - 8.0pt</option>
+                    <option value="8.5">Standard - 8.5pt</option>
+                    <option value="9.0">Large - 9.0pt</option>
                   </select>
                 </div>
 
@@ -502,175 +523,119 @@ export default function Receipts() {
               <div className="content-card sticky top-6">
                 <h2 className="text-lg font-bold mb-4 text-gray-800">Receipt Preview</h2>
               <div 
-                className="bg-white p-4 rounded border border-gray-300 overflow-y-auto max-h-[700px] font-mono text-xs leading-tight"
+                className="bg-white p-4 rounded border border-gray-300 overflow-y-auto max-h-[700px] font-mono leading-[1.2] text-[11px]"
                 style={{ fontSize: `${fontSize}pt` }}
               >
-                {/* Receipt Content */}
-                <div className="text-center">
-                  {/* Logo */}
+                <div className="mx-auto w-full max-w-[280px] text-gray-900">
                   {companyLogo && (
-                    <div className="mb-3 pb-2 border-b border-gray-800">
-                      <img src={companyLogo} className="mx-auto h-16 object-contain" alt="Logo" style={{ filter: 'grayscale(100%)' }} />
-                    </div>
+                    <img
+                      src={companyLogo}
+                      className="mx-auto mb-3 h-12 object-contain"
+                      alt="Logo"
+                      style={{ filter: 'grayscale(100%) contrast(1.05)' }}
+                    />
                   )}
 
-                  {/* Company Name */}
-                  <div className="font-bold text-lg mb-2 tracking-wide">
-                    {companyNameDisplay}
-                  </div>
-
-                  {/* Dashed Separator */}
-                  <div className="text-center mb-2 tracking-widest">
-                    {Array(30).fill('━').join('')}
-                  </div>
-
-                  {/* Address Details */}
-                  <div className="text-center mb-2 text-gray-900">
-                    <div className="italic text-sm text-gray-600">
-                      {selectedLocation ? selectedLocation : '[Location from Transaction]'}
+                  <div className="text-center border-b border-dashed border-black pb-3">
+                    <div className="font-bold text-[1.15em] tracking-[0.18em] uppercase">
+                      {previewDisplayName}
                     </div>
-                    {locations.length > 0 && locations.find(l => l.name === selectedLocation) && (
-                      <>
-                        {locations.find(l => l.name === selectedLocation).address && (
-                          <div>{locations.find(l => l.name === selectedLocation).address}</div>
-                        )}
-                        {locations.find(l => l.name === selectedLocation).phone && (
-                          <div>Phone: {locations.find(l => l.name === selectedLocation).phone}</div>
-                        )}
-                      </>
+                    <div className="mt-1 text-[0.86em]">{selectedLocation || "[Location from Transaction]"}</div>
+                    {previewLocation?.address && (
+                      <div className="mt-1 text-[0.84em]">{previewLocation.address}</div>
                     )}
-                    {storePhone && <div>Tel: {storePhone}</div>}
-                    {email && <div>{email}</div>}
-                    {website && <div>{website}</div>}
-                    {taxNumber && <div>Tax ID: {taxNumber}</div>}
+                    {previewContactLine && (
+                      <div className="mt-1 text-[0.82em] break-words">{previewContactLine}</div>
+                    )}
+                    {taxNumber && (
+                      <div className="mt-1 text-[0.82em]">Tax ID: {taxNumber}</div>
+                    )}
                   </div>
 
-                  {/* Dashed Separator */}
-                  <div className="text-center mb-2 tracking-widest">
-                    {Array(30).fill('━').join('')}
-                  </div>
-
-                  {/* Receipt Header */}
-                  <div className="text-left mb-2 text-gray-900">
-                    <div className="font-bold">Receipt of Purchase(Inc Tax)</div>
-                    <div className="flex justify-between">
+                  <div className="mt-3 border-t border-dashed border-black pt-3 text-left">
+                    <div className="font-bold uppercase">Sales Receipt</div>
+                    <div className="mt-1 flex justify-between gap-3">
                       <span>03/07/2022 12:24:57</span>
                       <span>SAMPLE</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="mt-1 flex justify-between gap-3">
                       <span>Staff: {staffName ? staffName : '[Staff Name]'}</span>
-                      <span>Till #1</span>
+                      <span>{paymentStatus.toUpperCase()}</span>
                     </div>
                   </div>
 
-                  {/* Dashed Separator */}
-                  <div className="text-center mb-2 tracking-widest">
-                    {Array(30).fill('━').join('')}
+                  <div className="mt-3 border-t border-dashed border-black pt-3">
+                    <div className="grid grid-cols-[1fr_42px_68px] gap-2 font-bold uppercase">
+                      <span>Item</span>
+                      <span className="text-center">Qty</span>
+                      <span className="text-right">Amt</span>
+                    </div>
+                    <div className="mt-2 space-y-1">
+                      <div className="grid grid-cols-[1fr_42px_68px] gap-2">
+                        <span>SAMPLE ITEM 1</span>
+                        <span className="text-center">1</span>
+                        <span className="text-right">₦1,500</span>
+                      </div>
+                      <div className="grid grid-cols-[1fr_42px_68px] gap-2">
+                        <span>SAMPLE ITEM 2</span>
+                        <span className="text-center">1</span>
+                        <span className="text-right">₦2,000</span>
+                      </div>
+                    </div>
+                    <div className="mt-2 flex justify-between border-t border-gray-300 pt-2 text-[0.84em]">
+                      <span>Total Qty</span>
+                      <span>2</span>
+                    </div>
                   </div>
 
-                  {/* Product Table Header */}
-                  <div className="text-left mb-2 font-bold text-gray-900">
+                  <div className="mt-3 border-t border-dashed border-black pt-3 space-y-1 text-left">
                     <div className="flex justify-between">
-                      <span className="flex-1">PRODUCT</span>
-                      <span className="w-12 text-right">PRICE</span>
-                      <span className="w-8 text-center">QTY</span>
-                      <span className="w-16 text-right">TOTAL</span>
+                      <span>Subtotal</span>
+                      <span>₦3,500.00</span>
+                    </div>
+                    <div className="flex justify-between border-t border-gray-300 pt-2 font-bold text-[1.02em]">
+                      <span>Total</span>
+                      <span>₦3,500.00</span>
                     </div>
                   </div>
 
-                  {/* Product Items */}
-                  <div className="text-left mb-2 text-gray-900">
-                    <div className="flex justify-between mb-1">
-                      <span className="flex-1">SAMPLE ITEM 1</span>
-                      <span className="w-12 text-right">₦1,500</span>
-                      <span className="w-8 text-center">1</span>
-                      <span className="w-16 text-right">₦1,500</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="flex-1">SAMPLE ITEM 2</span>
-                      <span className="w-12 text-right">₦2,000</span>
-                      <span className="w-8 text-center">1</span>
-                      <span className="w-16 text-right">₦2,000</span>
-                    </div>
-                    <div className="flex justify-between text-right mt-1">
-                      <span className="flex-1"></span>
-                      <span className="w-36 text-right">Total Qty: 2</span>
-                    </div>
-                  </div>
-
-                  {/* Dashed Separator */}
-                  <div className="text-center mb-2 tracking-widest">
-                    {Array(30).fill('━').join('')}
-                  </div>
-
-                  {/* Totals */}
-                  <div className="text-right mb-2 text-gray-900">
-                    <div>Sub Total: ₦3,500.00</div>
-                    <div className="font-bold text-lg mt-1">₦3,500.00</div>
-                  </div>
-
-                  {/* Dashed Separator */}
-                  <div className="text-center mb-2 tracking-widest">
-                    {Array(30).fill('━').join('')}
-                  </div>
-
-                  {/* Payment Method */}
-                  <div className="text-left mb-2 text-gray-900">
-                    <div className="font-bold">PAYMENT BY TENDER</div>
+                  <div className="mt-3 border-t border-dashed border-black pt-3 text-left">
+                    <div className="font-bold uppercase">Payment</div>
                     <div className="flex justify-between">
                       <span>CASH</span>
-                      <span className="font-bold">₦3,500.00</span>
+                      <span>₦3,500.00</span>
                     </div>
                   </div>
 
-                  {/* Dashed Separator */}
-                  <div className="text-center mb-2 tracking-widest">
-                    {Array(30).fill('━').join('')}
-                  </div>
+                  <div className="mt-3 border-t border-dashed border-black pt-3 text-center text-[0.84em]">
+                    {refundDays > 0 ? (
+                      <div>Refund within {refundDays} days with receipt</div>
+                    ) : null}
 
-                  {/* Store Hours & Policies */}
-                  <div className="text-center mb-2 text-gray-900 text-xs">
-                    {refundDays > 0 && (
-                      <div className="font-bold mb-1">Refund within {refundDays} days</div>
-                    )}
-                  </div>
+                    {(qrDataUrl || qrUrl) ? (
+                      <div className="mt-2">
+                        {qrDescription ? <div>{qrDescription}</div> : null}
+                        {qrDataUrl ? (
+                          <img src={qrDataUrl} alt="QR Code" className="mx-auto my-2 h-16 w-16" />
+                        ) : (
+                          <div className="mt-2 break-all text-[0.8em]">{qrUrl}</div>
+                        )}
+                      </div>
+                    ) : null}
 
-                  {/* QR Code */}
-                  {qrUrl && (
-                    <div className="mb-2 pt-1 border-t border-gray-800">
-                      {qrDataUrl ? (
-                        <img src={qrDataUrl} alt="QR Code" className="w-16 h-16 mx-auto my-2" />
-                      ) : (
-                        <div className="bg-gray-200 h-16 w-16 mx-auto flex items-center justify-center text-xs text-gray-600 rounded my-2">
-                          [QR]
-                        </div>
-                      )}
-                      {qrDescription && (
-                        <div className="text-xs text-gray-700">{qrDescription}</div>
-                      )}
+                    {receiptMessage ? (
+                      <div className="mt-2 whitespace-pre-wrap">{receiptMessage}</div>
+                    ) : null}
+
+                    <div className="mt-3 font-bold text-[0.95em] uppercase tracking-[0.14em]">
+                      Thank You
                     </div>
-                  )}
 
-                  {/* Receipt Message */}
-                  {receiptMessage && (
-                    <div className="text-center mb-2 pt-2 border-t border-gray-800 text-gray-900 text-xs whitespace-pre-wrap">
-                      {receiptMessage}
+                    <div
+                      className={`mt-3 border-t border-dashed border-black pt-3 font-bold uppercase tracking-[0.16em] ${paymentStatus === 'paid' ? '' : 'border border-black bg-gray-100 py-2'}`}
+                    >
+                      {paymentStatus.toUpperCase()}
                     </div>
-                  )}
-
-                  {/* Thank You */}
-                  <div className="text-center text-gray-900 font-bold mt-2 mb-3">
-                    Thank You!
-                  </div>
-
-                  {/* Dashed Separator */}
-                  <div className="text-center mb-2 tracking-widest">
-                    {Array(30).fill('━').join('')}
-                  </div>
-
-                  {/* Payment Status - Black and White */}
-                  <div className={`font-bold text-base text-center py-2 border-2 ${paymentStatus === 'paid' ? 'border-black text-black bg-white' : 'border-black text-black bg-gray-200'}`}>
-                    {paymentStatus.toUpperCase()}
                   </div>
                 </div>
               </div>

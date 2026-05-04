@@ -66,8 +66,10 @@ async function handlePost(req, res) {
     storeName,
     storePhone,
     country,
+    email,
     logo,
     locations = [],
+    receiptSettings,
     adminName,
     adminEmail,
     adminPassword,
@@ -77,12 +79,12 @@ async function handlePost(req, res) {
     await mongooseConnect();
 
     const [existingAdmin, existingStore] = await Promise.all([
-      User.findOne({ role: "admin" }).select("_id"),
+      User.findOne({ role: "admin" }).select("_id name email"),
       Store.findOne({}).select("_id"),
     ]);
     const bootstrapMode = !existingAdmin || !existingStore;
 
-    if (!storeName || !storePhone || !country || !adminName || !adminEmail) {
+    if (bootstrapMode && (!storeName || !storePhone || !country || !adminName || !adminEmail)) {
       return res.status(400).json({
         success: false,
         message: "Missing required fields: storeName, storePhone, country, adminName, adminEmail",
@@ -114,6 +116,17 @@ async function handlePost(req, res) {
     }
 
     let store = await Store.findOne({});
+    const nextStoreName = storeName || store?.storeName;
+    const nextStorePhone = storePhone || store?.storePhone;
+    const nextCountry = country || store?.country;
+
+    if (!nextStoreName || !nextStorePhone || !nextCountry) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields: storeName, storePhone, country",
+      });
+    }
+
     const existingLocations = Array.isArray(store?.locations) ? store.locations : [];
     const existingLocationsById = new Map(
       existingLocations
@@ -148,11 +161,28 @@ async function handlePost(req, res) {
       });
     }
 
+    const normalizedReceiptSettings = receiptSettings && typeof receiptSettings === "object"
+      ? {
+          companyDisplayName: receiptSettings.companyDisplayName || store?.companyDisplayName || "St's Michael Hub",
+          taxNumber: receiptSettings.taxNumber || "",
+          website: receiptSettings.website || "",
+          refundDays: Number(receiptSettings.refundDays) || 0,
+          receiptMessage: receiptSettings.receiptMessage || "Thank you for shopping with us!",
+          fontSize: String(receiptSettings.fontSize || store?.fontSize || "8.0"),
+          barcodeType: receiptSettings.barcodeType || store?.barcodeType || "Default - Code 39",
+          qrUrl: receiptSettings.qrUrl || "",
+          qrDescription: receiptSettings.qrDescription || "",
+          qrDataUrl: receiptSettings.qrDataUrl || "",
+          paymentStatus: receiptSettings.paymentStatus || "paid",
+        }
+      : null;
+
     if (!store) {
       store = new Store({
-        storeName,
-        storePhone,
-        country,
+        storeName: nextStoreName,
+        storePhone: nextStorePhone,
+        country: nextCountry,
+        email: email || "",
         logo: logo || "",
         locations: preparedLocations,
         devices: [],
@@ -160,13 +190,20 @@ async function handlePost(req, res) {
         tenderTypes: [],
         taxRates: [],
         pettyCashReasons: [],
+        ...(normalizedReceiptSettings || {}),
       });
     } else {
-      store.storeName = storeName;
-      store.storePhone = storePhone;
-      store.country = country;
-      store.locations = preparedLocations;
-      if (logo) store.logo = logo;
+      store.storeName = nextStoreName;
+      store.storePhone = nextStorePhone;
+      store.country = nextCountry;
+      if (Array.isArray(locations) && locations.length > 0) {
+        store.locations = preparedLocations;
+      }
+      if (typeof email === "string") store.email = email;
+      if (typeof logo === "string") store.logo = logo;
+      if (normalizedReceiptSettings) {
+        Object.assign(store, normalizedReceiptSettings);
+      }
       if (!store.devices) store.devices = [];
       if (!store.openingHours) store.openingHours = [];
       if (!store.tenderTypes) store.tenderTypes = [];
@@ -176,16 +213,22 @@ async function handlePost(req, res) {
 
     const savedStore = await store.save();
 
-    const user = await User.findOneAndUpdate(
-      { email: adminEmail },
-      {
-        name: adminName,
-        email: adminEmail,
-        role: "admin",
-        ...passwordUpdate,
-      },
-      { upsert: true, new: true }
-    ).select("name email role isActive createdAt updatedAt");
+    let user = existingAdmin ? sanitizeUser(existingAdmin) : null;
+    const nextAdminName = adminName || existingAdmin?.name;
+    const nextAdminEmail = adminEmail || existingAdmin?.email;
+
+    if (nextAdminName && nextAdminEmail && (bootstrapMode || adminName || adminEmail || adminPassword)) {
+      user = await User.findOneAndUpdate(
+        { email: nextAdminEmail },
+        {
+          name: nextAdminName,
+          email: nextAdminEmail,
+          role: "admin",
+          ...passwordUpdate,
+        },
+        { upsert: true, new: true }
+      ).select("name email role isActive createdAt updatedAt");
+    }
 
     return res.status(200).json({
       success: true,

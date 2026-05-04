@@ -7,6 +7,7 @@ import Product from "@/models/Product";
 import Staff from "@/models/Staff";
 import { buildLocationCache, resolveLocationName } from "@/lib/serverLocationHelper";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
+import { formatVendorMovementLabel } from "@/lib/vendorDisplay";
 
 export default async function handler(req, res) {
   const authError = authMiddleware(req, res);
@@ -89,10 +90,14 @@ export default async function handler(req, res) {
 
         // Resolve location names synchronously from cache
         const fromLocationName = !m.fromLocationId
-          ? (m.reason === "Restock" ? "Vendor" : "Unknown")
+          ? (m.reason === "Restock" ? formatVendorMovementLabel(m.vendorName) : "Unknown")
           : (locationCache[m.fromLocationId?.toString()] || "Unknown");
         const toLocationName = !m.toLocationId
-          ? (m.reason === "Return" ? "Vendor" : m.reason === "Operational Loss" ? "Loss Register" : "Unknown")
+          ? (m.reason === "Return"
+              ? formatVendorMovementLabel(m.vendorName)
+              : m.reason === "Operational Loss"
+                ? "Loss Register"
+                : "Unknown")
           : (locationCache[m.toLocationId?.toString()] || "Unknown");
 
         // Map products efficiently
@@ -109,6 +114,7 @@ export default async function handler(req, res) {
           transRef: m.transRef || "Unknown",
           fromLocationId: m.fromLocationId?.toString() || null,
           toLocationId: m.toLocationId?.toString() || null,
+          vendorName: m.vendorName || "",
           fromLocation: fromLocationName,
           toLocation: toLocationName,
           sender: fromLocationName,

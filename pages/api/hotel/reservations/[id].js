@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { mongooseConnect } from "@/lib/mongodb";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
+import { createHotelEmailHtml, HOTEL_BRAND_NAME } from "@/lib/hotelEmailTemplates";
 import { createMailTransport, getMailFromAddress } from "@/lib/mail";
 import HotelBooking from "@/models/HotelBooking";
 import HotelTableReservation from "@/models/HotelTableReservation";
@@ -73,39 +74,46 @@ function serializeTableReservation(reservation) {
 }
 
 function getStatusEmailContent({ kind, reservation, store }) {
-  const companyLabel =
-    store?.companyName ||
-    store?.storeName ||
-    "St Michael's Hotel";
+  const companyLabel = HOTEL_BRAND_NAME;
   const supportEmail = store?.email || process.env.EMAIL_USER || "the hotel team";
   const supportPhone = store?.storePhone || "our reservations desk";
   const guestName = reservation.guestName || "Guest";
   const titlePrefix = kind === "stay" ? "stay request" : "table reservation";
-  const summaryLines =
+  const summaryRows =
     kind === "stay"
       ? [
-          `Reference: ${reservation._id}`,
-          `Room: ${reservation.roomName || "Any available room"}`,
-          `Stay: ${reservation.checkInDate.toISOString().slice(0, 10)} to ${reservation.checkOutDate.toISOString().slice(0, 10)}`,
-          `Guests: ${reservation.adults} adult${reservation.adults === 1 ? "" : "s"}${reservation.children ? `, ${reservation.children} child${reservation.children === 1 ? "" : "ren"}` : ""}`,
-          reservation.preferredArrivalTime ? `Arrival: ${reservation.preferredArrivalTime}` : null,
-          reservation.specialRequests ? `Notes: ${reservation.specialRequests}` : null,
+          { label: "Reference", value: String(reservation._id) },
+          { label: "Room", value: reservation.roomName || "Any available room" },
+          {
+            label: "Stay",
+            value: `${reservation.checkInDate.toISOString().slice(0, 10)} to ${reservation.checkOutDate.toISOString().slice(0, 10)}`,
+          },
+          {
+            label: "Guests",
+            value: `${reservation.adults} adult${reservation.adults === 1 ? "" : "s"}${reservation.children ? `, ${reservation.children} child${reservation.children === 1 ? "" : "ren"}` : ""}`,
+          },
+          reservation.roomRate ? { label: "Room rate", value: `NGN ${Number(reservation.roomRate).toLocaleString()}` } : null,
+          reservation.totalAmount ? { label: "Total amount", value: `NGN ${Number(reservation.totalAmount).toLocaleString()}` } : null,
+          reservation.preferredArrivalTime ? { label: "Arrival", value: reservation.preferredArrivalTime } : null,
+          reservation.specialRequests ? { label: "Notes", value: reservation.specialRequests } : null,
         ]
       : [
-          `Reference: ${reservation._id}`,
-          `Date: ${reservation.reservationDate.toISOString().slice(0, 10)}`,
-          `Time: ${reservation.reservationTime}`,
-          `Party size: ${reservation.partySize}`,
-          reservation.areaPreference ? `Area: ${reservation.areaPreference}` : null,
-          reservation.occasion ? `Occasion: ${reservation.occasion}` : null,
-          reservation.specialRequests ? `Notes: ${reservation.specialRequests}` : null,
+          { label: "Reference", value: String(reservation._id) },
+          { label: "Date", value: reservation.reservationDate.toISOString().slice(0, 10) },
+          { label: "Time", value: reservation.reservationTime },
+          { label: "Party size", value: String(reservation.partySize) },
+          reservation.areaPreference ? { label: "Area", value: reservation.areaPreference } : null,
+          reservation.occasion ? { label: "Occasion", value: reservation.occasion } : null,
+          reservation.specialRequests ? { label: "Notes", value: reservation.specialRequests } : null,
         ];
-
-  const summary = summaryLines.filter(Boolean).join("<br/>");
+  const summaryText = summaryRows
+    .filter(Boolean)
+    .map((row) => `${row.label}: ${row.value}`)
+    .join("\n");
 
   const contentByStatus = {
     confirmed: {
-      subject: kind === "stay" ? "Your hotel stay has been confirmed" : "Your lounge reservation has been confirmed",
+      subject: kind === "stay" ? `${companyLabel} stay confirmed` : `${companyLabel} table confirmed`,
       heading: kind === "stay" ? "Your stay is confirmed" : "Your table is confirmed",
       message:
         kind === "stay"
@@ -137,24 +145,20 @@ function getStatusEmailContent({ kind, reservation, store }) {
 
   return {
     subject: selectedContent.subject,
-    html: `
-      <div style="font-family: 'Segoe UI', sans-serif; background: #f8fafc; padding: 20px;">
-        <div style="max-width: 640px; margin: auto; background: #ffffff; border-radius: 14px; overflow: hidden; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);">
-          <div style="background: ${selectedContent.color}; color: white; padding: 24px; text-align: center;">
-            <h1 style="margin: 0; font-size: 24px;">${companyLabel}</h1>
-            <p style="margin: 8px 0 0; font-size: 15px; opacity: 0.9;">${selectedContent.heading}</p>
-          </div>
-          <div style="padding: 24px; color: #0f172a; line-height: 1.6;">
-            <p>Hi <strong>${guestName}</strong>,</p>
-            <p>${selectedContent.message}</p>
-            <div style="margin-top: 20px; padding: 16px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0;">
-              ${summary}
-            </div>
-            <p style="margin-top: 20px;">If you need help, contact us via ${supportEmail} or ${supportPhone}.</p>
-          </div>
-        </div>
-      </div>
-    `,
+    text: `Hi ${guestName},\n\n${selectedContent.message}\n\n${summaryText}\n\nIf you need help, contact us via ${supportEmail} or ${supportPhone}.`,
+    html: createHotelEmailHtml({
+      eyebrow:
+        reservation.status === "confirmed"
+          ? "Reservation confirmed"
+          : reservation.status === "completed"
+            ? "Reservation completed"
+            : "Reservation cancelled",
+      title: selectedContent.heading,
+      greeting: `Hi ${guestName},`,
+      intro: selectedContent.message,
+      rows: summaryRows.filter(Boolean),
+      closing: `If you need help, contact us via ${supportEmail} or ${supportPhone}.`,
+    }),
   };
 }
 
@@ -172,9 +176,10 @@ async function sendReservationStatusEmail({ kind, reservation }) {
 
   try {
     await transport.sendMail({
-      from: getMailFromAddress(store?.companyName || store?.storeName || "St Michael's Hotel"),
+      from: getMailFromAddress(HOTEL_BRAND_NAME),
       to: reservation.email,
       subject: content.subject,
+      text: content.text,
       html: content.html,
     });
     return "sent";

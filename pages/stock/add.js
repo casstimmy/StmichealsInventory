@@ -6,6 +6,7 @@ import { Loader } from "@/components/ui";
 import { apiClient } from "@/lib/api-client";
 import { showAlertDialog } from "@/lib/dialogs";
 import { useAuth } from "@/lib/useAuth";
+import { formatVendorMovementLabel } from "@/lib/vendorDisplay";
 
 export default function StockMovementAdd() {
   const router = useRouter();
@@ -37,6 +38,7 @@ export default function StockMovementAdd() {
 
   const isOperationalLoss = reason === "Operational Loss";
   const requiresDestination = !isOperationalLoss;
+  const isPurchaseOrderReceipt = Boolean(poRef?.id);
 
   useEffect(() => {
     fetch("/api/setup/setup")
@@ -267,111 +269,111 @@ export default function StockMovementAdd() {
   };
 
   const handleAddToStock = async () => {
-  if (
-    !fromLocation ||
-    (requiresDestination && !toLocation) ||
-    !staff ||
-    !reason ||
-    addedProducts.length === 0
-  ) {
-    await showAlertDialog({
-      title: "Missing stock movement details",
-      message: "Please complete all fields and add at least one product.",
-      tone: "warning",
-    });
-    return;
-  }
-
-  try {
-    setIsSubmitting(true);
-    const totalCostPrice = addedProducts.reduce(
-      (sum, p) => sum + (p.costPrice || 0) * p.quantity,
-      0
-    );
-
-    const transRef = Date.now().toString();
-
-    const payload = {
-      transRef,
-      fromLocationId: fromLocation,
-      toLocationId: requiresDestination ? toLocation : null,
-      staffId: staff || null,
-      reason,
-      notes: movementNotes,
-      status: "Received",
-      totalCostPrice,
-      barcode: transRef,
-      dateSent: new Date().toISOString(),
-      dateReceived: new Date().toISOString(),
-      products: addedProducts.map((p) => ({
-        id: p._id,
-        quantity: p.quantity,
-        expiryDate: p.expiryDate || null,
-      })),
-    };
-
-    console.log(" Sending payload:", payload);
-
-    const res = await fetch("/api/stock-movement/stock-movement", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    console.log(" Response status:", res.status);
-    const result = await res.json();
-    console.log(" Response body:", result);
-    
-    if (!res.ok) {
-      console.error(" API Error:", result);
-      throw new Error(result?.message || result?.error || `Server error: ${res.status}`);
+    if (
+      !fromLocation ||
+      (requiresDestination && !toLocation) ||
+      !staff ||
+      !reason ||
+      addedProducts.length === 0
+    ) {
+      await showAlertDialog({
+        title: "Missing stock movement details",
+        message: "Please complete all fields and add at least one product.",
+        tone: "warning",
+      });
+      return;
     }
 
-    console.log(" Stock movement saved successfully");
-    await showAlertDialog({
-      title: "Stock movement saved",
-      message: "Stock movement added successfully.",
-      tone: "success",
-    });
-    
-    // Mark PO as received if this came from a purchase order
-    if (poRef?.id) {
-      try {
+    try {
+      setIsSubmitting(true);
+      const totalCostPrice = addedProducts.reduce(
+        (sum, product) => sum + (product.costPrice || 0) * product.quantity,
+        0
+      );
+
+      if (isPurchaseOrderReceipt) {
         await apiClient.put(`/api/purchase-orders/${poRef.id}`, {
           action: "confirm-received",
           toLocationId: toLocation,
+          staffId: staff || null,
+          notes: movementNotes,
+          products: addedProducts.map((product) => ({
+            id: product._id,
+            quantity: product.quantity,
+            expiryDate: product.expiryDate || null,
+            costPrice: product.costPrice || 0,
+          })),
         });
-      } catch {}
-    }
 
-    // Reset form
-    setFromLocation("");
-    setToLocation("");
-    setStaff("");
-    setReason("");
-    setMovementNotes("");
-    setAddedProducts([]);
-    setSearchTerm("");
-    setQuantityInput(1);
-    setExpiryDateInput("");
-    setSelectedProduct(null);
-    
-    // Redirect after a short delay to show success message
-    setTimeout(() => {
-      console.log(" Redirecting to /stock/movement");
-      router.push("/stock/movement");
-    }, 1500);
-  } catch (err) {
-    console.error(" Stock movement error:", err.message);
-    await showAlertDialog({
-      title: "Save failed",
-      message: "Error saving stock movement: " + err.message,
-      tone: "danger",
-    });
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+        await showAlertDialog({
+          title: "Purchase order received",
+          message: "Purchase order received and stock updated successfully.",
+          tone: "success",
+        });
+      } else {
+        const transRef = Date.now().toString();
+        const payload = {
+          transRef,
+          fromLocationId: fromLocation,
+          toLocationId: requiresDestination ? toLocation : null,
+          staffId: staff || null,
+          vendorName: fromLocation === "vendor" ? poRef?.vendorName || "" : "",
+          reason,
+          notes: movementNotes,
+          status: "Received",
+          totalCostPrice,
+          barcode: transRef,
+          dateSent: new Date().toISOString(),
+          dateReceived: new Date().toISOString(),
+          products: addedProducts.map((product) => ({
+            id: product._id,
+            quantity: product.quantity,
+            expiryDate: product.expiryDate || null,
+          })),
+        };
+
+        const res = await fetch("/api/stock-movement/stock-movement", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        const result = await res.json();
+        if (!res.ok) {
+          throw new Error(result?.message || result?.error || `Server error: ${res.status}`);
+        }
+
+        await showAlertDialog({
+          title: "Stock movement saved",
+          message: "Stock movement added successfully.",
+          tone: "success",
+        });
+      }
+
+      setFromLocation("");
+      setToLocation("");
+      setStaff("");
+      setReason("");
+      setMovementNotes("");
+      setAddedProducts([]);
+      setSearchTerm("");
+      setQuantityInput(1);
+      setExpiryDateInput("");
+      setSelectedProduct(null);
+
+      setTimeout(() => {
+        router.push("/stock/movement");
+      }, 1500);
+    } catch (err) {
+      await showAlertDialog({
+        title: "Save failed",
+        message: "Error saving stock movement: " + err.message,
+        tone: "danger",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const totalCost = addedProducts.reduce(
     (sum, p) => sum + (p.costPrice || 0) * p.quantity,
@@ -380,6 +382,12 @@ export default function StockMovementAdd() {
 
   return (
     <Layout>
+      {isSubmitting && (
+        <Loader
+          fullScreen
+          text={isPurchaseOrderReceipt ? "Receiving purchase order and updating stock..." : "Creating stock movement..."}
+        />
+      )}
       <div className="page-container">
         <div className="page-content">
         {/* Header */}
@@ -426,7 +434,7 @@ export default function StockMovementAdd() {
                 label="From Location"
                 value={fromLocation}
                 onChange={setFromLocation}
-                options={isOperationalLoss ? locations : [{ _id: "vendor", name: poRef?.vendorName || "Vendor" }, ...locations]}
+                options={isOperationalLoss ? locations : [{ _id: "vendor", name: formatVendorMovementLabel(poRef?.vendorName) }, ...locations]}
                 required
               />
 

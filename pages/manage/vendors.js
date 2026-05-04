@@ -384,6 +384,7 @@ export default function VendorsPage() {
         contact: orderForm.contact,
         date: orderForm.date,
         products: orders.map((o) => ({
+          productId: o.productId || undefined,
           name: o.name,
           quantity: o.quantity,
           price: o.price,

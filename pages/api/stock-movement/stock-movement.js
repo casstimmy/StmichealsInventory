@@ -4,6 +4,7 @@ import StockMovement from "@/models/StockMovement";
 import { deriveChildQty } from "@/lib/syncPackQty";
 import { isValidObjectId } from "mongoose";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
+import { sanitizeMultilineText, sanitizePlainText } from "@/lib/textSanitizers";
 
 export default async function handler(req, res) {
   const authError = authMiddleware(req, res);
@@ -17,7 +18,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: "Method not allowed" });
   }
 
-  const { fromLocationId, toLocationId, staffId, reason, products, notes } = req.body;
+  const { fromLocationId, toLocationId, staffId, reason, products, notes, vendorName } = req.body;
   const isOperationalLoss = reason === "Operational Loss";
 
   /* =========================
@@ -128,6 +129,7 @@ export default async function handler(req, res) {
     const movement = await StockMovement.create({
       transRef,
       fromLocationId: isFromLocationVendor ? null : fromLocationId,
+      vendorName: isFromLocationVendor ? sanitizePlainText(vendorName) : "",
       toLocationId: isOperationalLoss || isToLocationVendor ? null : toLocationId,
       staffId: staffId || null,
       reason,
@@ -137,7 +139,7 @@ export default async function handler(req, res) {
       dateReceived: now,
       barcode: transRef,
       products: productsToCreate,
-      notes: notes || "",
+      notes: sanitizeMultilineText(notes),
     });
 
     /* =========================

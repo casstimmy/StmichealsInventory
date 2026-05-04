@@ -25,6 +25,18 @@ function toDateInputValue(v) {
   }
 }
 
+function normalizeVendorIds(values = []) {
+  return (Array.isArray(values) ? values : [])
+    .map((value) => {
+      if (!value) return "";
+      if (typeof value === "string") return value;
+      if (typeof value === "object" && value._id) return String(value._id);
+      if (typeof value?.toString === "function") return value.toString();
+      return "";
+    })
+    .filter(Boolean);
+}
+
 export default function ProductForm(props) {
   const router = useRouter();
   const { isAdmin } = useAuth();
@@ -51,7 +63,7 @@ export default function ProductForm(props) {
   const [images, setImages] = useState(props.images || []);
   const [properties, setProperties] = useState(props.properties || []);
   const [minStock, setMinStock] = useState(props.minStock ?? "");
-  const [selectedVendors, setSelectedVendors] = useState(props.vendors || []);
+  const [selectedVendors, setSelectedVendors] = useState(normalizeVendorIds(props.vendors));
   const [allVendors, setAllVendors] = useState([]);
   const [vendorsLoading, setVendorsLoading] = useState(true);
   const [packType, setPackType] = useState(props.packType || "unit");
@@ -101,7 +113,7 @@ export default function ProductForm(props) {
     setImages(props.images || []);
     setProperties(props.properties || []);
     setMinStock(props.minStock ?? "");
-    setSelectedVendors(props.vendors || []);
+    setSelectedVendors(normalizeVendorIds(props.vendors));
     setPackType(props.packType || "unit");
     setQtyPerPack(props.qtyPerPack ?? 1);
     setChildSalePrice(props.childSalePrice ?? "");

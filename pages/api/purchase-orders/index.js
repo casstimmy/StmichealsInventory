@@ -2,6 +2,8 @@ import { mongooseConnect } from "@/lib/mongodb";
 import PurchaseOrder from "@/models/PurchaseOrder";
 import Vendor from "@/models/Vendor";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
+import { isValidObjectId } from "mongoose";
+import { sanitizeMultilineText, sanitizePlainText } from "@/lib/textSanitizers";
 
 function derivePaymentStatus({ paymentMade = 0, grandTotal = 0, payBeforeSupply = false, receivedStatus = "Pending" }) {
   const paidAmount = Number(paymentMade) || 0;
@@ -85,6 +87,23 @@ export default async function handler(req, res) {
       const grandTotalValue = Number(
         grandTotal || products.reduce((sum, product) => sum + (product.total || product.price * product.quantity || 0), 0)
       );
+      const normalizedProducts = products.map((product) => {
+        const quantity = Number(product.quantity) || 0;
+        const price = Number(product.price) || 0;
+        const total = Number(product.total) || quantity * price;
+        const normalizedProduct = {
+          name: sanitizePlainText(product.name),
+          quantity,
+          price,
+          total,
+        };
+
+        if (isValidObjectId(product?.productId)) {
+          normalizedProduct.productId = product.productId;
+        }
+
+        return normalizedProduct;
+      });
       const paymentMadeValue = Number(paymentMade || 0);
       const receivedState = receivedStatus || "Pending";
       const payBeforeSupplyFlag = Boolean(payBeforeSupply);
@@ -100,10 +119,10 @@ export default async function handler(req, res) {
         date: date || new Date(),
         vendor,
         vendorName: vendorDoc.companyName,
-        contact: contact || vendorDoc.repPhone || "",
-        location: location || "",
+        contact: sanitizePlainText(contact || vendorDoc.repPhone || ""),
+        location: sanitizePlainText(location),
         locationId: locationId || null,
-        products,
+        products: normalizedProducts,
         grandTotal: grandTotalValue,
         paymentMade: paymentMadeValue,
         paymentDate: paymentDate || "",
@@ -111,7 +130,7 @@ export default async function handler(req, res) {
         status,
         staff: req.user?.id || null,
         staffName: staffName || req.user?.name || "",
-        notes: notes || "",
+        notes: sanitizeMultilineText(notes),
         payBeforeSupply: payBeforeSupplyFlag,
         receivedStatus: receivedState,
       });

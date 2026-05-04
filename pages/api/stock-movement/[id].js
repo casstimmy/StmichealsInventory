@@ -4,6 +4,7 @@ import Product from "@/models/Product";
 import mongoose from "mongoose";
 import { buildLocationCache, resolveLocationName } from "@/lib/serverLocationHelper";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
+import { formatVendorMovementLabel } from "@/lib/vendorDisplay";
 
 export default async function handler(req, res) {
   const authError = authMiddleware(req, res);
@@ -83,12 +84,12 @@ export default async function handler(req, res) {
       const senderName = fromLocationId
         ? await resolveLocationName(fromLocationId, locationCache)
         : movement.reason === "Restock"
-        ? "Vendor"
+        ? formatVendorMovementLabel(movement.vendorName)
         : "Unknown";
       const receiverName = toLocationId
         ? await resolveLocationName(toLocationId, locationCache)
         : movement.reason === "Return"
-        ? "Vendor"
+        ? formatVendorMovementLabel(movement.vendorName)
         : movement.reason === "Operational Loss"
         ? "Loss Register"
         : "Unknown";
@@ -96,6 +97,7 @@ export default async function handler(req, res) {
       return res.status(200).json({
         _id: movement._id,
         transRef: movement.transRef,
+        vendorName: movement.vendorName || "",
         fromLocation: senderName,
         toLocation: receiverName,
         reason: movement.reason,

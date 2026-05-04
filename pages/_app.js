@@ -8,6 +8,11 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 import axios from "axios";
 import { fetchAndCacheLogo } from '@/lib/storeLogo';
 import {
+  handleNumberInputKeyDown,
+  handleNumberInputPaste,
+  handleNumberInputWheel,
+} from '@/lib/inputGuards';
+import {
   queuePosTransaction,
   setupOfflinePosQueueSync,
 } from "@/lib/offlinePosQueue";
@@ -135,6 +140,23 @@ export default function App({
   // Prime the store logo cache on first load
   useEffect(() => {
     fetchAndCacheLogo();
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    document.addEventListener("wheel", handleNumberInputWheel, {
+      passive: false,
+      capture: true,
+    });
+    document.addEventListener("keydown", handleNumberInputKeyDown, true);
+    document.addEventListener("paste", handleNumberInputPaste, true);
+
+    return () => {
+      document.removeEventListener("wheel", handleNumberInputWheel, true);
+      document.removeEventListener("keydown", handleNumberInputKeyDown, true);
+      document.removeEventListener("paste", handleNumberInputPaste, true);
+    };
   }, []);
 
   // Sync queued POS transactions when connectivity returns.

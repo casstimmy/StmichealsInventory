@@ -15,6 +15,12 @@ const StockMovementSchema = new Schema(
       ref: "Store.locations",
     },
 
+    vendorName: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
     toLocationId: { 
       type: Schema.Types.ObjectId,
       ref: "Store.locations",

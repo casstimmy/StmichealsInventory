@@ -1,5 +1,6 @@
 // Centralized imports
 import { theme } from "@/styles/theme";
+import Loader from "@/components/Loader";
 
 // components/ui/Button.js
 export function Button({
@@ -184,7 +185,7 @@ export function StatCard({ label, value, highlight = false, className = "" }) {
 
 // components/ui/Loader.js - Re-export unified Loader with progress bar support
 // All pages now use the same Loader from @/components/Loader
-export { default as Loader } from "@/components/Loader";
+export { Loader };
 
 // components/ui/PageHeader.js
 export function PageHeader({ title, description, className = "" }) {

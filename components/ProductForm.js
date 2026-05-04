@@ -37,6 +37,16 @@ function normalizeVendorIds(values = []) {
     .filter(Boolean);
 }
 
+const STANDARD_PRODUCT_TYPE = "standard";
+const ROOM_PRODUCT_TYPE = "room";
+
+function formatRoomBookingDate(value) {
+  if (!value) return "Not set";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "Not set";
+  return parsed.toLocaleDateString();
+}
+
 export default function ProductForm(props) {
   const router = useRouter();
   const { isAdmin } = useAuth();
@@ -59,6 +69,8 @@ export default function ProductForm(props) {
   const [barcode, setBarcode] = useState(props.barcode || "");
   const [quantity, setQuantity] = useState(props.quantity ?? "");
   const [category, setCategory] = useState(props.category || "Top Level");
+  const [productType, setProductType] = useState(props.productType || STANDARD_PRODUCT_TYPE);
+  const [roomStatus, setRoomStatus] = useState(props.roomStatus || "available");
   const [categories, setCategories] = useState([]);
   const [images, setImages] = useState(props.images || []);
   const [properties, setProperties] = useState(props.properties || []);
@@ -110,6 +122,8 @@ export default function ProductForm(props) {
     setBarcode(props.barcode || "");
     setQuantity(props.quantity ?? "");
     setCategory(props.category || "Top Level");
+    setProductType(props.productType || STANDARD_PRODUCT_TYPE);
+    setRoomStatus(props.roomStatus || "available");
     setImages(props.images || []);
     setProperties(props.properties || []);
     setMinStock(props.minStock ?? "");
@@ -125,6 +139,16 @@ export default function ProductForm(props) {
     setExpiryDate(toDateInputValue(props.expiryDate || ""));
     setDescriptionEdited(Boolean(props.description));
   }, [props]);
+
+  useEffect(() => {
+    if (productType !== ROOM_PRODUCT_TYPE) return;
+
+    setQuantity(0);
+    setMinStock(0);
+    setPackType("unit");
+    setQtyPerPack(1);
+    setChildSalePrice("");
+  }, [productType]);
 
   // Load categories with caching
   useEffect(() => {
@@ -218,6 +242,17 @@ export default function ProductForm(props) {
     return (((sp - pp) / sp) * 100).toFixed(2);
   })();
   const promoWarning = Number(promoPrice) > Number(salePriceIncTax);
+  const isRoomProduct = productType === ROOM_PRODUCT_TYPE;
+  const currentRoomBooking = props.currentBooking || null;
+  const hasCurrentRoomBooking = Boolean(
+    currentRoomBooking &&
+      (
+        currentRoomBooking.guestName ||
+        currentRoomBooking.checkInAt ||
+        currentRoomBooking.checkOutAt ||
+        currentRoomBooking.notes
+      )
+  );
 
   // --- Save product ---
   async function saveProduct(e) {
@@ -253,10 +288,12 @@ export default function ProductForm(props) {
       margin,
       barcode,
       category,
+      productType,
+      roomStatus: isRoomProduct ? roomStatus : "available",
       images,
       properties,
-      minStock: minStock === "" ? undefined : Number(minStock),
-      quantity: quantity === "" ? undefined : Number(quantity),
+      minStock: isRoomProduct ? 0 : (minStock === "" ? undefined : Number(minStock)),
+      quantity: isRoomProduct ? 0 : (quantity === "" ? undefined : Number(quantity)),
       expiryDate,
       isPromotion,
       promoPrice: isPromotion ? promoPrice : "",
@@ -265,9 +302,9 @@ export default function ProductForm(props) {
       effectivePrice, // ✅ enforce effective price
       vendors: selectedVendors,
       locations: selectedLocations,
-      packType,
-      qtyPerPack: packType === "pack" ? Number(qtyPerPack) || 1 : 1,
-      childSalePrice: packType === "pack" ? Number(childSalePrice) || 0 : undefined,
+      packType: isRoomProduct ? "unit" : packType,
+      qtyPerPack: isRoomProduct ? 1 : (packType === "pack" ? Number(qtyPerPack) || 1 : 1),
+      childSalePrice: isRoomProduct ? undefined : (packType === "pack" ? Number(childSalePrice) || 0 : undefined),
     };
 
     try {
@@ -555,6 +592,73 @@ export default function ProductForm(props) {
         </div>
       </Section>
 
+      <Section title="Product Type">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="form-group">
+            <label className="form-label">Type</label>
+            <select
+              className="form-select"
+              value={productType}
+              onChange={(e) => setProductType(e.target.value)}
+            >
+              <option value={STANDARD_PRODUCT_TYPE}>Standard Product</option>
+              <option value={ROOM_PRODUCT_TYPE}>Room / Reservation</option>
+            </select>
+            <p className="text-xs text-gray-400 mt-1">
+              Room products skip stock counting and open a booking flow in the sales point.
+            </p>
+          </div>
+
+          {isRoomProduct && (
+            <div className="form-group">
+              <label className="form-label">Availability</label>
+              <select
+                className="form-select"
+                value={roomStatus}
+                onChange={(e) => setRoomStatus(e.target.value)}
+              >
+                <option value="available">Available</option>
+                <option value="reserved">Reserved</option>
+                <option value="occupied">Occupied</option>
+              </select>
+              <p className="text-xs text-gray-400 mt-1">
+                Set the room back to available after checkout or cancellation.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {isRoomProduct && hasCurrentRoomBooking && (
+          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <div className="font-semibold text-amber-950">Current booking</div>
+            <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <span className="font-medium">Guest:</span> {currentRoomBooking.guestName || "Not set"}
+              </div>
+              <div>
+                <span className="font-medium">Phone:</span> {currentRoomBooking.guestPhone || "Not set"}
+              </div>
+              <div>
+                <span className="font-medium">Check-in:</span> {formatRoomBookingDate(currentRoomBooking.checkInAt)}
+              </div>
+              <div>
+                <span className="font-medium">Check-out:</span> {formatRoomBookingDate(currentRoomBooking.checkOutAt)}
+              </div>
+            </div>
+            {currentRoomBooking.notes && (
+              <div className="mt-2">
+                <span className="font-medium">Notes:</span> {currentRoomBooking.notes}
+              </div>
+            )}
+            {roomStatus === "available" && (
+              <div className="mt-2 text-xs text-amber-700">
+                Saving this room as available clears the current booking details.
+              </div>
+            )}
+          </div>
+        )}
+      </Section>
+
       {/* Pricing */}
       <Section title="Pricing">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
@@ -638,67 +742,71 @@ export default function ProductForm(props) {
         </div>
       </Section>
 
-      <Section title="Stock & Quantity">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-          <InputField
-            label="Min Stock (optional)"
-            name="minStock"
-            type="number"
-            value={minStock}
-            setValue={setMinStock}
-          />
-          {isAdmin && (
-            <InputField
-              label="Qty (optional)"
-              name="quantity"
-              type="number"
-              value={quantity}
-              setValue={setQuantity}
-            />
-          )}
-        </div>
-      </Section>
+      {!isRoomProduct && (
+        <>
+          <Section title="Stock & Quantity">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+              <InputField
+                label="Min Stock (optional)"
+                name="minStock"
+                type="number"
+                value={minStock}
+                setValue={setMinStock}
+              />
+              {isAdmin && (
+                <InputField
+                  label="Qty (optional)"
+                  name="quantity"
+                  type="number"
+                  value={quantity}
+                  setValue={setQuantity}
+                />
+              )}
+            </div>
+          </Section>
 
-      {/* Pack / Child Product */}
-      <Section title="Pack & Child Product">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
-          <div className="form-group">
-            <label className="form-label">Pack Type</label>
-            <select
-              className="form-select"
-              value={packType}
-              onChange={(e) => setPackType(e.target.value)}
-            >
-              <option value="unit">Unit (Single Item)</option>
-              <option value="pack">Pack (Multiple Units)</option>
-            </select>
-          </div>
-          {packType === "pack" && (
-            <>
-              <InputField
-                label="Qty Per Pack"
-                type="number"
-                value={qtyPerPack}
-                setValue={setQtyPerPack}
-              />
-              <InputField
-                label="Child Sale Price (₦)"
-                type="number"
-                value={childSalePrice}
-                setValue={setChildSalePrice}
-              />
-            </>
-          )}
-        </div>
-        {packType === "pack" && Number(qtyPerPack) > 1 && (
-          <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg text-sm text-purple-700">
-            <p>
-              <strong>Pack of {qtyPerPack}:</strong> Cost per unit = {formatCurrency((Number(costPrice) || 0) / (Number(qtyPerPack) || 1))}
-              {childSalePrice ? ` | Child sale price = ${formatCurrency(Number(childSalePrice))}` : ""}
-            </p>
-          </div>
-        )}
-      </Section>
+          {/* Pack / Child Product */}
+          <Section title="Pack & Child Product">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+              <div className="form-group">
+                <label className="form-label">Pack Type</label>
+                <select
+                  className="form-select"
+                  value={packType}
+                  onChange={(e) => setPackType(e.target.value)}
+                >
+                  <option value="unit">Unit (Single Item)</option>
+                  <option value="pack">Pack (Multiple Units)</option>
+                </select>
+              </div>
+              {packType === "pack" && (
+                <>
+                  <InputField
+                    label="Qty Per Pack"
+                    type="number"
+                    value={qtyPerPack}
+                    setValue={setQtyPerPack}
+                  />
+                  <InputField
+                    label="Child Sale Price (₦)"
+                    type="number"
+                    value={childSalePrice}
+                    setValue={setChildSalePrice}
+                  />
+                </>
+              )}
+            </div>
+            {packType === "pack" && Number(qtyPerPack) > 1 && (
+              <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg text-sm text-purple-700">
+                <p>
+                  <strong>Pack of {qtyPerPack}:</strong> Cost per unit = {formatCurrency((Number(costPrice) || 0) / (Number(qtyPerPack) || 1))}
+                  {childSalePrice ? ` | Child sale price = ${formatCurrency(Number(childSalePrice))}` : ""}
+                </p>
+              </div>
+            )}
+          </Section>
+        </>
+      )}
 
       {/* Promotion */}
       <Section title="Promotion">

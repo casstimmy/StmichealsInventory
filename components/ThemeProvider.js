@@ -93,6 +93,10 @@ export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(null);
 
   useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
     // Try localStorage first for instant render
     const cached = localStorage.getItem("system-theme");
     if (cached) {
@@ -101,6 +105,11 @@ export function ThemeProvider({ children }) {
         setTheme(parsed);
         applyThemeToDOM(parsed);
       } catch {}
+    }
+
+    const token = localStorage.getItem("auth_token");
+    if (!token) {
+      return;
     }
 
     // Fetch latest from API

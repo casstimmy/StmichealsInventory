@@ -134,13 +134,19 @@ export default function App({
   pageProps,
 }) {
   const router = useRouter();
+  const showLayout = !router.pathname.includes('/login') && !router.pathname.includes('/register');
+
   installGlobalApiFetchWrapper();
   installAxiosAuthInterceptor();
   
   // Prime the store logo cache on first load
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!showLayout) return;
+    if (!localStorage.getItem("auth_token")) return;
+
     fetchAndCacheLogo();
-  }, []);
+  }, [showLayout]);
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
@@ -220,9 +226,6 @@ export default function App({
     return () => observer.disconnect();
   }, []);
   
-  // Don't show layout on login and register pages
-  const showLayout = !router.pathname.includes('/login') && !router.pathname.includes('/register');
-
   return (
     <DialogProvider>
       <>
@@ -233,15 +236,13 @@ export default function App({
           <meta name="googlebot" content="noindex" />
           <meta name="google" content="notranslate" />
           <meta name="theme-color" content="#000000" />
-          <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-          <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-          <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-          <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5" />
+          <link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png" />
+          <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png" />
+          <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png" />
           <meta name="msapplication-TileColor" content="#000000" />
-          <meta name="msapplication-config" content="/browserconfig.xml" />
           <title>St Michael’s Invetory app</title>
           <meta name="description" content="Best products at the best prices!" />
-          <link rel="icon" href="/favicon.ico" />
+          <link rel="icon" href="/favicon/favicon.ico" />
         </Head>
         
         {showLayout ? (

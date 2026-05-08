@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { getCachedLogo, fetchAndCacheLogo } from "@/lib/storeLogo";
+import { DEFAULT_LOGO, getCachedLogo, fetchAndCacheLogo } from "@/lib/storeLogo";
 
 export default function Loader({ 
   size = "md", 
@@ -15,10 +15,21 @@ export default function Loader({
   color = "sky",
   progress = null, // optional 0-100 for determinate progress
 }) {
-  const [logoUrl, setLogoUrl] = useState(getCachedLogo());
+  const [logoUrl, setLogoUrl] = useState(DEFAULT_LOGO);
 
   useEffect(() => {
-    fetchAndCacheLogo().then((url) => setLogoUrl(url));
+    let isMounted = true;
+
+    setLogoUrl(getCachedLogo());
+    fetchAndCacheLogo().then((url) => {
+      if (isMounted) {
+        setLogoUrl(url);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Size configurations - responsive to parent container

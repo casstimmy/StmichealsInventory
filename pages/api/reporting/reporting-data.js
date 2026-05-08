@@ -5,12 +5,19 @@ import Product from "@/models/Product";
 import Store from "@/models/Store";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 import {
+  addDays,
   format,
-  subDays,
   eachDayOfInterval,
   eachWeekOfInterval,
   eachMonthOfInterval,
   eachHourOfInterval,
+  startOfDay,
+  startOfMonth,
+  startOfWeek,
+  startOfYear,
+  subDays,
+  subMonths,
+  subYears,
 } from "date-fns";
 
 /* ---------------------------------------------
@@ -33,6 +40,61 @@ function setCache(key, data) {
   cache.set(key, { data, expiry: Date.now() + CACHE_TTL });
 }
 
+function resolveDateRange(range, fallbackDays) {
+  const now = new Date();
+  const todayStart = startOfDay(now);
+  const normalizedRange = typeof range === "string" ? range.trim() : "";
+
+  switch (normalizedRange) {
+    case "Today":
+      return { start: todayStart, end: now };
+    case "Yesterday":
+      return { start: addDays(todayStart, -1), end: todayStart };
+    case "Last 7 days":
+      return { start: addDays(todayStart, -6), end: now };
+    case "Last 14 days":
+      return { start: addDays(todayStart, -13), end: now };
+    case "Last 30 days":
+      return { start: addDays(todayStart, -29), end: now };
+    case "Last 90 days":
+      return { start: addDays(todayStart, -89), end: now };
+    case "This week":
+      return { start: startOfWeek(now), end: now };
+    case "Last week": {
+      const currentWeekStart = startOfWeek(now);
+      return { start: addDays(currentWeekStart, -7), end: currentWeekStart };
+    }
+    case "This month":
+      return { start: startOfMonth(now), end: now };
+    case "Last month": {
+      const currentMonthStart = startOfMonth(now);
+      return { start: startOfMonth(subMonths(now, 1)), end: currentMonthStart };
+    }
+    case "This year":
+      return { start: startOfYear(now), end: now };
+    case "Last year": {
+      const currentYearStart = startOfYear(now);
+      return { start: startOfYear(subYears(now, 1)), end: currentYearStart };
+    }
+    default: {
+      const safeDays = Number(fallbackDays);
+
+      if (safeDays === 0) {
+        return { start: todayStart, end: now };
+      }
+
+      if (safeDays === 1) {
+        return { start: addDays(todayStart, -1), end: todayStart };
+      }
+
+      return {
+        start: subDays(now, Number.isFinite(safeDays) ? safeDays : 30),
+        end: now,
+      };
+    }
+  }
+}
+
 /* ---------------------------------------------
    API HANDLER
 ---------------------------------------------- */
@@ -51,23 +113,22 @@ export default async function handler(req, res) {
       location = "All",
       days = 30,
       period = "day",
+      range = "",
     } = req.query;
 
-    const cacheKey = JSON.stringify({ location, days, period });
+    const { start: rangeStart, end: rangeEnd } = resolveDateRange(range, days);
+    const intervalEnd = new Date(rangeEnd.getTime() - 1);
+
+    const cacheKey = JSON.stringify({
+      location,
+      days,
+      period,
+      range,
+      rangeStart: rangeStart.toISOString(),
+      rangeEnd: rangeEnd.toISOString(),
+    });
     const cached = getCache(cacheKey);
     if (cached) return res.json(cached);
-
-    const now = new Date();
-    let cutoffDate = subDays(now, Number(days));
-    
-    // For "Today" (days=0), set cutoff to start of today
-    if (Number(days) === 0) {
-      cutoffDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-    }
-    // For "Yesterday" (days=1), set cutoff to start of yesterday and end before today
-    else if (Number(days) === 1) {
-      cutoffDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
-    }
 
     /* ---------------------------------------------
        PERIOD FORMAT
@@ -81,7 +142,7 @@ export default async function handler(req, res) {
 
     const { fn, fmt } = periodConfig[period.toLowerCase()] || periodConfig.day;
 
-    const periods = fn({ start: cutoffDate, end: now }).map((d) =>
+    const periods = fn({ start: rangeStart, end: intervalEnd }).map((d) =>
       format(d, fmt)
     );
 
@@ -94,8 +155,8 @@ export default async function handler(req, res) {
        ───────────────────────────────────────── */
     // Locations are now stored as strings (location name or 'online')
     const queryFilter = {
-      createdAt: { $gte: cutoffDate },
-      status: { $ne: "held" },
+      createdAt: { $gte: rangeStart, $lt: rangeEnd },
+      status: "completed",
     };
 
     // Handle location filter - locations are strings now
@@ -188,7 +249,10 @@ export default async function handler(req, res) {
             : 0,
         lowStockItems,
         grossMargin: totalSales * 0.35, // Assume 35% gross margin
-        operatingMargin: ((totalSales * 0.35) - (totalSales * 0.15)) / totalSales * 100, // 35% gross - 15% operating expenses
+        operatingMargin:
+          totalSales > 0
+            ? (((totalSales * 0.35) - (totalSales * 0.15)) / totalSales) * 100
+            : 0, // 35% gross - 15% operating expenses
       },
     };
 

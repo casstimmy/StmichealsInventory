@@ -10,6 +10,7 @@ import {
   PointElement,
   LineElement,
   ArcElement,
+  Filler,
 } from "chart.js";
 import { Line, Bar, Pie } from "react-chartjs-2";
 import Layout from "@/components/Layout";
@@ -26,6 +27,7 @@ ChartJS.register(
   PointElement,
   LineElement,
   ArcElement
+  ,Filler
 );
 
 export default function Reporting() {
@@ -35,35 +37,37 @@ export default function Reporting() {
   const [location, setLocation] = useState("All");
   const [period, setPeriod] = useState("DAY");
   const [timeRange, setTimeRange] = useState("Last 14 days");
+  const [availableLocations, setAvailableLocations] = useState([]);
 
-  // Map time range to days
-  const getTimeDays = (range) => {
-    const rangeMap = {
-      "Today": 0,
-      "Yesterday": 1,
-      "Last 7 days": 7,
-      "Last 14 days": 14,
-      "Last 30 days": 30,
-      "Last 90 days": 90,
-      "This week": 7,
-      "This month": 30,
-      "This year": 365,
-      "Last week": 14,
-      "Last month": 30,
-      "Last year": 365,
-    };
-    return rangeMap[range] || 14;
-  };
+  useEffect(() => {
+    async function loadLocations() {
+      try {
+        const res = await fetch("/api/setup/get");
+        const data = await res.json();
+        const locations = Array.isArray(data?.store?.locations)
+          ? data.store.locations
+              .map((loc) => String(loc?.name || "").trim())
+              .filter(Boolean)
+          : [];
+
+        setAvailableLocations(locations);
+      } catch (error) {
+        console.error("Error loading reporting locations:", error);
+      }
+    }
+
+    loadLocations();
+  }, []);
 
   useEffect(() => {
     async function load() {
       setLoading(true);
       start();
-      const days = getTimeDays(timeRange);
       const periodLower = period.toLowerCase();
+      const rangeParam = encodeURIComponent(timeRange);
       onFetch();
       const res = await fetch(
-        `/api/reporting/reporting-data?location=${location}&period=${periodLower}&days=${days}`
+        `/api/reporting/reporting-data?location=${location}&period=${periodLower}&range=${rangeParam}`
       );
       onProcess();
       setReport(await res.json());
@@ -85,19 +89,17 @@ export default function Reporting() {
     summary = {} 
   } = report;
 
-  // Filter location names - handle both string and object formats, include online
-  let locationNames = Object.keys(salesByLocation || {}).filter(Boolean);
-  // Ensure online is always included if it has data
-  if (salesByLocation?.online && !locationNames.includes("online")) {
-    locationNames = ["online", ...locationNames];
-  } else if (locationNames.length > 0 && !locationNames.includes("online")) {
-    // Ensure online is always first in the list
-    locationNames = locationNames.sort((a, b) => {
-      if (a === "online") return -1;
-      if (b === "online") return 1;
-      return a.localeCompare(b);
-    });
-  }
+  const locationOptions = Array.from(
+    new Set([
+      ...availableLocations,
+      ...Object.keys(salesByLocation || {}).filter(Boolean),
+      "online",
+    ])
+  ).sort((a, b) => {
+    if (a === "online") return -1;
+    if (b === "online") return 1;
+    return a.localeCompare(b);
+  });
 
   return (
     <Layout title="Reporting">
@@ -132,7 +134,7 @@ export default function Reporting() {
                   >
                     <option value="All">All Locations</option>
                     <option value="online">Online</option>
-                    {locationNames.map((l) => (
+                    {locationOptions.map((l) => (
                       l !== "online" && <option key={l} value={l}>{l || "Unknown"}</option>
                     ))}
                   </select>
@@ -188,7 +190,7 @@ export default function Reporting() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
           <Card 
             title="Total Sales" 
-            value={`${((summary?.totalSales || 0)).toLocaleString()}`}
+            value={formatCurrency(summary?.totalSales || 0)}
             icon=""
             color="blue"
           />
@@ -200,7 +202,7 @@ export default function Reporting() {
           />
           <Card 
             title="Gross Margin" 
-            value={`${((summary?.grossMargin || 0)).toLocaleString()}`}
+            value={formatCurrency(summary?.grossMargin || 0)}
             icon=""
             color="purple"
           />
@@ -221,7 +223,7 @@ export default function Reporting() {
                 labels: dates || [],
                 datasets: [
                   {
-                    label: "Sales ()",
+                    label: "Sales",
                     data: salesData || [],
                     borderColor: "#06B6D4",
                     backgroundColor: "rgba(8,145,178,0.1)",
@@ -262,7 +264,10 @@ export default function Reporting() {
                 scales: {
                   y: { 
                     beginAtZero: true,
-                    title: { display: true, text: "Sales ()" },
+                    title: { display: true, text: "Sales" },
+                    ticks: {
+                      callback: (value) => formatCurrency(Number(value || 0)),
+                    },
                   },
                   y1: { 
                     position: "right", 
@@ -280,7 +285,10 @@ export default function Reporting() {
           <PieChart title="Tender Split" data={salesByTender || {}} />
           <BarChart title="Sales by Location" data={salesByLocation || {}} />
           <div className="content-card">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Products</h3>
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Top Products</h3>
+              <p className="text-sm text-gray-500">Based on completed transactions in the selected range.</p>
+            </div>
             <div className="h-[250px] md:h-[300px]">
               <Bar
                 data={{
@@ -395,7 +403,6 @@ function PieChart({ title, data }) {
 
 function BarChart({ title, data }) {
   let labels = Object.keys(data || {}).filter(Boolean);
-  const values = Object.values(data || {});
 
   // Sort labels: online first, then others alphabetically
   labels = labels.sort((a, b) => {
@@ -421,7 +428,7 @@ function BarChart({ title, data }) {
           data={{ 
             labels: displayLabels.length > 0 ? displayLabels : ["No Data"], 
             datasets: [{ 
-              label: "Sales ()",
+              label: "Sales",
               data: sortedValues.length > 0 ? sortedValues : [0],
               backgroundColor: "#06B6D4",
               borderRadius: 8,
@@ -434,7 +441,14 @@ function BarChart({ title, data }) {
             plugins: {
               legend: { display: true, position: "top" },
             },
-            scales: { y: { beginAtZero: true } },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: (value) => formatCurrency(Number(value || 0)),
+                },
+              },
+            },
           }}
         />
       </div>

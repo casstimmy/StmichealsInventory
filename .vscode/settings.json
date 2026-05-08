@@ -171,6 +171,38 @@
         "/^npx eslint pages/stock/management\\.js$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^npx eslint pages/api/reporting/reporting-data\\.js$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^npx eslint pages/reporting/reporting\\.js pages/api/reporting/reporting-data\\.js$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^npx eslint pages/api/daily-mail\\.js$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^node --input-type=module -e \"import mongoose from 'mongoose'; import jwt from 'jsonwebtoken'; const uri = process\\.env\\.MONGODB_URI; const secret = process\\.env\\.JWT_SECRET; if \\(!uri\\) throw new Error\\('MONGODB_URI missing'\\); if \\(!secret\\) throw new Error\\('JWT_SECRET missing'\\); await mongoose\\.connect\\(uri\\); const UserSchema = new mongoose\\.Schema\\(\\{ name: String, email: String, role: String, isActive: Boolean, permissions: \\[String\\] \\}, \\{ collection: 'users' \\}\\); const User = mongoose\\.models\\.TokenMintUser ; mongoose\\.model\\('TokenMintUser', UserSchema\\); const user = await User\\.findOne\\(\\{ role: 'admin', isActive: true \\}\\)\\.select\\('_id email name role permissions'\\)\\.lean\\(\\); if \\(!user\\) throw new Error\\('No active admin user found'\\); const token = jwt\\.sign\\(\\{ id: user\\._id\\.toString\\(\\), email: user\\.email, name: user\\.name, role: user\\.role \\}, secret, \\{ expiresIn: '24h' \\}\\); console\\.log\\(JSON\\.stringify\\(\\{ token, user \\}, null, 2\\)\\); await mongoose\\.disconnect\\(\\);\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^\\$env:MONGODB_URI='mongodb://stmichealsfoods_db_user:kBdPk5DpHdzynYMY@ac-wosvnkt-shard-00-00\\.z4yj0gu\\.mongodb\\.net:27017,ac-wosvnkt-shard-00-01\\.z4yj0gu\\.mongodb\\.net:27017,ac-wosvnkt-shard-00-02\\.z4yj0gu\\.mongodb\\.net:27017/\\?authSource=admin&replicaSet=atlas-tnf21f-shard-0&tls=true&retryWrites=true&w=majority&appName=Cluster0'; \\$env:JWT_SECRET='zW4pj5YQWzMv1DlO/kB6hz5IHpQ2p8Aa8k42FDtqNH8='; node --input-type=module -e \"import mongoose from 'mongoose'; import jwt from 'jsonwebtoken'; await mongoose\\.connect\\(process\\.env\\.MONGODB_URI\\); const UserSchema = new mongoose\\.Schema\\(\\{ name: String, email: String, role: String, isActive: Boolean, permissions: \\[String\\] \\}, \\{ collection: 'users' \\}\\); let User = mongoose\\.models\\.TokenMintUser; if \\(!User\\) \\{ User = mongoose\\.model\\('TokenMintUser', UserSchema\\); \\} const user = await User\\.findOne\\(\\{ role: 'admin', isActive: true \\}\\)\\.select\\('_id email name role permissions'\\)\\.lean\\(\\); if \\(!user\\) throw new Error\\('No active admin user found'\\); const token = jwt\\.sign\\(\\{ id: user\\._id\\.toString\\(\\), email: user\\.email, name: user\\.name, role: user\\.role \\}, process\\.env\\.JWT_SECRET, \\{ expiresIn: '24h' \\}\\); console\\.log\\(JSON\\.stringify\\(\\{ token, user \\}, null, 2\\)\\); await mongoose\\.disconnect\\(\\);\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^npx eslint pages/reporting/reporting\\.js pages/api/daily-mail\\.js pages/api/reporting/reporting-data\\.js$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^npx eslint components/Loader\\.js lib/storeLogo\\.js$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^npx eslint components/ThemeProvider\\.js pages/_app\\.js$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     }
 }

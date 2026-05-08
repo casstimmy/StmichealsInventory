@@ -1,4 +1,3 @@
-import nodemailer from "nodemailer";
 import path from "path";
 import { mongooseConnect } from "@/lib/mongoose";
 import EndOfDayReport from "@/models/EndOfDayReport";
@@ -7,7 +6,13 @@ import Store from "@/models/Store";
 import Transaction from "@/models/Transactions";
 import Expense from "@/models/Expense";
 import jwt from "jsonwebtoken";
+import { createMailTransport, getMailFromAddress } from "@/lib/mail";
+import { aggregateProductSales } from "@/lib/product-sales-report";
 import { buildLocationCache, resolveLocationName } from "@/lib/serverLocationHelper";
+
+function isDerivedChildProduct(product) {
+  return product?.isChildProduct && product?.packType !== "pack";
+}
 
 export default async function handler(req, res) {
   try {
@@ -189,9 +194,16 @@ export default async function handler(req, res) {
     // =====================
     const salesByLocation = {};
     const tenderTotals = {};
+    const transactionTenderBreakdownByLocation = {};
     let totalCogsToday = 0;
     let missingProductIdCount = 0;
     let missingCostCount = 0;
+    const productSalesSummary = aggregateProductSales(transactions);
+    const topSellingProducts = productSalesSummary.slice(0, 8);
+    const totalItemsSold = productSalesSummary.reduce(
+      (sum, product) => sum + (product.unitsSold || 0),
+      0,
+    );
 
     for (const tx of transactions) {
       const locName = await resolveLocationName(tx.location, locationsMap);
@@ -206,6 +218,10 @@ export default async function handler(req, res) {
       }
       salesByLocation[locName].totalSales += tx.total || 0;
       salesByLocation[locName].transactionCount += 1;
+
+      if (!transactionTenderBreakdownByLocation[locName]) {
+        transactionTenderBreakdownByLocation[locName] = {};
+      }
 
       // Count items sold
       if (tx.items && Array.isArray(tx.items)) {
@@ -254,9 +270,29 @@ export default async function handler(req, res) {
       }
 
       // Aggregate tender totals
-      const tender = tx.tenderType || "CASH";
-      tenderTotals[tender] = (tenderTotals[tender] || 0) + (tx.total || 0);
+      if (Array.isArray(tx.tenderPayments) && tx.tenderPayments.length > 0) {
+        tx.tenderPayments.forEach((payment) => {
+          const tenderName = payment.tenderName || payment.tenderType || "Unknown";
+          const amount = Number(payment.amount || 0);
+
+          tenderTotals[tenderName] = (tenderTotals[tenderName] || 0) + amount;
+          transactionTenderBreakdownByLocation[locName][tenderName] =
+            (transactionTenderBreakdownByLocation[locName][tenderName] || 0) + amount;
+        });
+      } else {
+        const tender = tx.tenderType || "CASH";
+        const amount = Number(tx.total || 0);
+
+        tenderTotals[tender] = (tenderTotals[tender] || 0) + amount;
+        transactionTenderBreakdownByLocation[locName][tender] =
+          (transactionTenderBreakdownByLocation[locName][tender] || 0) + amount;
+      }
     }
+
+    const displayedTenderBreakdownByLocation =
+      Object.keys(tenderBreakdownByLocation).length > 0
+        ? tenderBreakdownByLocation
+        : transactionTenderBreakdownByLocation;
 
     // =====================
     // PROCESS EXPENSES BY LOCATION
@@ -312,6 +348,10 @@ export default async function handler(req, res) {
 
     // Process products - check for inventory by location
     for (const product of allProducts) {
+      if (isDerivedChildProduct(product)) {
+        continue;
+      }
+
       const costPrice = product.costPrice || 0;
       const salePrice = product.salePriceIncTax || 0;
       const minStock = product.minStock || 0;
@@ -526,9 +566,9 @@ export default async function handler(req, res) {
         <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #8b5cf6;">
           <h2 style="color: #8b5cf6; margin-top: 0; font-size: 18px;">💳 Tender Breakdown by Location</h2>
           ${
-            Object.keys(tenderBreakdownByLocation).length === 0
+            Object.keys(displayedTenderBreakdownByLocation).length === 0
               ? '<p style="color: #999; font-style: italic;">No tender data available for today</p>'
-              : Object.entries(tenderBreakdownByLocation)
+              : Object.entries(displayedTenderBreakdownByLocation)
                   .map(
                     ([location, tenders]) => `
               <div style="margin-bottom: 15px; padding: 15px; background: #f9fafb; border-radius: 8px;">
@@ -572,6 +612,37 @@ export default async function handler(req, res) {
             </div>
           `
               : ""
+          }
+        </div>
+
+        <!-- TOP PRODUCTS -->
+        <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #0ea5e9;">
+          <h2 style="color: #0ea5e9; margin-top: 0; font-size: 18px;">🏷️ Top Products (Today)</h2>
+          ${
+            topSellingProducts.length === 0
+              ? '<p style="color: #999; font-style: italic;">No product sales recorded for today</p>'
+              : `<table style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="background: #f0f9ff;">
+                  <th style="padding: 12px; text-align: left; border-bottom: 2px solid #0ea5e9; font-size: 13px;">Product</th>
+                  <th style="padding: 12px; text-align: right; border-bottom: 2px solid #0ea5e9; font-size: 13px;">Units Sold</th>
+                  <th style="padding: 12px; text-align: right; border-bottom: 2px solid #0ea5e9; font-size: 13px;">Sales</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${topSellingProducts
+                  .map(
+                    (product) => `
+                  <tr style="border-bottom: 1px solid #e0f2fe;">
+                    <td style="padding: 12px; font-weight: 600;">${product.name}</td>
+                    <td style="padding: 12px; text-align: right;">${product.unitsSold}</td>
+                    <td style="padding: 12px; text-align: right; color: #0369a1; font-weight: 600;">${formatMoney(product.totalSales)}</td>
+                  </tr>
+                `,
+                  )
+                  .join("")}
+              </tbody>
+            </table>`
           }
         </div>
 
@@ -797,7 +868,7 @@ export default async function handler(req, res) {
             <div style="background: rgba(255, 255, 255, 0.15); padding: 18px; border-radius: 8px; border-left: 4px solid rgba(255, 255, 255, 0.4); backdrop-filter: blur(10px);">
               <p style="margin: 0; opacity: 0.85; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">💰 Gross Sales</p>
               <p style="margin: 12px 0 0 0; font-size: 28px; font-weight: bold; line-height: 1;">${formatMoney(totalSales)}</p>
-              <p style="margin: 8px 0 0 0; opacity: 0.7; font-size: 11px;">${totalTransactionCount} transactions</p>
+              <p style="margin: 8px 0 0 0; opacity: 0.7; font-size: 11px;">${totalTransactionCount} transactions · ${totalItemsSold} units sold</p>
             </div>
 
             <!-- Total Expenses -->
@@ -865,18 +936,13 @@ export default async function handler(req, res) {
       </div>
     `;
 
-    // Create transporter
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 587,
-      secure: false,
-      auth: {
-        user: EMAIL_USER,
-        pass: EMAIL_PASS,
-      },
-      connectionTimeout: 10000,
-      socketTimeout: 10000,
-    });
+    const transporter = createMailTransport();
+    if (!transporter) {
+      return res.status(500).json({
+        error: "Mail transport is not configured",
+        hint: "Check SMTP/EMAIL environment variables",
+      });
+    }
 
     const testEmailTo = process.env.TEST_EMAIL || FROM_EMAIL || EMAIL_USER;
 
@@ -903,7 +969,7 @@ export default async function handler(req, res) {
     }
 
     const emailResponse = await transporter.sendMail({
-      from: EMAIL_USER,
+      from: getMailFromAddress("St's Micheal's Place"),
       to: testEmailTo,
       subject: `Daily Business Report - ${today.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} | St. Micheals`,
       html: mailHtml,
@@ -920,6 +986,7 @@ export default async function handler(req, res) {
       summary: {
         totalSales,
         totalTransactions: totalTransactionCount,
+        totalItemsSold,
         totalExpenses,
         totalCogs: totalCogsToday,
         netPosition: netProfitToday,

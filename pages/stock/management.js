@@ -2,12 +2,54 @@ import Layout from "@/components/Layout";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/format";
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useRouter } from "next/router";
 import { Loader } from "@/components/ui";
 import useProgress from "@/lib/useProgress";
 import { useIndexedDBCache } from "@/lib/useIndexedDBCache";
 import { getCachedCategories } from "@/lib/categoriesCache";
 
+const LOCATION_FILTER_KEY = "stockManagement:locationFilter";
+const CARD_FILTER_KEY = "stockManagement:cardFilter";
+
+function normalizeLocationValue(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function isDerivedChild(product) {
+  return product?.isChildProduct && product?.packType !== "pack";
+}
+
+function matchesStockState(product, stockFilter) {
+  if (stockFilter === "all") {
+    return true;
+  }
+
+  if (isDerivedChild(product)) {
+    return false;
+  }
+
+  const quantity = Number(product?.quantity) || 0;
+  const minStock = Number(product?.minStock) || 0;
+
+  if (stockFilter === "wellStocked") {
+    return quantity > minStock;
+  }
+
+  if (stockFilter === "critical") {
+    return quantity < minStock / 2;
+  }
+
+  if (stockFilter === "lowStock") {
+    return quantity < minStock;
+  }
+
+  return true;
+}
+
 export default function StockManagement() {
+  const router = useRouter();
+  const queryLocation = typeof router.query.location === "string" ? router.query.location : "";
+
   const fetchStockProducts = useCallback(async () => {
     const res = await fetch("/api/products?minimal=true");
     if (!res.ok) {
@@ -28,6 +70,17 @@ export default function StockManagement() {
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [categoryMap, setCategoryMap] = useState({});
+  const [availableLocations, setAvailableLocations] = useState([]);
+  const [selectedLocation, setSelectedLocation] = useState(
+    typeof window !== "undefined"
+      ? sessionStorage.getItem(LOCATION_FILTER_KEY) || queryLocation || "all"
+      : queryLocation || "all"
+  );
+  const [selectedStockFilter, setSelectedStockFilter] = useState(
+    typeof window !== "undefined"
+      ? sessionStorage.getItem(CARD_FILTER_KEY) || "all"
+      : "all"
+  );
 
   useEffect(() => {
     async function loadCategories() {
@@ -45,6 +98,47 @@ export default function StockManagement() {
 
     loadCategories();
   }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetch("/api/setup/get")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!isMounted) {
+          return;
+        }
+
+        const storeLocations = Array.isArray(data?.store?.locations)
+          ? data.store.locations
+              .map((locationValue) => locationValue?.name || locationValue)
+              .map((locationValue) => String(locationValue || "").trim())
+              .filter(Boolean)
+          : [];
+
+        setAvailableLocations(storeLocations);
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!queryLocation) return;
+    setSelectedLocation(queryLocation);
+  }, [queryLocation]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    sessionStorage.setItem(LOCATION_FILTER_KEY, selectedLocation || "all");
+  }, [selectedLocation]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    sessionStorage.setItem(CARD_FILTER_KEY, selectedStockFilter || "all");
+  }, [selectedStockFilter]);
 
   useEffect(() => {
     if (productsLoading && !refreshing) {
@@ -66,37 +160,76 @@ export default function StockManagement() {
     complete();
   }, [cachedProducts, productsLoading, productsError, start, onFetch, onProcess, complete, refreshing]);
 
-  const filteredItems = useMemo(() => {
-    const term = searchTerm.toLowerCase();
+  const locationOptions = useMemo(() => {
+    const seenLocations = new Map();
+
+    [...availableLocations, ...products.flatMap((product) => product.locations || [])]
+      .map((locationValue) => String(locationValue || "").trim())
+      .filter(Boolean)
+      .forEach((locationValue) => {
+        const normalizedValue = normalizeLocationValue(locationValue);
+        if (!seenLocations.has(normalizedValue)) {
+          seenLocations.set(normalizedValue, locationValue);
+        }
+      });
+
+    return Array.from(seenLocations.values()).sort((leftValue, rightValue) => leftValue.localeCompare(rightValue));
+  }, [availableLocations, products]);
+
+  const locationScopedItems = useMemo(() => {
     return products.filter((item) => {
+      const normalizedLocationFilter = normalizeLocationValue(selectedLocation);
+      if (normalizedLocationFilter === "all") {
+        return true;
+      }
+
+      const productLocations = Array.isArray(item.locations)
+        ? item.locations.map((locationValue) => normalizeLocationValue(locationValue)).filter(Boolean)
+        : [];
+
+      if (normalizedLocationFilter === "unassigned") {
+        return productLocations.length === 0;
+      }
+
+      return productLocations.includes(normalizedLocationFilter);
+    });
+  }, [products, selectedLocation]);
+
+  const filteredItems = useMemo(() => {
+    const term = searchTerm.toLowerCase().trim();
+    return locationScopedItems.filter((item) => {
+      if (!matchesStockState(item, selectedStockFilter)) {
+        return false;
+      }
+
       const categoryLabel = categoryMap[item.category] || item.category || "";
+      if (!term) {
+        return true;
+      }
+
       return (
         item.name?.toLowerCase().includes(term) ||
         categoryLabel.toLowerCase().includes(term)
       );
     });
-  }, [products, searchTerm, categoryMap]);
-
-  // A "true derived child" is isChildProduct=true AND packType is NOT "pack"
-  // Pack products are parents even if incorrectly flagged as isChildProduct
-  const isDerivedChild = (p) => p.isChildProduct && p.packType !== "pack";
+  }, [locationScopedItems, selectedStockFilter, searchTerm, categoryMap]);
 
   const totalStock = useMemo(
     () =>
-      products
+      locationScopedItems
         .filter((item) => !isDerivedChild(item))
         .reduce((sum, item) => sum + (item.quantity || 0), 0),
-    [products]
+    [locationScopedItems]
   );
   const parentProducts = useMemo(
-    () => products.filter((p) => !isDerivedChild(p)),
-    [products]
+    () => locationScopedItems.filter((p) => !isDerivedChild(p)),
+    [locationScopedItems]
   );
-  const totalIncoming = useMemo(
+  const totalWellStocked = useMemo(
     () => parentProducts.filter((p) => (p.quantity || 0) > (p.minStock || 0)).length,
     [parentProducts]
   );
-  const totalOutgoing = useMemo(
+  const totalCritical = useMemo(
     () => parentProducts.filter((p) => (p.quantity || 0) < (p.minStock || 0) / 2).length,
     [parentProducts]
   );
@@ -150,22 +283,72 @@ export default function StockManagement() {
         ) : (
           <>
             <section className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-              <StatCard label="Total Stock" value={`${parseFloat(totalStock.toFixed(2))} units`} />
-              <StatCard label="Well Stocked" value={`${totalIncoming} products`} />
-              <StatCard label="Critical Level" value={`${totalOutgoing} products`} />
-              <StatCard label="Low Stock Alerts" value={lowStockCount} highlight />
+              <StatCard
+                label="Total Stock"
+                value={`${parseFloat(totalStock.toFixed(2))} units`}
+                active={selectedStockFilter === "all"}
+                onClick={() => setSelectedStockFilter("all")}
+              />
+              <StatCard
+                label="Well Stocked"
+                value={`${totalWellStocked} products`}
+                active={selectedStockFilter === "wellStocked"}
+                onClick={() => setSelectedStockFilter("wellStocked")}
+              />
+              <StatCard
+                label="Critical Level"
+                value={`${totalCritical} products`}
+                active={selectedStockFilter === "critical"}
+                onClick={() => setSelectedStockFilter("critical")}
+              />
+              <StatCard
+                label="Low Stock Alerts"
+                value={lowStockCount}
+                highlight
+                active={selectedStockFilter === "lowStock"}
+                onClick={() => setSelectedStockFilter("lowStock")}
+              />
             </section>
 
             <div className="mb-6">
-              <div className="search-input-wrapper max-w-xl">
-                <input
-                  type="text"
-                  placeholder="Search by product or category..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="search-input !pl-4"
-                />
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="search-input-wrapper max-w-xl flex-1">
+                  <input
+                    type="text"
+                    placeholder="Search by product or category..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="search-input !pl-4"
+                  />
+                </div>
+                <select
+                  className="form-select max-w-xs"
+                  value={selectedLocation}
+                  onChange={(e) => setSelectedLocation(e.target.value)}
+                >
+                  <option value="all">All Locations</option>
+                  <option value="unassigned">Unassigned</option>
+                  {locationOptions.map((locationValue) => (
+                    <option key={locationValue} value={locationValue}>
+                      {locationValue}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setSelectedLocation("all");
+                    setSelectedStockFilter("all");
+                  }}
+                  className="btn-action-secondary"
+                >
+                  Clear Filters
+                </button>
               </div>
+              <p className="mt-3 text-sm text-gray-500">
+                Showing {filteredItems.length} of {locationScopedItems.length} products
+              </p>
             </div>
 
             <section className="data-table-container">
@@ -183,7 +366,7 @@ export default function StockManagement() {
                   {filteredItems.length === 0 ? (
                     <tr>
                       <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
-                        No products found.
+                        No products match the current filters.
                       </td>
                     </tr>
                   ) : (
@@ -242,16 +425,18 @@ export default function StockManagement() {
   );
 }
 
-function StatCard({ label, value, highlight = false }) {
+function StatCard({ label, value, highlight = false, active = false, onClick }) {
   return (
-    <div
-      className={`stat-card text-center ${
+    <button
+      type="button"
+      onClick={onClick}
+      className={`stat-card w-full text-center transition-all duration-200 hover:-translate-y-0.5 ${
         highlight ? "border-2 border-amber-400" : ""
-      }`}
+      } ${active ? "ring-2 ring-sky-300 border-sky-400 bg-sky-50" : ""}`}
     >
       <p className="stat-card-label">{label}</p>
       <p className="stat-card-value mt-2">{value}</p>
-    </div>
+    </button>
   );
 }
 

@@ -672,27 +672,21 @@ function QuickActionTile({ label, icon: Icon, onClick }) {
 
 function FilterSelect({ label, value, onChange, children }) {
   return (
-    <label
-      className="relative min-w-[150px] cursor-pointer border border-gray-300 bg-white px-3 pb-1.5 pt-5"
-      style={{ borderRadius: 'var(--radius-lg)' }}
-    >
-      <span
-        className="absolute left-3 top-1 text-[10px] font-semibold uppercase tracking-widest"
-        style={{ color: 'var(--btn-primary-bg, #0284c7)' }}
-      >
+    <div className="relative min-w-[150px]">
+      <span className="absolute left-3 -top-2 bg-white px-1 text-xs font-medium text-gray-500 z-10 leading-none">
         {label}
       </span>
-      <div className="relative">
+      <div className="relative border border-gray-300 bg-white rounded px-3 py-2">
         <select
-          className="w-full appearance-none bg-transparent pr-6 text-sm font-semibold text-gray-900 outline-none"
+          className="w-full appearance-none bg-transparent pr-6 text-sm font-medium text-gray-900 outline-none cursor-pointer"
           value={value}
           onChange={onChange}
         >
           {children}
         </select>
-        <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+        <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
       </div>
-    </label>
+    </div>
   );
 }
 

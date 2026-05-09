@@ -244,7 +244,7 @@ export default function Sidebar() {
               {label}
             </span>
             {isActive && (
-              <span className="text-lg" style={{ color: "var(--sidebar-active-border, #1d4ed8)" }}>›</span>
+              <span className="text-lg" style={{ color: "var(--sidebar-active-border, #1d4ed8)" }}>ï¿½</span>
             )}
           </Link>
         </li>
@@ -403,7 +403,7 @@ export default function Sidebar() {
                       <span className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-gray-400 transition-all"></span>
                       Staff
                     </span>
-                    <span className={`text-lg transition-transform duration-300 ${openSubMenu === "staff-menu" ? "rotate-90" : ""}`}>›</span>
+                    <span className={`text-lg transition-transform duration-300 ${openSubMenu === "staff-menu" ? "rotate-90" : ""}`}>ï¿½</span>
                   </button>
                   {openSubMenu === "staff-menu" && (
                     <div className="border-t border-gray-100" style={{ backgroundColor: "var(--surface-muted, #eef4fb)" }}>
@@ -431,7 +431,7 @@ export default function Sidebar() {
                       <span className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-gray-400 transition-all"></span>
                       Procurement
                     </span>
-                    <span className={`text-lg transition-transform duration-300 ${openSubMenu === "procurement-menu" ? "rotate-90" : ""}`}>›</span>
+                    <span className={`text-lg transition-transform duration-300 ${openSubMenu === "procurement-menu" ? "rotate-90" : ""}`}>ï¿½</span>
                   </button>
                   {openSubMenu === "procurement-menu" && (
                     <div className="border-t border-gray-100" style={{ backgroundColor: "var(--surface-muted, #eef4fb)" }}>
@@ -556,7 +556,7 @@ export default function Sidebar() {
                       <span className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-gray-400 transition-all"></span>
                       Sales Report
                     </span>
-                    <span className={`text-lg transition-transform duration-300 ${openSubMenu === "sales-report" ? "rotate-90" : ""}`}>›</span>
+                    <span className={`text-lg transition-transform duration-300 ${openSubMenu === "sales-report" ? "rotate-90" : ""}`}>ï¿½</span>
                   </button>
                   {openSubMenu === "sales-report" && (
                     <div className="border-t border-gray-100" style={{ backgroundColor: "var(--surface-muted, #eef4fb)" }}>

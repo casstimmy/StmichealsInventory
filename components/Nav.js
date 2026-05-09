@@ -246,7 +246,12 @@ export default function Sidebar() {
       {/* DESKTOP SIDEBAR */}
       <aside 
         ref={sidebarRef}
-        className="fixed top-12 md:top-16 left-0 w-20 h-screen bg-gradient-to-b from-gray-50 to-gray-100 border-r border-gray-200 z-10 shadow-lg hidden md:block overflow-visible"
+        className="fixed top-12 md:top-16 left-0 w-20 h-screen border-r z-10 shadow-lg hidden md:block overflow-visible"
+        style={{
+          background: "linear-gradient(180deg, var(--sidebar-bg, #f9fafb), var(--surface-card-alt, #f5faff))",
+          borderColor: "var(--border-subtle, rgba(37, 99, 235, 0.14))",
+          boxShadow: "var(--shell-shadow, 0 18px 42px rgba(37, 99, 235, 0.12))",
+        }}
       >
         <nav className="mt-6 h-full overflow-visible">
           <ul className="space-y-1">

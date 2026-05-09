@@ -86,10 +86,20 @@ const TopBar = ({ user, logout }) => {
       .toUpperCase();
 
   return (
-    <div className="fixed top-0 left-0 right-0 w-full z-50 flex items-center justify-between gap-2 sm:gap-3 md:gap-0 px-2 sm:px-3 md:px-8 bg-gradient-to-r from-white to-gray-50 shadow-lg border-b border-gray-200 h-14 md:h-16">
+    <div
+      className="fixed top-0 left-0 right-0 w-full z-50 flex items-center justify-between gap-2 sm:gap-3 md:gap-0 px-2 sm:px-3 md:px-8 shadow-lg border-b h-14 md:h-16"
+      style={{
+        background: "linear-gradient(90deg, var(--surface-card, #ffffff), var(--surface-card-alt, #f8fbff))",
+        borderColor: "var(--border-subtle, rgba(37, 99, 235, 0.14))",
+        boxShadow: "var(--shell-shadow, 0 18px 42px rgba(37, 99, 235, 0.12))",
+      }}
+    >
       {/* Left Section: Back Office Text - Hidden on mobile */}
       <div className="hidden md:flex items-center gap-3 w-full md:w-auto">
-        <div className="w-8 md:w-10 h-8 md:h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-md flex-shrink-0">
+        <div
+          className="w-8 md:w-10 h-8 md:h-10 rounded-lg flex items-center justify-center shadow-md flex-shrink-0"
+          style={{ background: "linear-gradient(135deg, var(--color-primary-600, #2563eb), var(--color-primary-700, #1d4ed8))" }}
+        >
           <FontAwesomeIcon icon={faStore} className="w-4 md:w-6 h-4 md:h-6 text-white" />
         </div>
         <h2 className="text-gray-900 text-lg md:text-2xl font-bold tracking-tight">Back Office</h2>
@@ -97,7 +107,10 @@ const TopBar = ({ user, logout }) => {
 
       {/* Mobile Logo Icon - Shown only on mobile */}
       <div className="md:hidden flex-shrink-0">
-        <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-md">
+        <div
+          className="w-8 h-8 rounded-lg flex items-center justify-center shadow-md"
+          style={{ background: "linear-gradient(135deg, var(--color-primary-600, #2563eb), var(--color-primary-700, #1d4ed8))" }}
+        >
           <FontAwesomeIcon icon={faStore} className="w-4 h-4 text-white" />
         </div>
       </div>

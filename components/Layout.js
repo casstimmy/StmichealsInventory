@@ -102,7 +102,7 @@ export default function Layout({ children, title = "Dashboard" }) {
 
   //  APP SHELL
   return (
-    <div className="bg-gray-50 min-h-screen w-full flex flex-col">
+    <div className="min-h-screen w-full flex flex-col" style={{ backgroundColor: "var(--page-bg, #f9fafb)" }}>
       {/* Top Navigation Bar - Fixed */}
       <NavBar user={user} logout={logout} />
 
@@ -114,7 +114,8 @@ export default function Layout({ children, title = "Dashboard" }) {
         {/* Main Content Area */}
         <div className="w-full flex-1 overflow-hidden">
           <div
-            className="w-full min-h-[calc(100vh-56px)] md:min-h-[calc(100vh-64px)] px-3 md:px-6 bg-gray-50 overflow-y-auto"
+            className="w-full min-h-[calc(100vh-56px)] md:min-h-[calc(100vh-64px)] px-3 md:px-6 overflow-y-auto"
+            style={{ background: "linear-gradient(180deg, var(--page-gradient-start, var(--page-bg, #f9fafb)) 0%, var(--page-gradient-mid, #f8fbff) 56%, var(--page-gradient-end, #f4fbfd) 100%)" }}
           >
             {hasAccess ? children : (
               <AccessDeniedState

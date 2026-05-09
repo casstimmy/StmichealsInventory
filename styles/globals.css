@@ -141,11 +141,11 @@
   --spacing-2xl: 3rem;
 
   /* Border Radius */
-  --radius-sm: 0.18rem;
-  --radius-md: 0.32rem;
-  --radius-lg: 0.48rem;
-  --radius-xl: 0.68rem;
-  --radius-2xl: 0.82rem;
+  --radius-sm: 0.125rem;
+  --radius-md: 0.25rem;
+  --radius-lg: 0.375rem;
+  --radius-xl: 0.5rem;
+  --radius-2xl: 0.5rem;
 
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -459,6 +459,11 @@ tbody td {
   background: var(--surface-muted);
 }
 
+/* Disable actual gradient on sidebar active — use solid color only */
+.nav-active-solid {
+  background: var(--sidebar-active-bg, #2563eb) !important;
+}
+
 /* Print Styles */
 @media print {
   body * {
@@ -715,7 +720,27 @@ a:active,
 }
 
 .rounded-2xl {
-  border-radius: var(--radius-2xl) !important;
+  border-radius: var(--radius-xl) !important;
+}
+
+.rounded-r-2xl {
+  border-top-right-radius: var(--radius-xl) !important;
+  border-bottom-right-radius: var(--radius-xl) !important;
+}
+
+.rounded-l-2xl {
+  border-top-left-radius: var(--radius-xl) !important;
+  border-bottom-left-radius: var(--radius-xl) !important;
+}
+
+.rounded-t-2xl {
+  border-top-left-radius: var(--radius-xl) !important;
+  border-top-right-radius: var(--radius-xl) !important;
+}
+
+.rounded-b-2xl {
+  border-bottom-left-radius: var(--radius-xl) !important;
+  border-bottom-right-radius: var(--radius-xl) !important;
 }
 
 .search-input-icon {
@@ -736,6 +761,12 @@ a:active,
 .table-header-gradient {
   background: var(--table-header-bg);
   border-bottom: 1px solid var(--table-header-border, var(--table-header-bg));
+}
+
+/* Nav submenu panel header */
+.nav-submenu-header {
+  background-color: var(--surface-raised, #ffffff);
+  border-bottom-color: var(--border-subtle, rgba(15, 23, 42, 0.1));
 }
 
 /* ===== Empty State ===== */

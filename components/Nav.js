@@ -1,4 +1,4 @@
-ï»¿import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faHome,
   faCog,
@@ -244,7 +244,7 @@ export default function Sidebar() {
               {label}
             </span>
             {isActive && (
-              <span className="text-lg" style={{ color: "var(--sidebar-active-border, #1d4ed8)" }}>â€º</span>
+              <span className="text-lg" style={{ color: "var(--sidebar-active-border, #1d4ed8)" }}>›</span>
             )}
           </Link>
         </li>
@@ -312,7 +312,7 @@ export default function Sidebar() {
                 style={submenuPanelStyle}
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="px-4 py-3 border-b border-gray-200 sticky top-0 bg-white">
+                <div className="px-4 py-3 border-b sticky top-0 nav-submenu-header">
                   <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Setup</p>
                 </div>
                 {renderSubMenu([
@@ -368,7 +368,7 @@ export default function Sidebar() {
                 style={submenuPanelStyle}
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="px-4 py-3 border-b border-gray-200 sticky top-0 bg-white">
+                <div className="px-4 py-3 border-b sticky top-0 nav-submenu-header">
                   <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Manage</p>
                 </div>
                 {renderSubMenu([
@@ -403,7 +403,7 @@ export default function Sidebar() {
                       <span className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-gray-400 transition-all"></span>
                       Staff
                     </span>
-                    <span className={`text-lg transition-transform duration-300 ${openSubMenu === "staff-menu" ? "rotate-90" : ""}`}>â€º</span>
+                    <span className={`text-lg transition-transform duration-300 ${openSubMenu === "staff-menu" ? "rotate-90" : ""}`}>›</span>
                   </button>
                   {openSubMenu === "staff-menu" && (
                     <div className="border-t border-gray-100" style={{ backgroundColor: "var(--surface-muted, #eef4fb)" }}>
@@ -431,7 +431,7 @@ export default function Sidebar() {
                       <span className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-gray-400 transition-all"></span>
                       Procurement
                     </span>
-                    <span className={`text-lg transition-transform duration-300 ${openSubMenu === "procurement-menu" ? "rotate-90" : ""}`}>â€º</span>
+                    <span className={`text-lg transition-transform duration-300 ${openSubMenu === "procurement-menu" ? "rotate-90" : ""}`}>›</span>
                   </button>
                   {openSubMenu === "procurement-menu" && (
                     <div className="border-t border-gray-100" style={{ backgroundColor: "var(--surface-muted, #eef4fb)" }}>
@@ -480,7 +480,7 @@ export default function Sidebar() {
                 style={submenuPanelStyle}
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="px-4 py-3 border-b border-gray-200 sticky top-0 bg-white">
+                <div className="px-4 py-3 border-b sticky top-0 nav-submenu-header">
                   <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Stock</p>
                 </div>
                 {renderSubMenu([
@@ -531,7 +531,7 @@ export default function Sidebar() {
                 style={submenuPanelStyle}
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="px-4 py-3 border-b border-gray-200 sticky top-0 bg-white">
+                <div className="px-4 py-3 border-b sticky top-0 nav-submenu-header">
                   <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Reporting</p>
                 </div>
                 {renderSubMenu([
@@ -556,7 +556,7 @@ export default function Sidebar() {
                       <span className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-gray-400 transition-all"></span>
                       Sales Report
                     </span>
-                    <span className={`text-lg transition-transform duration-300 ${openSubMenu === "sales-report" ? "rotate-90" : ""}`}>â€º</span>
+                    <span className={`text-lg transition-transform duration-300 ${openSubMenu === "sales-report" ? "rotate-90" : ""}`}>›</span>
                   </button>
                   {openSubMenu === "sales-report" && (
                     <div className="border-t border-gray-100" style={{ backgroundColor: "var(--surface-muted, #eef4fb)" }}>
@@ -619,7 +619,7 @@ export default function Sidebar() {
                 style={submenuPanelStyle}
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="px-4 py-3 border-b border-gray-200 sticky top-0 bg-white">
+                <div className="px-4 py-3 border-b sticky top-0 nav-submenu-header">
                   <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Expenses</p>
                 </div>
                 {renderSubMenu([
@@ -670,7 +670,7 @@ export default function Sidebar() {
                 style={submenuPanelStyle}
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="px-4 py-3 border-b border-gray-200 sticky top-0 bg-white">
+                <div className="px-4 py-3 border-b sticky top-0 nav-submenu-header">
                   <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Accounting</p>
                 </div>
                 {renderSubMenu([

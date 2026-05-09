@@ -19,6 +19,8 @@ import {
   PackagePlus,
   RefreshCw,
   ShoppingCart,
+  TrendingDown,
+  TrendingUp,
 } from "lucide-react";
 import {
   Chart as ChartJS,
@@ -52,6 +54,17 @@ const PERIOD_LABELS = {
   lastMonth: "Last Month",
   custom: "Custom Period",
 };
+
+function computeTrend(current, previous) {
+  if (previous === 0 && current === 0) return null;
+  if (previous === 0) return { direction: "up", label: "+100%" };
+  const pct = ((current - previous) / previous) * 100;
+  const sign = pct >= 0 ? "+" : "";
+  return {
+    direction: pct >= 0 ? "up" : "down",
+    label: `${sign}${pct.toFixed(2)}%`,
+  };
+}
 
 function resolveLocationName(record) {
   const rawLocation =
@@ -202,6 +215,40 @@ export default function Home() {
     return true;
   };
 
+  const isInPrevPeriod = (date) => {
+    const now = new Date();
+    const d = new Date(date);
+    if (selectedPeriod === "today") {
+      const yesterday = new Date();
+      yesterday.setDate(now.getDate() - 1);
+      return d.toDateString() === yesterday.toDateString();
+    }
+    if (selectedPeriod === "yesterday") {
+      const dayBefore = new Date();
+      dayBefore.setDate(now.getDate() - 2);
+      return d.toDateString() === dayBefore.toDateString();
+    }
+    if (selectedPeriod === "week") {
+      const s = new Date(); s.setDate(now.getDate() - 14);
+      const e = new Date(); e.setDate(now.getDate() - 7);
+      return d >= s && d <= e;
+    }
+    if (selectedPeriod === "lastWeek") {
+      const s = new Date(); s.setDate(now.getDate() - 21);
+      const e = new Date(); e.setDate(now.getDate() - 14);
+      return d >= s && d <= e;
+    }
+    if (selectedPeriod === "month") {
+      const lm = new Date(); lm.setMonth(now.getMonth() - 1);
+      return d.getMonth() === lm.getMonth() && d.getFullYear() === lm.getFullYear();
+    }
+    if (selectedPeriod === "lastMonth") {
+      const tm = new Date(); tm.setMonth(now.getMonth() - 2);
+      return d.getMonth() === tm.getMonth() && d.getFullYear() === tm.getFullYear();
+    }
+    return false;
+  };
+
   /* =======================
      FILTERED DATA
   ======================= */
@@ -220,6 +267,16 @@ export default function Home() {
       return isWithinPeriod(tx.createdAt);
     });
   }, [allTransactions, selectedLocation, selectedPeriod, customDateRange]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const prevFilteredTransactions = useMemo(() => {
+    return allTransactions.filter((tx) => {
+      if (tx.status !== "completed") return false;
+      if (!matchesSelectedLocation(tx, selectedLocation)) return false;
+      return isInPrevPeriod(tx.createdAt);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allTransactions, selectedLocation, selectedPeriod]);
 
   const filteredOrders = useMemo(() => {
     if (!Array.isArray(allOrders)) return [];
@@ -262,6 +319,15 @@ export default function Home() {
       heldTotal,
     };
   }, [filteredTransactions, heldTransactions]);
+
+  const prevKpis = useMemo(() => {
+    const sales = prevFilteredTransactions.reduce(
+      (sum, t) => sum + Number(t.total || 0),
+      0
+    );
+    const count = prevFilteredTransactions.length;
+    return { sales, transactions: count, avg: count ? sales / count : 0 };
+  }, [prevFilteredTransactions]);
 
   /* =======================
      PRODUCT SALES
@@ -332,8 +398,6 @@ export default function Home() {
   };
 
   const dashboardHeading = storeInfo?.name || selectedUser;
-  const periodLabel = PERIOD_LABELS[selectedPeriod] || "Selected Period";
-  const locationLabel = selectedLocation === "All" ? "All Locations" : selectedLocation;
   const quickActions = [
     {
       label: "Add products",
@@ -352,64 +416,70 @@ export default function Home() {
     },
   ];
 
+  const salesTrend = computeTrend(kpis.sales, prevKpis.sales);
+  const txTrend = computeTrend(kpis.transactions, prevKpis.transactions);
+  const avgTrend = computeTrend(kpis.avg, prevKpis.avg);
+
   return (
     <div className="page-container">
-      <div className="mx-auto flex w-full max-w-[1480px] flex-col gap-6">
-        <section className="flex flex-col gap-5">
-          <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="space-y-2">
-              <h1 className="text-[2.2rem] font-semibold tracking-tight text-slate-950 sm:text-[2.6rem]">
-                Hi, {dashboardHeading}
-              </h1>
-              <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
-                {lastRefresh && (
-                  <span>Last updated {lastRefresh.toLocaleTimeString()}</span>
-                )}
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-2 rounded-lg border px-3.5 py-2 font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
-                  style={{
-                    borderColor: 'var(--border-subtle)',
-                    backgroundColor: 'var(--surface-card)',
-                    boxShadow: 'var(--shell-shadow-sm)',
-                  }}
-                  onClick={handleDailyMail}
-                  title="Send daily mail report"
-                >
-                  <Mail className="h-4 w-4" />
-                  Mail report
-                </button>
-              </div>
-            </div>
-          </header>
-
-          <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
-            {quickActions.map((action) => (
-              <QuickActionTile
-                key={action.label}
-                label={action.label}
-                icon={action.icon}
-                onClick={action.onClick}
-              />
-            ))}
+      <div className="mx-auto flex w-full max-w-[1480px] flex-col gap-5">
+        {/* Greeting */}
+        <header className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            Hi, {dashboardHeading}
+          </h1>
+          <div className="flex items-center gap-3">
+            {lastRefresh && (
+              <span className="hidden text-sm text-slate-500 sm:inline">
+                Last updated {lastRefresh.toLocaleTimeString()}
+              </span>
+            )}
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 border px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              style={{
+                borderColor: 'var(--border-subtle)',
+                backgroundColor: 'var(--surface-card)',
+                borderRadius: 'var(--radius-lg)',
+              }}
+              onClick={handleDailyMail}
+              title="Send daily mail report"
+            >
+              <Mail className="h-3.5 w-3.5" />
+              Mail report
+            </button>
           </div>
-        </section>
+        </header>
 
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {quickActions.map((action) => (
+            <QuickActionTile
+              key={action.label}
+              label={action.label}
+              icon={action.icon}
+              onClick={action.onClick}
+            />
+          ))}
+        </div>
+
+        {/* Key Trading Metrics */}
         <section
-          className="overflow-hidden rounded-2xl border bg-white"
+          className="overflow-hidden border bg-white"
           style={{
             borderColor: 'var(--border-subtle)',
             boxShadow: 'var(--shell-shadow-sm)',
+            borderRadius: 'var(--radius-lg)',
           }}
         >
-          <div className="flex flex-col gap-4 border-b px-4 py-4 sm:px-5 lg:flex-row lg:items-end lg:justify-between" style={{ borderColor: 'var(--border-subtle)' }}>
-            <div>
-              <h2 className="text-[1.9rem] font-semibold tracking-tight text-slate-950">
-                Key trading metrics
-              </h2>
-            </div>
-
-            <div className="flex flex-col gap-3 md:flex-row md:items-end">
+          <div
+            className="flex flex-col gap-3 border-b px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between"
+            style={{ borderColor: 'var(--border-subtle)' }}
+          >
+            <h2 className="text-lg font-bold tracking-tight text-slate-900">
+              Key trading metrics
+            </h2>
+            <div className="flex flex-wrap items-center gap-2">
               <FilterSelect
                 label="Location"
                 value={selectedLocation}
@@ -439,11 +509,11 @@ export default function Home() {
 
               <button
                 type="button"
-                className="inline-flex h-[58px] items-center justify-center gap-2 rounded-lg border px-5 text-base font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center gap-2 border px-3.5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                 style={{
                   borderColor: 'var(--border-subtle)',
                   backgroundColor: 'var(--surface-card)',
-                  boxShadow: 'var(--shell-shadow-sm)',
+                  borderRadius: 'var(--radius-lg)',
                 }}
                 onClick={fetchDashboardData}
                 disabled={loading}
@@ -507,28 +577,28 @@ export default function Home() {
             </div>
           ) : (
             <div
-              className={`grid grid-cols-1 gap-4 p-4 md:grid-cols-2 sm:p-5 ${
+              className={`grid grid-cols-1 gap-4 p-4 sm:p-5 md:grid-cols-2 ${
                 kpis.heldCount > 0 ? "xl:grid-cols-4" : "xl:grid-cols-3"
               }`}
             >
               <MetricCard
                 label="Sales"
                 value={formatCurrency(kpis.sales)}
-                detail={`${periodLabel} • ${locationLabel}`}
+                trend={salesTrend}
                 linkLabel="Sales breakdown"
                 onClick={() => router.push("/reporting/reporting")}
               />
               <MetricCard
                 label="Transactions"
                 value={formatNumber(kpis.transactions)}
-                detail={`${periodLabel} • ${locationLabel}`}
+                trend={txTrend}
                 linkLabel="Transactions report"
                 onClick={() => router.push("/reporting/transaction-report")}
               />
               <MetricCard
                 label="Avg. transaction value"
                 value={formatCurrency(kpis.avg.toFixed(2))}
-                detail={`${formatNumber(kpis.transactions)} completed sales`}
+                trend={avgTrend}
               />
               {kpis.heldCount > 0 && (
                 <MetricCard
@@ -606,29 +676,31 @@ function QuickActionTile({ label, icon: Icon, onClick }) {
   return (
     <button
       type="button"
-      className="group flex min-h-[76px] items-center justify-between rounded-2xl border px-5 py-4 text-left transition-colors hover:bg-slate-50"
+      className="group flex items-center justify-between border px-5 py-3.5 text-left transition-colors hover:bg-slate-50"
       style={{
         borderColor: 'var(--border-subtle)',
         backgroundColor: 'var(--surface-card)',
         boxShadow: 'var(--shell-shadow-sm)',
+        borderRadius: 'var(--radius-lg)',
       }}
       onClick={onClick}
     >
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         <span
-          className="flex h-10 w-10 items-center justify-center rounded-xl border text-slate-800"
+          className="flex h-8 w-8 flex-shrink-0 items-center justify-center border text-slate-700"
           style={{
             borderColor: 'var(--border-subtle)',
             backgroundColor: 'var(--surface-card-alt)',
+            borderRadius: 'var(--radius-md)',
           }}
         >
-          <Icon className="h-5 w-5" />
+          <Icon className="h-4 w-4" />
         </span>
-        <span className="text-lg font-semibold tracking-tight text-slate-950 sm:text-[1.35rem]">
+        <span className="text-base font-semibold text-slate-900">
           {label}
         </span>
       </div>
-      <ArrowRight className="h-5 w-5 text-slate-500 transition group-hover:translate-x-1 group-hover:text-slate-900" />
+      <ArrowRight className="h-4 w-4 flex-shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-slate-700" />
     </button>
   );
 }
@@ -636,58 +708,74 @@ function QuickActionTile({ label, icon: Icon, onClick }) {
 function FilterSelect({ label, value, onChange, children }) {
   return (
     <label
-      className="min-w-[220px] rounded-2xl border px-4 py-3"
+      className="relative min-w-[170px] cursor-pointer border px-3 pb-2 pt-5"
       style={{
         borderColor: 'var(--border-subtle)',
         backgroundColor: 'var(--surface-card)',
-        boxShadow: 'var(--shell-shadow-sm)',
+        borderRadius: 'var(--radius-lg)',
       }}
     >
-      <span className="mb-1 block text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
+      <span
+        className="absolute left-3 top-1.5 text-[10px] font-semibold uppercase tracking-widest"
+        style={{ color: 'var(--btn-primary-bg, #0284c7)' }}
+      >
         {label}
       </span>
       <div className="relative">
         <select
-          className="w-full appearance-none bg-transparent pr-8 text-base font-semibold text-slate-950 outline-none"
+          className="w-full appearance-none bg-transparent pr-6 text-sm font-semibold text-slate-900 outline-none"
           value={value}
           onChange={onChange}
         >
           {children}
         </select>
-        <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
       </div>
     </label>
   );
 }
 
-function MetricCard({ label, value, detail, linkLabel, onClick }) {
+function MetricCard({ label, value, trend, detail, linkLabel, onClick }) {
   return (
     <div
-      className="flex min-h-[190px] flex-col rounded-2xl border px-5 py-4"
+      className="flex flex-col border px-5 py-5"
       style={{
         borderColor: 'var(--border-subtle)',
         backgroundColor: 'var(--surface-raised)',
-        boxShadow: 'var(--shell-shadow-sm)',
+        borderRadius: 'var(--radius-lg)',
       }}
     >
-      <div className="text-[1.2rem] font-semibold tracking-tight text-slate-950">
-        {label}
-      </div>
-      <div className="mt-3 text-[2.45rem] font-semibold leading-none tracking-tight text-slate-950 sm:text-[2.75rem]">
+      <div className="text-sm font-semibold text-slate-600">{label}</div>
+      <div className="mt-2 text-[2rem] font-bold leading-none tracking-tight text-slate-900 sm:text-[2.3rem]">
         {value}
       </div>
-      <div className="mt-4 text-sm text-slate-500">{detail}</div>
+      {trend ? (
+        <div
+          className={`mt-3 flex items-center gap-1.5 text-sm font-semibold ${
+            trend.direction === "up" ? "text-emerald-600" : "text-red-600"
+          }`}
+        >
+          {trend.direction === "up" ? (
+            <TrendingUp className="h-4 w-4 flex-shrink-0" />
+          ) : (
+            <TrendingDown className="h-4 w-4 flex-shrink-0" />
+          )}
+          <span>{trend.label}</span>
+        </div>
+      ) : detail ? (
+        <div className="mt-3 text-sm text-slate-500">{detail}</div>
+      ) : null}
       {linkLabel && onClick ? (
         <button
           type="button"
-          className="mt-auto pt-8 text-left text-[0.98rem] font-medium transition hover:opacity-80"
-          style={{ color: 'var(--sidebar-active-border, #1d4ed8)' }}
+          className="mt-auto pt-5 text-left text-sm font-semibold transition hover:opacity-75"
+          style={{ color: 'var(--btn-primary-bg, #0284c7)' }}
           onClick={onClick}
         >
           {linkLabel}
         </button>
       ) : (
-        <div className="mt-auto pt-10" />
+        <div className="mt-auto pt-4" />
       )}
     </div>
   );
@@ -724,10 +812,11 @@ function ListCard({ title, items, emptyMessage = "No data available" }) {
           items.map((i, idx) => (
             <li
               key={idx}
-              className="p-2.5 sm:p-3 rounded-lg border text-xs sm:text-sm hover:bg-slate-50 transition-colors"
+              className="p-2.5 sm:p-3 border text-xs sm:text-sm hover:bg-slate-50 transition-colors"
               style={{
                 backgroundColor: 'var(--surface-card-alt)',
                 borderColor: 'var(--border-subtle)',
+                borderRadius: 'var(--radius-md)',
               }}
             >
               <div className="font-medium text-gray-900 truncate">{i.label}</div>
@@ -741,6 +830,7 @@ function ListCard({ title, items, emptyMessage = "No data available" }) {
     </motion.div>
   );
 }
+
 
 
 

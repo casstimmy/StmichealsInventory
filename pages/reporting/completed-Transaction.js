@@ -260,7 +260,7 @@ export default function SalesReport() {
                         !item.isCurrentMonth
                           ? "text-gray-300 cursor-default"
                           : isSelected
-                          ? "bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-md"
+                            ? "bg-blue-700 text-white shadow-md"
                           : "text-gray-700 hover:bg-gray-100"
                       }`}
                       disabled={!item.isCurrentMonth}

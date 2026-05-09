@@ -529,7 +529,7 @@ export default function StockMovementAdd() {
 
               {/* Selected Product Display */}
               {selectedProduct && (
-                <div className="bg-gradient-to-r from-cyan-50 to-blue-50 p-4 rounded-lg border-2 border-cyan-200">
+                <div className="bg-cyan-50 p-4 rounded-lg border-2 border-cyan-200">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div>
                       <p className="text-sm text-gray-600 font-semibold">Selected Product:</p>
@@ -630,7 +630,7 @@ export default function StockMovementAdd() {
                 {addedProducts.map((product, idx) => (
                   <div
                     key={idx}
-                    className="bg-gradient-to-r from-gray-50 to-gray-100 p-3 md:p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition space-y-2"
+                    className="bg-gray-50 p-3 md:p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition space-y-2"
                   >
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                       <div className="flex-1 min-w-0">

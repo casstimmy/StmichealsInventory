@@ -496,7 +496,7 @@ function applyFilters() {
                         !item.isCurrentMonth
                           ? "text-gray-300 cursor-default"
                           : isSelected
-                          ? "bg-gradient-to-br from-cyan-500 to-cyan-600 text-white shadow-sm"
+                            ? "bg-cyan-600 text-white shadow-sm"
                           : "text-gray-700 hover:bg-gray-50"
                       }`}
                       disabled={!item.isCurrentMonth}

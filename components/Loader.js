@@ -73,9 +73,7 @@ export default function Loader({
               className="h-2.5 rounded-full transition-all duration-300 ease-out"
               style={{
                 width: `${Math.min(100, Math.max(0, progress))}%`,
-                background: progress >= 100
-                  ? "linear-gradient(90deg, #10b981, #34d399)"
-                  : "linear-gradient(90deg, #06b6d4, #0ea5e9)",
+                backgroundColor: progress >= 100 ? "#10b981" : "var(--btn-primary-bg, #0284c7)",
               }}
             />
           </div>

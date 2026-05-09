@@ -176,7 +176,7 @@ export default function PromotionManagement() {
   };
 
   return (
-    <div className="min-h-full bg-gradient-to-b from-white to-blue-50 p-3 md:p-6">
+    <div className="min-h-full bg-slate-50 p-3 md:p-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between gap-3 mb-6">
         <h2 className="text-2xl md:text-3xl font-bold text-blue-900">Promotions</h2>

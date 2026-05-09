@@ -226,7 +226,7 @@ export default function HeroSetup() {
 
   return (
     <Layout>
-      <div className="min-h-[100vh] flex flex-col items-center pb-6 pt-6 px-4 space-y-12 bg-gradient-to-b from-blue-50 to-white">
+      <div className="min-h-[100vh] flex flex-col items-center pb-6 pt-6 px-4 space-y-12 bg-slate-50">
         {/* Hero Carousel */}
         <div className="relative w-full max-w-6xl">
           {heroPages.length === 0 ? (
@@ -291,7 +291,7 @@ export default function HeroSetup() {
                         <div className="mt-4">
                           <a
                             href="#"
-                            className="px-8 py-3 rounded-full bg-gradient-to-r from-blue-500 to-blue-700 text-white font-semibold shadow-lg hover:from-blue-600 hover:to-blue-800 transition-all"
+                            className="px-8 py-3 rounded-full bg-blue-600 text-white font-semibold shadow-lg hover:bg-blue-700 transition-all"
                           >
                             {currentHero.ctaText}
                           </a>
@@ -406,7 +406,7 @@ export default function HeroSetup() {
                 className={`px-5 py-2.5 rounded-lg text-white font-semibold shadow-md transition-all ${
                   uploading
                     ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800"
+                    : "bg-blue-600 hover:bg-blue-700"
                 }`}
               >
                 {uploading ? "Saving..." : editId ? "Update Hero" : "Add Hero"}

@@ -79,10 +79,11 @@ const PRESETS = [
 const FIELD_LABELS = {
   primaryColor: "Primary Color",
   secondaryColor: "Secondary Color",
-  sidebarActiveGradientFrom: "Sidebar Active (From)",
-  sidebarActiveGradientTo: "Sidebar Active (To)",
-  tableHeaderGradientFrom: "Table Header (From)",
-  tableHeaderGradientTo: "Table Header (To)",
+  sidebarBg: "Sidebar Background",
+  sidebarActiveGradientFrom: "Active Navigation Fill",
+  sidebarActiveGradientTo: "Active Navigation Edge",
+  tableHeaderGradientFrom: "Table Header Fill",
+  tableHeaderGradientTo: "Table Header Divider",
   buttonPrimaryBg: "Button Primary",
   buttonPrimaryHover: "Button Primary Hover",
   pageBg: "Page Background",
@@ -202,21 +203,21 @@ export default function ColorThemePage() {
               System Color Theme
             </h1>
             <p className="page-subtitle">
-              Customize the application color scheme. Changes preview in real-time.
+              Customize the application color scheme with flat surfaces and live preview.
             </p>
           </div>
           <div className="flex gap-3">
             <button
               onClick={handleReset}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition"
+              className="btn-action-secondary flex items-center gap-2"
             >
               <RotateCcw size={16} /> Reset
             </button>
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium text-white transition shadow-sm"
-              style={{ backgroundColor: form.buttonPrimaryBg }}
+              className="btn-action btn-action-primary flex items-center gap-2"
+              style={{ backgroundColor: form.buttonPrimaryBg, borderColor: form.buttonPrimaryBg }}
             >
               {saved ? <Check size={16} /> : <Save size={16} />}
               {saving ? "Saving..." : saved ? "Saved!" : "Save Theme"}
@@ -232,11 +233,11 @@ export default function ColorThemePage() {
               <button
                 key={preset.name}
                 onClick={() => handlePreset(preset)}
-                className={`relative p-4 rounded-xl border-2 transition-all duration-200 hover:shadow-md ${
-                  form.presetName === preset.name
-                    ? "border-gray-800 shadow-md"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
+                className="relative p-4 rounded-xl border transition-all duration-200 hover:shadow-md"
+                style={{
+                  borderColor: form.presetName === preset.name ? form.buttonPrimaryBg : 'var(--border-subtle)',
+                  boxShadow: form.presetName === preset.name ? 'var(--shell-shadow-sm)' : 'none',
+                }}
               >
                 <div className="flex gap-1.5 mb-3 justify-center">
                   <div
@@ -254,7 +255,7 @@ export default function ColorThemePage() {
                 </div>
                 <p className="text-xs font-medium text-gray-700 text-center">{preset.name}</p>
                 {form.presetName === preset.name && (
-                  <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-gray-800 text-white rounded-full flex items-center justify-center">
+                  <div className="absolute -top-1.5 -right-1.5 w-5 h-5 text-white rounded-full flex items-center justify-center" style={{ backgroundColor: form.buttonPrimaryBg }}>
                     <Check size={12} />
                   </div>
                 )}
@@ -284,7 +285,7 @@ export default function ColorThemePage() {
           <div className="content-card">
             <h3 className="text-base font-semibold text-gray-800 mb-4">Sidebar & Navigation</h3>
             <div className="space-y-4">
-              {["sidebarActiveGradientFrom", "sidebarActiveGradientTo"].map((field) => (
+              {["sidebarBg", "sidebarActiveGradientFrom", "sidebarActiveGradientTo"].map((field) => (
                 <ColorField
                   key={field}
                   label={FIELD_LABELS[field]}
@@ -294,12 +295,22 @@ export default function ColorThemePage() {
               ))}
               {/* Preview */}
               <div
-                className="h-10 rounded-lg shadow-inner flex items-center px-4 text-white text-sm font-medium"
+                className="rounded-lg border overflow-hidden"
                 style={{
-                  background: `linear-gradient(to right, ${form.sidebarActiveGradientFrom}, ${form.sidebarActiveGradientTo})`,
+                  borderColor: 'var(--border-subtle)',
                 }}
               >
-                Active menu item preview
+                <div className="px-4 py-3 text-sm text-slate-700" style={{ backgroundColor: form.sidebarBg }}>
+                  <div
+                    className="rounded-md border-l-[3px] px-3 py-2 text-sm font-semibold text-white"
+                    style={{
+                      backgroundColor: form.sidebarActiveGradientFrom,
+                      borderLeftColor: form.sidebarActiveGradientTo,
+                    }}
+                  >
+                    Active menu item preview
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -321,7 +332,8 @@ export default function ColorThemePage() {
                 <div
                   className="px-4 py-3 text-white text-sm font-semibold flex gap-8"
                   style={{
-                    background: `linear-gradient(to right, ${form.tableHeaderGradientFrom}, ${form.tableHeaderGradientTo})`,
+                    backgroundColor: form.tableHeaderGradientFrom,
+                    borderBottom: `1px solid ${form.tableHeaderGradientTo}`,
                   }}
                 >
                   <span>Column 1</span><span>Column 2</span><span>Column 3</span>
@@ -348,13 +360,13 @@ export default function ColorThemePage() {
               {/* Button preview */}
               <div className="flex gap-3">
                 <button
-                  className="px-4 py-2 rounded-lg text-sm font-medium text-white transition"
+                  className="btn-action btn-action-primary"
                   style={{ backgroundColor: form.buttonPrimaryBg }}
                 >
                   Primary Button
                 </button>
                 <button
-                  className="px-4 py-2 rounded-lg text-sm font-medium text-white transition"
+                  className="btn-action btn-action-primary"
                   style={{ backgroundColor: form.buttonPrimaryHover }}
                 >
                   Hover State
@@ -443,7 +455,8 @@ function ColorField({ label, value, onChange }) {
           className="w-10 h-10 rounded-lg border-2 border-gray-200 cursor-pointer p-0.5 shrink-0"
         />
         <div
-          className="flex-1 h-10 rounded-lg border border-gray-200 flex items-center px-3 cursor-pointer hover:bg-gray-50 transition"
+          className="flex-1 h-10 rounded-lg border flex items-center px-3 cursor-pointer transition"
+          style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-card)' }}
           onClick={() => setShowSwatches(!showSwatches)}
         >
           <div className="w-5 h-5 rounded-full border border-gray-300 mr-2 shrink-0" style={{ backgroundColor: value }} />
@@ -452,12 +465,18 @@ function ColorField({ label, value, onChange }) {
         </div>
       </div>
       {showSwatches && (
-        <div className="grid grid-cols-8 gap-1 p-2 bg-gray-50 rounded-lg border border-gray-200 max-h-40 overflow-y-auto">
+        <div
+          className="grid grid-cols-8 gap-1 p-2 rounded-lg border max-h-40 overflow-y-auto"
+          style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-card-alt)' }}
+        >
           {SWATCHES.map((color) => (
             <button
               key={color}
               type="button"
-              onClick={() => { onChange(color); setShowSwatches(false); }}
+              onClick={() => {
+                onChange(color);
+                setShowSwatches(false);
+              }}
               className={`w-full aspect-square rounded-md border-2 transition-all hover:scale-110 ${
                 value === color ? "border-gray-900 ring-1 ring-gray-900 scale-110" : "border-transparent hover:border-gray-400"
               }`}

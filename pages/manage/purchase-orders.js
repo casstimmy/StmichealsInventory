@@ -556,7 +556,7 @@ export default function PurchaseOrdersPage() {
             {/* Right Side: Stats Cards */}
             <div className="w-full lg:w-1/2 flex flex-col gap-3 sm:gap-6">
               {/* Total Paid Card */}
-              <div className="bg-gradient-to-br from-green-400 to-green-600 text-white p-4 sm:p-5 rounded-2xl shadow-lg text-center">
+              <div className="bg-emerald-600 border border-emerald-700 text-white p-4 sm:p-5 rounded-2xl shadow-lg text-center">
                 <div className="text-xs uppercase tracking-wide font-semibold opacity-90 mb-1">Total Paid</div>
                 <div className="text-2xl sm:text-3xl font-bold">{formatCurrency(totalPaid)}</div>
                 <div className="text-xs opacity-80 mt-1">Excludes prepaid credit awaiting supply</div>
@@ -569,13 +569,13 @@ export default function PurchaseOrdersPage() {
 
               <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <div onClick={() => setTableFilter("overdue")} role="button" tabIndex={0}
-                  className="cursor-pointer bg-gradient-to-br from-red-400 to-red-600 text-white p-3 sm:p-4 rounded-2xl shadow-lg flex flex-col justify-center items-center transform hover:scale-[1.03] transition-all duration-300 min-h-[120px]">
+                  className="cursor-pointer bg-red-600 border border-red-700 text-white p-3 sm:p-4 rounded-2xl shadow-lg flex flex-col justify-center items-center transform hover:scale-[1.03] transition-all duration-300 min-h-[120px]">
                   <span className="text-[11px] sm:text-xs uppercase tracking-wide text-center pb-1 font-semibold opacity-90 w-full border-b border-gray-300">Overdue</span>
                   <span className="text-xs sm:text-sm text-gray-200 font-medium mt-1">{overdueOrders.length} orders</span>
                   <span className="mt-auto text-lg sm:text-2xl font-bold drop-shadow-sm text-center">{formatCurrency(totalOverdueValue)}</span>
                 </div>
                 <div onClick={() => setTableFilter("outstanding")} role="button" tabIndex={0}
-                  className="cursor-pointer bg-gradient-to-br from-yellow-300 to-yellow-500 text-gray-900 p-3 sm:p-4 rounded-2xl shadow-lg flex flex-col justify-center items-center transform hover:scale-[1.03] transition-all duration-300 min-h-[120px]">
+                  className="cursor-pointer bg-amber-400 border border-amber-500 text-gray-900 p-3 sm:p-4 rounded-2xl shadow-lg flex flex-col justify-center items-center transform hover:scale-[1.03] transition-all duration-300 min-h-[120px]">
                   <span className="text-[11px] sm:text-xs uppercase tracking-wide text-center pb-1 font-semibold opacity-90 w-full border-b border-gray-400">Outstanding</span>
                   <span className="text-xs sm:text-sm text-gray-700 font-medium mt-1">{outstandingOrders.length} orders</span>
                   <span className="mt-auto text-lg sm:text-2xl font-bold drop-shadow-sm text-center">{formatCurrency(totalOutstanding)}</span>
@@ -661,7 +661,7 @@ export default function PurchaseOrdersPage() {
           {/* Desktop Table */}
           <div className="hidden md:block bg-white rounded-xl shadow overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-300 text-sm select-none">
-              <thead className="text-white font-semibold uppercase tracking-wide" style={{ background: "linear-gradient(to right, var(--table-header-from), var(--table-header-to))" }}>
+              <thead className="text-white font-semibold uppercase tracking-wide" style={{ backgroundColor: "var(--table-header-bg)", borderBottom: "1px solid var(--table-header-border)" }}>
                 <tr>
                   <th className="px-4 py-3 text-left">Date</th>
                   <th className="px-4 py-3 text-left">Ref</th>

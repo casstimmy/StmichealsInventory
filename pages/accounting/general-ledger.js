@@ -120,7 +120,7 @@ export default function GeneralLedgerPage() {
         ) : ledgerData ? (
           <div className="content-card !p-0 overflow-hidden">
             {/* Account Header */}
-            <div className="px-6 py-4 bg-gradient-to-r from-blue-50 to-white border-b">
+            <div className="px-6 py-4 border-b" style={{ backgroundColor: 'var(--surface-card-alt)' }}>
               <div className="flex justify-between items-center">
                 <div>
                   <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">

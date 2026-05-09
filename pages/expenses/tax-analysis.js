@@ -151,7 +151,7 @@ export default function TaxAnalysisPage() {
                   icon={faScaleBalanced}
                   label="Revenue Band"
                   value={taxData.band}
-                  bgColor="from-gray-50 to-gray-100"
+                  bgColor="bg-gray-50"
                   borderColor="border-gray-200"
                   iconColor="text-cyan-600"
                 />
@@ -159,7 +159,7 @@ export default function TaxAnalysisPage() {
                   icon={faChartLine}
                   label="CIT Rate"
                   value={`${taxData.citRate}%`}
-                  bgColor="from-amber-50 to-amber-100"
+                  bgColor="bg-amber-50"
                   borderColor="border-amber-200"
                   iconColor="text-amber-600"
                 />
@@ -167,7 +167,7 @@ export default function TaxAnalysisPage() {
                   icon={faMoneyBillWave}
                   label="VAT Rate"
                   value={`${taxData.vatRate}%`}
-                  bgColor="from-emerald-50 to-emerald-100"
+                  bgColor="bg-emerald-50"
                   borderColor="border-emerald-200"
                   iconColor="text-emerald-600"
                 />
@@ -175,7 +175,7 @@ export default function TaxAnalysisPage() {
                   icon={faMoneyBillWave}
                   label="Total Tax Liability"
                   value={`${(taxData.totalTaxLiability || 0).toLocaleString()}`}
-                  bgColor="from-rose-50 to-rose-100"
+                  bgColor="bg-rose-50"
                   borderColor="border-rose-200"
                   iconColor="text-rose-600"
                 />
@@ -252,7 +252,7 @@ export default function TaxAnalysisPage() {
                 <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full">
-                      <thead className="bg-gradient-to-r from-gray-800 to-gray-700 text-white">
+                      <thead className="table-header-gradient text-white">
                         <tr>
                           <th className="px-6 py-4 text-left text-sm font-semibold">Period</th>
                           <th className="px-6 py-4 text-right text-sm font-semibold">Revenue (NGN)</th>
@@ -317,7 +317,7 @@ export default function TaxAnalysisPage() {
 
 function StatBox({ icon, label, value, bgColor, borderColor, iconColor }) {
   return (
-    <div className={`bg-gradient-to-br ${bgColor} border ${borderColor} rounded-xl p-6 shadow-sm hover:shadow-lg transition-all transform hover:scale-105`}>
+    <div className={`${bgColor} border ${borderColor} rounded-xl p-6 shadow-sm hover:shadow-lg transition-all transform hover:scale-105`}>
       <div className="flex items-start gap-4">
         <div className={`text-3xl ${iconColor} bg-white bg-opacity-50 p-3 rounded-lg`}>
           <FontAwesomeIcon icon={icon} />

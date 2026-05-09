@@ -633,7 +633,7 @@ export default function VendorsPage() {
               className="bg-white p-3 sm:p-6 rounded shadow space-y-4 sm:space-y-6"
             >
               {/* Vendor Info Header */}
-              <div className="p-3 sm:p-5 rounded-xl shadow-md border border-gray-200 bg-gradient-to-r from-blue-50 to-white">
+              <div className="p-3 sm:p-5 rounded-xl shadow-md border border-gray-200" style={{ backgroundColor: 'var(--surface-card-alt)' }}>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between px-3 sm:px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl shadow-sm mb-4 gap-2">
                   <h2 className="text-base sm:text-xl font-bold text-blue-900 flex items-center gap-2">
                     <Package size={20} />

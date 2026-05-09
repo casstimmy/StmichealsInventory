@@ -250,7 +250,7 @@ export default function Promotions() {
         {/* Promotions Table */}
         <div className="overflow-x-auto bg-white rounded-lg shadow-md border border-gray-200">
           <table className="w-full text-sm">
-            <thead className="bg-gradient-to-r from-blue-600 to-blue-700 text-white sticky top-0">
+            <thead className="table-header-gradient text-white sticky top-0">
               <tr>
                 <th className="px-6 py-4 text-left font-semibold">NAME</th>
                 <th className="px-6 py-4 text-left font-semibold">DESCRIPTION</th>

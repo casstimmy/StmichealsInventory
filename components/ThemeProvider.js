@@ -119,9 +119,13 @@ function applyThemeToDOM(theme) {
   // Component-level variables
   if (theme.sidebarActiveGradientFrom) root.style.setProperty("--sidebar-active-from", theme.sidebarActiveGradientFrom);
   if (theme.sidebarActiveGradientTo) root.style.setProperty("--sidebar-active-to", theme.sidebarActiveGradientTo);
+  root.style.setProperty("--sidebar-active-bg", theme.sidebarActiveGradientFrom || primary[600]);
+  root.style.setProperty("--sidebar-active-border", theme.sidebarActiveGradientTo || primary[700]);
   if (theme.sidebarBg) root.style.setProperty("--sidebar-bg", theme.sidebarBg);
   if (theme.tableHeaderGradientFrom) root.style.setProperty("--table-header-from", theme.tableHeaderGradientFrom);
   if (theme.tableHeaderGradientTo) root.style.setProperty("--table-header-to", theme.tableHeaderGradientTo);
+  root.style.setProperty("--table-header-bg", theme.tableHeaderGradientFrom || primary[700]);
+  root.style.setProperty("--table-header-border", theme.tableHeaderGradientTo || primary[800]);
   if (theme.buttonPrimaryBg) root.style.setProperty("--btn-primary-bg", theme.buttonPrimaryBg);
   if (theme.buttonPrimaryHover) root.style.setProperty("--btn-primary-hover", theme.buttonPrimaryHover);
   if (theme.pageBg) root.style.setProperty("--page-bg", theme.pageBg);
@@ -129,15 +133,17 @@ function applyThemeToDOM(theme) {
   root.style.setProperty("--surface-card", "#ffffff");
   root.style.setProperty("--surface-card-alt", primary[50]);
   root.style.setProperty("--surface-muted", secondary[50]);
+  root.style.setProperty("--surface-raised", "#ffffff");
   root.style.setProperty("--page-gradient-start", pageBg);
-  root.style.setProperty("--page-gradient-mid", primary[50]);
-  root.style.setProperty("--page-gradient-end", secondary[50]);
-  root.style.setProperty("--border-subtle", `rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.14)`);
-  root.style.setProperty("--border-strong", `rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.24)`);
+  root.style.setProperty("--page-gradient-mid", pageBg);
+  root.style.setProperty("--page-gradient-end", pageBg);
+  root.style.setProperty("--border-subtle", `rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.12)`);
+  root.style.setProperty("--border-strong", `rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.2)`);
   root.style.setProperty("--focus-ring", `rgba(${secondaryRgb.r}, ${secondaryRgb.g}, ${secondaryRgb.b}, 0.18)`);
-  root.style.setProperty("--text-strong", primary[900]);
-  root.style.setProperty("--text-muted", `rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.68)`);
-  root.style.setProperty("--shell-shadow", `0 18px 42px rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.12)`);
+  root.style.setProperty("--text-strong", "#0f172a");
+  root.style.setProperty("--text-muted", "rgba(51, 65, 85, 0.72)");
+  root.style.setProperty("--shell-shadow", `0 12px 30px rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.08)`);
+  root.style.setProperty("--shell-shadow-sm", `0 4px 14px rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.05)`);
 }
 
 export function ThemeProvider({ children }) {

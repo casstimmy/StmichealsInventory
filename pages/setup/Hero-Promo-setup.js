@@ -292,7 +292,7 @@ export default function HeroSetup() {
                         <div className="mt-4">
                           <a
                             href="#"
-                            className="px-8 py-3 rounded-full bg-gradient-to-r from-cyan-600 to-cyan-800 text-white font-semibold shadow-lg hover:from-cyan-700 hover:to-cyan-900 transition-all"
+                            className="px-8 py-3 rounded-full bg-cyan-700 text-white font-semibold shadow-lg hover:bg-cyan-800 transition-all"
                           >
                             {currentHero.ctaText}
                           </a>

@@ -430,7 +430,7 @@ export default function SupportPage() {
           {view === "chat" && (
             <div className="flex flex-col rounded-xl overflow-hidden shadow-lg border border-gray-200" style={{ height: "calc(100vh - 220px)", minHeight: "500px" }}>
               {/* WhatsApp-style Header */}
-              <div className="px-4 py-3 flex items-center gap-3" style={{ background: "linear-gradient(to right, var(--table-header-from), var(--table-header-to))" }}>
+              <div className="px-4 py-3 flex items-center gap-3" style={{ backgroundColor: "var(--table-header-bg)", borderBottom: "1px solid var(--table-header-border)" }}>
                 <div className="w-10 h-10 rounded-2xl overflow-hidden shadow-md ring-2 ring-white/30 flex items-center justify-center">
                   <BizFaceLogo size={40} isTalking={isTalking} />
                 </div>

@@ -8,14 +8,14 @@ export default function TransactionReportHub() {
       title: "Completed Transactions",
       description: "Review completed transactions with detailed filtering by location, status, and date.",
       icon: "",
-      color: "from-emerald-500 to-green-500",
+      accent: "#059669",
       href: "/reporting/transaction-report/completed-transactions",
     },
   ];
 
   return (
     <Layout title="Transaction Reports">
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-50 p-8">
+      <div className="page-container">
         {/* Breadcrumb */}
         <div className="mb-6 text-sm text-gray-600">
           <Link href="/" className="text-cyan-600 hover:text-cyan-700">Home</Link>
@@ -38,8 +38,7 @@ export default function TransactionReportHub() {
           {reports.map((report) => (
             <Link key={report.id} href={report.href}>
               <div className="bg-white rounded-lg shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-200 cursor-pointer transform hover:scale-105">
-                {/* Header with gradient */}
-                <div className={`bg-gradient-to-r ${report.color} text-white p-8 h-24 flex items-center justify-center`}>
+                <div className="text-white p-8 h-24 flex items-center justify-center" style={{ backgroundColor: report.accent }}>
                   <span className="text-5xl">{report.icon}</span>
                 </div>
 
@@ -50,7 +49,7 @@ export default function TransactionReportHub() {
 
                   {/* Action Button */}
                   <div className="flex items-center justify-between">
-                    <span className="text-cyan-600 font-semibold text-sm">View Report</span>
+                    <span className="font-semibold text-sm" style={{ color: report.accent }}>View Report</span>
                     <span className="text-lg"></span>
                   </div>
                 </div>
@@ -84,7 +83,7 @@ export default function TransactionReportHub() {
 
 function StatCard({ label, value, icon, description }) {
   return (
-    <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-6 border border-gray-300">
+    <div className="rounded-lg p-6 border border-gray-300 bg-slate-50">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-semibold text-gray-800">{label}</h3>
         <span className="text-3xl">{icon}</span>

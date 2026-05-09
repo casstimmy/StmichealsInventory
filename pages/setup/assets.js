@@ -371,7 +371,7 @@ export default function AssetsPage() {
                       <div className="flex items-center gap-3">
                         <div className="flex-1 bg-gray-200 rounded-full h-3 overflow-hidden">
                           <div
-                            className="bg-gradient-to-r from-green-500 to-green-400 h-full rounded-full transition-all"
+                            className="bg-green-500 h-full rounded-full transition-all"
                             style={{ width: `${Math.max(0, Math.min(100, ((a.currentValue ?? a.purchasePrice) / a.purchasePrice) * 100))}%` }}
                           />
                         </div>

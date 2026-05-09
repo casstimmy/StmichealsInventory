@@ -133,7 +133,7 @@ export default function OnboardingPage() {
         <div className="max-w-2xl mx-auto">
           <div className="bg-white rounded-xl shadow-lg overflow-hidden">
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-6">
+            <div className="bg-blue-700 text-white px-6 py-6">
               <h1 className="text-2xl font-bold">Staff Onboarding Form</h1>
               <p className="text-blue-100 mt-1">Welcome, {staff?.name}! Please fill in your details below.</p>
             </div>

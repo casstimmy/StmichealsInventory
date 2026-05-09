@@ -353,12 +353,12 @@ export default function Home() {
   ];
 
   return (
-    <div className="page-container bg-[#f5f7fb]">
-      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-8">
-        <section className="flex flex-col gap-6">
-          <header className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+    <div className="page-container">
+      <div className="mx-auto flex w-full max-w-[1480px] flex-col gap-6">
+        <section className="flex flex-col gap-5">
+          <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="space-y-2">
-              <h1 className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-[2.5rem]">
+              <h1 className="text-[2.2rem] font-semibold tracking-tight text-slate-950 sm:text-[2.6rem]">
                 Hi, {dashboardHeading}
               </h1>
               <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
@@ -367,7 +367,12 @@ export default function Home() {
                 )}
                 <button
                   type="button"
-                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-950"
+                  className="inline-flex items-center gap-2 rounded-lg border px-3.5 py-2 font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
+                  style={{
+                    borderColor: 'var(--border-subtle)',
+                    backgroundColor: 'var(--surface-card)',
+                    boxShadow: 'var(--shell-shadow-sm)',
+                  }}
                   onClick={handleDailyMail}
                   title="Send daily mail report"
                 >
@@ -378,7 +383,7 @@ export default function Home() {
             </div>
           </header>
 
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
             {quickActions.map((action) => (
               <QuickActionTile
                 key={action.label}
@@ -390,8 +395,14 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.06)]">
-          <div className="flex flex-col gap-4 border-b border-slate-200 px-4 py-5 sm:px-6 lg:flex-row lg:items-end lg:justify-between">
+        <section
+          className="overflow-hidden rounded-2xl border bg-white"
+          style={{
+            borderColor: 'var(--border-subtle)',
+            boxShadow: 'var(--shell-shadow-sm)',
+          }}
+        >
+          <div className="flex flex-col gap-4 border-b px-4 py-4 sm:px-5 lg:flex-row lg:items-end lg:justify-between" style={{ borderColor: 'var(--border-subtle)' }}>
             <div>
               <h2 className="text-[1.9rem] font-semibold tracking-tight text-slate-950">
                 Key trading metrics
@@ -428,7 +439,12 @@ export default function Home() {
 
               <button
                 type="button"
-                className="inline-flex h-[62px] items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-base font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-[58px] items-center justify-center gap-2 rounded-lg border px-5 text-base font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+                style={{
+                  borderColor: 'var(--border-subtle)',
+                  backgroundColor: 'var(--surface-card)',
+                  boxShadow: 'var(--shell-shadow-sm)',
+                }}
                 onClick={fetchDashboardData}
                 disabled={loading}
                 title="Refresh dashboard data"
@@ -440,14 +456,18 @@ export default function Home() {
           </div>
 
           {selectedPeriod === "custom" && (
-            <div className="grid grid-cols-1 gap-3 border-b border-slate-200 px-4 py-4 sm:grid-cols-2 sm:px-6">
+            <div className="grid grid-cols-1 gap-3 border-b px-4 py-4 sm:grid-cols-2 sm:px-5" style={{ borderColor: 'var(--border-subtle)' }}>
               <label className="space-y-2">
                 <span className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
                   Start Date
                 </span>
                 <input
                   type="date"
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base font-medium text-slate-900 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                  className="w-full rounded-lg border bg-white px-4 py-3 text-base font-medium text-slate-900 outline-none transition focus:ring-2"
+                  style={{
+                    borderColor: 'var(--border-subtle)',
+                    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.72)',
+                  }}
                   value={customDateRange.startDate}
                   onChange={(e) =>
                     setCustomDateRange((prev) => ({
@@ -464,7 +484,11 @@ export default function Home() {
                 </span>
                 <input
                   type="date"
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base font-medium text-slate-900 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                  className="w-full rounded-lg border bg-white px-4 py-3 text-base font-medium text-slate-900 outline-none transition focus:ring-2"
+                  style={{
+                    borderColor: 'var(--border-subtle)',
+                    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.72)',
+                  }}
                   value={customDateRange.endDate}
                   onChange={(e) =>
                     setCustomDateRange((prev) => ({
@@ -478,12 +502,12 @@ export default function Home() {
           )}
 
           {loading ? (
-            <div className="px-4 py-10 sm:px-6">
+            <div className="px-4 py-10 sm:px-5">
               <Loader size="md" text="Loading dashboard..." progress={progress} />
             </div>
           ) : (
             <div
-              className={`grid grid-cols-1 gap-4 p-4 md:grid-cols-2 sm:p-6 ${
+              className={`grid grid-cols-1 gap-4 p-4 md:grid-cols-2 sm:p-5 ${
                 kpis.heldCount > 0 ? "xl:grid-cols-4" : "xl:grid-cols-3"
               }`}
             >
@@ -582,14 +606,25 @@ function QuickActionTile({ label, icon: Icon, onClick }) {
   return (
     <button
       type="button"
-      className="group flex min-h-[88px] items-center justify-between rounded-2xl border border-slate-200 bg-white px-5 py-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
+      className="group flex min-h-[76px] items-center justify-between rounded-2xl border px-5 py-4 text-left transition-colors hover:bg-slate-50"
+      style={{
+        borderColor: 'var(--border-subtle)',
+        backgroundColor: 'var(--surface-card)',
+        boxShadow: 'var(--shell-shadow-sm)',
+      }}
       onClick={onClick}
     >
       <div className="flex items-center gap-4">
-        <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-800">
+        <span
+          className="flex h-10 w-10 items-center justify-center rounded-xl border text-slate-800"
+          style={{
+            borderColor: 'var(--border-subtle)',
+            backgroundColor: 'var(--surface-card-alt)',
+          }}
+        >
           <Icon className="h-5 w-5" />
         </span>
-        <span className="text-xl font-medium tracking-tight text-slate-950">
+        <span className="text-lg font-semibold tracking-tight text-slate-950 sm:text-[1.35rem]">
           {label}
         </span>
       </div>
@@ -600,13 +635,20 @@ function QuickActionTile({ label, icon: Icon, onClick }) {
 
 function FilterSelect({ label, value, onChange, children }) {
   return (
-    <label className="min-w-[220px] rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+    <label
+      className="min-w-[220px] rounded-2xl border px-4 py-3"
+      style={{
+        borderColor: 'var(--border-subtle)',
+        backgroundColor: 'var(--surface-card)',
+        boxShadow: 'var(--shell-shadow-sm)',
+      }}
+    >
       <span className="mb-1 block text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
         {label}
       </span>
       <div className="relative">
         <select
-          className="w-full appearance-none bg-transparent pr-8 text-lg font-medium text-slate-950 outline-none"
+          className="w-full appearance-none bg-transparent pr-8 text-base font-semibold text-slate-950 outline-none"
           value={value}
           onChange={onChange}
         >
@@ -620,18 +662,26 @@ function FilterSelect({ label, value, onChange, children }) {
 
 function MetricCard({ label, value, detail, linkLabel, onClick }) {
   return (
-    <div className="flex min-h-[210px] flex-col rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
-      <div className="text-[1.35rem] font-semibold tracking-tight text-slate-950">
+    <div
+      className="flex min-h-[190px] flex-col rounded-2xl border px-5 py-4"
+      style={{
+        borderColor: 'var(--border-subtle)',
+        backgroundColor: 'var(--surface-raised)',
+        boxShadow: 'var(--shell-shadow-sm)',
+      }}
+    >
+      <div className="text-[1.2rem] font-semibold tracking-tight text-slate-950">
         {label}
       </div>
-      <div className="mt-3 text-[2.65rem] font-semibold leading-none tracking-tight text-slate-950">
+      <div className="mt-3 text-[2.45rem] font-semibold leading-none tracking-tight text-slate-950 sm:text-[2.75rem]">
         {value}
       </div>
       <div className="mt-4 text-sm text-slate-500">{detail}</div>
       {linkLabel && onClick ? (
         <button
           type="button"
-          className="mt-auto pt-10 text-left text-[1.05rem] font-medium text-blue-700 transition hover:text-blue-800"
+          className="mt-auto pt-8 text-left text-[0.98rem] font-medium transition hover:opacity-80"
+          style={{ color: 'var(--sidebar-active-border, #1d4ed8)' }}
           onClick={onClick}
         >
           {linkLabel}
@@ -672,7 +722,14 @@ function ListCard({ title, items, emptyMessage = "No data available" }) {
       <ul className="space-y-2 overflow-y-auto flex-1">
         {items.length ? (
           items.map((i, idx) => (
-            <li key={idx} className="bg-gray-50 p-2.5 sm:p-3 rounded-lg border border-gray-200 text-xs sm:text-sm hover:bg-sky-50 transition-colors">
+            <li
+              key={idx}
+              className="p-2.5 sm:p-3 rounded-lg border text-xs sm:text-sm hover:bg-slate-50 transition-colors"
+              style={{
+                backgroundColor: 'var(--surface-card-alt)',
+                borderColor: 'var(--border-subtle)',
+              }}
+            >
               <div className="font-medium text-gray-900 truncate">{i.label}</div>
               <div className="text-xs text-gray-600 mt-0.5">{i.meta}</div>
             </li>

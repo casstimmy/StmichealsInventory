@@ -85,20 +85,43 @@ const TopBar = ({ user, logout }) => {
       .join('')
       .toUpperCase();
 
+  const topBarStyle = {
+    backgroundColor: 'var(--surface-raised, #ffffff)',
+    borderColor: 'var(--border-subtle, rgba(15, 23, 42, 0.1))',
+    boxShadow: 'var(--shell-shadow-sm, 0 4px 14px rgba(15, 23, 42, 0.05))',
+  };
+
+  const brandAccentStyle = {
+    backgroundColor: 'var(--btn-primary-bg, #0284c7)',
+    boxShadow: 'var(--shell-shadow-sm, 0 4px 14px rgba(15, 23, 42, 0.05))',
+  };
+
+  const dropdownSurfaceStyle = {
+    backgroundColor: 'var(--surface-raised, #ffffff)',
+    borderColor: 'var(--border-subtle, rgba(15, 23, 42, 0.1))',
+    boxShadow: 'var(--shell-shadow, 0 12px 30px rgba(15, 23, 42, 0.08))',
+  };
+
+  const dropdownHeaderStyle = {
+    backgroundColor: 'var(--btn-primary-bg, #0284c7)',
+    borderBottom: '1px solid var(--sidebar-active-border, #1d4ed8)',
+  };
+
+  const avatarStyle = {
+    backgroundColor: 'var(--sidebar-active-bg, #2563eb)',
+    boxShadow: 'var(--shell-shadow-sm, 0 4px 14px rgba(15, 23, 42, 0.05))',
+  };
+
   return (
     <div
       className="fixed top-0 left-0 right-0 w-full z-50 flex items-center justify-between gap-2 sm:gap-3 md:gap-0 px-2 sm:px-3 md:px-8 shadow-lg border-b h-14 md:h-16"
-      style={{
-        background: "linear-gradient(90deg, var(--surface-card, #ffffff), var(--surface-card-alt, #f8fbff))",
-        borderColor: "var(--border-subtle, rgba(37, 99, 235, 0.14))",
-        boxShadow: "var(--shell-shadow, 0 18px 42px rgba(37, 99, 235, 0.12))",
-      }}
+      style={topBarStyle}
     >
       {/* Left Section: Back Office Text - Hidden on mobile */}
       <div className="hidden md:flex items-center gap-3 w-full md:w-auto">
         <div
           className="w-8 md:w-10 h-8 md:h-10 rounded-lg flex items-center justify-center shadow-md flex-shrink-0"
-          style={{ background: "linear-gradient(135deg, var(--color-primary-600, #2563eb), var(--color-primary-700, #1d4ed8))" }}
+          style={brandAccentStyle}
         >
           <FontAwesomeIcon icon={faStore} className="w-4 md:w-6 h-4 md:h-6 text-white" />
         </div>
@@ -109,7 +132,7 @@ const TopBar = ({ user, logout }) => {
       <div className="md:hidden flex-shrink-0">
         <div
           className="w-8 h-8 rounded-lg flex items-center justify-center shadow-md"
-          style={{ background: "linear-gradient(135deg, var(--color-primary-600, #2563eb), var(--color-primary-700, #1d4ed8))" }}
+          style={brandAccentStyle}
         >
           <FontAwesomeIcon icon={faStore} className="w-4 h-4 text-white" />
         </div>
@@ -151,9 +174,9 @@ const TopBar = ({ user, logout }) => {
 
             {/* Unified Notification Center Dropdown */}
             {showNotifications && (
-              <div className="absolute right-0 mt-2 w-80 md:w-96 bg-white rounded-lg shadow-2xl border border-gray-200 z-50 overflow-hidden">
+              <div className="absolute right-0 mt-2 w-80 md:w-96 rounded-xl border z-50 overflow-hidden" style={dropdownSurfaceStyle}>
                 {/* Header */}
-                <div className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-3">
+                <div className="text-white px-4 py-3" style={dropdownHeaderStyle}>
                   <p className="font-semibold text-sm flex items-center gap-2">
                     🔔 Notifications
                     <span className="ml-auto bg-white/30 px-2 py-0.5 rounded-full text-xs">
@@ -271,7 +294,8 @@ const TopBar = ({ user, logout }) => {
                   <Link
                     href="/stock/expiration-report"
                     onClick={() => setShowNotifications(false)}
-                    className="block text-center text-sm font-semibold text-blue-600 transition hover:text-blue-700"
+                    className="block text-center text-sm font-semibold transition hover:opacity-80"
+                    style={{ color: 'var(--sidebar-active-border, #1d4ed8)' }}
                   >
                     View Expiration Report →
                   </Link>
@@ -285,7 +309,7 @@ const TopBar = ({ user, logout }) => {
         <div className="flex items-center gap-1 sm:gap-2 md:gap-4 pl-1 sm:pl-2 md:pl-6 border-l border-gray-200">
           {/* Profile Image or Placeholder */}
           <div className="relative group">
-            <div className="w-7 sm:w-8 md:w-10 h-7 sm:h-8 md:h-10 flex items-center justify-center bg-gradient-to-br from-cyan-500 to-cyan-600 text-white rounded-full shadow-md group-hover:shadow-lg transition-all text-xs sm:text-sm md:text-lg font-bold flex-shrink-0">
+            <div className="w-7 sm:w-8 md:w-10 h-7 sm:h-8 md:h-10 flex items-center justify-center text-white rounded-full shadow-md transition-all text-xs sm:text-sm md:text-lg font-bold flex-shrink-0" style={avatarStyle}>
               {getInitials(user?.name) || 'U'}
             </div>
           </div>

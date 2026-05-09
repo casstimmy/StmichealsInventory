@@ -290,21 +290,21 @@ export default function PersonalTaxCalculator() {
             <>
               {/* Key Metrics */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 border border-cyan-200 rounded-xl p-6 shadow-sm hover:shadow-lg transition-all">
+                <div className="bg-cyan-50 border border-cyan-200 rounded-xl p-6 shadow-sm hover:shadow-lg transition-all">
                   <p className="text-sm font-medium text-gray-600 mb-1">Total Gross Income</p>
                   <p className="text-xl sm:text-2xl font-bold text-gray-900">{formatCurrencyValue(result.gross)}</p>
                 </div>
-                <div className="bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200 rounded-xl p-6 shadow-sm hover:shadow-lg transition-all">
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 shadow-sm hover:shadow-lg transition-all">
                   <p className="text-sm font-medium text-gray-600 mb-1">Total Deductions</p>
                   <p className="text-xl sm:text-2xl font-bold text-gray-900">
                     {formatCurrencyValue(result.thresholdRelief + result.pension + result.other + result.cra)}
                   </p>
                 </div>
-                <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 rounded-xl p-6 shadow-sm hover:shadow-lg transition-all">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6 shadow-sm hover:shadow-lg transition-all">
                   <p className="text-sm font-medium text-gray-600 mb-1">Taxable Income</p>
                   <p className="text-xl sm:text-2xl font-bold text-gray-900">{formatCurrencyValue(result.taxableIncome)}</p>
                 </div>
-                <div className="bg-gradient-to-br from-rose-50 to-rose-100 border border-rose-200 rounded-xl p-6 shadow-sm hover:shadow-lg transition-all">
+                <div className="bg-rose-50 border border-rose-200 rounded-xl p-6 shadow-sm hover:shadow-lg transition-all">
                   <p className="text-sm font-medium text-gray-600 mb-1">
                     {mode === "monthly" ? "Monthly Tax" : "Yearly Tax"}
                   </p>

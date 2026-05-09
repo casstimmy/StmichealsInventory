@@ -359,7 +359,7 @@ export default function StockMovement() {
               onClick={(e) => e.stopPropagation()}
             >
               {/* Modal Header */}
-              <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-sky-600 to-sky-700 text-white">
+              <div className="flex items-center justify-between p-4 border-b text-white" style={{ backgroundColor: 'var(--table-header-bg)', borderBottomColor: 'var(--table-header-border)' }}>
                 <div>
                   <h2 className="text-xl font-bold">Movement Details</h2>
                   <p className="text-sky-100 text-sm font-mono">{selectedMovement.transRef}</p>

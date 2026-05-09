@@ -134,7 +134,7 @@ export default function Login({ staffList, locations }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cyan-50 to-blue-50 flex items-center justify-center px-4">
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: 'var(--page-bg, #f4f7fb)' }}>
       <div className="w-full flex flex-col lg:flex-row items-center justify-between max-w-5xl gap-8">
         {/* ===== HERO ===== */}
         <div className="w-full lg:w-1/2 text-center lg:text-left">

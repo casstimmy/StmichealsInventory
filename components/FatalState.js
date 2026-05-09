@@ -5,14 +5,12 @@ import { faHome, faArrowRight } from "@fortawesome/free-solid-svg-icons";
 
 const THEMES = {
   notFound: {
-    background:
-      "bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900",
+    background: "bg-gray-900",
     orbPrimary: "bg-blue-600",
     orbSecondary: "bg-cyan-600",
-    headerGradient: "bg-gradient-to-r from-blue-600 to-cyan-600",
+    headerGradient: "bg-blue-600",
     subtitle: "text-blue-100",
-    primaryButton:
-      "bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700",
+    primaryButton: "bg-blue-600 hover:bg-blue-700",
     accentText: "text-blue-600 hover:text-blue-700",
     bulletAccent: "text-blue-600",
     tones: {
@@ -29,14 +27,12 @@ const THEMES = {
     },
   },
   serverError: {
-    background:
-      "bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900",
+    background: "bg-gray-900",
     orbPrimary: "bg-red-600",
     orbSecondary: "bg-orange-600",
-    headerGradient: "bg-gradient-to-r from-red-600 to-orange-600",
+    headerGradient: "bg-red-600",
     subtitle: "text-red-100",
-    primaryButton:
-      "bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700",
+    primaryButton: "bg-red-600 hover:bg-red-700",
     accentText: "text-red-600 hover:text-red-700",
     bulletAccent: "text-red-600",
     tones: {

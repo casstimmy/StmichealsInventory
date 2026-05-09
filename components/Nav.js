@@ -502,7 +502,7 @@ export default function Sidebar() {
             </li>
             )}
 
-            {canAccessAny(["reporting", "reporting.sales-report", "reporting.eod", "reporting.transaction-report", "reporting.time-intervals", "reporting.time-comparisons", "reporting.sales-by-product", "reporting.employees", "reporting.locations", "reporting.categories"]) && (
+            {canAccessAny(["reporting", "reporting.sales-report", "reporting.eod", "reporting.completed-transactions", "reporting.time-intervals", "reporting.time-comparisons", "reporting.sales-by-product", "reporting.employees", "reporting.locations", "reporting.categories"]) && (
             <li
               className={`${
                 pathname.startsWith("/reporting") ? activeLink : baseLink
@@ -545,7 +545,7 @@ export default function Sidebar() {
                 }))}
                 
                 {/* Sales Report Dropdown */}
-                {canAccessAny(["reporting.time-intervals", "reporting.time-comparisons", "reporting.sales-by-product", "reporting.employees", "reporting.locations", "reporting.categories"]) && (
+                {canAccessAny(["reporting.time-intervals", "reporting.time-comparisons", "reporting.sales-by-product", "reporting.employees", "reporting.locations", "reporting.categories", "reporting.completed-transactions"]) && (
                 <li className="border-b border-gray-100 transition-all duration-300 group">
                   <button
                     onClick={() => toggleSubMenu("sales-report")}
@@ -566,6 +566,7 @@ export default function Sidebar() {
                         { href: "/reporting/sales-report/employees", label: "Employees", indent: true },
                         { href: "/reporting/sales-report/locations", label: "Locations", indent: true },
                         { href: "/reporting/sales-report/categories", label: "Categories", indent: true },
+                        { href: "/reporting/sales-report/completed-transactions", label: "Completed Transactions", indent: true },
                       ].filter(item => {
                         const permMap = {
                           "/reporting/sales-report/time-intervals": "reporting.time-intervals",
@@ -574,6 +575,7 @@ export default function Sidebar() {
                           "/reporting/sales-report/employees": "reporting.employees",
                           "/reporting/sales-report/locations": "reporting.locations",
                           "/reporting/sales-report/categories": "reporting.categories",
+                          "/reporting/sales-report/completed-transactions": "reporting.completed-transactions",
                         };
                         return canAccess(permMap[item.href] || "reporting");
                       }))}
@@ -581,11 +583,6 @@ export default function Sidebar() {
                   )}
                 </li>
                 )}
-
-                {/* Transaction Report */}
-                {renderSubMenu([
-                  { href: "/reporting/transaction-report/completed-transactions", label: "Completed Transactions", indent: true },
-                ].filter(item => canAccess("reporting.transaction-report")))}
               </ul>
             </li>
             )}
@@ -1012,7 +1009,7 @@ export default function Sidebar() {
             )}
 
             {/* Reporting Menu */}
-            {canAccessAny(["reporting", "reporting.sales-report", "reporting.eod", "reporting.transaction-report", "reporting.time-intervals", "reporting.time-comparisons", "reporting.sales-by-product", "reporting.employees", "reporting.locations", "reporting.categories"]) && (
+            {canAccessAny(["reporting", "reporting.sales-report", "reporting.eod", "reporting.completed-transactions", "reporting.time-intervals", "reporting.time-comparisons", "reporting.sales-by-product", "reporting.employees", "reporting.locations", "reporting.categories"]) && (
             <li>
               <button
                 onClick={() => toggleMenu("reporting")}
@@ -1043,16 +1040,9 @@ export default function Sidebar() {
                     </Link>
                   </li>
                   )}
-                  {canAccess("reporting.transaction-report") && (
+                  {canAccess("reporting.completed-transactions") && (
                   <li onClick={closeMenu}>
-                    <Link href="/reporting/transaction-report" className={`block px-8 py-3 text-sm transition-all ${pathname === "/reporting/transaction-report" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
-                      Transaction Reports
-                    </Link>
-                  </li>
-                  )}
-                  {canAccess("reporting.transaction-report") && (
-                  <li onClick={closeMenu}>
-                    <Link href="/reporting/transaction-report/completed-transactions" className={`block px-10 py-3 text-sm transition-all ${pathname === "/reporting/transaction-report/completed-transactions" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                    <Link href="/reporting/sales-report/completed-transactions" className={`block px-10 py-3 text-sm transition-all ${pathname === "/reporting/sales-report/completed-transactions" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Completed Transactions
                     </Link>
                   </li>
@@ -1104,7 +1094,6 @@ export default function Sidebar() {
             </li>
             )}
 
-            {/* Expenses Menu */}
             {canAccessAny(["expenses", "expenses.entry", "expenses.analysis", "expenses.tax-analysis", "expenses.tax-personal"]) && (
             <li>
               <button

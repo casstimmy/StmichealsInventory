@@ -570,7 +570,7 @@ export default function Home() {
                 value={formatNumber(kpis.transactions)}
                 trend={txTrend}
                 linkLabel="Transactions report"
-                onClick={() => router.push("/reporting/transaction-report")}
+                onClick={() => router.push("/reporting/sales-report/completed-transactions")}
               />
               <MetricCard
                 label="Avg. transaction value"
@@ -583,7 +583,7 @@ export default function Home() {
                   value={`${kpis.heldCount} (${formatCurrency(kpis.heldTotal)})`}
                   detail="Excluded from sales and average KPIs"
                   linkLabel="Transactions report"
-                  onClick={() => router.push("/reporting/transaction-report")}
+                  onClick={() => router.push("/reporting/sales-report/completed-transactions")}
                 />
               )}
             </div>

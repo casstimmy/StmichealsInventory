@@ -82,7 +82,7 @@ function applyThemeToDOM(theme) {
   const info = generatePalette(theme.infoColor || "#3b82f6");
   const primaryRgb = hexToRgb(primary[600]);
   const secondaryRgb = hexToRgb(secondary[500]);
-  const pageBg = theme.pageBg || "#f3f4f6";
+  const pageBg = "#f9fafb";
 
   // Primary palette
   Object.entries(primary).forEach(([shade, color]) => {
@@ -128,7 +128,7 @@ function applyThemeToDOM(theme) {
   root.style.setProperty("--table-header-border", theme.tableHeaderGradientTo || primary[800]);
   if (theme.buttonPrimaryBg) root.style.setProperty("--btn-primary-bg", theme.buttonPrimaryBg);
   if (theme.buttonPrimaryHover) root.style.setProperty("--btn-primary-hover", theme.buttonPrimaryHover);
-  if (theme.pageBg) root.style.setProperty("--page-bg", theme.pageBg);
+  // page-bg is always forced neutral (not theme-controlled)
 
   root.style.setProperty("--surface-card", "#ffffff");
   root.style.setProperty("--surface-card-alt", "#f8fafc");

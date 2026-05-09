@@ -441,7 +441,7 @@ function applyFilters() {
           <div className="mb-6 text-sm text-gray-600">
             <Link href="/" className="text-cyan-600 hover:text-cyan-700">Home</Link>
             <span className="mx-2 text-gray-400">{">"}</span>
-            <Link href="/reporting/transaction-report" className="text-cyan-600 hover:text-cyan-700">Transaction Reports</Link>
+            <Link href="/reporting/reporting" className="text-cyan-600 hover:text-cyan-700">Sales Report</Link>
             <span className="mx-2 text-gray-400">{">"}</span>
             <span className="text-gray-800 font-medium">Completed Transactions</span>
           </div>

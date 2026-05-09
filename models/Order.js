@@ -45,6 +45,17 @@ const orderSchema = new mongoose.Schema(
     shippingCost: { type: Number, default: 0 },
     total: { type: Number, required: true },
 
+    locationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      index: true,
+      default: null,
+    },
+    locationName: {
+      type: String,
+      default: "",
+      index: true,
+    },
+
     paymentReference: { type: String },
     paymentStatus: {
       type: String,

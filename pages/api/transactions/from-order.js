@@ -60,7 +60,7 @@ export default async function handler(req, res) {
       tax: 0,
       staff: null,
       staffName: "Online",
-      location: "online",
+      location: order.locationName || "online",
       device: "WEB",
       tableName: "OrderCheckout",
       discount: 0,

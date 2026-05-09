@@ -15,21 +15,37 @@ export default async function handler(req, res) {
   await mongooseConnect();
 
   if (req.method === "GET") {
-    const { page = 1, limit = 10, search = "" } = req.query;
+    const {
+      page = 1,
+      limit = 10,
+      search = "",
+      locationId = "",
+      locationName = "",
+    } = req.query;
 
     try {
       let query = {};
+      const numericLimit = Math.max(1, Number(limit) || 10);
+      const numericPage = Math.max(1, Number(page) || 1);
+
+      if (locationId && mongoose.Types.ObjectId.isValid(locationId)) {
+        query.locationId = locationId;
+      } else if (locationName) {
+        query.locationName = locationName;
+      }
 
       // 🔍 Search logic (by ID or customer fields)
       if (search) {
         if (mongoose.Types.ObjectId.isValid(search)) {
-          query = { _id: search };
+          query = { ...query, _id: search };
         } else {
           query = {
+            ...query,
             $or: [
               { "shippingDetails.name": { $regex: search, $options: "i" } },
               { "shippingDetails.email": { $regex: search, $options: "i" } },
               { "shippingDetails.phone": { $regex: search, $options: "i" } },
+              { locationName: { $regex: search, $options: "i" } },
             ],
           };
         }
@@ -37,14 +53,14 @@ export default async function handler(req, res) {
 
       // 🔹 Count and paginate
       const total = await Order.countDocuments(query);
-      const totalPages = Math.ceil(total / limit);
+      const totalPages = Math.ceil(total / numericLimit);
 
       // 🔹 Fetch orders and populate customer reference
       const orders = await Order.find(query)
         .populate("customer") // ✅ This is the key change
         .sort({ createdAt: -1 })
-        .skip((page - 1) * limit)
-        .limit(Number(limit))
+        .skip((numericPage - 1) * numericLimit)
+        .limit(numericLimit)
         .lean(); // Converts to plain objects for better performance
 
       return res.status(200).json({

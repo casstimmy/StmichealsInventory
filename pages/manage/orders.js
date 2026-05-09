@@ -10,6 +10,7 @@ import { formatCurrency } from "@/lib/format";
 import { apiClient } from "@/lib/api-client";
 import { showConfirmDialog } from "@/lib/dialogs";
 import { useAuth } from "@/lib/useAuth";
+import { getCachedSetup } from "@/lib/setupCache";
 
 const STATUS_OPTIONS = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"];
 
@@ -142,6 +143,30 @@ function getOrderErrorNotice({ error, action, order, nextStatus }) {
     );
   }
 
+  if (action === "location") {
+    if (apiError === "Order not found") {
+      return createNotice(
+        "error",
+        "Order not found",
+        `${orderRef} could not be found. Refresh the list and try again.`
+      );
+    }
+
+    if (apiError === "Insufficient permissions") {
+      return createNotice(
+        "error",
+        "Location update blocked",
+        "You do not have permission to update this order."
+      );
+    }
+
+    return createNotice(
+      "error",
+      "Location update failed",
+      `We couldn't update the location for ${orderRef}. Please try again.`
+    );
+  }
+
   return createNotice(
     "error",
     "Order action failed",
@@ -226,6 +251,7 @@ export default function OrderInventoryPage() {
   const [initialLoad, setInitialLoad] = useState(true);
   const [busyOrderId, setBusyOrderId] = useState(null);
   const [message, setMessage] = useState(null);
+  const [locations, setLocations] = useState([]);
 
   const entriesPerPage = 10;
 
@@ -238,6 +264,27 @@ export default function OrderInventoryPage() {
 
     return () => window.clearTimeout(timeoutId);
   }, [message]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    async function loadLocations() {
+      try {
+        const setup = await getCachedSetup();
+        if (!isActive) return;
+        setLocations(Array.isArray(setup?.store?.locations) ? setup.store.locations : []);
+      } catch (error) {
+        console.error("Failed to load locations:", error);
+        if (isActive) setLocations([]);
+      }
+    }
+
+    loadLocations();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   const fetchOrders = async (page = 1, searchTerm = "") => {
     setLoading(true);
@@ -361,6 +408,52 @@ export default function OrderInventoryPage() {
     }
   };
 
+  const handleLocationChange = async (order, nextLocationId) => {
+    if (!order?._id) return;
+
+    const selectedLocation = locations.find(
+      (location) => String(location?._id || "") === String(nextLocationId || "")
+    );
+    const normalizedLocationId = selectedLocation?._id || null;
+    const normalizedLocationName = selectedLocation?.name || "";
+
+    if (
+      String(order.locationId || "") === String(normalizedLocationId || "") &&
+      String(order.locationName || "") === normalizedLocationName
+    ) {
+      return;
+    }
+
+    setBusyOrderId(order._id);
+    setMessage(null);
+
+    try {
+      const { data: updatedOrder } = await apiClient.put(`/api/orders/${order._id}`, {
+        locationId: normalizedLocationId,
+        locationName: normalizedLocationName,
+      });
+
+      setOrders((prev) =>
+        prev.map((currentOrder) =>
+          currentOrder._id === order._id ? { ...currentOrder, ...updatedOrder } : currentOrder
+        )
+      );
+
+      setMessage(
+        createNotice(
+          "success",
+          "Order location updated",
+          `${getOrderReference(order)} is now assigned to ${normalizedLocationName || "no location"}.`
+        )
+      );
+    } catch (error) {
+      console.error("Failed to update location:", error);
+      setMessage(getOrderErrorNotice({ error, action: "location", order }));
+    } finally {
+      setBusyOrderId(null);
+    }
+  };
+
   return (
     <Layout>
       {initialLoad && loading ? (
@@ -402,7 +495,7 @@ export default function OrderInventoryPage() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    {["Order ID", "Customer", "Total", "Status", "Date"].map((header) => (
+                    {["Order ID", "Customer", "Location", "Total", "Status", "Date"].map((header) => (
                       <th key={header}>{header}</th>
                     ))}
                   </tr>
@@ -410,11 +503,11 @@ export default function OrderInventoryPage() {
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-8 text-gray-500 italic">Loading orders...</td>
+                      <td colSpan={6} className="text-center py-8 text-gray-500 italic">Loading orders...</td>
                     </tr>
                   ) : orders.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-8 italic text-gray-400">No orders found.</td>
+                      <td colSpan={6} className="text-center py-8 italic text-gray-400">No orders found.</td>
                     </tr>
                   ) : (
                     orders.map((order, idx) => {
@@ -440,6 +533,7 @@ export default function OrderInventoryPage() {
                               </div>
                             </td>
                             <td className="text-gray-900">{customerDetails.name}</td>
+                            <td className="text-gray-700">{order.locationName || "Unassigned"}</td>
                             <td className="font-bold text-gray-900">{formatCurrency(order.total || 0)}</td>
                             <td>
                               <select
@@ -464,7 +558,7 @@ export default function OrderInventoryPage() {
                           </tr>
                           {isExpanded && (
                             <tr className="bg-cyan-50/40">
-                              <td colSpan={5} className="px-4 py-4">
+                              <td colSpan={6} className="px-4 py-4">
                                 <div className="overflow-hidden rounded-xl border border-cyan-100 bg-white p-4 shadow-sm transition-all duration-200">
                                   <div className="grid gap-4 lg:grid-cols-3">
                                     <div className="space-y-2 text-sm text-gray-700">
@@ -474,6 +568,28 @@ export default function OrderInventoryPage() {
                                       <p><strong>Phone:</strong> {customerDetails.phone}</p>
                                       <p><strong>Address:</strong> {customerDetails.address}</p>
                                       <p><strong>City:</strong> {customerDetails.city}</p>
+                                      <div className="pt-2">
+                                        <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
+                                          Fulfilment Location
+                                        </label>
+                                        <select
+                                          value={String(order.locationId || "")}
+                                          onChange={(e) => {
+                                            e.stopPropagation();
+                                            handleLocationChange(order, e.target.value);
+                                          }}
+                                          onClick={(e) => e.stopPropagation()}
+                                          disabled={busyOrderId === order._id || locations.length === 0}
+                                          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:bg-gray-100"
+                                        >
+                                          <option value="">Unassigned</option>
+                                          {locations.map((location) => (
+                                            <option key={location._id} value={location._id}>
+                                              {location.name}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      </div>
                                     </div>
 
                                     <div className="space-y-2 text-sm text-gray-700 lg:col-span-2">

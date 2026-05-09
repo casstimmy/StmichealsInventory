@@ -2,6 +2,7 @@ import { mongooseConnect } from "@/lib/mongodb";
 import Product from "@/models/Product";
 import Order from "@/models/Order";
 import Transaction from "@/models/Transactions";
+import mongoose from "mongoose";
 import { authMiddleware, isAdmin, isStaff } from "@/lib/auth-middleware";
 import { applyInventoryDelta } from "@/lib/transaction-utils";
 
@@ -41,10 +42,22 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { status, deliveryPerson } = req.body || {};
+    const { status, deliveryPerson, locationId, locationName } = req.body || {};
+    const hasStatusUpdate = status !== undefined;
+    const hasLocationIdUpdate = locationId !== undefined;
+    const hasLocationNameUpdate = locationName !== undefined;
+    const hasLocationUpdate = hasLocationIdUpdate || hasLocationNameUpdate;
 
-    if (!status) {
+    if (!hasStatusUpdate && !hasLocationUpdate) {
+      return res.status(400).json({ error: "Status or location is required" });
+    }
+
+    if (hasStatusUpdate && !status) {
       return res.status(400).json({ error: "Status is required" });
+    }
+
+    if (hasLocationIdUpdate && locationId && !mongoose.Types.ObjectId.isValid(locationId)) {
+      return res.status(400).json({ error: "Invalid locationId" });
     }
 
     const allowedStatuses = [
@@ -54,7 +67,7 @@ export default async function handler(req, res) {
       "Delivered",
       "Cancelled",
     ];
-    if (!allowedStatuses.includes(status)) {
+    if (hasStatusUpdate && !allowedStatuses.includes(status)) {
       return res.status(400).json({ error: `Invalid status: ${status}` });
     }
 
@@ -62,16 +75,30 @@ export default async function handler(req, res) {
     if (!order) return res.status(404).json({ error: "Order not found" });
 
     const prevStatus = order.status;
-    if (prevStatus === "Delivered" && status === "Delivered") {
+    const nextStatus = hasStatusUpdate ? status : prevStatus;
+    const nextLocationName = hasLocationNameUpdate
+      ? String(locationName || "").trim()
+      : order.locationName || "";
+
+    if (
+      hasStatusUpdate &&
+      prevStatus === "Delivered" &&
+      nextStatus === "Delivered" &&
+      !hasLocationUpdate
+    ) {
       return res.status(400).json({ error: "Order already marked as Delivered" });
     }
 
-    if (status === "Delivered" && prevStatus !== "Delivered") {
+    if (nextStatus === "Delivered" && prevStatus !== "Delivered") {
       const externalId = `order:${order._id.toString()}`;
       const existingTx = await Transaction.findOne({ externalId });
 
       if (!existingTx) {
-        const items = (order.cartProducts || [])
+        const orderItems = Array.isArray(order.cartProducts) && order.cartProducts.length
+          ? order.cartProducts
+          : order.items || [];
+
+        const items = orderItems
           .map((item) => ({
             name: item.name,
             qty: Number(item.quantity || 0),
@@ -90,7 +117,7 @@ export default async function handler(req, res) {
           tax: 0,
           staff: null,
           staffName: "Online",
-          location: "online",
+          location: nextLocationName || "online",
           device: "Web",
           discount: 0,
           discountReason: null,
@@ -127,15 +154,25 @@ export default async function handler(req, res) {
       }
     }
 
-    const updatePayload = {
-      status,
-    };
+    const updatePayload = {};
 
-    if (deliveryPerson && (status === "Shipped" || status === "Delivered")) {
+    if (hasStatusUpdate) {
+      updatePayload.status = nextStatus;
+    }
+
+    if (deliveryPerson && (nextStatus === "Shipped" || nextStatus === "Delivered")) {
       updatePayload.deliveryPerson = {
         name: deliveryPerson.name || "",
         phone: deliveryPerson.phone || "",
       };
+    }
+
+    if (hasLocationIdUpdate) {
+      updatePayload.locationId = locationId || null;
+    }
+
+    if (hasLocationNameUpdate) {
+      updatePayload.locationName = nextLocationName;
     }
 
     const updatedOrder = await Order.findByIdAndUpdate(
@@ -148,6 +185,14 @@ export default async function handler(req, res) {
     )
       .populate("customer")
       .lean();
+
+    if (hasLocationUpdate && nextStatus === "Delivered") {
+      const externalId = `order:${id.toString()}`;
+      await Transaction.findOneAndUpdate(
+        { externalId },
+        { $set: { location: nextLocationName || "online" } }
+      );
+    }
 
     return res.status(200).json(updatedOrder);
   } catch (error) {

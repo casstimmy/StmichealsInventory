@@ -10,6 +10,16 @@ import { Loader } from "@/components/ui";
 import useProgress from "@/lib/useProgress";
 import { getCachedSetup } from "@/lib/setupCache";
 import { formatCurrency, formatNumber } from "@/lib/format";
+import { aggregateProductSales } from "@/lib/product-sales-report";
+import {
+  ArrowRight,
+  ChevronDown,
+  List,
+  Mail,
+  PackagePlus,
+  RefreshCw,
+  ShoppingCart,
+} from "lucide-react";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -32,6 +42,40 @@ ChartJS.register(
   Tooltip,
   Legend
 );
+
+const PERIOD_LABELS = {
+  today: "Today",
+  yesterday: "Yesterday",
+  week: "This Week",
+  lastWeek: "Last Week",
+  month: "This Month",
+  lastMonth: "Last Month",
+  custom: "Custom Period",
+};
+
+function resolveLocationName(record) {
+  const rawLocation =
+    record?.locationName ??
+    record?.location ??
+    record?.storeLocation ??
+    null;
+
+  if (typeof rawLocation === "string") {
+    return rawLocation;
+  }
+
+  if (rawLocation && typeof rawLocation === "object") {
+    if (typeof rawLocation.name === "string") return rawLocation.name;
+    if (typeof rawLocation.label === "string") return rawLocation.label;
+  }
+
+  return null;
+}
+
+function matchesSelectedLocation(record, selectedLocation) {
+  if (selectedLocation === "All") return true;
+  return resolveLocationName(record) === selectedLocation;
+}
 
 export default function Home() {
   const router = useRouter();
@@ -163,36 +207,36 @@ export default function Home() {
   ======================= */
   const filteredTransactions = useMemo(() => {
     return allTransactions.filter((tx) => {
-      // Exclude held transactions from all calculations
-      if (tx.status === "held") return false;
-
-      const loc =
-        typeof tx.location === "object" ? tx.location?.name : tx.location;
-
-      if (selectedLocation !== "All" && loc !== selectedLocation) return false;
+      if (tx.status !== "completed") return false;
+      if (!matchesSelectedLocation(tx, selectedLocation)) return false;
       return isWithinPeriod(tx.createdAt);
     });
-  }, [allTransactions, selectedLocation, selectedPeriod]);
+  }, [allTransactions, selectedLocation, selectedPeriod, customDateRange]);
 
   const heldTransactions = useMemo(() => {
     return allTransactions.filter((tx) => {
       if (tx.status !== "held") return false;
-      const loc =
-        typeof tx.location === "object" ? tx.location?.name : tx.location;
-      if (selectedLocation !== "All" && loc !== selectedLocation) return false;
+      if (!matchesSelectedLocation(tx, selectedLocation)) return false;
       return isWithinPeriod(tx.createdAt);
     });
-  }, [allTransactions, selectedLocation, selectedPeriod]);
+  }, [allTransactions, selectedLocation, selectedPeriod, customDateRange]);
 
- const filteredOrders = useMemo(() => {
-  if (!Array.isArray(allOrders)) return [];
-  return allOrders.filter((o) => isWithinPeriod(o.createdAt));
-}, [allOrders, selectedPeriod]);
+  const filteredOrders = useMemo(() => {
+    if (!Array.isArray(allOrders)) return [];
 
+    return allOrders.filter((order) => {
+      if (!matchesSelectedLocation(order, selectedLocation)) return false;
+      return isWithinPeriod(order.createdAt);
+    });
+  }, [allOrders, selectedLocation, selectedPeriod, customDateRange]);
 
   const filteredExpenses = useMemo(
-    () => allExpenses.filter((e) => isWithinPeriod(e.createdAt)),
-    [allExpenses, selectedPeriod]
+    () =>
+      allExpenses.filter((expense) => {
+        if (!matchesSelectedLocation(expense, selectedLocation)) return false;
+        return isWithinPeriod(expense.expenseDate || expense.createdAt);
+      }),
+    [allExpenses, selectedLocation, selectedPeriod, customDateRange]
   );
 
   /* =======================
@@ -223,19 +267,7 @@ export default function Home() {
      PRODUCT SALES
   ======================= */
   const productSales = useMemo(() => {
-    const map = {};
-    filteredTransactions.forEach((tx) => {
-      if (!tx.items || !Array.isArray(tx.items)) return;
-      tx.items.forEach((i) => {
-        if (!i || !i.name) return; // Skip null items
-        // Use salePriceIncTax or price, fall back to 0
-        const price = Number(i.salePriceIncTax || i.price || 0);
-        const quantity = Number(i.qty || i.quantity || 0);
-        const amount = price * quantity;
-        map[i.name] = (map[i.name] || 0) + amount;
-      });
-    });
-    return map;
+    return aggregateProductSales(filteredTransactions);
   }, [filteredTransactions]);
 
   /* =======================
@@ -261,11 +293,11 @@ export default function Home() {
      CHART DATA
   ======================= */
   const salesByProductData = {
-    labels: Object.keys(productSales),
+    labels: productSales.map((product) => product.name),
     datasets: [
       {
         label: "Sales",
-        data: Object.values(productSales),
+        data: productSales.map((product) => product.totalSales),
         backgroundColor: "#06B6D4",
       },
     ],
@@ -299,85 +331,123 @@ export default function Home() {
     }
   };
 
+  const dashboardHeading = storeInfo?.name || selectedUser;
+  const periodLabel = PERIOD_LABELS[selectedPeriod] || "Selected Period";
+  const locationLabel = selectedLocation === "All" ? "All Locations" : selectedLocation;
+  const quickActions = [
+    {
+      label: "Add products",
+      icon: PackagePlus,
+      onClick: () => router.push("/products/new"),
+    },
+    {
+      label: "Stock",
+      icon: List,
+      onClick: () => router.push("/stock/management"),
+    },
+    {
+      label: "Purchase order",
+      icon: ShoppingCart,
+      onClick: () => router.push("/manage/purchase-orders"),
+    },
+  ];
+
   return (
-      <div className="page-container">
-        {/* Header */}
-        <header className="page-header flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <h1 className="page-title">Welcome {selectedUser}</h1>
-            {lastRefresh && (
-              <p className="text-xs text-gray-500">
-                Last updated: {lastRefresh.toLocaleTimeString()}
-              </p>
-            )}
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <button
-              className="btn-action-secondary w-full sm:w-auto flex items-center justify-center gap-2"
-              onClick={fetchDashboardData}
-              disabled={loading}
-              title="Refresh dashboard data"
-            >
-              {loading ? "🔄 Loading..." : "🔄 Refresh"}
-            </button>
-            <button
-              className="btn-action-primary w-full sm:w-auto"
-              onClick={() => router.push("/products/new")}
-            >
-              + Add Product
-            </button>
-            <button
-              className="btn-action-secondary w-full sm:w-auto"
-              onClick={handleDailyMail}
-              title="Send daily mail report"
-            >
-              📧 Mail Report
-            </button>
-          </div>
-        </header>
+    <div className="page-container bg-[#f5f7fb]">
+      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-8">
+        <section className="flex flex-col gap-6">
+          <header className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div className="space-y-2">
+              <h1 className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-[2.5rem]">
+                Hi, {dashboardHeading}
+              </h1>
+              <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
+                {lastRefresh && (
+                  <span>Last updated {lastRefresh.toLocaleTimeString()}</span>
+                )}
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-950"
+                  onClick={handleDailyMail}
+                  title="Send daily mail report"
+                >
+                  <Mail className="h-4 w-4" />
+                  Mail report
+                </button>
+              </div>
+            </div>
+          </header>
 
-        {/* Filters */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-          <div className="form-group">
-            <label className="form-label">Location</label>
-            <select
-              className="form-select"
-              value={selectedLocation}
-              onChange={(e) => setSelectedLocation(e.target.value)}
-            >
-              <option value="All">All Locations</option>
-              {storeInfo.locations?.map((l) => (
-                <option key={l._id} value={l.name}>
-                  {l.name}
-                </option>
-              ))}
-            </select>
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+            {quickActions.map((action) => (
+              <QuickActionTile
+                key={action.label}
+                label={action.label}
+                icon={action.icon}
+                onClick={action.onClick}
+              />
+            ))}
           </div>
+        </section>
 
-          <div className="form-group">
-            <label className="form-label">Period</label>
-            <select
-              className="form-select"
-              value={selectedPeriod}
-              onChange={(e) => setSelectedPeriod(e.target.value)}
-            >
-              <option value="today">Today</option>
-              <option value="yesterday">Yesterday</option>
-              <option value="week">This Week</option>
-              <option value="lastWeek">Last Week</option>
-              <option value="month">This Month</option>
-              <option value="lastMonth">Last Month</option>
-              <option value="custom">Custom Period</option>
-            </select>
+        <section className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.06)]">
+          <div className="flex flex-col gap-4 border-b border-slate-200 px-4 py-5 sm:px-6 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <h2 className="text-[1.9rem] font-semibold tracking-tight text-slate-950">
+                Key trading metrics
+              </h2>
+            </div>
+
+            <div className="flex flex-col gap-3 md:flex-row md:items-end">
+              <FilterSelect
+                label="Location"
+                value={selectedLocation}
+                onChange={(e) => setSelectedLocation(e.target.value)}
+              >
+                <option value="All">All Locations</option>
+                {storeInfo.locations?.map((location) => (
+                  <option key={location._id} value={location.name}>
+                    {location.name}
+                  </option>
+                ))}
+              </FilterSelect>
+
+              <FilterSelect
+                label="Time period"
+                value={selectedPeriod}
+                onChange={(e) => setSelectedPeriod(e.target.value)}
+              >
+                <option value="today">Today</option>
+                <option value="yesterday">Yesterday</option>
+                <option value="week">This Week</option>
+                <option value="lastWeek">Last Week</option>
+                <option value="month">This Month</option>
+                <option value="lastMonth">Last Month</option>
+                <option value="custom">Custom Period</option>
+              </FilterSelect>
+
+              <button
+                type="button"
+                className="inline-flex h-[62px] items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-base font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={fetchDashboardData}
+                disabled={loading}
+                title="Refresh dashboard data"
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                Refresh
+              </button>
+            </div>
           </div>
 
           {selectedPeriod === "custom" && (
-            <>
-              <div className="form-group">
-                <label className="form-label">Start Date</label>
+            <div className="grid grid-cols-1 gap-3 border-b border-slate-200 px-4 py-4 sm:grid-cols-2 sm:px-6">
+              <label className="space-y-2">
+                <span className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
+                  Start Date
+                </span>
                 <input
                   type="date"
-                  className="form-input"
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base font-medium text-slate-900 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
                   value={customDateRange.startDate}
                   onChange={(e) =>
                     setCustomDateRange((prev) => ({
@@ -386,12 +456,15 @@ export default function Home() {
                     }))
                   }
                 />
-              </div>
-              <div className="form-group">
-                <label className="form-label">End Date</label>
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
+                  End Date
+                </span>
                 <input
                   type="date"
-                  className="form-input"
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base font-medium text-slate-900 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
                   value={customDateRange.endDate}
                   onChange={(e) =>
                     setCustomDateRange((prev) => ({
@@ -400,36 +473,55 @@ export default function Home() {
                     }))
                   }
                 />
-              </div>
-            </>
+              </label>
+            </div>
           )}
-        </div>
 
-        {loading ? (
-          <Loader size="md" text="Loading dashboard..." progress={progress} />
-        ) : (
-          <>
-            {/* KPIs */}
-            <section className={`grid grid-cols-1 sm:grid-cols-2 ${kpis.heldCount > 0 ? "lg:grid-cols-4" : "lg:grid-cols-3"} gap-4 mb-6`}>
-              <KpiCard label="Sales" value={formatCurrency(kpis.sales)} />
-              <KpiCard
+          {loading ? (
+            <div className="px-4 py-10 sm:px-6">
+              <Loader size="md" text="Loading dashboard..." progress={progress} />
+            </div>
+          ) : (
+            <div
+              className={`grid grid-cols-1 gap-4 p-4 md:grid-cols-2 sm:p-6 ${
+                kpis.heldCount > 0 ? "xl:grid-cols-4" : "xl:grid-cols-3"
+              }`}
+            >
+              <MetricCard
+                label="Sales"
+                value={formatCurrency(kpis.sales)}
+                detail={`${periodLabel} • ${locationLabel}`}
+                linkLabel="Sales breakdown"
+                onClick={() => router.push("/reporting/reporting")}
+              />
+              <MetricCard
                 label="Transactions"
                 value={formatNumber(kpis.transactions)}
+                detail={`${periodLabel} • ${locationLabel}`}
+                linkLabel="Transactions report"
+                onClick={() => router.push("/reporting/transaction-report")}
               />
-              <KpiCard
-                label="Avg Tx Value"
+              <MetricCard
+                label="Avg. transaction value"
                 value={formatCurrency(kpis.avg.toFixed(2))}
+                detail={`${formatNumber(kpis.transactions)} completed sales`}
               />
               {kpis.heldCount > 0 && (
-                <KpiCard
-                  label="Held Transactions"
+                <MetricCard
+                  label="Held transactions"
                   value={`${kpis.heldCount} (${formatCurrency(kpis.heldTotal)})`}
+                  detail="Excluded from sales and average KPIs"
+                  linkLabel="Transactions report"
+                  onClick={() => router.push("/reporting/transaction-report")}
                 />
               )}
-            </section>
+            </div>
+          )}
+        </section>
 
-            {/* Charts */}
-            <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        {!loading && (
+          <>
+            <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <ChartCard
                 title="Sales by Product"
                 onViewMore={() => router.push("/reporting/reporting")}
@@ -445,35 +537,40 @@ export default function Home() {
               </ChartCard>
             </section>
 
-            {/* Lists */}
-            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <ListCard
                 title="Recent Orders"
-                items={filteredOrders.slice(0, 10).map((o) => ({
-                  label: o.customer?.name || "Unknown",
-                  meta: formatCurrency(o.total),
+                emptyMessage={
+                  selectedLocation === "All"
+                    ? "No data available"
+                    : "No location-tagged orders available for this location."
+                }
+                items={filteredOrders.slice(0, 10).map((order) => ({
+                  label: order.customer?.name || "Unknown",
+                  meta: formatCurrency(order.total),
                 }))}
               />
 
               <ListCard
                 title="Top Staff"
-                items={topStaff.map((s) => ({
-                  label: s.staff,
-                  meta: formatCurrency(s.total),
+                items={topStaff.map((staffItem) => ({
+                  label: staffItem.staff,
+                  meta: formatCurrency(staffItem.total),
                 }))}
               />
 
               <ListCard
                 title="Expenses"
-                items={filteredExpenses.map((e) => ({
-                  label: e.title,
-                  meta: formatCurrency(e.amount),
+                items={filteredExpenses.map((expense) => ({
+                  label: expense.title,
+                  meta: formatCurrency(expense.amount),
                 }))}
               />
             </section>
           </>
         )}
       </div>
+    </div>
 
   );
 }
@@ -481,11 +578,67 @@ export default function Home() {
 /* =======================
    UI COMPONENTS
 ======================= */
-function KpiCard({ label, value }) {
+function QuickActionTile({ label, icon: Icon, onClick }) {
   return (
-    <div className="stat-card">
-      <div className="stat-card-value">{value}</div>
-      <div className="stat-card-label">{label}</div>
+    <button
+      type="button"
+      className="group flex min-h-[88px] items-center justify-between rounded-2xl border border-slate-200 bg-white px-5 py-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
+      onClick={onClick}
+    >
+      <div className="flex items-center gap-4">
+        <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-800">
+          <Icon className="h-5 w-5" />
+        </span>
+        <span className="text-xl font-medium tracking-tight text-slate-950">
+          {label}
+        </span>
+      </div>
+      <ArrowRight className="h-5 w-5 text-slate-500 transition group-hover:translate-x-1 group-hover:text-slate-900" />
+    </button>
+  );
+}
+
+function FilterSelect({ label, value, onChange, children }) {
+  return (
+    <label className="min-w-[220px] rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+      <span className="mb-1 block text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
+        {label}
+      </span>
+      <div className="relative">
+        <select
+          className="w-full appearance-none bg-transparent pr-8 text-lg font-medium text-slate-950 outline-none"
+          value={value}
+          onChange={onChange}
+        >
+          {children}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+      </div>
+    </label>
+  );
+}
+
+function MetricCard({ label, value, detail, linkLabel, onClick }) {
+  return (
+    <div className="flex min-h-[210px] flex-col rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+      <div className="text-[1.35rem] font-semibold tracking-tight text-slate-950">
+        {label}
+      </div>
+      <div className="mt-3 text-[2.65rem] font-semibold leading-none tracking-tight text-slate-950">
+        {value}
+      </div>
+      <div className="mt-4 text-sm text-slate-500">{detail}</div>
+      {linkLabel && onClick ? (
+        <button
+          type="button"
+          className="mt-auto pt-10 text-left text-[1.05rem] font-medium text-blue-700 transition hover:text-blue-800"
+          onClick={onClick}
+        >
+          {linkLabel}
+        </button>
+      ) : (
+        <div className="mt-auto pt-10" />
+      )}
     </div>
   );
 }
@@ -512,7 +665,7 @@ function ChartCard({ title, children, onViewMore }) {
   );
 }
 
-function ListCard({ title, items }) {
+function ListCard({ title, items, emptyMessage = "No data available" }) {
   return (
     <motion.div className="content-card flex flex-col h-[250px] sm:h-[280px] md:h-[320px]">
       <h2 className="font-semibold mb-3 text-sm md:text-base text-gray-900 flex-shrink-0">{title}</h2>
@@ -525,7 +678,7 @@ function ListCard({ title, items }) {
             </li>
           ))
         ) : (
-          <li className="text-gray-400 italic text-xs sm:text-sm py-8 text-center">No data available</li>
+          <li className="text-gray-400 italic text-xs sm:text-sm py-8 text-center">{emptyMessage}</li>
         )}
       </ul>
     </motion.div>

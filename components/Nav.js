@@ -170,24 +170,24 @@ export default function Sidebar() {
   };
 
   const sidebarShellStyle = {
-    background: "linear-gradient(180deg, var(--sidebar-bg, #f9fafb), var(--surface-card-alt, #f5faff))",
-    borderColor: "var(--border-subtle, rgba(37, 99, 235, 0.14))",
-    boxShadow: "var(--shell-shadow, 0 18px 42px rgba(37, 99, 235, 0.12))",
+    backgroundColor: "#ffffff",
+    borderColor: "var(--border-subtle, #e5e7eb)",
+    boxShadow: "1px 0 0 0 #e5e7eb",
   };
 
   const nestedActiveStyle = {
-    background: "linear-gradient(to right, rgba(239, 246, 255, 1), transparent)",
-    borderLeftColor: "var(--sidebar-active-to, #1d4ed8)",
-    color: "var(--sidebar-active-to, #1d4ed8)",
+    backgroundColor: "var(--color-primary-50, #f0f9ff)",
+    borderLeftColor: "var(--sidebar-active-bg, #2563eb)",
+    color: "var(--sidebar-active-bg, #2563eb)",
   };
 
   const mobileMenuButtonStyle = {
-    background: "linear-gradient(to right, var(--sidebar-active-from, #2563eb), var(--sidebar-active-to, #1d4ed8))",
-    boxShadow: "var(--shell-shadow, 0 18px 42px rgba(37, 99, 235, 0.12))",
+    background: "var(--sidebar-active-bg, #2563eb)",
+    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
   };
 
   const mobileHeaderStyle = {
-    background: "linear-gradient(to right, var(--sidebar-active-from, #2563eb), var(--sidebar-active-to, #1d4ed8))",
+    background: "var(--sidebar-active-bg, #2563eb)",
   };
 
   const mobileSubmenuSurfaceStyle = {

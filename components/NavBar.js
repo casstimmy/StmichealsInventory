@@ -88,27 +88,27 @@ const TopBar = ({ user, logout }) => {
       .toUpperCase();
 
   const topBarStyle = {
-    background: 'linear-gradient(90deg, var(--surface-card, #ffffff), var(--surface-card-alt, #f8fbff))',
-    borderColor: 'var(--border-subtle, rgba(37, 99, 235, 0.14))',
-    boxShadow: 'var(--shell-shadow, 0 18px 42px rgba(37, 99, 235, 0.12))',
+    backgroundColor: '#ffffff',
+    borderColor: 'var(--border-subtle, #e5e7eb)',
+    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
   };
 
   const brandAccentStyle = {
-    background: 'linear-gradient(135deg, var(--color-primary-600, #2563eb), var(--color-primary-700, #1d4ed8))',
+    background: 'var(--btn-primary-bg, #0284c7)',
   };
 
   const dropdownSurfaceStyle = {
     backgroundColor: '#ffffff',
     borderColor: '#e5e7eb',
-    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
   };
 
   const dropdownHeaderStyle = {
-    background: 'linear-gradient(to right, var(--color-primary-600, #2563eb), var(--color-secondary-500, #06b6d4))',
+    background: 'var(--btn-primary-bg, #0284c7)',
   };
 
   const avatarStyle = {
-    background: 'linear-gradient(to bottom right, var(--color-secondary-500, #06b6d4), var(--color-secondary-600, #0891b2))',
+    background: 'var(--color-secondary-600, #0891b2)',
   };
 
   return (
@@ -119,7 +119,7 @@ const TopBar = ({ user, logout }) => {
       {/* Left Section: Back Office Text - Hidden on mobile */}
       <div className="hidden md:flex items-center gap-3 w-full md:w-auto">
         <div
-          className="w-8 md:w-10 h-8 md:h-10 rounded-lg flex items-center justify-center shadow-md flex-shrink-0"
+          className="w-8 md:w-10 h-8 md:h-10 rounded flex items-center justify-center flex-shrink-0"
           style={brandAccentStyle}
         >
           <FontAwesomeIcon icon={faStore} className="w-4 md:w-6 h-4 md:h-6 text-white" />

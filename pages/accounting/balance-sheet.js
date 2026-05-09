@@ -123,7 +123,7 @@ export default function BalanceSheetPage() {
         </div>
 
         {/* Accounting Equation */}
-        <div className="content-card mt-6 text-center bg-gray-50 border-2 border-gray-300">
+        <div className="content-card mt-6 text-center bg-gray-50">
           <p className="text-lg font-bold text-gray-700">
             Assets ({(data?.totalAssets || 0).toLocaleString()}) = Liabilities ({(data?.totalLiabilities || 0).toLocaleString()}) + Equity ({(data?.totalEquity || 0).toLocaleString()})
           </p>

@@ -659,7 +659,7 @@ export default function PurchaseOrdersPage() {
           </div>
 
           {/* Desktop Table */}
-          <div className="hidden md:block bg-white rounded-xl shadow overflow-x-auto">
+          <div className="hidden md:block bg-white rounded-lg border border-gray-200 overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-300 text-sm select-none">
               <thead className="text-white font-semibold uppercase tracking-wide" style={{ backgroundColor: "var(--table-header-bg)", borderBottom: "1px solid var(--table-header-border)" }}>
                 <tr>

@@ -268,14 +268,12 @@ export default function Home() {
     });
   }, [allTransactions, selectedLocation, selectedPeriod, customDateRange]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const prevFilteredTransactions = useMemo(() => {
     return allTransactions.filter((tx) => {
       if (tx.status !== "completed") return false;
       if (!matchesSelectedLocation(tx, selectedLocation)) return false;
       return isInPrevPeriod(tx.createdAt);
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allTransactions, selectedLocation, selectedPeriod]);
 
   const filteredOrders = useMemo(() => {
@@ -425,23 +423,19 @@ export default function Home() {
       <div className="mx-auto flex w-full max-w-[1480px] flex-col gap-5">
         {/* Greeting */}
         <header className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
             Hi, {dashboardHeading}
           </h1>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {lastRefresh && (
-              <span className="hidden text-sm text-slate-500 sm:inline">
-                Last updated {lastRefresh.toLocaleTimeString()}
+              <span className="hidden text-xs text-gray-500 sm:inline">
+                Updated {lastRefresh.toLocaleTimeString()}
               </span>
             )}
             <button
               type="button"
-              className="inline-flex items-center gap-1.5 border px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-              style={{
-                borderColor: 'var(--border-subtle)',
-                backgroundColor: 'var(--surface-card)',
-                borderRadius: 'var(--radius-lg)',
-              }}
+              className="inline-flex items-center gap-1.5 border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+              style={{ borderRadius: 'var(--radius-lg)' }}
               onClick={handleDailyMail}
               title="Send daily mail report"
             >
@@ -465,18 +459,11 @@ export default function Home() {
 
         {/* Key Trading Metrics */}
         <section
-          className="overflow-hidden border bg-white"
-          style={{
-            borderColor: 'var(--border-subtle)',
-            boxShadow: 'var(--shell-shadow-sm)',
-            borderRadius: 'var(--radius-lg)',
-          }}
+          className="overflow-hidden border border-gray-200 bg-white"
+          style={{ borderRadius: 'var(--radius-lg)' }}
         >
-          <div
-            className="flex flex-col gap-3 border-b px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between"
-            style={{ borderColor: 'var(--border-subtle)' }}
-          >
-            <h2 className="text-lg font-bold tracking-tight text-slate-900">
+          <div className="flex flex-col gap-3 border-b border-gray-200 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-base font-bold tracking-tight text-gray-900">
               Key trading metrics
             </h2>
             <div className="flex flex-wrap items-center gap-2">
@@ -509,35 +496,28 @@ export default function Home() {
 
               <button
                 type="button"
-                className="inline-flex items-center gap-2 border px-3.5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                style={{
-                  borderColor: 'var(--border-subtle)',
-                  backgroundColor: 'var(--surface-card)',
-                  borderRadius: 'var(--radius-lg)',
-                }}
+                className="inline-flex items-center gap-2 border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                style={{ borderRadius: 'var(--radius-lg)' }}
                 onClick={fetchDashboardData}
                 disabled={loading}
                 title="Refresh dashboard data"
               >
-                <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
                 Refresh
               </button>
             </div>
           </div>
 
           {selectedPeriod === "custom" && (
-            <div className="grid grid-cols-1 gap-3 border-b px-4 py-4 sm:grid-cols-2 sm:px-5" style={{ borderColor: 'var(--border-subtle)' }}>
-              <label className="space-y-2">
-                <span className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
+            <div className="grid grid-cols-1 gap-3 border-b border-gray-200 px-4 py-4 sm:grid-cols-2 sm:px-5">
+              <label className="space-y-1.5">
+                <span className="text-xs font-medium uppercase tracking-[0.16em] text-gray-500">
                   Start Date
                 </span>
                 <input
                   type="date"
-                  className="w-full rounded-lg border bg-white px-4 py-3 text-base font-medium text-slate-900 outline-none transition focus:ring-2"
-                  style={{
-                    borderColor: 'var(--border-subtle)',
-                    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.72)',
-                  }}
+                  className="w-full border border-gray-300 bg-white px-3 py-2.5 text-sm font-medium text-gray-900 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  style={{ borderRadius: 'var(--radius-lg)' }}
                   value={customDateRange.startDate}
                   onChange={(e) =>
                     setCustomDateRange((prev) => ({
@@ -548,17 +528,14 @@ export default function Home() {
                 />
               </label>
 
-              <label className="space-y-2">
-                <span className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
+              <label className="space-y-1.5">
+                <span className="text-xs font-medium uppercase tracking-[0.16em] text-gray-500">
                   End Date
                 </span>
                 <input
                   type="date"
-                  className="w-full rounded-lg border bg-white px-4 py-3 text-base font-medium text-slate-900 outline-none transition focus:ring-2"
-                  style={{
-                    borderColor: 'var(--border-subtle)',
-                    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.72)',
-                  }}
+                  className="w-full border border-gray-300 bg-white px-3 py-2.5 text-sm font-medium text-gray-900 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  style={{ borderRadius: 'var(--radius-lg)' }}
                   value={customDateRange.endDate}
                   onChange={(e) =>
                     setCustomDateRange((prev) => ({
@@ -577,8 +554,8 @@ export default function Home() {
             </div>
           ) : (
             <div
-              className={`grid grid-cols-1 gap-4 p-4 sm:p-5 md:grid-cols-2 ${
-                kpis.heldCount > 0 ? "xl:grid-cols-4" : "xl:grid-cols-3"
+              className={`grid grid-cols-1 divide-y divide-gray-200 sm:divide-y-0 sm:divide-x sm:grid-cols-2 ${
+                kpis.heldCount > 0 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'
               }`}
             >
               <MetricCard
@@ -665,7 +642,6 @@ export default function Home() {
         )}
       </div>
     </div>
-
   );
 }
 
@@ -676,31 +652,20 @@ function QuickActionTile({ label, icon: Icon, onClick }) {
   return (
     <button
       type="button"
-      className="group flex items-center justify-between border px-5 py-3.5 text-left transition-colors hover:bg-slate-50"
-      style={{
-        borderColor: 'var(--border-subtle)',
-        backgroundColor: 'var(--surface-card)',
-        boxShadow: 'var(--shell-shadow-sm)',
-        borderRadius: 'var(--radius-lg)',
-      }}
+      className="group flex items-center justify-between border border-gray-200 bg-white px-5 py-4 text-left transition-colors hover:border-gray-300 hover:bg-gray-50"
+      style={{ borderRadius: 'var(--radius-lg)' }}
       onClick={onClick}
     >
       <div className="flex items-center gap-3">
         <span
-          className="flex h-8 w-8 flex-shrink-0 items-center justify-center border text-slate-700"
-          style={{
-            borderColor: 'var(--border-subtle)',
-            backgroundColor: 'var(--surface-card-alt)',
-            borderRadius: 'var(--radius-md)',
-          }}
+          className="flex h-8 w-8 flex-shrink-0 items-center justify-center border border-gray-200 bg-gray-50 text-gray-700"
+          style={{ borderRadius: 'var(--radius-md)' }}
         >
           <Icon className="h-4 w-4" />
         </span>
-        <span className="text-base font-semibold text-slate-900">
-          {label}
-        </span>
+        <span className="text-sm font-semibold text-gray-900">{label}</span>
       </div>
-      <ArrowRight className="h-4 w-4 flex-shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-slate-700" />
+      <ArrowRight className="h-4 w-4 flex-shrink-0 text-gray-400 transition group-hover:translate-x-0.5 group-hover:text-gray-600" />
     </button>
   );
 }
@@ -708,28 +673,24 @@ function QuickActionTile({ label, icon: Icon, onClick }) {
 function FilterSelect({ label, value, onChange, children }) {
   return (
     <label
-      className="relative min-w-[170px] cursor-pointer border px-3 pb-2 pt-5"
-      style={{
-        borderColor: 'var(--border-subtle)',
-        backgroundColor: 'var(--surface-card)',
-        borderRadius: 'var(--radius-lg)',
-      }}
+      className="relative min-w-[150px] cursor-pointer border border-gray-300 bg-white px-3 pb-1.5 pt-5"
+      style={{ borderRadius: 'var(--radius-lg)' }}
     >
       <span
-        className="absolute left-3 top-1.5 text-[10px] font-semibold uppercase tracking-widest"
+        className="absolute left-3 top-1 text-[10px] font-semibold uppercase tracking-widest"
         style={{ color: 'var(--btn-primary-bg, #0284c7)' }}
       >
         {label}
       </span>
       <div className="relative">
         <select
-          className="w-full appearance-none bg-transparent pr-6 text-sm font-semibold text-slate-900 outline-none"
+          className="w-full appearance-none bg-transparent pr-6 text-sm font-semibold text-gray-900 outline-none"
           value={value}
           onChange={onChange}
         >
           {children}
         </select>
-        <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+        <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
       </div>
     </label>
   );
@@ -737,45 +698,38 @@ function FilterSelect({ label, value, onChange, children }) {
 
 function MetricCard({ label, value, trend, detail, linkLabel, onClick }) {
   return (
-    <div
-      className="flex flex-col border px-5 py-5"
-      style={{
-        borderColor: 'var(--border-subtle)',
-        backgroundColor: 'var(--surface-raised)',
-        borderRadius: 'var(--radius-lg)',
-      }}
-    >
-      <div className="text-sm font-semibold text-slate-600">{label}</div>
-      <div className="mt-2 text-[2rem] font-bold leading-none tracking-tight text-slate-900 sm:text-[2.3rem]">
+    <div className="flex flex-col px-5 py-5">
+      <div className="text-sm font-medium text-gray-600">{label}</div>
+      <div className="mt-2 text-[1.85rem] font-bold leading-none tracking-tight text-gray-900 sm:text-[2.1rem]">
         {value}
       </div>
       {trend ? (
         <div
-          className={`mt-3 flex items-center gap-1.5 text-sm font-semibold ${
-            trend.direction === "up" ? "text-emerald-600" : "text-red-600"
+          className={`mt-2 flex items-center gap-1 text-sm font-semibold ${
+            trend.direction === 'up' ? 'text-emerald-600' : 'text-red-600'
           }`}
         >
-          {trend.direction === "up" ? (
-            <TrendingUp className="h-4 w-4 flex-shrink-0" />
+          {trend.direction === 'up' ? (
+            <TrendingUp className="h-3.5 w-3.5 flex-shrink-0" />
           ) : (
-            <TrendingDown className="h-4 w-4 flex-shrink-0" />
+            <TrendingDown className="h-3.5 w-3.5 flex-shrink-0" />
           )}
           <span>{trend.label}</span>
         </div>
       ) : detail ? (
-        <div className="mt-3 text-sm text-slate-500">{detail}</div>
+        <div className="mt-2 text-sm text-gray-500">{detail}</div>
       ) : null}
       {linkLabel && onClick ? (
         <button
           type="button"
-          className="mt-auto pt-5 text-left text-sm font-semibold transition hover:opacity-75"
+          className="mt-auto pt-4 text-left text-sm font-semibold transition hover:opacity-75"
           style={{ color: 'var(--btn-primary-bg, #0284c7)' }}
           onClick={onClick}
         >
           {linkLabel}
         </button>
       ) : (
-        <div className="mt-auto pt-4" />
+        <div className="mt-auto pt-3" />
       )}
     </div>
   );
@@ -783,9 +737,9 @@ function MetricCard({ label, value, trend, detail, linkLabel, onClick }) {
 
 function ChartCard({ title, children, onViewMore }) {
   return (
-    <div className="content-card">
+    <div className="border border-gray-200 bg-white p-4 sm:p-5" style={{ borderRadius: 'var(--radius-lg)' }}>
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="font-semibold text-sm md:text-base text-gray-900">{title}</h2>
+        <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
         {onViewMore && (
           <button
             type="button"
@@ -803,28 +757,27 @@ function ChartCard({ title, children, onViewMore }) {
   );
 }
 
-function ListCard({ title, items, emptyMessage = "No data available" }) {
+function ListCard({ title, items, emptyMessage = 'No data available' }) {
   return (
-    <motion.div className="content-card flex flex-col h-[250px] sm:h-[280px] md:h-[320px]">
-      <h2 className="font-semibold mb-3 text-sm md:text-base text-gray-900 flex-shrink-0">{title}</h2>
-      <ul className="space-y-2 overflow-y-auto flex-1">
+    <motion.div
+      className="border border-gray-200 bg-white p-4 sm:p-5 flex flex-col h-[250px] sm:h-[280px] md:h-[320px]"
+      style={{ borderRadius: 'var(--radius-lg)' }}
+    >
+      <h2 className="text-sm font-semibold mb-3 text-gray-900 flex-shrink-0">{title}</h2>
+      <ul className="space-y-1.5 overflow-y-auto flex-1">
         {items.length ? (
           items.map((i, idx) => (
             <li
               key={idx}
-              className="p-2.5 sm:p-3 border text-xs sm:text-sm hover:bg-slate-50 transition-colors"
-              style={{
-                backgroundColor: 'var(--surface-card-alt)',
-                borderColor: 'var(--border-subtle)',
-                borderRadius: 'var(--radius-md)',
-              }}
+              className="flex items-center justify-between p-2.5 border border-gray-200 bg-gray-50 text-xs hover:bg-gray-100 transition-colors"
+              style={{ borderRadius: 'var(--radius-md)' }}
             >
-              <div className="font-medium text-gray-900 truncate">{i.label}</div>
-              <div className="text-xs text-gray-600 mt-0.5">{i.meta}</div>
+              <span className="font-medium text-gray-900 truncate">{i.label}</span>
+              <span className="text-gray-600 ml-2 flex-shrink-0">{i.meta}</span>
             </li>
           ))
         ) : (
-          <li className="text-gray-400 italic text-xs sm:text-sm py-8 text-center">{emptyMessage}</li>
+          <li className="text-gray-400 italic text-xs py-8 text-center">{emptyMessage}</li>
         )}
       </ul>
     </motion.div>

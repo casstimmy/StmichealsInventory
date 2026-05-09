@@ -764,7 +764,7 @@ export default function VendorsPage() {
 
           {/* Order Review / Summary */}
           {orders.length > 0 && (
-            <section ref={orderSummaryRef} className="bg-white p-3 sm:p-6 rounded-xl shadow-lg space-y-4 sm:space-y-6">
+            <section ref={orderSummaryRef} className="content-card space-y-4 sm:space-y-6">
               <h2 className="text-lg sm:text-xl font-bold text-gray-800 border-b pb-2">Purchase Order Summary</h2>
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm text-left border border-gray-200">

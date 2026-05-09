@@ -402,7 +402,7 @@ export default function UsersPage() {
                       type="text"
                       value={form.name}
                       onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
-                      className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 transition"
+                      className="form-input"
                       placeholder="John Doe"
                       required
                     />
@@ -413,7 +413,7 @@ export default function UsersPage() {
                       type="email"
                       value={form.email}
                       onChange={e => setForm(prev => ({ ...prev, email: e.target.value }))}
-                      className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 transition"
+                      className="form-input"
                       placeholder="user@email.com"
                       required
                     />
@@ -434,7 +434,7 @@ export default function UsersPage() {
                           const val = e.target.value.replace(/\D/g, "").slice(0, 4);
                           setForm(prev => ({ ...prev, password: val }));
                         }}
-                        className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 transition pr-10 text-center text-xl tracking-widest"
+                        className="form-input pr-10 text-center text-xl tracking-widest"
                         placeholder="••••"
                         inputMode="numeric"
                         maxLength={4}
@@ -453,7 +453,7 @@ export default function UsersPage() {
                     <select
                       value={form.role}
                       onChange={e => handleRoleChange(e.target.value)}
-                      className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 transition"
+                      className="form-input"
                     >
                       {ROLES.map(r => (
                         <option key={r.value} value={r.value}>{r.label}</option>

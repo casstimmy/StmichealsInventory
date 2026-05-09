@@ -342,7 +342,7 @@ export default function PromotionsManagementPage() {
 
           {/* Form */}
           {showForm && (
-            <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div className="content-card mb-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">
                 {editing ? "Edit Promotion" : "Create New Promotion"}
               </h2>
@@ -357,7 +357,7 @@ export default function PromotionsManagementPage() {
                       type="text"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-cyan-600 focus:outline-none"
+                      className="form-input"
                       required
                     />
                   </div>
@@ -369,7 +369,7 @@ export default function PromotionsManagementPage() {
                       type="text"
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      className="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-cyan-600 focus:outline-none"
+                      className="form-input"
                     />
                   </div>
                 </div>
@@ -419,7 +419,7 @@ export default function PromotionsManagementPage() {
                       <select
                         value={formData.discountType}
                         onChange={(e) => setFormData({ ...formData, discountType: e.target.value })}
-                        className="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-cyan-600 focus:outline-none"
+                        className="form-input"
                       >
                         <option value="PERCENTAGE">Percentage (%)</option>
                         <option value="FIXED">Fixed Amount ()</option>
@@ -433,7 +433,7 @@ export default function PromotionsManagementPage() {
                         type="number"
                         value={formData.discountValue}
                         onChange={(e) => setFormData({ ...formData, discountValue: parseFloat(e.target.value) })}
-                        className="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-cyan-600 focus:outline-none"
+                        className="form-input"
                         required
                         min="0"
                         placeholder={formData.discountType === "PERCENTAGE" ? "Enter 0-100" : "Enter amount in "}
@@ -447,7 +447,7 @@ export default function PromotionsManagementPage() {
                         type="number"
                         value={formData.maxUses}
                         onChange={(e) => setFormData({ ...formData, maxUses: e.target.value ? parseInt(e.target.value) : "" })}
-                        className="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-cyan-600 focus:outline-none"
+                        className="form-input"
                         min="0"
                       />
                     </div>
@@ -564,7 +564,7 @@ export default function PromotionsManagementPage() {
                     ) : (
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-60 overflow-y-auto">
                       {filteredCategories.map((cat) => (
-                        <label key={cat._id} className="flex items-center p-2 border-2 border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                        <label key={cat._id} className="flex items-center p-2 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
                           <input
                             type="checkbox"
                             checked={formData.categories.includes(cat._id)}
@@ -664,7 +664,7 @@ export default function PromotionsManagementPage() {
                           type="datetime-local"
                           value={formData.startDate}
                           onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                          className="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-cyan-600 focus:outline-none"
+                          className="form-input"
                           required
                         />
                       </div>
@@ -676,7 +676,7 @@ export default function PromotionsManagementPage() {
                           type="datetime-local"
                           value={formData.endDate}
                           onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                          className="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-cyan-600 focus:outline-none"
+                          className="form-input"
                           required
                         />
                       </div>
@@ -730,7 +730,7 @@ export default function PromotionsManagementPage() {
                         min="0"
                         value={formData.priority}
                         onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) || 0 })}
-                        className="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-cyan-600 focus:outline-none"
+                        className="form-input"
                       />
                     </div>
                   </div>
@@ -759,12 +759,12 @@ export default function PromotionsManagementPage() {
           {/* Promotions List */}
           <div className="grid grid-cols-1 gap-4">
             {promotions.length === 0 ? (
-              <div className="bg-white rounded-lg shadow-lg p-12 text-center">
+              <div className="content-card p-12 text-center">
                 <p className="text-lg text-gray-600">No promotions yet. Create one to get started!</p>
               </div>
             ) : (
               visiblePromoList.map((promo) => (
-                <div key={promo._id} className="bg-white rounded-lg shadow-lg p-6 border-l-4" style={{
+                <div key={promo._id} className="content-card p-6 border-l-4" style={{
                   borderColor: promo.active ? "#06b6d4" : "#ccc"
                 }}>
                   <div className="flex justify-between items-start mb-4">

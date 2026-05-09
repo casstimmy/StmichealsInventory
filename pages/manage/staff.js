@@ -601,7 +601,7 @@ export default function StaffPage() {
                 value={onboardingEmail}
                 onChange={e => setOnboardingEmail(e.target.value)}
                 placeholder="Enter email address"
-                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 transition mb-4"
+                className="form-input mb-4"
               />
               <div className="flex justify-end gap-3">
                 <button onClick={() => setShowOnboardingEmailModal(null)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">Cancel</button>

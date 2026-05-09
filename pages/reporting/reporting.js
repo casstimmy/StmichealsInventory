@@ -215,8 +215,8 @@ export default function Reporting() {
         </div>
 
         {/* SALES LINE CHART */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Sales Trend</h2>
+        <div className="content-card mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Sales Trend</h2>
           <div className="h-[400px]">
             <Line
               data={{

@@ -197,8 +197,7 @@ export default function ColorThemePage() {
       <div className="page-content">
         <div className="page-header flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="page-title flex items-center gap-3">
-              <Palette className="w-7 h-7" style={{ color: form.primaryColor }} />
+            <h1 className="page-title">
               System Color Theme
             </h1>
             <p className="page-subtitle">

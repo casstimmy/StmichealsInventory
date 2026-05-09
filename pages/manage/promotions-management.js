@@ -323,18 +323,20 @@ export default function PromotionsManagementPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 p-3 md:p-6 lg:p-8">
+      <div className="page-container">
         <div className="max-w-7xl mx-auto">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-            <h1 className="text-2xl md:text-4xl font-bold text-gray-900">Campaign Promotions </h1>
+          <div className="page-header flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="page-title">Campaign Promotions</h1>
+            </div>
             <button
               onClick={() => {
                 resetForm();
                 setShowForm(!showForm);
               }}
-              className="w-full sm:w-auto px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg font-semibold text-sm md:text-base"
+              className="btn-action btn-action-primary"
             >
               + Create Promotion
             </button>

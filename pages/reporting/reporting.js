@@ -109,7 +109,6 @@ export default function Reporting() {
           <div className="page-header">
             <div>
               <h1 className="page-title">Sales Report</h1>
-              <p className="page-subtitle">Track your business performance and metrics in real-time</p>
             </div>
             <Link
               href="/reporting/end-of-day-report"
@@ -431,8 +430,8 @@ function BarChart({ title, data }) {
               label: "Sales",
               data: sortedValues.length > 0 ? sortedValues : [0],
               backgroundColor: "#06B6D4",
-              borderRadius: 8,
-              borderSkipped: false,
+              borderRadius: 0,
+              borderSkipped: 'bottom',
             }] 
           }}
           options={{

@@ -303,7 +303,7 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] rounded-r-2xl border-r overflow-y-auto transition-all duration-300 ease-in-out z-40 ${
+                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] border-r overflow-y-auto transition-all duration-300 ease-in-out z-40 ${
                   openMenu === "setup"
                     ? "translate-x-0 opacity-100 visible"
                     : "translate-x-4 opacity-0 invisible"
@@ -359,7 +359,7 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] rounded-r-2xl border-r overflow-y-auto transition-all duration-300 ease-in-out z-40 ${
+                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] border-r overflow-y-auto transition-all duration-300 ease-in-out z-40 ${
                   openMenu === "manage"
                     ? "translate-x-0 opacity-100 visible"
                     : "translate-x-4 opacity-0 invisible"
@@ -471,7 +471,7 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] rounded-r-2xl border-r overflow-y-auto transition-all duration-300 ease-in-out z-40 ${
+                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] border-r overflow-y-auto transition-all duration-300 ease-in-out z-40 ${
                   openMenu === "stock"
                     ? "translate-x-0 opacity-100 visible"
                     : "translate-x-4 opacity-0 invisible"
@@ -522,7 +522,7 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] rounded-r-2xl border-r overflow-y-auto transition-all duration-300 ease-in-out z-40 ${
+                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] border-r overflow-y-auto transition-all duration-300 ease-in-out z-40 ${
                   openMenu === "reporting"
                     ? "translate-x-0 opacity-100 visible"
                     : "translate-x-4 opacity-0 invisible"
@@ -536,10 +536,12 @@ export default function Sidebar() {
                 {renderSubMenu([
                   { href: "/reporting/reporting", label: "Sales Report" },
                   { href: "/reporting/end-of-day-report", label: "End of Day Reports" },
+                  { href: "/reporting/completed-transactions", label: "Completed Transactions" },
                 ].filter(item => {
                   const permMap = {
                     "/reporting/reporting": "reporting.sales-report",
                     "/reporting/end-of-day-report": "reporting.eod",
+                    "/reporting/completed-transactions": "reporting.completed-transactions",
                   };
                   return canAccess(permMap[item.href] || "reporting");
                 }))}
@@ -566,7 +568,6 @@ export default function Sidebar() {
                         { href: "/reporting/sales-report/employees", label: "Employees", indent: true },
                         { href: "/reporting/sales-report/locations", label: "Locations", indent: true },
                         { href: "/reporting/sales-report/categories", label: "Categories", indent: true },
-                        { href: "/reporting/sales-report/completed-transactions", label: "Completed Transactions", indent: true },
                       ].filter(item => {
                         const permMap = {
                           "/reporting/sales-report/time-intervals": "reporting.time-intervals",
@@ -575,7 +576,6 @@ export default function Sidebar() {
                           "/reporting/sales-report/employees": "reporting.employees",
                           "/reporting/sales-report/locations": "reporting.locations",
                           "/reporting/sales-report/categories": "reporting.categories",
-                          "/reporting/sales-report/completed-transactions": "reporting.completed-transactions",
                         };
                         return canAccess(permMap[item.href] || "reporting");
                       }))}
@@ -607,7 +607,7 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] rounded-r-2xl border-r overflow-y-auto transition-all duration-300 ease-in-out z-40 ${
+                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] border-r overflow-y-auto transition-all duration-300 ease-in-out z-40 ${
                   openMenu === "expenses"
                     ? "translate-x-0 opacity-100 visible"
                     : "translate-x-4 opacity-0 invisible"
@@ -658,7 +658,7 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] rounded-r-2xl border-r overflow-y-auto transition-all duration-300 ease-in-out z-40 ${
+                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] border-r overflow-y-auto transition-all duration-300 ease-in-out z-40 ${
                   openMenu === "accounting"
                     ? "translate-x-0 opacity-100 visible"
                     : "translate-x-4 opacity-0 invisible"
@@ -1042,7 +1042,7 @@ export default function Sidebar() {
                   )}
                   {canAccess("reporting.completed-transactions") && (
                   <li onClick={closeMenu}>
-                    <Link href="/reporting/sales-report/completed-transactions" className={`block px-10 py-3 text-sm transition-all ${pathname === "/reporting/sales-report/completed-transactions" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                    <Link href="/reporting/completed-transactions" className={`block px-8 py-3 text-sm transition-all ${pathname === "/reporting/completed-transactions" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Completed Transactions
                     </Link>
                   </li>

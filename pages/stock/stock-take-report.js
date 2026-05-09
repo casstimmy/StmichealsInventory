@@ -175,10 +175,7 @@ export default function StockTakeReport() {
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div>
-              <h1 className="page-title flex items-center gap-3">
-                <span className="bg-indigo-100 text-indigo-600 p-2 rounded-lg">
-                  <FontAwesomeIcon icon={faChartBar} className="w-5 h-5" />
-                </span>
+              <h1 className="page-title">
                 Stock Take Report
               </h1>
               <p className="text-sm text-gray-500 mt-1">Analyze inventory reconciliation history and variance trends</p>

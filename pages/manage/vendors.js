@@ -444,14 +444,14 @@ export default function VendorsPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-100 p-3 sm:p-6">
+      <div className="page-container">
         <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-blue-800 mb-4 sm:mb-6">
-            Vendor Management
-          </h1>
+          <div className="page-header">
+            <h1 className="page-title">Vendor Management</h1>
+          </div>
 
           {/* Vendor Section */}
-          <section className="bg-white p-3 sm:p-6 rounded shadow relative">
+          <section className="content-card relative">
             <div className="flex flex-col mb-4 sm:flex-row sm:items-center gap-4 sm:gap-6 w-full">
               <label htmlFor="searchVendor" className="text-sm font-medium text-gray-700 whitespace-nowrap">
                 Search

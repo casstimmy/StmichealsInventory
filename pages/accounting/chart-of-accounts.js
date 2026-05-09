@@ -326,12 +326,12 @@ export default function ChartOfAccountsPage() {
                           <td className="px-4 py-2 text-gray-700 font-medium">{(acc.openingBalance || 0).toLocaleString()}</td>
                           <td className="px-4 py-2 text-right">
                             <div className="flex justify-end gap-1">
-                              <button onClick={() => startEdit(acc)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition" title="Edit">
-                                <Pencil size={14} />
+                              <button onClick={() => startEdit(acc)} className="text-xs px-2.5 py-1 text-blue-700 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 font-medium transition">
+                                Edit
                               </button>
                               {!acc.isSystem && (
-                                <button onClick={() => handleDelete(acc._id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded transition" title="Delete">
-                                  <Trash2 size={14} />
+                                <button onClick={() => handleDelete(acc._id)} className="text-xs px-2.5 py-1 text-red-700 bg-red-50 border border-red-200 rounded hover:bg-red-100 font-medium transition">
+                                  Delete
                                 </button>
                               )}
                             </div>

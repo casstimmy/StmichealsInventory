@@ -398,21 +398,21 @@ export default function JournalEntriesPage() {
                         <div className="flex justify-end gap-1">
                           {entry.status === "DRAFT" && (
                             <>
-                              <button onClick={() => postEntry(entry._id)} className="p-1.5 text-green-600 hover:bg-green-50 rounded" title="Post">
-                                <Play size={14} />
+                              <button onClick={() => postEntry(entry._id)} className="text-xs px-2.5 py-1 text-green-700 bg-green-50 border border-green-200 rounded hover:bg-green-100 font-medium">
+                                Post
                               </button>
-                              <button onClick={() => deleteEntry(entry._id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Delete">
-                                <Trash2 size={14} />
+                              <button onClick={() => deleteEntry(entry._id)} className="text-xs px-2.5 py-1 text-red-700 bg-red-50 border border-red-200 rounded hover:bg-red-100 font-medium">
+                                Delete
                               </button>
                             </>
                           )}
                           {entry.status === "POSTED" && (
-                            <button onClick={() => voidEntry(entry._id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Void">
-                              <Ban size={14} />
+                            <button onClick={() => voidEntry(entry._id)} className="text-xs px-2.5 py-1 text-red-700 bg-red-50 border border-red-200 rounded hover:bg-red-100 font-medium">
+                              Void
                             </button>
                           )}
-                          <button onClick={() => setExpandedEntry(expandedEntry === entry._id ? null : entry._id)} className="p-1.5 text-gray-600 hover:bg-gray-100 rounded">
-                            {expandedEntry === entry._id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                          <button onClick={() => setExpandedEntry(expandedEntry === entry._id ? null : entry._id)} className="text-xs px-2.5 py-1 text-gray-600 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 font-medium">
+                            {expandedEntry === entry._id ? "Less" : "More"}
                           </button>
                         </div>
                       </td>

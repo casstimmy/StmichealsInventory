@@ -134,145 +134,138 @@ export default function Login({ staffList, locations }) {
   };
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: "#f9fafb" }}>
-      {/* ===== LEFT BRAND PANEL (desktop only) ===== */}
-      <div
-        className="hidden lg:flex lg:w-5/12 xl:w-2/5 flex-col justify-between p-10 xl:p-14"
-        style={{ backgroundColor: "var(--btn-primary-bg, #0284c7)" }}
-      >
-        <div>
-          <img
-            src="/images/st-micheals-logo.png"
-            alt="Logo"
-            className="h-14 w-auto brightness-0 invert"
-          />
-        </div>
-        <div>
-          <p className="text-white/60 text-xs font-semibold uppercase tracking-widest mb-4">
-            Inventory Management
-          </p>
-          <h1 className="text-3xl xl:text-4xl font-bold text-white leading-snug mb-4">
-            St Micheals<br />Inventory Platform
-          </h1>
-          <p className="text-white/70 text-sm leading-relaxed max-w-xs">
-            A secure, centralized system to manage products, staff access, and store operations.
-          </p>
-        </div>
-        <div className="border-t border-white/20 pt-6">
-          <p className="text-white/50 text-xs">Authorized personnel only</p>
-        </div>
-      </div>
-
-      {/* ===== RIGHT LOGIN PANEL ===== */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-10">
-        <div className="w-full max-w-sm">
-          {/* Mobile logo */}
-          <div className="lg:hidden text-center mb-8">
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: 'var(--page-bg, #f9fafb)' }}>
+      <div className="w-full flex flex-col lg:flex-row items-center justify-between max-w-5xl gap-8">
+        {/* ===== HERO ===== */}
+        <div className="w-full lg:w-1/2 text-center lg:text-left">
+          {/* Brand */}
+          <div className="flex justify-center lg:justify-center mb-6">
             <img
               src="/images/st-micheals-logo.png"
-              alt="Logo"
-              className="h-14 w-auto mx-auto mb-3"
+              alt="St Micheals Logo"
+              className="h-20 w-auto border-b-4 border-blue-600 pb-2"
             />
-            <h1 className="text-xl font-bold text-gray-900">St Micheals Inventory</h1>
-            <p className="text-sm text-gray-500 mt-1">Authorized personnel only</p>
           </div>
 
-          <div className="bg-white rounded-lg border border-gray-200 p-8 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-1">Staff Login</h2>
-            <p className="text-sm text-gray-500 mb-6">Select your account and enter your PIN</p>
+          {/* Badge */}
+          <span className="inline-flex items-center px-4 py-1 mb-4 rounded-full bg-blue-100 text-blue-700 text-sm font-semibold">
+            Inventory Management System
+          </span>
 
-            <form onSubmit={handleLogin} className="space-y-4">
-              {/* USER */}
-              <div>
-                <label className="form-label">User</label>
-                <select
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="form-input"
-                >
-                  <option value="" disabled>Select user…</option>
-                  {staffList.map((user, index) => (
-                    <option key={index} value={user.name}>{user.name}</option>
-                  ))}
-                </select>
-              </div>
+          {/* Heading */}
+          <h1 className="text-4xl lg:text-5xl font-extrabold text-slate-900 leading-tight mb-5">
+            St Micheals <br className="hidden lg:block" />
+            Inventory Platform
+          </h1>
 
-              {/* LOCATION */}
-              <div>
-                <label className="form-label">Location</label>
-                <select
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  disabled={name && !isSelectedAdmin && !!userAssignedLocation}
-                  className={`form-input ${name && !isSelectedAdmin && userAssignedLocation ? "bg-gray-50 text-gray-500 cursor-not-allowed" : ""}`}
-                >
-                  {(isSelectedAdmin || !name) ? (
-                    availableLocations.map((loc) => (
-                      <option key={loc} value={loc}>{loc}</option>
-                    ))
-                  ) : (
-                    <option value={userAssignedLocation || location}>{userAssignedLocation || location}</option>
-                  )}
-                </select>
-                {name && !isSelectedAdmin && userAssignedLocation && (
-                  <p className="text-xs text-gray-400 mt-1">Assigned to {userAssignedLocation}</p>
-                )}
-              </div>
+          {/* Description */}
+          <p className="text-lg text-slate-600 max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed">
+            A secure and centralized system to manage products, staff access,
+            and store operations with accuracy and control.
+          </p>
 
-              {/* PIN INDICATOR */}
-              <div>
-                <label className="form-label">PIN</label>
-                <div className="flex gap-3 justify-center py-4 bg-gray-50 rounded-lg border border-gray-200">
-                  {[0, 1, 2, 3].map((i) => (
-                    <div
-                      key={i}
-                      className="w-3 h-3 rounded-full transition-all duration-150"
-                      style={{
-                        backgroundColor: password.length > i
-                          ? "var(--btn-primary-bg, #0284c7)"
-                          : "#d1d5db",
-                        transform: password.length > i ? "scale(1.15)" : "scale(1)",
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
+          {/* CTA */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+            <p className="text-sm text-slate-500 flex items-center justify-center">
+              Authorized personnel only
+            </p>
+          </div>
+        </div>
 
-              {/* KEYPAD */}
-              <div className="grid grid-cols-3 gap-2">
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, "C", 0, "←"].map((key) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={(e) => {
-                      createRipple(e);
-                      handleKeypad(key === "C" ? "clear" : key === "←" ? "back" : key);
-                    }}
-                    className={`ripple h-12 rounded-lg text-sm font-semibold border transition-all duration-150 active:scale-95 select-none ${
+        {/* ===== LOGIN CARD ===== */}
+        <div className="w-full max-w-sm bg-white rounded-lg shadow-lg p-8 border border-gray-200">
+          <h2 className="text-2xl font-bold text-center text-gray-900 mb-6">
+            Staff Login
+          </h2>
+
+          <form onSubmit={handleLogin}>
+            {/* USER */}
+            <select
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="form-input mb-4"
+            >
+              <option value="" disabled>Select User</option>
+              {staffList.map((user, index) => (
+                <option key={index} value={user.name}>{user.name}</option>
+              ))}
+            </select>
+
+            {/* LOCATION */}
+            <select
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              disabled={name && !isSelectedAdmin && !!userAssignedLocation}
+              className={`form-input mb-4 ${
+                name && !isSelectedAdmin && userAssignedLocation ? "bg-gray-100 text-gray-600 cursor-not-allowed" : ""
+              }`}
+            >
+              {(isSelectedAdmin || !name) ? (
+                availableLocations.map((loc) => (
+                  <option key={loc} value={loc}>{loc}</option>
+                ))
+              ) : (
+                <option value={userAssignedLocation || location}>
+                  {userAssignedLocation || location}
+                </option>
+              )}
+            </select>
+            {name && !isSelectedAdmin && userAssignedLocation && (
+              <p className="text-xs text-gray-500 -mt-3 mb-3 text-center">
+                Assigned to {userAssignedLocation}
+              </p>
+            )}
+
+            {/* PIN */}
+            <div className="flex justify-center gap-3 mb-5">
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className={`w-4 h-4 rounded-full border-2 border-gray-400 ${
+                    password.length > i ? "bg-blue-600" : "bg-gray-300"
+                  }`}
+                />
+              ))}
+            </div>
+
+            {/* KEYPAD */}
+            <div className="grid grid-cols-3 gap-3 mb-6">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, "C", 0, "←"].map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={(e) => {
+                    createRipple(e);
+                    handleKeypad(
+                      key === "C" ? "clear" : key === "←" ? "back" : key,
+                    );
+                  }}
+                  className={`ripple h-16 border-2 border-gray-200 rounded-lg text-lg font-bold shadow
+                    active:scale-95 transition
+                    ${
                       key === "C"
-                        ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                        ? "bg-red-500 text-white"
                         : key === "←"
-                          ? "bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200"
-                          : "bg-white text-gray-900 border-gray-200 hover:bg-gray-50"
+                          ? "bg-gray-400 text-white"
+                          : "bg-blue-100 text-blue-800"
                     }`}
-                  >
-                    {key}
-                  </button>
-                ))}
-              </div>
+                >
+                  {key}
+                </button>
+              ))}
+            </div>
 
-              {/* SUBMIT */}
-              <button
-                type="submit"
-                disabled={loading}
-                onClick={createRipple}
-                className="ripple w-full py-2.5 rounded-lg font-semibold text-white text-sm transition-all active:scale-[0.98] disabled:opacity-60 mt-2"
-                style={{ backgroundColor: "var(--btn-primary-bg, #0284c7)" }}
-              >
-                {loading ? "Signing in…" : "Sign In"}
-              </button>
-            </form>
-          </div>
+            {/* LOGIN BUTTON */}
+            <button
+              type="submit"
+              disabled={loading}
+              onClick={createRipple}
+              className="ripple w-full py-3 rounded-lg font-bold text-white text-lg
+                         bg-blue-600 hover:bg-blue-700 active:scale-95 transition"
+            >
+              {loading ? "Logging in..." : "Log In"}
+            </button>
+          </form>
         </div>
       </div>
     </div>

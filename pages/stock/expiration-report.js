@@ -234,8 +234,7 @@ export default function ExpirationReport() {
           {/* Header */}
           <div className="page-header flex-row items-center justify-between">
             <div>
-              <h1 className="page-title flex items-center gap-3">
-                <FontAwesomeIcon icon={faCalendarAlt} className="text-sky-600" />
+              <h1 className="page-title">
                 Batch Expiration Report
               </h1>
               <p className="page-subtitle">Monitor and manage product batches approaching their expiration dates</p>

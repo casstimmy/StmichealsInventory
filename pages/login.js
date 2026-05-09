@@ -134,55 +134,31 @@ export default function Login({ staffList, locations }) {
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* ===== HERO PANEL ===== */}
-      <div
-        className="hidden lg:flex lg:w-5/12 xl:w-1/2 flex-col justify-between p-12 xl:p-16"
-        style={{ backgroundColor: 'var(--btn-primary-bg, #1d4ed8)' }}
-      >
-        {/* Top: Logo */}
-        <div>
+    <div className="min-h-screen flex items-center justify-center px-6 py-12" style={{ backgroundColor: 'var(--page-bg, #f9fafb)' }}>
+      <div className="w-full max-w-4xl flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
+
+        {/* ===== HERO ===== */}
+        <div className="w-full lg:flex-1 text-center lg:text-left">
           <img
             src="/images/st-micheals-logo.png"
             alt="St Micheals Logo"
-            className="h-12 w-auto brightness-0 invert"
+            className="h-14 w-auto mx-auto lg:mx-0 mb-6"
           />
-        </div>
-
-        {/* Middle: Headline */}
-        <div>
-          <div className="inline-flex items-center gap-2 mb-6 px-3 py-1 rounded-full border border-white/20 text-white/70 text-xs font-semibold uppercase tracking-widest">
+          <span className="inline-flex items-center px-3 py-1 mb-5 rounded border border-blue-100 bg-blue-50 text-blue-600 text-xs font-semibold uppercase tracking-wide">
             Inventory Management System
-          </div>
-          <h1 className="text-4xl xl:text-5xl font-extrabold text-white leading-tight mb-5">
-            St Micheals<br />Inventory<br />Platform
+          </span>
+          <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 leading-snug mb-4">
+            St Micheals<br />Inventory Platform
           </h1>
-          <p className="text-white/70 text-base leading-relaxed max-w-sm">
+          <p className="text-sm text-gray-500 max-w-xs mx-auto lg:mx-0 leading-relaxed">
             A secure and centralized system to manage products, staff access,
             and store operations with accuracy and control.
           </p>
+          <p className="mt-6 text-xs text-gray-400">Authorized personnel only</p>
         </div>
 
-        {/* Bottom: Footer note */}
-        <div className="border-t border-white/15 pt-6">
-          <p className="text-white/40 text-xs">Authorized personnel only · St Micheals</p>
-        </div>
-      </div>
-
-      {/* ===== RIGHT PANEL (login card + mobile hero) ===== */}
-      <div className="flex-1 flex items-center justify-center px-6 py-12" style={{ backgroundColor: 'var(--page-bg, #f9fafb)' }}>
-        <div className="w-full max-w-sm">
-          {/* Mobile brand */}
-          <div className="lg:hidden text-center mb-8">
-            <img
-              src="/images/st-micheals-logo.png"
-              alt="St Micheals Logo"
-              className="h-14 w-auto mx-auto mb-3"
-            />
-            <p className="text-sm text-gray-500">Authorized personnel only</p>
-          </div>
-
-          {/* ===== LOGIN CARD ===== */}
+        {/* ===== LOGIN CARD ===== */}
+        <div className="w-full max-w-sm lg:flex-shrink-0">
           <div className="bg-white rounded-lg shadow-lg p-8 border border-gray-200">
             <h2 className="text-2xl font-bold text-center text-gray-900 mb-6">
               Staff Login

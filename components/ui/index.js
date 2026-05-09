@@ -123,8 +123,8 @@ export function Select({
 // components/ui/Table.js
 export function Table({ children, className = "" }) {
   return (
-    <div className="data-table-container">
-      <table className={`data-table ${className}`}>
+    <div className="overflow-x-auto bg-white rounded-lg shadow">
+      <table className={`min-w-full divide-y divide-gray-200 ${className}`}>
         {children}
       </table>
     </div>
@@ -170,18 +170,12 @@ export function TableCell({ children, muted = false, className = "" }) {
 
 // components/ui/StatCard.js
 export function StatCard({ label, value, highlight = false, className = "" }) {
+  const bgColor = highlight ? "bg-red-50 border-red-200" : "bg-white border-gray-200";
   const textColor = highlight ? "text-red-700" : "text-gray-600";
-  const highlightStyle = highlight
-    ? {
-        borderColor: "var(--color-error-200, #fecaca)",
-        backgroundColor: "var(--color-error-50, #fef2f2)",
-      }
-    : undefined;
 
   return (
     <div
-      className={`content-card transition-shadow ${className}`}
-      style={highlightStyle}
+      className={`${bgColor} border rounded-lg p-6 shadow-md transition hover:shadow-lg ${className}`}
     >
       <p className={`text-sm font-medium ${textColor} mb-2`}>{label}</p>
       <p className="text-2xl font-bold text-gray-900">{value}</p>

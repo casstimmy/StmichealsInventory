@@ -135,15 +135,15 @@ function applyThemeToDOM(theme) {
   root.style.setProperty("--surface-muted", secondary[50]);
   root.style.setProperty("--surface-raised", "#ffffff");
   root.style.setProperty("--page-gradient-start", pageBg);
-  root.style.setProperty("--page-gradient-mid", pageBg);
-  root.style.setProperty("--page-gradient-end", pageBg);
-  root.style.setProperty("--border-subtle", `rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.12)`);
-  root.style.setProperty("--border-strong", `rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.2)`);
+  root.style.setProperty("--page-gradient-mid", primary[50]);
+  root.style.setProperty("--page-gradient-end", secondary[50]);
+  root.style.setProperty("--border-subtle", `rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.14)`);
+  root.style.setProperty("--border-strong", `rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.24)`);
   root.style.setProperty("--focus-ring", `rgba(${secondaryRgb.r}, ${secondaryRgb.g}, ${secondaryRgb.b}, 0.18)`);
-  root.style.setProperty("--text-strong", "#0f172a");
-  root.style.setProperty("--text-muted", "rgba(51, 65, 85, 0.72)");
-  root.style.setProperty("--shell-shadow", `0 12px 30px rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.08)`);
-  root.style.setProperty("--shell-shadow-sm", `0 4px 14px rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.05)`);
+  root.style.setProperty("--text-strong", primary[900]);
+  root.style.setProperty("--text-muted", `rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.68)`);
+  root.style.setProperty("--shell-shadow", `0 18px 42px rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.12)`);
+  root.style.setProperty("--shell-shadow-sm", `0 10px 24px rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.08)`);
 }
 
 export function ThemeProvider({ children }) {

@@ -31,9 +31,11 @@ const TopBar = ({ user, logout }) => {
           const data = await productsRes.json();
           const productList = data.data || data;
           const products = Array.isArray(productList) ? productList : [];
-          
-          const lowStockCount = products.filter(p => p.minStock > 0 && p.quantity < p.minStock).length;
-          setLowStockCount(lowStockCount);
+
+          const nextLowStockCount = products.filter(
+            (product) => product.minStock > 0 && product.quantity < product.minStock
+          ).length;
+          setLowStockCount(nextLowStockCount);
         }
 
         // Fetch expiring batches from the same endpoint as expiration-report
@@ -61,7 +63,7 @@ const TopBar = ({ user, logout }) => {
             // Include critical (≤7 days) and warning (8-30 days) statuses
             return expiryDate > now && expiryDate <= thirtyDaysFromNow;
           });
-          
+
           setExpiringCount(expiringBatches.length);
         }
       } catch (err) {
@@ -86,30 +88,27 @@ const TopBar = ({ user, logout }) => {
       .toUpperCase();
 
   const topBarStyle = {
-    backgroundColor: 'var(--surface-raised, #ffffff)',
-    borderColor: 'var(--border-subtle, rgba(15, 23, 42, 0.1))',
-    boxShadow: 'var(--shell-shadow-sm, 0 4px 14px rgba(15, 23, 42, 0.05))',
+    background: 'linear-gradient(90deg, var(--surface-card, #ffffff), var(--surface-card-alt, #f8fbff))',
+    borderColor: 'var(--border-subtle, rgba(37, 99, 235, 0.14))',
+    boxShadow: 'var(--shell-shadow, 0 18px 42px rgba(37, 99, 235, 0.12))',
   };
 
   const brandAccentStyle = {
-    backgroundColor: 'var(--btn-primary-bg, #0284c7)',
-    boxShadow: 'var(--shell-shadow-sm, 0 4px 14px rgba(15, 23, 42, 0.05))',
+    background: 'linear-gradient(135deg, var(--color-primary-600, #2563eb), var(--color-primary-700, #1d4ed8))',
   };
 
   const dropdownSurfaceStyle = {
-    backgroundColor: 'var(--surface-raised, #ffffff)',
-    borderColor: 'var(--border-subtle, rgba(15, 23, 42, 0.1))',
-    boxShadow: 'var(--shell-shadow, 0 12px 30px rgba(15, 23, 42, 0.08))',
+    backgroundColor: '#ffffff',
+    borderColor: '#e5e7eb',
+    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
   };
 
   const dropdownHeaderStyle = {
-    backgroundColor: 'var(--btn-primary-bg, #0284c7)',
-    borderBottom: '1px solid var(--sidebar-active-border, #1d4ed8)',
+    background: 'linear-gradient(to right, var(--color-primary-600, #2563eb), var(--color-secondary-500, #06b6d4))',
   };
 
   const avatarStyle = {
-    backgroundColor: 'var(--sidebar-active-bg, #2563eb)',
-    boxShadow: 'var(--shell-shadow-sm, 0 4px 14px rgba(15, 23, 42, 0.05))',
+    background: 'linear-gradient(to bottom right, var(--color-secondary-500, #06b6d4), var(--color-secondary-600, #0891b2))',
   };
 
   return (
@@ -294,8 +293,7 @@ const TopBar = ({ user, logout }) => {
                   <Link
                     href="/stock/expiration-report"
                     onClick={() => setShowNotifications(false)}
-                    className="block text-center text-sm font-semibold transition hover:opacity-80"
-                    style={{ color: 'var(--sidebar-active-border, #1d4ed8)' }}
+                    className="block text-center text-sm font-semibold text-blue-600 transition hover:text-blue-700"
                   >
                     View Expiration Report →
                   </Link>

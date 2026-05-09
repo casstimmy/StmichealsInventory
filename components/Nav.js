@@ -157,44 +157,43 @@ export default function Sidebar() {
   }, [router]);
 
   const baseLink =
-    "px-2 py-3.5 text-gray-600 transition-colors duration-200 hover:bg-slate-100 hover:text-slate-900 flex items-center justify-center flex-col text-[11px] cursor-pointer border-l-[3px] border-transparent hidden md:flex";
-  const activeLink = "px-2 py-3.5 text-white nav-active-gradient flex items-center justify-center flex-col text-[11px] cursor-pointer font-semibold border-l-[3px] transition-colors duration-200 hidden md:flex";
+    "px-2 py-4 text-gray-600 transition-all duration-300 hover:bg-blue-50 hover:text-blue-600 flex items-center justify-center flex-col text-xs cursor-pointer border-l-4 border-transparent hidden md:flex";
+  const activeLink = "px-2 py-4 text-white nav-active-gradient flex items-center justify-center flex-col text-xs cursor-pointer font-semibold border-l-4 transition-all duration-300 hidden md:flex shadow-md";
 
-  const mobileBaseLink = "px-3 py-3 text-gray-700 transition-colors duration-200 hover:bg-slate-50 hover:text-slate-900 border-l-[3px] border-transparent flex items-center gap-3 text-sm";
-  const mobileActiveLink = "px-3 py-3 text-white border-l-[3px] nav-active-gradient flex items-center gap-3 text-sm font-semibold";
+  const mobileBaseLink = "px-3 py-3 text-gray-700 transition-all duration-300 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent flex items-center gap-3 text-sm";
+  const mobileActiveLink = "px-3 py-3 text-white border-l-4 nav-active-gradient flex items-center gap-3 text-sm font-semibold";
 
   const submenuPanelStyle = {
-    backgroundColor: "var(--surface-raised, #ffffff)",
-    borderColor: "var(--border-subtle, rgba(15, 23, 42, 0.1))",
-    boxShadow: "var(--shell-shadow, 0 12px 30px rgba(15, 23, 42, 0.08))",
+    backgroundColor: "#ffffff",
+    borderColor: "#e5e7eb",
+    boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
   };
 
   const sidebarShellStyle = {
-    backgroundColor: "var(--sidebar-bg, #f6f8fb)",
-    borderColor: "var(--border-subtle, rgba(15, 23, 42, 0.1))",
-    boxShadow: "var(--shell-shadow-sm, 0 4px 14px rgba(15, 23, 42, 0.05))",
+    background: "linear-gradient(180deg, var(--sidebar-bg, #f9fafb), var(--surface-card-alt, #f5faff))",
+    borderColor: "var(--border-subtle, rgba(37, 99, 235, 0.14))",
+    boxShadow: "var(--shell-shadow, 0 18px 42px rgba(37, 99, 235, 0.12))",
   };
 
   const nestedActiveStyle = {
-    backgroundColor: "var(--surface-muted, #eef4fb)",
-    borderLeftColor: "var(--sidebar-active-border, #1d4ed8)",
-    color: "var(--sidebar-active-border, #1d4ed8)",
+    background: "linear-gradient(to right, rgba(239, 246, 255, 1), transparent)",
+    borderLeftColor: "var(--sidebar-active-to, #1d4ed8)",
+    color: "var(--sidebar-active-to, #1d4ed8)",
   };
 
   const mobileMenuButtonStyle = {
-    backgroundColor: "var(--sidebar-active-bg, #2563eb)",
-    border: "1px solid var(--sidebar-active-border, #1d4ed8)",
-    boxShadow: "var(--shell-shadow, 0 12px 30px rgba(15, 23, 42, 0.08))",
+    background: "linear-gradient(to right, var(--sidebar-active-from, #2563eb), var(--sidebar-active-to, #1d4ed8))",
+    boxShadow: "var(--shell-shadow, 0 18px 42px rgba(37, 99, 235, 0.12))",
   };
 
   const mobileHeaderStyle = {
-    backgroundColor: "var(--sidebar-active-bg, #2563eb)",
-    borderBottom: "1px solid var(--sidebar-active-border, #1d4ed8)",
+    background: "linear-gradient(to right, var(--sidebar-active-from, #2563eb), var(--sidebar-active-to, #1d4ed8))",
   };
 
   const mobileSubmenuSurfaceStyle = {
-    backgroundColor: "var(--surface-muted, #eef4fb)",
-    borderLeftColor: "var(--sidebar-active-border, #1d4ed8)",
+    backgroundColor: "#f9fafb",
+    borderLeftColor: "#2563eb",
+    borderLeftWidth: "4px",
   };
 
   const renderMenuItem = (href, icon, label) => (
@@ -231,20 +230,20 @@ export default function Sidebar() {
             } ${
               isActive
                 ? "font-semibold shadow-sm border-l-4"
-                : "text-gray-700 hover:bg-slate-50 hover:text-slate-900 border-l-4 border-transparent"
+                : "text-gray-700 hover:bg-gray-50 hover:text-blue-600 border-l-4 border-transparent"
             }`}
             style={isActive ? nestedActiveStyle : undefined}
           >
             <span className="flex items-center gap-3">
               {!indent && (
                 <span className={`w-1.5 h-1.5 rounded-full transition-all ${
-                  isActive ? "scale-125" : "bg-gray-300 group-hover:bg-gray-400"
-                }`} style={isActive ? { backgroundColor: "var(--sidebar-active-border, #1d4ed8)" } : undefined}></span>
+                  isActive ? "bg-blue-600 scale-125" : "bg-gray-300 group-hover:bg-blue-400"
+                }`}></span>
               )}
               {label}
             </span>
             {isActive && (
-              <span className="text-lg" style={{ color: "var(--sidebar-active-border, #1d4ed8)" }}>�</span>
+              <span className="text-blue-600 text-lg">&rsaquo;</span>
             )}
           </Link>
         </li>
@@ -257,7 +256,7 @@ export default function Sidebar() {
       {isMobile && !isMobileMenuOpen && (
         <button
           onClick={() => setIsMobileMenuOpen(true)}
-          className="md:hidden fixed bottom-6 right-6 w-16 h-16 rounded-xl text-white flex items-center justify-center transition-transform hover:scale-105 z-40"
+          className="md:hidden fixed bottom-6 right-6 w-16 h-16 rounded-full text-white flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-110 z-40"
           style={mobileMenuButtonStyle}
           aria-label="Open menu"
         >
@@ -397,16 +396,16 @@ export default function Sidebar() {
                 <li className="border-b border-gray-100 transition-all duration-300 group">
                   <button
                     onClick={() => toggleSubMenu("staff-menu")}
-                    className="w-full h-14 px-4 py-3 flex items-center justify-between text-sm font-medium transition-colors duration-200 text-gray-700 hover:bg-slate-50 hover:text-slate-900 border-l-4 border-transparent"
+                    className="w-full h-14 px-4 py-3 flex items-center justify-between text-sm font-medium transition-all duration-300 text-gray-700 hover:bg-gray-50 hover:text-blue-600 border-l-4 border-transparent"
                   >
                     <span className="flex items-center gap-3">
-                      <span className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-gray-400 transition-all"></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-blue-400 transition-all"></span>
                       Staff
                     </span>
-                    <span className={`text-lg transition-transform duration-300 ${openSubMenu === "staff-menu" ? "rotate-90" : ""}`}>�</span>
+                    <span className={`text-lg transition-transform duration-300 ${openSubMenu === "staff-menu" ? "rotate-90" : ""}`}>&rsaquo;</span>
                   </button>
                   {openSubMenu === "staff-menu" && (
-                    <div className="border-t border-gray-100" style={{ backgroundColor: "var(--surface-muted, #eef4fb)" }}>
+                    <div className="bg-gray-50 border-t border-gray-100">
                       {renderSubMenu([
                         { href: "/manage/staff", label: "Staff Page", indent: true },
                         { href: "/manage/staff-roles", label: "Staff Roles", indent: true },
@@ -425,16 +424,16 @@ export default function Sidebar() {
                 <li className="border-b border-gray-100 transition-all duration-300 group">
                   <button
                     onClick={() => toggleSubMenu("procurement-menu")}
-                    className="w-full h-14 px-4 py-3 flex items-center justify-between text-sm font-medium transition-colors duration-200 text-gray-700 hover:bg-slate-50 hover:text-slate-900 border-l-4 border-transparent"
+                    className="w-full h-14 px-4 py-3 flex items-center justify-between text-sm font-medium transition-all duration-300 text-gray-700 hover:bg-gray-50 hover:text-blue-600 border-l-4 border-transparent"
                   >
                     <span className="flex items-center gap-3">
-                      <span className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-gray-400 transition-all"></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-blue-400 transition-all"></span>
                       Procurement
                     </span>
-                    <span className={`text-lg transition-transform duration-300 ${openSubMenu === "procurement-menu" ? "rotate-90" : ""}`}>�</span>
+                    <span className={`text-lg transition-transform duration-300 ${openSubMenu === "procurement-menu" ? "rotate-90" : ""}`}>&rsaquo;</span>
                   </button>
                   {openSubMenu === "procurement-menu" && (
-                    <div className="border-t border-gray-100" style={{ backgroundColor: "var(--surface-muted, #eef4fb)" }}>
+                    <div className="bg-gray-50 border-t border-gray-100">
                       {renderSubMenu([
                         { href: "/manage/vendors", label: "Vendors", indent: true },
                         { href: "/manage/purchase-orders", label: "Payment Tracker", indent: true },
@@ -550,16 +549,16 @@ export default function Sidebar() {
                 <li className="border-b border-gray-100 transition-all duration-300 group">
                   <button
                     onClick={() => toggleSubMenu("sales-report")}
-                    className="w-full h-14 px-4 py-3 flex items-center justify-between text-sm font-medium transition-colors duration-200 text-gray-700 hover:bg-slate-50 hover:text-slate-900 border-l-4 border-transparent"
+                    className="w-full h-14 px-4 py-3 flex items-center justify-between text-sm font-medium transition-all duration-300 text-gray-700 hover:bg-gray-50 hover:text-blue-600 border-l-4 border-transparent"
                   >
                     <span className="flex items-center gap-3">
-                      <span className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-gray-400 transition-all"></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-blue-400 transition-all"></span>
                       Sales Report
                     </span>
-                    <span className={`text-lg transition-transform duration-300 ${openSubMenu === "sales-report" ? "rotate-90" : ""}`}>�</span>
+                    <span className={`text-lg transition-transform duration-300 ${openSubMenu === "sales-report" ? "rotate-90" : ""}`}>&rsaquo;</span>
                   </button>
                   {openSubMenu === "sales-report" && (
-                    <div className="border-t border-gray-100" style={{ backgroundColor: "var(--surface-muted, #eef4fb)" }}>
+                    <div className="bg-gray-50 border-t border-gray-100">
                       {renderSubMenu([
                         { href: "/reporting/sales-report/time-intervals", label: "Time Intervals", indent: true },
                         { href: "/reporting/sales-report/time-comparisons", label: "Time Comparisons", indent: true },
@@ -714,7 +713,7 @@ export default function Sidebar() {
 
       {/* MOBILE SIDEBAR - FULL SCREEN */}
       {isMobileMenuOpen && isMobile && (
-        <nav className="fixed top-0 left-0 right-0 bottom-0 w-full z-40 overflow-y-auto" style={{ backgroundColor: "var(--surface-raised, #ffffff)" }}>
+        <nav className="fixed top-0 left-0 right-0 bottom-0 w-full bg-white shadow-2xl z-40 overflow-y-auto">
           {/* Mobile Header */}
           <div className="sticky top-0 text-white px-4 py-4 flex items-center justify-between" style={mobileHeaderStyle}>
             <span className="text-lg font-bold">Menu</span>

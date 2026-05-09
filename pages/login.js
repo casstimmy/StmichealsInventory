@@ -134,49 +134,59 @@ export default function Login({ staffList, locations }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: 'var(--page-bg, #f9fafb)' }}>
-      <div className="w-full flex flex-col lg:flex-row items-center justify-between max-w-5xl gap-8">
-        {/* ===== HERO ===== */}
-        <div className="w-full lg:w-1/2 text-center lg:text-left">
-          {/* Brand */}
-          <div className="flex justify-center lg:justify-center mb-6">
-            <img
-              src="/images/st-micheals-logo.png"
-              alt="St Micheals Logo"
-              className="h-20 w-auto border-b-4 border-blue-600 pb-2"
-            />
-          </div>
+    <div className="min-h-screen flex">
+      {/* ===== HERO PANEL ===== */}
+      <div
+        className="hidden lg:flex lg:w-5/12 xl:w-1/2 flex-col justify-between p-12 xl:p-16"
+        style={{ backgroundColor: 'var(--btn-primary-bg, #1d4ed8)' }}
+      >
+        {/* Top: Logo */}
+        <div>
+          <img
+            src="/images/st-micheals-logo.png"
+            alt="St Micheals Logo"
+            className="h-12 w-auto brightness-0 invert"
+          />
+        </div>
 
-          {/* Badge */}
-          <span className="inline-flex items-center px-4 py-1 mb-4 rounded-full bg-blue-100 text-blue-700 text-sm font-semibold">
+        {/* Middle: Headline */}
+        <div>
+          <div className="inline-flex items-center gap-2 mb-6 px-3 py-1 rounded-full border border-white/20 text-white/70 text-xs font-semibold uppercase tracking-widest">
             Inventory Management System
-          </span>
-
-          {/* Heading */}
-          <h1 className="text-4xl lg:text-5xl font-extrabold text-slate-900 leading-tight mb-5">
-            St Micheals <br className="hidden lg:block" />
-            Inventory Platform
+          </div>
+          <h1 className="text-4xl xl:text-5xl font-extrabold text-white leading-tight mb-5">
+            St Micheals<br />Inventory<br />Platform
           </h1>
-
-          {/* Description */}
-          <p className="text-lg text-slate-600 max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed">
+          <p className="text-white/70 text-base leading-relaxed max-w-sm">
             A secure and centralized system to manage products, staff access,
             and store operations with accuracy and control.
           </p>
-
-          {/* CTA */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-            <p className="text-sm text-slate-500 flex items-center justify-center">
-              Authorized personnel only
-            </p>
-          </div>
         </div>
 
-        {/* ===== LOGIN CARD ===== */}
-        <div className="w-full max-w-sm bg-white rounded-lg shadow-lg p-8 border border-gray-200">
-          <h2 className="text-2xl font-bold text-center text-gray-900 mb-6">
-            Staff Login
-          </h2>
+        {/* Bottom: Footer note */}
+        <div className="border-t border-white/15 pt-6">
+          <p className="text-white/40 text-xs">Authorized personnel only · St Micheals</p>
+        </div>
+      </div>
+
+      {/* ===== RIGHT PANEL (login card + mobile hero) ===== */}
+      <div className="flex-1 flex items-center justify-center px-6 py-12" style={{ backgroundColor: 'var(--page-bg, #f9fafb)' }}>
+        <div className="w-full max-w-sm">
+          {/* Mobile brand */}
+          <div className="lg:hidden text-center mb-8">
+            <img
+              src="/images/st-micheals-logo.png"
+              alt="St Micheals Logo"
+              className="h-14 w-auto mx-auto mb-3"
+            />
+            <p className="text-sm text-gray-500">Authorized personnel only</p>
+          </div>
+
+          {/* ===== LOGIN CARD ===== */}
+          <div className="bg-white rounded-lg shadow-lg p-8 border border-gray-200">
+            <h2 className="text-2xl font-bold text-center text-gray-900 mb-6">
+              Staff Login
+            </h2>
 
           <form onSubmit={handleLogin}>
             {/* USER */}
@@ -266,6 +276,7 @@ export default function Login({ staffList, locations }) {
               {loading ? "Logging in..." : "Log In"}
             </button>
           </form>
+          </div>
         </div>
       </div>
     </div>

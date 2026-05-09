@@ -462,11 +462,11 @@ export default function Home() {
           className="overflow-hidden border border-gray-200 bg-white"
           style={{ borderRadius: 'var(--radius-lg)' }}
         >
-          <div className="flex flex-col gap-3 border-b border-gray-200 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 border-b border-gray-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-base font-bold tracking-tight text-gray-900">
               Key trading metrics
             </h2>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-3">
               <FilterSelect
                 label="Location"
                 value={selectedLocation}
@@ -494,10 +494,11 @@ export default function Home() {
                 <option value="custom">Custom Period</option>
               </FilterSelect>
 
+              <div className="h-8 w-px bg-gray-200 hidden sm:block" />
+
               <button
                 type="button"
-                className="inline-flex items-center gap-2 border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
-                style={{ borderRadius: 'var(--radius-lg)' }}
+                className="inline-flex items-center gap-1.5 rounded border border-gray-300 bg-white px-3 py-[7px] text-sm font-medium text-gray-600 transition hover:bg-gray-50 hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
                 onClick={fetchDashboardData}
                 disabled={loading}
                 title="Refresh dashboard data"

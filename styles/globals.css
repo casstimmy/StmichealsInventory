@@ -317,7 +317,7 @@ select:disabled {
 
 /* Tables */
 .table-wrapper {
-  @apply overflow-x-auto rounded-lg border border-gray-200;
+  @apply overflow-x-auto rounded border border-gray-200;
   cursor: grab;
   -webkit-overflow-scrolling: touch;
 }
@@ -635,7 +635,7 @@ a:active,
 /* ===== Consistent Table Styles ===== */
 .data-table-container {
   @apply overflow-x-auto border bg-white shadow-sm;
-  border-radius: var(--radius-xl);
+  border-radius: 4px;
   border-color: var(--border-subtle);
   box-shadow: var(--shell-shadow);
 }

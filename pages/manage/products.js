@@ -113,9 +113,16 @@ export default function Products() {
   const [availableLocations, setAvailableLocations] = useState([]);
   const [vendorMap, setVendorMap] = useState({});
 
-  // pagination / lazy load
+  // pagination
   const [entriesPerPage] = useState(entriesPerPageDefault);
-  const [visibleCount, setVisibleCount] = useState(entriesPerPageDefault);
+  const [currentPage, setCurrentPage] = useState(
+    typeof window !== "undefined" ? parseInt(sessionStorage.getItem("products:page") || "1", 10) : 1
+  );
+  const [columnVisibility, setColumnVisibility] = useState({
+    priceDetails: true,
+    supplierDetails: false,
+    tillDetails: false,
+  });
 
   // highlighted product id (persisted so when you go to edit page and back it stays)
   const [highlightedId, setHighlightedId] = useState(
@@ -191,7 +198,7 @@ export default function Products() {
         .some((field) => String(field).toLowerCase().includes(t));
     });
     setFilteredProducts(filtered);
-    setVisibleCount(entriesPerPage);
+    setCurrentPage(1);
   }, [allProducts, categoryMap, entriesPerPage, getProductVendorNames]);
 
   // Initialize from cache when data arrives
@@ -338,6 +345,11 @@ export default function Products() {
   }, [selectedLocation]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    sessionStorage.setItem("products:page", currentPage.toString());
+  }, [currentPage]);
+
+  useEffect(() => {
     if (!queryLocation) return;
     setSelectedLocation(queryLocation);
     applyFilters(searchTerm, selectedCategory, queryLocation);
@@ -378,6 +390,7 @@ export default function Products() {
   const handleSearchChange = (e) => {
     const v = e.target.value;
     setSearchTerm(v);
+    setCurrentPage(1);
     debouncedFilter(v);
   };
 
@@ -452,12 +465,11 @@ export default function Products() {
       // close edit mode & highlight the updated product
       setEditIndex(null);
       setHighlightedId(_id);
-      // ensure the updated item is visible (if not in current page, expand visible area)
+      // navigate to the page containing the saved item
       const indexInFiltered = (filteredProducts || []).findIndex((p) => p._id === _id);
       if (indexInFiltered >= 0) {
         const pageNeeded = Math.floor(indexInFiltered / entriesPerPage) + 1;
-        const neededVisible = pageNeeded * entriesPerPage;
-        if (visibleCount < neededVisible) setVisibleCount(neededVisible);
+        setCurrentPage(pageNeeded);
       }
     } catch (err) {
       console.error("Failed to update product", err);
@@ -509,15 +521,12 @@ export default function Products() {
 
   const formatCurrency = (num) => formatCurrencyValue(num || 0);
 
-  // Lazy loading (Load more)  visible slice
+  // Pagination
+  const totalPages = Math.ceil((filteredProducts?.length || 0) / entriesPerPage);
+  const safePage = Math.min(Math.max(1, currentPage), Math.max(1, totalPages));
   const visibleProducts = Array.isArray(filteredProducts)
-    ? filteredProducts.slice(0, visibleCount)
+    ? filteredProducts.slice((safePage - 1) * entriesPerPage, safePage * entriesPerPage)
     : [];
-
-  // load more helper
-  const loadMore = () => {
-    setVisibleCount((v) => Math.min((filteredProducts?.length || 0), v + entriesPerPage));
-  };
 
   if (productsError) {
     return (
@@ -588,7 +597,7 @@ export default function Products() {
         {/* Search */}
         <div className="mb-6">
           <div className="flex flex-col sm:flex-row gap-3">
-            <div className="search-input-wrapper max-w-md">
+            <div className="search-input-wrapper flex-1 min-w-0">
               <Search className="search-input-icon" />
               <input
                 ref={searchRef}
@@ -627,6 +636,38 @@ export default function Products() {
           </div>
         </div>
 
+        {/* Column visibility toggles */}
+        <div className="mb-3 flex flex-wrap items-center gap-4 px-3 py-2.5 bg-white border border-gray-200 rounded text-sm text-gray-600">
+          <span className="font-medium text-gray-700 mr-1">Show additional information</span>
+          <label className="flex items-center gap-1.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              className="w-4 h-4 accent-blue-600"
+              checked={columnVisibility.priceDetails}
+              onChange={(e) => setColumnVisibility((v) => ({ ...v, priceDetails: e.target.checked }))}
+            />
+            <span>Show Price Details</span>
+          </label>
+          <label className="flex items-center gap-1.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              className="w-4 h-4 accent-blue-600"
+              checked={columnVisibility.supplierDetails}
+              onChange={(e) => setColumnVisibility((v) => ({ ...v, supplierDetails: e.target.checked }))}
+            />
+            <span>Show Supplier Details</span>
+          </label>
+          <label className="flex items-center gap-1.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              className="w-4 h-4 accent-blue-600"
+              checked={columnVisibility.tillDetails}
+              onChange={(e) => setColumnVisibility((v) => ({ ...v, tillDetails: e.target.checked }))}
+            />
+            <span>Show Till Details</span>
+          </label>
+        </div>
+
         {/* Table - Responsive wrapper */}
         <div className="data-table-container">
           <table className="data-table">
@@ -636,16 +677,16 @@ export default function Products() {
                 <th className="!px-2">Adv</th>
                 <th>Name</th>
                 <th className="hidden sm:table-cell">Description</th>
-                <th>Cost</th>
-                <th>Tax %</th>
-                <th>Sale</th>
-                <th className="hidden sm:table-cell">Margin</th>
-                <th className="hidden lg:table-cell">Barcode</th>
+                <th className={columnVisibility.priceDetails ? "" : "hidden"}>Cost</th>
+                <th className={columnVisibility.priceDetails ? "" : "hidden"}>Tax %</th>
+                <th className={columnVisibility.priceDetails ? "" : "hidden"}>Sale</th>
+                <th className={columnVisibility.priceDetails ? "hidden sm:table-cell" : "hidden"}>Margin</th>
+                <th className={columnVisibility.tillDetails ? "hidden lg:table-cell" : "hidden"}>Barcode</th>
                 <th>Min Stock</th>
-                <th className="hidden lg:table-cell">Properties</th>
+                <th className={columnVisibility.tillDetails ? "hidden lg:table-cell" : "hidden"}>Properties</th>
                 <th>Category</th>
                 <th className="hidden xl:table-cell">Locations</th>
-                <th className="hidden xl:table-cell">Vendors</th>
+                <th className={columnVisibility.supplierDetails ? "hidden xl:table-cell" : "hidden"}>Vendors</th>
                 <th className="hidden sm:table-cell">Promo</th>
                 <th className="!px-2">Del</th>
               </tr>
@@ -754,7 +795,7 @@ export default function Products() {
                         )}
                       </td>
 
-                      <td className="p-2 hidden sm:table-cell max-w-[190px] text-xs align-top">
+                      <td className="p-2 hidden sm:table-cell max-w-[190px] text-xs">
                         {editIndex === realIndex ? (
                           <textarea
                             name="description"
@@ -770,7 +811,7 @@ export default function Products() {
                       </td>
 
 
-                      <td className="p-2 text-xs md:text-sm">
+                      <td className={`p-2 text-xs md:text-sm ${columnVisibility.priceDetails ? "" : "hidden"}`}>
                         {editIndex === realIndex ? (
                           <input
                             name="costPrice"
@@ -786,7 +827,7 @@ export default function Products() {
                         )}
                       </td>
 
-                      <td className="p-2 text-xs md:text-sm">
+                      <td className={`p-2 text-xs md:text-sm ${columnVisibility.priceDetails ? "" : "hidden"}`}>
                         {editIndex === realIndex ? (
                           <select
                             name="taxRate"
@@ -803,7 +844,7 @@ export default function Products() {
                         )}
                       </td>
 
-                      <td className="p-2 text-gray-900 font-semibold text-xs md:text-sm">
+                      <td className={`p-2 text-gray-900 font-semibold text-xs md:text-sm ${columnVisibility.priceDetails ? "" : "hidden"}`}>
                         {editIndex === realIndex ? (
                           <input
                             name="salePriceIncTax"
@@ -819,7 +860,7 @@ export default function Products() {
                         )}
                       </td>
 
-                      <td className="p-2 hidden sm:table-cell text-xs">
+                      <td className={`p-2 text-xs ${columnVisibility.priceDetails ? "hidden sm:table-cell" : "hidden"}`}>
                         {editIndex === realIndex ? (
                           <input
                             name="margin"
@@ -834,7 +875,7 @@ export default function Products() {
                           p.margin
                         )}
                       </td>
-                      <td className="p-2 hidden lg:table-cell text-xs">
+                      <td className={`p-2 text-xs ${columnVisibility.tillDetails ? "hidden lg:table-cell" : "hidden"}`}>
                         {editIndex === realIndex ? (
                           <input
                             name="barcode"
@@ -864,7 +905,7 @@ export default function Products() {
                         )}
                       </td>
 
-                      <td className="p-2 hidden lg:table-cell text-gray-600 text-xs align-top">
+                      <td className={`p-2 text-gray-600 text-xs ${columnVisibility.tillDetails ? "hidden lg:table-cell" : "hidden"}`}>
                         {editIndex === realIndex ? (
                           <textarea
                             value={propertiesText}
@@ -907,13 +948,13 @@ export default function Products() {
                         )}
                       </td>
 
-                      <td className="p-2 hidden xl:table-cell text-xs text-gray-600 align-top">
+                      <td className="p-2 hidden xl:table-cell text-xs text-gray-600">
                         {Array.isArray(p.locations) && p.locations.length > 0
                           ? p.locations.join(", ")
                           : "Unassigned"}
                       </td>
 
-                      <td className="p-2 hidden xl:table-cell text-xs text-gray-600 align-top">
+                      <td className={`p-2 text-xs text-gray-600 ${columnVisibility.supplierDetails ? "hidden xl:table-cell" : "hidden"}`}>
                         {getProductVendorNames(p).length > 0
                           ? getProductVendorNames(p).join(", ")
                           : "Unassigned"}
@@ -946,19 +987,65 @@ export default function Products() {
           </table>
         </div>
 
-        {/* Load more / Pagination controls */}
-        <div className="flex justify-center items-center mt-6 flex-wrap gap-2">
-          {visibleCount < (filteredProducts?.length || 0) ? (
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center mt-6 gap-1 flex-wrap">
             <button
-              onClick={loadMore}
-              className="btn-action-secondary"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={safePage <= 1}
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Load more ({(filteredProducts?.length || 0) - visibleCount} remaining)
+              &lsaquo;
             </button>
-          ) : (
-            <div className="text-sm text-gray-500 py-2"> End of list </div>
-          )}
-        </div>
+            {(() => {
+              const pages = [];
+              const delta = 2;
+              const left = Math.max(1, safePage - delta);
+              const right = Math.min(totalPages, safePage + delta);
+              if (left > 1) {
+                pages.push(1);
+                if (left > 2) pages.push("...");
+              }
+              for (let i = left; i <= right; i++) pages.push(i);
+              if (right < totalPages) {
+                if (right < totalPages - 1) pages.push("...");
+                pages.push(totalPages);
+              }
+              return pages.map((page, i) =>
+                page === "..." ? (
+                  <span key={`dots-${i}`} className="px-2 py-1.5 text-sm text-gray-400 select-none">&hellip;</span>
+                ) : (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`px-3 py-1.5 text-sm border rounded ${
+                      safePage === page
+                        ? "bg-blue-600 border-blue-600 text-white font-semibold"
+                        : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                )
+              );
+            })()}
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safePage >= totalPages}
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              &rsaquo;
+            </button>
+            <span className="ml-3 text-xs text-gray-500">
+              {(safePage - 1) * entriesPerPage + 1}–{Math.min(safePage * entriesPerPage, filteredProducts?.length || 0)} of {filteredProducts?.length || 0}
+            </span>
+          </div>
+        )}
+        {totalPages <= 1 && (
+          <div className="text-sm text-gray-500 py-2 text-center">
+            {(filteredProducts?.length || 0) > 0 ? `${filteredProducts.length} product${filteredProducts.length !== 1 ? "s" : ""}` : ""}
+          </div>
+        )}
         </div>
       </div>
     </Layout>

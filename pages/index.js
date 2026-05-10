@@ -422,27 +422,27 @@ export default function Home() {
     <div className="page-container">
       <div className="mx-auto flex w-full max-w-[1480px] flex-col gap-5">
         {/* Greeting */}
-        <header className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-            Hi, {dashboardHeading}
-          </h1>
-          <div className="flex items-center gap-2">
+        <header className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-gray-200">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+              Hi, {dashboardHeading}
+            </h1>
             {lastRefresh && (
-              <span className="hidden text-xs text-gray-500 sm:inline">
+              <p className="mt-1 text-xs text-gray-400">
                 Updated {lastRefresh.toLocaleTimeString()}
-              </span>
+              </p>
             )}
-            <button
-              type="button"
-              className="inline-flex items-center gap-1.5 border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-              style={{ borderRadius: 'var(--radius-lg)' }}
-              onClick={handleDailyMail}
-              title="Send daily mail report"
-            >
-              <Mail className="h-3.5 w-3.5" />
-              Mail report
-            </button>
           </div>
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-white hover:border-gray-300 hover:shadow"
+            style={{ borderRadius: 'var(--radius-lg)' }}
+            onClick={handleDailyMail}
+            title="Send daily mail report"
+          >
+            <Mail className="h-3.5 w-3.5" />
+            Mail report
+          </button>
         </header>
 
         {/* Quick Actions */}
@@ -462,50 +462,52 @@ export default function Home() {
           className="overflow-hidden border border-gray-200 bg-white"
           style={{ borderRadius: 'var(--radius-lg)' }}
         >
-          <div className="flex flex-col gap-3 border-b border-gray-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-base font-bold tracking-tight text-gray-900">
-              Key trading metrics
-            </h2>
-            <div className="flex flex-wrap items-center gap-3">
-              <FilterSelect
-                label="Location"
-                value={selectedLocation}
-                onChange={(e) => setSelectedLocation(e.target.value)}
-              >
-                <option value="All">All Locations</option>
-                {storeInfo.locations?.map((location) => (
-                  <option key={location._id} value={location.name}>
-                    {location.name}
-                  </option>
-                ))}
-              </FilterSelect>
+          <div className="border-b border-gray-200 px-5 py-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-base font-bold tracking-tight text-gray-900">
+                Key trading metrics
+              </h2>
+              <div className="flex flex-wrap items-center gap-4">
+                <FilterSelect
+                  label="Location"
+                  value={selectedLocation}
+                  onChange={(e) => setSelectedLocation(e.target.value)}
+                >
+                  <option value="All">All Locations</option>
+                  {storeInfo.locations?.map((location) => (
+                    <option key={location._id} value={location.name}>
+                      {location.name}
+                    </option>
+                  ))}
+                </FilterSelect>
 
-              <FilterSelect
-                label="Time period"
-                value={selectedPeriod}
-                onChange={(e) => setSelectedPeriod(e.target.value)}
-              >
-                <option value="today">Today</option>
-                <option value="yesterday">Yesterday</option>
-                <option value="week">This Week</option>
-                <option value="lastWeek">Last Week</option>
-                <option value="month">This Month</option>
-                <option value="lastMonth">Last Month</option>
-                <option value="custom">Custom Period</option>
-              </FilterSelect>
+                <FilterSelect
+                  label="Time period"
+                  value={selectedPeriod}
+                  onChange={(e) => setSelectedPeriod(e.target.value)}
+                >
+                  <option value="today">Today</option>
+                  <option value="yesterday">Yesterday</option>
+                  <option value="week">This Week</option>
+                  <option value="lastWeek">Last Week</option>
+                  <option value="month">This Month</option>
+                  <option value="lastMonth">Last Month</option>
+                  <option value="custom">Custom Period</option>
+                </FilterSelect>
 
-              <div className="h-8 w-px bg-gray-200 hidden sm:block" />
+                <div className="h-9 w-px bg-gray-200 hidden sm:block" />
 
-              <button
-                type="button"
-                className="inline-flex items-center gap-1.5 rounded border border-gray-300 bg-white px-3 py-[7px] text-sm font-medium text-gray-600 transition hover:bg-gray-50 hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
-                onClick={fetchDashboardData}
-                disabled={loading}
-                title="Refresh dashboard data"
-              >
-                <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-                Refresh
-              </button>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 rounded border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-600 shadow-sm transition hover:bg-white hover:border-gray-300 hover:text-gray-900 hover:shadow disabled:cursor-not-allowed disabled:opacity-60"
+                  onClick={fetchDashboardData}
+                  disabled={loading}
+                  title="Refresh dashboard data"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+              </div>
             </div>
           </div>
 
@@ -673,19 +675,19 @@ function QuickActionTile({ label, icon: Icon, onClick }) {
 
 function FilterSelect({ label, value, onChange, children }) {
   return (
-    <div className="relative min-w-[150px]">
-      <span className="absolute left-3 -top-2 bg-white px-1 text-xs font-medium text-gray-500 z-10 leading-none">
+    <div className="relative min-w-[170px]">
+      <span className="absolute left-3 -top-2.5 bg-white px-1.5 text-[11px] font-semibold text-gray-400 z-10 leading-none tracking-wide uppercase">
         {label}
       </span>
-      <div className="relative border border-gray-300 bg-white rounded px-3 py-2">
+      <div className="relative border border-gray-200 bg-white shadow-sm px-3 py-2" style={{ borderRadius: 6 }}>
         <select
-          className="w-full appearance-none bg-transparent pr-6 text-sm font-medium text-gray-900 outline-none cursor-pointer"
+          className="w-full appearance-none bg-transparent pr-6 text-sm font-medium text-gray-800 outline-none cursor-pointer"
           value={value}
           onChange={onChange}
         >
           {children}
         </select>
-        <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+        <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
       </div>
     </div>
   );

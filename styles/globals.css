@@ -546,7 +546,7 @@ a:active,
 }
 
 .page-header {
-  @apply mb-6 md:mb-8;
+  @apply mb-6 md:mb-8 flex flex-wrap items-center justify-between gap-4;
 }
 
 .page-title {

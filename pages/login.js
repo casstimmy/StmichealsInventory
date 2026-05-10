@@ -142,19 +142,24 @@ export default function Login({ staffList, locations }) {
           <img
             src="/images/st-micheals-logo.png"
             alt="St Micheals Logo"
-            className="h-12 w-auto mx-auto lg:mx-0 mb-5"
+            className="h-14 w-auto mx-auto lg:mx-0 mb-6"
           />
-          <span className="inline-flex items-center px-3 py-1 mb-4 rounded border border-blue-100 bg-blue-50 text-blue-600 text-xs font-semibold uppercase tracking-wide">
+          <span className="inline-flex items-center px-3 py-1 mb-5 rounded border border-blue-100 bg-blue-50 text-blue-600 text-xs font-semibold uppercase tracking-wide">
             Inventory Management System
           </span>
-          <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 leading-snug mb-4">
-            St Micheals<br />Inventory Platform
+          <h1 className="text-4xl lg:text-5xl font-extrabold text-gray-900 leading-tight mb-5">
+            St Micheals<br />Inventory<br />Platform
           </h1>
-          <p className="text-sm text-gray-500 max-w-[280px] mx-auto lg:mx-0 leading-relaxed">
+          <p className="text-sm text-gray-500 max-w-[300px] mx-auto lg:mx-0 leading-relaxed mb-7">
             A secure and centralized system to manage products, staff access,
             and store operations with accuracy and control.
           </p>
-          <p className="mt-5 text-xs text-gray-400">Authorized personnel only</p>
+          <ul className="flex flex-col items-center lg:items-start gap-2.5 mb-8 text-sm text-gray-600">
+            <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />Product &amp; stock management</li>
+            <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />Sales reporting &amp; analytics</li>
+            <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />Role-based staff access control</li>
+          </ul>
+          <p className="text-xs text-gray-400">Authorized personnel only</p>
         </div>
 
         {/* ===== LOGIN CARD ===== */}

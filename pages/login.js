@@ -134,7 +134,7 @@ export default function Login({ staffList, locations }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 py-12" style={{ backgroundColor: 'var(--page-bg, #f9fafb)' }}>
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12" style={{ backgroundColor: 'var(--page-bg, #f9fafb)' }}>
       <div className="w-full max-w-4xl flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
 
         {/* ===== HERO ===== */}
@@ -260,6 +260,11 @@ export default function Login({ staffList, locations }) {
           </div>
         </div>
       </div>
+
+      {/* ===== FOOTER ===== */}
+      <p className="mt-10 text-xs text-gray-400 text-center">
+        &copy; {new Date().getFullYear()} St Micheals &middot; Powered by <span className="font-medium text-gray-500">BizSuits</span> &middot; All rights reserved
+      </p>
     </div>
   );
 }

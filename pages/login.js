@@ -134,8 +134,13 @@ export default function Login({ staffList, locations }) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12" style={{ backgroundColor: 'var(--page-bg, #f9fafb)' }}>
-      <div className="w-full max-w-4xl flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
+    <div className="relative min-h-screen flex flex-col items-center justify-center px-6 py-12 overflow-hidden" style={{ backgroundColor: 'var(--page-bg, #f9fafb)' }}>
+      {/* Decorative blobs */}
+      <div className="pointer-events-none absolute -top-32 -left-32 w-96 h-96 rounded-full bg-blue-100 opacity-40 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 -right-24 w-80 h-80 rounded-full bg-indigo-100 opacity-40 blur-3xl" />
+      <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-blue-50 opacity-30 blur-3xl" />
+
+      <div className="relative w-full max-w-4xl flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
 
         {/* ===== HERO ===== */}
         <div className="w-full lg:flex-1 text-center lg:text-left">

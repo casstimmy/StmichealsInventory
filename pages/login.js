@@ -142,19 +142,19 @@ export default function Login({ staffList, locations }) {
           <img
             src="/images/st-micheals-logo.png"
             alt="St Micheals Logo"
-            className="h-11 w-auto mx-auto lg:mx-0 mb-5"
+            className="h-12 w-auto mx-auto lg:mx-0 mb-5"
           />
-          <span className="inline-flex items-center px-2.5 py-0.5 mb-4 rounded border border-blue-100 bg-blue-50 text-blue-600 text-[11px] font-semibold uppercase tracking-wide">
+          <span className="inline-flex items-center px-3 py-1 mb-4 rounded border border-blue-100 bg-blue-50 text-blue-600 text-xs font-semibold uppercase tracking-wide">
             Inventory Management System
           </span>
-          <h1 className="text-2xl lg:text-3xl font-extrabold text-gray-900 leading-snug mb-3">
+          <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 leading-snug mb-4">
             St Micheals<br />Inventory Platform
           </h1>
-          <p className="text-xs text-gray-500 max-w-[260px] mx-auto lg:mx-0 leading-relaxed">
+          <p className="text-sm text-gray-500 max-w-[280px] mx-auto lg:mx-0 leading-relaxed">
             A secure and centralized system to manage products, staff access,
             and store operations with accuracy and control.
           </p>
-          <p className="mt-5 text-[11px] text-gray-400">Authorized personnel only</p>
+          <p className="mt-5 text-xs text-gray-400">Authorized personnel only</p>
         </div>
 
         {/* ===== LOGIN CARD ===== */}

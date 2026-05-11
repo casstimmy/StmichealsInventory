@@ -381,7 +381,24 @@ export default function Home() {
         for (let h = now.getHours() + 1; h < 24; h++) currentData[h] = null;
       }
 
-      return { labels: HOUR_LABELS, currentData, prevData };
+      // Trim to active window: find first and last hour with any data
+      let startH = 23;
+      let endH = 0;
+      for (let h = 0; h < 24; h++) {
+        const hasData = (currentData[h] ?? 0) > 0 || prevData[h] > 0;
+        if (hasData) { if (h < startH) startH = h; if (h > endH) endH = h; }
+      }
+      // For today also include the current hour even if no sales yet
+      if (selectedPeriod === "today") endH = Math.max(endH, now.getHours());
+      // If no transactions at all, fall back to full day
+      if (startH > endH) { startH = 0; endH = 23; }
+
+      const slicedLabels = HOUR_LABELS.slice(startH, endH + 1);
+      return {
+        labels: slicedLabels,
+        currentData: currentData.slice(startH, endH + 1),
+        prevData: prevData.slice(startH, endH + 1),
+      };
     }
 
     if (selectedPeriod === "week" || selectedPeriod === "lastWeek") {

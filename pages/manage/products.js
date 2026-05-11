@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { Search } from "lucide-react";
+import { Search, RefreshCw } from "lucide-react";
 import Layout from "@/components/Layout";
 import { formatCurrency as formatCurrencyValue } from "@/lib/format";
 import axios from "axios";
@@ -578,7 +578,8 @@ export default function Products() {
               title="Refresh products from server"
               disabled={isRefreshingList}
             >
-               {isRefreshingList ? "Refreshing..." : "Refresh"}
+              <RefreshCw className={`h-3.5 w-3.5 ${isRefreshingList ? 'animate-spin' : ''}`} />
+              {isRefreshingList ? "Refreshing..." : "Refresh"}
             </button>
             <button
               type="button"

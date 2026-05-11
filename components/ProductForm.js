@@ -60,7 +60,7 @@ export default function ProductForm(props) {
   const [description, setDescription] = useState(props.description || "");
   const [costPrice, setCostPrice] = useState(props.costPrice ?? "");
   const [taxRate, setTaxRate] = useState(
-    props.taxRate != null ? String(props.taxRate) : "4.5"
+    props.taxRate != null ? String(props.taxRate) : "7.5"
   );
   const [salePriceIncTax, setSalePriceIncTax] = useState(
     props.salePriceIncTax ?? ""
@@ -95,6 +95,7 @@ export default function ProductForm(props) {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [duplicateMode, setDuplicateMode] = useState(false);
   const { start, onFetch, onProcess, complete } = useProgress();
   const {
     progress: saveProgress,
@@ -116,7 +117,7 @@ export default function ProductForm(props) {
     setName(props.name || "");
     setDescription(props.description || "");
     setCostPrice(props.costPrice ?? "");
-    setTaxRate(props.taxRate != null ? String(props.taxRate) : "4.5");
+    setTaxRate(props.taxRate != null ? String(props.taxRate) : "7.5");
     setSalePriceIncTax(props.salePriceIncTax ?? "");
     setMargin(props.margin ?? "");
     setBarcode(props.barcode || "");
@@ -313,7 +314,7 @@ export default function ProductForm(props) {
       onSaveFetch();
 
       let savedId = props._id || null;
-      if (props._id) {
+      if (props._id && !duplicateMode) {
         const res = await axios.put("/api/products", { ...data, _id: props._id });
         savedId = res?.data?.data?._id || props._id;
         setSuccessMessage("Product updated successfully!");
@@ -405,9 +406,35 @@ export default function ProductForm(props) {
         />
       )}
       <div className="content-card">
-      <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-6 text-gray-800">
-        {props._id ? "Edit Product" : "Add New Product"}
-      </h2>
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800">
+          {duplicateMode ? "Duplicate Product" : props._id ? "Edit Product" : "Add New Product"}
+        </h2>
+        {props._id && !duplicateMode && (
+          <button
+            type="button"
+            className="btn-action-secondary flex items-center gap-1.5 text-sm"
+            onClick={() => {
+              setDuplicateMode(true);
+              setName((prev) => `${prev} (Copy)`);
+            }}
+          >
+            Duplicate
+          </button>
+        )}
+        {duplicateMode && (
+          <button
+            type="button"
+            className="btn-action-secondary flex items-center gap-1.5 text-sm"
+            onClick={() => {
+              setDuplicateMode(false);
+              setName((prev) => prev.replace(/ \(Copy\)$/, ""));
+            }}
+          >
+            Cancel Duplicate
+          </button>
+        )}
+      </div>
 
       {/* Basic Info */}
       <Section title="Basic Information">
@@ -688,7 +715,6 @@ export default function ProductForm(props) {
                 onChange={(e) => setTaxRate(e.target.value)}
                 disabled={!applyTax}
               >
-                <option value="4.5">4.5%</option>
                 <option value="7.5">7.5%</option>
               </select>
               <label className="flex items-center gap-1 text-sm text-gray-600">
@@ -981,7 +1007,11 @@ export default function ProductForm(props) {
           }`}
           disabled={isSaving || isUploading}
         >
-          {isSaving ? `Saving... ${Math.round(saveProgress)}%` : "Save Product"}
+          {isSaving
+            ? `Saving... ${Math.round(saveProgress)}%`
+            : duplicateMode
+            ? "Save as New Product"
+            : "Save Product"}
         </button>
       </div>
 

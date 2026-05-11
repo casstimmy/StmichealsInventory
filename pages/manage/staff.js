@@ -278,13 +278,11 @@ export default function StaffPage() {
         <div className="page-content">
           {/* Header */}
           <div className="page-header">
-            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-              <div>
-                <h1 className="page-title">Manage Staff</h1>
-                <p className="page-subtitle">Create staff accounts, maintain profiles, and manage payroll details.</p>
-              </div>
-              <button type="button" onClick={() => router.push("/manage/staff-roles")} className="btn-action btn-action-secondary">Manage POS Roles</button>
+            <div>
+              <h1 className="page-title">Manage Staff</h1>
+              <p className="page-subtitle">Create staff accounts, maintain profiles, and manage payroll details.</p>
             </div>
+            <button type="button" onClick={() => router.push("/manage/staff-roles")} className="btn-action btn-action-secondary">Manage POS Roles</button>
           </div>
 
           {/* Add New Staff Form */}

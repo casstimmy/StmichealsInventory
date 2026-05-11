@@ -115,7 +115,7 @@ export default function LocationsSales() {
       label: "Total Sales",
       data: data.locations.map((l) => l.totalSales),
       backgroundColor: chartColors.slice(0, data.locations.length),
-      borderRadius: 6,
+      borderRadius: 2,
     }],
   } : null;
 

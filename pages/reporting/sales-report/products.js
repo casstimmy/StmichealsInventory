@@ -80,7 +80,7 @@ export default function ProductsSales() {
       label: "Total Sales",
       data: top10.map((p) => p.totalSales),
       backgroundColor: chartColors.slice(0, top10.length),
-      borderRadius: 6,
+      borderRadius: 2,
     }],
   } : null;
 

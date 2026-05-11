@@ -316,7 +316,7 @@ function applyFilters() {
         tx.heldByStaffName || "-",
         tx.location || "N/A",
         tx.device,
-        new Date(tx.createdAt).toLocaleString(),
+        new Date(tx.createdAt).toLocaleString("en-NG", { timeZone: "Africa/Lagos" }),
         tx.customerName || "N/A",
         tx.discount,
         tx.discountReason,
@@ -701,7 +701,7 @@ function applyFilters() {
                             {tx.location || "N/A"}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-gray-600 text-xs">{new Date(tx.createdAt).toLocaleString("en-NG")}</td>
+                        <td className="px-4 py-3 text-gray-600 text-xs">{new Date(tx.createdAt).toLocaleString("en-NG", { timeZone: "Africa/Lagos" })}</td>
                         <td className="px-4 py-3 text-gray-800">{tx.customerName || "Walk-in"}</td>
                         <td className="px-4 py-3 text-center">
                           <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadgeClass(tx.status, tx.subStatus)}`}>

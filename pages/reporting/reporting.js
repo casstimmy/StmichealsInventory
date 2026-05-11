@@ -303,7 +303,7 @@ export default function Reporting() {
                         "#ef4444",
                         "#8b5cf6",
                       ],
-                      borderRadius: 8,
+                      borderRadius: 2,
                       borderSkipped: false,
                     },
                   ],

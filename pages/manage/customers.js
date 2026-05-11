@@ -7,6 +7,7 @@ import Link from "next/link";
 import { showConfirmDialog } from "@/lib/dialogs";
 import { showToastMessage } from "@/lib/toast-state";
 import { useState, useEffect } from "react";
+import { Search, Users, Megaphone } from "lucide-react";
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState([]);
@@ -159,7 +160,7 @@ export default function CustomersPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="form-input w-full pl-10"
               />
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">🔍</span>
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
             </div>
             {searchQuery && (
               <p className="text-sm text-gray-500 mt-2">
@@ -176,13 +177,19 @@ export default function CustomersPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
             <Link href="/manage/customers">
               <div className="content-card hover:shadow-md cursor-pointer border-l-4 border-l-sky-600 transition-shadow">
-                <p className="font-bold text-gray-900 text-sm md:text-base">📋 Customers</p>
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-sky-600 flex-shrink-0" />
+                  <p className="font-bold text-gray-900 text-sm md:text-base">Customers</p>
+                </div>
                 <p className="text-xs md:text-sm text-gray-600 mt-1">Manage all customers</p>
               </div>
             </Link>
             <Link href="/manage/promotions-management">
               <div className="content-card hover:shadow-md cursor-pointer border-l-4 border-l-sky-600 transition-shadow">
-                <p className="font-bold text-gray-900 text-sm md:text-base">📢 Promotions & Campaigns</p>
+                <div className="flex items-center gap-2">
+                  <Megaphone className="h-4 w-4 text-sky-600 flex-shrink-0" />
+                  <p className="font-bold text-gray-900 text-sm md:text-base">Promotions &amp; Campaigns</p>
+                </div>
                 <p className="text-xs md:text-sm text-gray-600 mt-1">Manage customer promotions</p>
               </div>
             </Link>

@@ -267,7 +267,7 @@ export default function CategoriesSales() {
             <h2 className="text-lg font-bold text-gray-800 mb-4">Category Sales Comparison</h2>
             <div className="h-[350px]">
               <Bar
-                data={{ labels: categories.map(c => c.name), datasets: [{ label: "Sales", data: categories.map(c => c.sales), backgroundColor: "#06B6D4", borderRadius: 8, borderSkipped: false }] }}
+                data={{ labels: categories.map(c => c.name), datasets: [{ label: "Sales", data: categories.map(c => c.sales), backgroundColor: "#06B6D4", borderRadius: 2, borderSkipped: false }] }}
                 options={{ indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }}
               />
             </div>

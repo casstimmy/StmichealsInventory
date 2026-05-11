@@ -19,7 +19,7 @@ export default async function handler(req, res) {
     await connectToDatabase();
 
     const { locationId } = req.query;
-    const { name, address, phone, email, code } = req.body;
+    const { name, address, phone, email, code, qrUrl, qrDescription, qrDataUrl } = req.body;
 
     // Validate locationId format
     if (!locationId || !ObjectId.isValid(locationId)) {
@@ -50,6 +50,9 @@ export default async function handler(req, res) {
           "locations.$.phone": phone || "",
           "locations.$.email": email || "",
           "locations.$.code": code || "",
+          "locations.$.qrUrl": qrUrl !== undefined ? qrUrl : "",
+          "locations.$.qrDescription": qrDescription !== undefined ? qrDescription : "",
+          "locations.$.qrDataUrl": qrDataUrl !== undefined ? qrDataUrl : "",
         },
       },
       { new: true }

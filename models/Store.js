@@ -12,6 +12,10 @@ const LocationSchema = new mongoose.Schema(
     // Tenders and Categories specific to this location
     tenders: [{ type: mongoose.Schema.Types.ObjectId, ref: "Tender" }],
     categories: [{ type: mongoose.Schema.Types.ObjectId, ref: "Category" }],
+    // Per-location QR code for receipts
+    qrUrl: { type: String, default: "" },
+    qrDescription: { type: String, default: "" },
+    qrDataUrl: { type: String, default: "" },
   },
   { _id: true } 
 );

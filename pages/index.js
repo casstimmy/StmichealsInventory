@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { Bar } from "react-chartjs-2";
+import { Bar, Line } from "react-chartjs-2";
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/router";
 import { apiClient } from "@/lib/api-client";
@@ -14,6 +14,7 @@ import { aggregateProductSales } from "@/lib/product-sales-report";
 import {
   ArrowRight,
   ChevronDown,
+  ChevronUp,
   List,
   Mail,
   PackagePlus,
@@ -53,6 +54,16 @@ const PERIOD_LABELS = {
   month: "This Month",
   lastMonth: "Last Month",
   custom: "Custom Period",
+};
+
+const COMPARISON_LABELS = {
+  today:     { current: "Today",        prev: "Week Before" },
+  yesterday: { current: "Yesterday",    prev: "Week Before" },
+  week:      { current: "This Week",    prev: "Last Week" },
+  lastWeek:  { current: "Last Week",    prev: "Week Before" },
+  month:     { current: "This Month",   prev: "Last Month" },
+  lastMonth: { current: "Last Month",   prev: "Month Before" },
+  custom:    { current: "Selected",     prev: null },
 };
 
 function computeTrend(current, previous) {
@@ -110,6 +121,7 @@ export default function Home() {
     startDate: "",
     endDate: "",
   });
+  const [salesChartOpen, setSalesChartOpen] = useState(true);
 
   /* =======================
      FETCH DATA (Optimized with caching + parallel calls)
@@ -326,6 +338,108 @@ export default function Home() {
     const count = prevFilteredTransactions.length;
     return { sales, transactions: count, avg: count ? sales / count : 0 };
   }, [prevFilteredTransactions]);
+
+  /* =======================
+     SALES TREND CHART DATA
+  ======================= */
+  const salesChartData = useMemo(() => {
+    const DAY = 86400000;
+    const now = new Date();
+    const completed = allTransactions.filter(
+      (tx) =>
+        tx.status === "completed" && matchesSelectedLocation(tx, selectedLocation)
+    );
+
+    const HOUR_LABELS = Array.from({ length: 24 }, (_, h) => {
+      if (h === 0) return "12AM";
+      if (h === 12) return "12PM";
+      return h < 12 ? `${h}AM` : `${h - 12}PM`;
+    });
+    const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+    if (selectedPeriod === "today" || selectedPeriod === "yesterday") {
+      const curDay =
+        selectedPeriod === "today"
+          ? new Date(now.getFullYear(), now.getMonth(), now.getDate())
+          : new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+      const prevDay = new Date(curDay.getTime() - 7 * DAY);
+
+      const currentData = Array(24).fill(0);
+      const prevData = Array(24).fill(0);
+
+      completed.forEach((tx) => {
+        const d = new Date(tx.createdAt);
+        const dKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+        const curKey = `${curDay.getFullYear()}-${curDay.getMonth()}-${curDay.getDate()}`;
+        const prevKey = `${prevDay.getFullYear()}-${prevDay.getMonth()}-${prevDay.getDate()}`;
+        if (dKey === curKey) currentData[d.getHours()] += Number(tx.total || 0);
+        if (dKey === prevKey) prevData[d.getHours()] += Number(tx.total || 0);
+      });
+
+      // Null-out future hours for "today" so line doesn't extend into future
+      if (selectedPeriod === "today") {
+        for (let h = now.getHours() + 1; h < 24; h++) currentData[h] = null;
+      }
+
+      return { labels: HOUR_LABELS, currentData, prevData };
+    }
+
+    if (selectedPeriod === "week" || selectedPeriod === "lastWeek") {
+      const weekStart =
+        selectedPeriod === "week"
+          ? new Date(now.getTime() - 7 * DAY)
+          : new Date(now.getTime() - 14 * DAY);
+      weekStart.setHours(0, 0, 0, 0);
+      const prevWeekStart = new Date(weekStart.getTime() - 7 * DAY);
+
+      const labels = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(weekStart.getTime() + i * DAY);
+        return `${DAY_NAMES[d.getDay()]} ${d.getDate()}`;
+      });
+
+      const currentData = Array(7).fill(0);
+      const prevData = Array(7).fill(0);
+
+      completed.forEach((tx) => {
+        const d = new Date(tx.createdAt);
+        const diffCur = Math.floor((d - weekStart) / DAY);
+        const diffPrev = Math.floor((d - prevWeekStart) / DAY);
+        if (diffCur >= 0 && diffCur < 7) currentData[diffCur] += Number(tx.total || 0);
+        if (diffPrev >= 0 && diffPrev < 7) prevData[diffPrev] += Number(tx.total || 0);
+      });
+
+      return { labels, currentData, prevData };
+    }
+
+    if (selectedPeriod === "month" || selectedPeriod === "lastMonth") {
+      const refDate =
+        selectedPeriod === "month"
+          ? new Date(now.getFullYear(), now.getMonth(), 1)
+          : new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const prevRefDate = new Date(refDate.getFullYear(), refDate.getMonth() - 1, 1);
+
+      const daysInCur = new Date(refDate.getFullYear(), refDate.getMonth() + 1, 0).getDate();
+      const daysInPrev = new Date(prevRefDate.getFullYear(), prevRefDate.getMonth() + 1, 0).getDate();
+      const maxDays = Math.max(daysInCur, daysInPrev);
+
+      const labels = Array.from({ length: maxDays }, (_, i) => `${i + 1}`);
+      const currentData = Array(maxDays).fill(0);
+      const prevData = Array(maxDays).fill(0);
+
+      completed.forEach((tx) => {
+        const d = new Date(tx.createdAt);
+        const dayIdx = d.getDate() - 1;
+        if (d.getFullYear() === refDate.getFullYear() && d.getMonth() === refDate.getMonth())
+          currentData[dayIdx] += Number(tx.total || 0);
+        if (d.getFullYear() === prevRefDate.getFullYear() && d.getMonth() === prevRefDate.getMonth())
+          prevData[dayIdx] += Number(tx.total || 0);
+      });
+
+      return { labels, currentData, prevData };
+    }
+
+    return { labels: [], currentData: [], prevData: [] };
+  }, [allTransactions, selectedPeriod, selectedLocation]);
 
   /* =======================
      PRODUCT SALES
@@ -592,6 +706,131 @@ export default function Home() {
             </div>
           )}
         </section>
+
+        {/* Sales Trend Chart — collapsible */}
+        {!loading && salesChartData.labels.length > 0 && selectedPeriod !== "custom" && (
+          <section
+            className="overflow-hidden border border-gray-200 bg-white"
+            style={{ borderRadius: "var(--radius-lg)" }}
+          >
+            {/* Header row */}
+            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+              <div>
+                <h2 className="text-base font-bold tracking-tight text-gray-900">
+                  Sales Over Time
+                </h2>
+                <p className="mt-0.5 text-xs text-gray-400">
+                  {COMPARISON_LABELS[selectedPeriod]?.current} vs{" "}
+                  {COMPARISON_LABELS[selectedPeriod]?.prev} · refunds excluded
+                </p>
+              </div>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 rounded border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 shadow-sm transition hover:bg-white hover:border-gray-300"
+                onClick={() => setSalesChartOpen((o) => !o)}
+                aria-label={salesChartOpen ? "Collapse chart" : "Expand chart"}
+              >
+                {salesChartOpen ? (
+                  <>
+                    <ChevronUp className="h-3.5 w-3.5" />
+                    Collapse
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-3.5 w-3.5" />
+                    Expand
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Chart body */}
+            {salesChartOpen && (
+              <div className="px-5 pt-4 pb-5">
+                <div className="h-[220px] sm:h-[280px] md:h-[320px]">
+                  <Line
+                    data={{
+                      labels: salesChartData.labels,
+                      datasets: [
+                        {
+                          label: COMPARISON_LABELS[selectedPeriod]?.current || "Current",
+                          data: salesChartData.currentData,
+                          borderColor: "#2563eb",
+                          backgroundColor: "rgba(37,99,235,0.08)",
+                          pointRadius: 3,
+                          pointHoverRadius: 5,
+                          borderWidth: 2,
+                          tension: 0.3,
+                          fill: true,
+                          spanGaps: false,
+                        },
+                        {
+                          label: COMPARISON_LABELS[selectedPeriod]?.prev || "Previous",
+                          data: salesChartData.prevData,
+                          borderColor: "#f97316",
+                          backgroundColor: "transparent",
+                          pointRadius: 3,
+                          pointHoverRadius: 5,
+                          borderWidth: 2,
+                          borderDash: [6, 4],
+                          tension: 0.3,
+                          fill: false,
+                        },
+                      ],
+                    }}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      interaction: { mode: "index", intersect: false },
+                      plugins: {
+                        legend: {
+                          position: "top",
+                          align: "end",
+                          labels: {
+                            usePointStyle: true,
+                            pointStyle: "line",
+                            boxWidth: 24,
+                            font: { size: 11 },
+                            padding: 16,
+                          },
+                        },
+                        tooltip: {
+                          callbacks: {
+                            label: (ctx) =>
+                              ` ${ctx.dataset.label}: ${formatCurrency(ctx.raw ?? 0)}`,
+                          },
+                        },
+                      },
+                      scales: {
+                        x: {
+                          grid: { display: false },
+                          ticks: {
+                            font: { size: 10 },
+                            maxRotation: 0,
+                            autoSkip: true,
+                            maxTicksLimit: 12,
+                          },
+                        },
+                        y: {
+                          grid: { color: "rgba(0,0,0,0.04)" },
+                          ticks: {
+                            font: { size: 10 },
+                            callback: (v) =>
+                              v >= 1000000
+                                ? `₦${(v / 1000000).toFixed(1)}M`
+                                : v >= 1000
+                                ? `₦${(v / 1000).toFixed(0)}k`
+                                : `₦${v}`,
+                          },
+                        },
+                      },
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+          </section>
+        )}
 
         {!loading && (
           <>

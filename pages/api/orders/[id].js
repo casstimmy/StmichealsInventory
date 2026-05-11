@@ -90,66 +90,88 @@ export default async function handler(req, res) {
     }
 
     if (nextStatus === "Delivered" && prevStatus !== "Delivered") {
-      const externalId = `order:${order._id.toString()}`;
-      const existingTx = await Transaction.findOne({ externalId });
+      // Guard: if inventory was already finalized by another system (e.g. Paystack), skip deduction
+      if (order.inventoryFinalizedBy) {
+        console.log(`Order ${order._id} inventory already finalized by '${order.inventoryFinalizedBy}' — skipping deduction`);
+      } else {
+        const externalId = `order:${order._id.toString()}`;
+        const existingTx = await Transaction.findOne({ externalId });
 
-      if (!existingTx) {
-        const orderItems = Array.isArray(order.cartProducts) && order.cartProducts.length
-          ? order.cartProducts
-          : order.items || [];
+        if (!existingTx) {
+          const orderItems = Array.isArray(order.cartProducts) && order.cartProducts.length
+            ? order.cartProducts
+            : order.items || [];
 
-        const items = orderItems
-          .map((item) => ({
-            name: item.name,
-            qty: Number(item.quantity || 0),
-            quantity: Number(item.quantity || 0),
-            salePriceIncTax: Number(item.price || 0),
-            price: Number(item.price || 0),
-            productId: item.productId,
-          }))
-          .filter((item) => item.productId && item.qty > 0);
+          const items = orderItems
+            .map((item) => ({
+              name: item.name,
+              qty: Number(item.quantity || 0),
+              quantity: Number(item.quantity || 0),
+              salePriceIncTax: Number(item.price || 0),
+              price: Number(item.price || 0),
+              productId: item.productId,
+            }))
+            .filter((item) => item.productId && item.qty > 0);
 
-        const transaction = await Transaction.create({
-          tenderType: "online",
-          amountPaid: Number(order.total || 0),
-          total: Number(order.total || 0),
-          subtotal: Number(order.subtotal || order.total || 0),
-          tax: 0,
-          staff: null,
-          staffName: "Online",
-          location: nextLocationName || "online",
-          device: "Web",
-          discount: 0,
-          discountReason: null,
-          customerName:
-            order.shippingDetails?.name || order.customer?.name || "Online User",
-          transactionType: "pos",
-          status: "completed",
-          change: 0,
-          items,
-          externalId,
-          dedupeKey: externalId,
-        });
+          const transaction = await Transaction.create({
+            tenderType: "online",
+            amountPaid: Number(order.total || 0),
+            total: Number(order.total || 0),
+            subtotal: Number(order.subtotal || order.total || 0),
+            tax: 0,
+            staff: null,
+            staffName: "Online",
+            location: nextLocationName || "online",
+            device: "Web",
+            discount: 0,
+            discountReason: null,
+            customerName:
+              order.shippingDetails?.name || order.customer?.name || "Online User",
+            transactionType: "pos",
+            status: "completed",
+            change: 0,
+            items,
+            externalId,
+            dedupeKey: externalId,
+          });
 
-        await applyInventoryDelta(items, "decrement");
-        transaction.inventoryUpdated = true;
-        await transaction.save();
+          await applyInventoryDelta(items, "decrement");
+          transaction.inventoryUpdated = true;
+          await transaction.save();
 
-        for (const item of items) {
-          try {
-            await Product.findByIdAndUpdate(item.productId, {
-              $push: {
-                salesHistory: {
-                  orderId: order._id,
-                  quantity: item.qty,
-                  salePrice: item.salePriceIncTax,
-                  soldAt: new Date(),
-                },
-              },
-            });
-          } catch (error) {
-            console.warn("Failed to append product salesHistory:", error?.message);
+          // Clear the online reservation on each product so the webpage's available-stock
+          // calculation (quantity - reservedQuantity) becomes accurate again.
+          for (const item of items) {
+            try {
+              // Use an aggregation pipeline update to safely floor at 0
+              await Product.updateOne(
+                { _id: item.productId },
+                [{ $set: { reservedQuantity: { $max: [0, { $subtract: ["$reservedQuantity", item.qty] }] } } }]
+              );
+            } catch (err) {
+              console.warn("Failed to clear reservedQuantity for product:", item.productId, err?.message);
+            }
           }
+
+          for (const item of items) {
+            try {
+              await Product.findByIdAndUpdate(item.productId, {
+                $push: {
+                  salesHistory: {
+                    orderId: order._id,
+                    quantity: item.qty,
+                    salePrice: item.salePriceIncTax,
+                    soldAt: new Date(),
+                  },
+                },
+              });
+            } catch (error) {
+              console.warn("Failed to append product salesHistory:", error?.message);
+            }
+          }
+
+          // Mark the order so no other system tries to deduct inventory again
+          await Order.findByIdAndUpdate(id, { $set: { inventoryFinalizedBy: "admin" } });
         }
       }
     }

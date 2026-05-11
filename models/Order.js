@@ -65,7 +65,12 @@ const orderSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"],
+      enum: [
+        // Standard fulfilment statuses (set by admin)
+        "Pending", "Processing", "Shipped", "Delivered", "Cancelled",
+        // Online order lifecycle statuses (set by webpage-app)
+        "Pending Payment", "Inventory Reserved", "Reservation Expired",
+      ],
       default: "Pending",
     },
 
@@ -75,6 +80,10 @@ const orderSchema = new mongoose.Schema(
     },
 
     paid: { type: Boolean, default: false },
+
+    // Prevents double inventory deduction across systems.
+    // Set to 'paystack' when online payment finalizes, 'admin' when admin delivers.
+    inventoryFinalizedBy: { type: String, enum: ["paystack", "admin", null], default: null },
   },
   { timestamps: true }
 );

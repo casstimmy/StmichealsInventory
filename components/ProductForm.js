@@ -84,6 +84,14 @@ export default function ProductForm(props) {
   const [selectedLocations, setSelectedLocations] = useState(props.locations || []);
   const [allLocations, setAllLocations] = useState([]);
 
+  // True when editing an existing derived unit child (isChildProduct + parentProduct set + not itself a pack)
+  // costPrice and quantity on these products are controlled by the parent — not directly editable.
+  const isDerivedChild =
+    !!props._id &&
+    !!props.isChildProduct &&
+    !!props.parentProduct &&
+    props.packType !== "pack";
+
   const [isPromotion, setIsPromotion] = useState(props.isPromotion || false);
   const [promoPrice, setPromoPrice] = useState(props.promoPrice ?? "");
   const [promoStart, setPromoStart] = useState(
@@ -702,6 +710,8 @@ export default function ProductForm(props) {
             }}
             required
             error={fieldErrors.costPrice}
+            disabled={isDerivedChild}
+            note={isDerivedChild ? "Set by parent pack — edit the parent product to change this." : undefined}
           />
           <div className="form-group">
             <label className="form-label">
@@ -786,6 +796,8 @@ export default function ProductForm(props) {
                   type="number"
                   value={quantity}
                   setValue={setQuantity}
+                  disabled={isDerivedChild}
+                  note={isDerivedChild ? "Derived from parent pack qty × qty per pack." : undefined}
                 />
               )}
             </div>
@@ -1034,6 +1046,8 @@ function InputField({
   textarea,
   required,
   error,
+  disabled,
+  note,
 }) {
   return (
     <div className="form-group">
@@ -1043,22 +1057,25 @@ function InputField({
           name={name}
           className={`form-input min-h-[80px] ${
             error ? "border-red-500 ring-1 ring-red-200" : ""
-          }`}
+          } ${disabled ? "bg-gray-100 cursor-not-allowed text-gray-500" : ""}`}
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => !disabled && setValue(e.target.value)}
           required={required}
+          disabled={disabled}
         />
       ) : (
         <input
           name={name}
           type={type}
-          className={`form-input ${error ? "border-red-500 ring-1 ring-red-200" : ""}`}
+          className={`form-input ${error ? "border-red-500 ring-1 ring-red-200" : ""} ${disabled ? "bg-gray-100 cursor-not-allowed text-gray-500" : ""}`}
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => !disabled && setValue(e.target.value)}
           onWheel={type === "number" ? (e) => e.currentTarget.blur() : undefined}
           required={required}
+          disabled={disabled}
         />
       )}
+      {note && <p className="mt-1 text-xs text-amber-600">{note}</p>}
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
     </div>
   );

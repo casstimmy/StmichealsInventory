@@ -682,96 +682,6 @@ export default function Home() {
 
         {!loading && (
           <>
-            {/* HOURLY SALES DISTRIBUTION (collapsible) */}
-            <section
-              className="overflow-hidden border border-gray-200 bg-white"
-              style={{ borderRadius: "var(--radius-lg)" }}
-            >
-              <button
-                type="button"
-                className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
-                onClick={() => setShowHourlyChart((v) => !v)}
-              >
-                <div>
-                  <h2 className="text-base font-bold tracking-tight text-gray-900">
-                    Hourly Sales Distribution
-                  </h2>
-                  <p className="mt-0.5 text-xs text-gray-400">
-                    Sales by hour of day — {PERIOD_LABELS[selectedPeriod] || "selected period"}
-                  </p>
-                </div>
-                {showHourlyChart
-                  ? <ChevronUp className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                  : <ChevronDown className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                }
-              </button>
-
-              {showHourlyChart && (
-                <div className="border-t border-gray-200 px-5 pb-5 pt-4">
-                  <div className="h-[280px] sm:h-[320px]">
-                    <Bar
-                      data={{
-                        labels: DASH_HOUR_LABELS,
-                        datasets: [
-                          {
-                            label: "Sales",
-                            data: hourlyOfDay,
-                            backgroundColor: (() => {
-                              const peak = Math.max(...hourlyOfDay);
-                              return hourlyOfDay.map((v) =>
-                                peak > 0 && v === peak ? "#0891b2" : "rgba(8,145,178,0.4)"
-                              );
-                            })(),
-                            borderRadius: 5,
-                            borderSkipped: false,
-                          },
-                        ],
-                      }}
-                      options={{
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                          legend: { display: false },
-                          tooltip: {
-                            callbacks: {
-                              label: (ctx) => ` ${formatCurrency(ctx.parsed.y)}`,
-                            },
-                          },
-                        },
-                        scales: {
-                          x: {
-                            title: { display: true, text: "Hour of Day", font: { size: 11 } },
-                            grid: { display: false },
-                            ticks: { font: { size: 10 } },
-                          },
-                          y: {
-                            beginAtZero: true,
-                            title: { display: true, text: "Sales", font: { size: 11 } },
-                            ticks: {
-                              callback: (v) => formatCurrency(Number(v || 0)),
-                              font: { size: 10 },
-                            },
-                          },
-                        },
-                      }}
-                    />
-                  </div>
-                  {(() => {
-                    const peak = Math.max(...hourlyOfDay);
-                    if (peak <= 0) return null;
-                    const peakHour = hourlyOfDay.indexOf(peak);
-                    return (
-                      <p className="mt-3 text-center text-xs text-gray-400">
-                        Peak hour:{" "}
-                        <span className="font-semibold text-cyan-700">{DASH_HOUR_LABELS[peakHour]}</span>
-                        {" — "}{formatCurrency(peak)} in sales
-                      </p>
-                    );
-                  })()}
-                </div>
-              )}
-            </section>
-
             {/* TIME PERIOD COMPARISON (collapsible) */}
             <section
               className="overflow-hidden border border-gray-200 bg-white"
@@ -891,42 +801,6 @@ export default function Home() {
                       />
                     </div>
 
-                    {/* Comparison Table */}
-                    {comparisonChartData.labels.length > 0 && (
-                      <div className="mt-5 overflow-x-auto">
-                        <table className="w-full text-xs">
-                          <thead>
-                            <tr className="border-b border-gray-200">
-                              <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-400">Period</th>
-                              <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wide text-sky-500">{currLbl}</th>
-                              <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wide text-purple-500">{cmpLbl}</th>
-                              <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wide text-gray-400">Δ Change</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-100">
-                            {comparisonChartData.labels.map((lbl, i) => {
-                              const v1 = comparisonChartData.curr[i] || 0;
-                              const v2 = comparisonChartData.prev[i] || 0;
-                              const d = v1 - v2;
-                              const pct = v2 > 0 ? ((d / v2) * 100).toFixed(1) : null;
-                              return (
-                                <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                                  <td className="px-3 py-2 font-medium text-gray-600">{lbl}</td>
-                                  <td className="px-3 py-2 text-right text-gray-800">{formatCurrency(v1)}</td>
-                                  <td className="px-3 py-2 text-right text-gray-500">{formatCurrency(v2)}</td>
-                                  <td className={`px-3 py-2 text-right font-semibold ${d >= 0 ? "text-emerald-600" : "text-red-500"}`}>
-                                    {d >= 0 ? "+" : ""}{formatCurrency(d)}
-                                    {pct !== null && (
-                                      <span className="ml-1 font-normal opacity-70">({d >= 0 ? "+" : ""}{pct}%)</span>
-                                    )}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
                   </div>
                 );
               })()}

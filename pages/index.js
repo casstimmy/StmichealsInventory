@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { Bar } from "react-chartjs-2";
+import { Bar, Line } from "react-chartjs-2";
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/router";
 import { apiClient } from "@/lib/api-client";
@@ -14,6 +14,7 @@ import { aggregateProductSales } from "@/lib/product-sales-report";
 import {
   ArrowRight,
   ChevronDown,
+  ChevronUp,
   List,
   Mail,
   Minus,
@@ -30,9 +31,11 @@ import {
   BarElement,
   PointElement,
   LineElement,
+  ArcElement,
   Title,
   Tooltip,
   Legend,
+  Filler,
 } from "chart.js";
 
 ChartJS.register(
@@ -41,9 +44,11 @@ ChartJS.register(
   BarElement,
   PointElement,
   LineElement,
+  ArcElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 );
 
 const PERIOD_LABELS = {
@@ -65,6 +70,13 @@ const COMPARISON_LABELS = {
   lastMonth: "vs month before that",
   custom:    "",
 };
+
+const DASH_HOUR_LABELS = Array.from({ length: 24 }, (_, i) => {
+  if (i === 0) return "12 AM";
+  if (i < 12) return `${i} AM`;
+  if (i === 12) return "12 PM";
+  return `${i - 12} PM`;
+});
 
 function computeTrend(current, previous) {
   if (previous === 0 && current === 0) return null;
@@ -436,6 +448,60 @@ export default function Home() {
   const avgTrend = computeTrend(kpis.avg, prevKpis.avg);
   const comparisonLabel = COMPARISON_LABELS[selectedPeriod] ?? "";
 
+  /* =======================
+     HOURLY OF DAY (0-23)
+  ======================= */
+  const [showHourlyChart, setShowHourlyChart] = useState(true);
+  const [showComparison, setShowComparison] = useState(true);
+
+  const hourlyOfDay = useMemo(() => {
+    const arr = new Array(24).fill(0);
+    filteredTransactions.forEach((tx) => {
+      const h = new Date(tx.createdAt).getHours();
+      arr[h] += tx.total || 0;
+    });
+    return arr;
+  }, [filteredTransactions]);
+
+  /* =======================
+     COMPARISON CHART DATA
+  ======================= */
+  const comparisonChartData = useMemo(() => {
+    const isHourly = selectedPeriod === "today" || selectedPeriod === "yesterday";
+
+    if (isHourly) {
+      const curr = new Array(24).fill(0);
+      const prev = new Array(24).fill(0);
+      filteredTransactions.forEach((tx) => {
+        curr[new Date(tx.createdAt).getHours()] += tx.total || 0;
+      });
+      prevFilteredTransactions.forEach((tx) => {
+        prev[new Date(tx.createdAt).getHours()] += tx.total || 0;
+      });
+      return { labels: DASH_HOUR_LABELS, curr, prev, currKeys: DASH_HOUR_LABELS, prevKeys: DASH_HOUR_LABELS };
+    }
+
+    // Daily grouping for all other periods
+    const currBuckets = {};
+    const prevBuckets = {};
+    filteredTransactions.forEach((tx) => {
+      const d = new Date(tx.createdAt).toISOString().split("T")[0];
+      currBuckets[d] = (currBuckets[d] || 0) + (tx.total || 0);
+    });
+    prevFilteredTransactions.forEach((tx) => {
+      const d = new Date(tx.createdAt).toISOString().split("T")[0];
+      prevBuckets[d] = (prevBuckets[d] || 0) + (tx.total || 0);
+    });
+
+    const currKeys = Object.keys(currBuckets).sort();
+    const prevKeys = Object.keys(prevBuckets).sort();
+    const maxLen = Math.max(currKeys.length, prevKeys.length, 1);
+    const labels = Array.from({ length: maxLen }, (_, i) => currKeys[i] || `Day ${i + 1}`);
+    const curr = Array.from({ length: maxLen }, (_, i) => (currKeys[i] ? currBuckets[currKeys[i]] : 0));
+    const prev = Array.from({ length: maxLen }, (_, i) => (prevKeys[i] ? prevBuckets[prevKeys[i]] : 0));
+    return { labels, curr, prev, currKeys, prevKeys };
+  }, [filteredTransactions, prevFilteredTransactions, selectedPeriod]);
+
   return (
     <div className="page-container">
       <div className="mx-auto flex w-full max-w-[1480px] flex-col gap-5">
@@ -616,6 +682,256 @@ export default function Home() {
 
         {!loading && (
           <>
+            {/* HOURLY SALES DISTRIBUTION (collapsible) */}
+            <section
+              className="overflow-hidden border border-gray-200 bg-white"
+              style={{ borderRadius: "var(--radius-lg)" }}
+            >
+              <button
+                type="button"
+                className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+                onClick={() => setShowHourlyChart((v) => !v)}
+              >
+                <div>
+                  <h2 className="text-base font-bold tracking-tight text-gray-900">
+                    Hourly Sales Distribution
+                  </h2>
+                  <p className="mt-0.5 text-xs text-gray-400">
+                    Sales by hour of day — {PERIOD_LABELS[selectedPeriod] || "selected period"}
+                  </p>
+                </div>
+                {showHourlyChart
+                  ? <ChevronUp className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                  : <ChevronDown className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                }
+              </button>
+
+              {showHourlyChart && (
+                <div className="border-t border-gray-200 px-5 pb-5 pt-4">
+                  <div className="h-[280px] sm:h-[320px]">
+                    <Bar
+                      data={{
+                        labels: DASH_HOUR_LABELS,
+                        datasets: [
+                          {
+                            label: "Sales",
+                            data: hourlyOfDay,
+                            backgroundColor: (() => {
+                              const peak = Math.max(...hourlyOfDay);
+                              return hourlyOfDay.map((v) =>
+                                peak > 0 && v === peak ? "#0891b2" : "rgba(8,145,178,0.4)"
+                              );
+                            })(),
+                            borderRadius: 5,
+                            borderSkipped: false,
+                          },
+                        ],
+                      }}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: { display: false },
+                          tooltip: {
+                            callbacks: {
+                              label: (ctx) => ` ${formatCurrency(ctx.parsed.y)}`,
+                            },
+                          },
+                        },
+                        scales: {
+                          x: {
+                            title: { display: true, text: "Hour of Day", font: { size: 11 } },
+                            grid: { display: false },
+                            ticks: { font: { size: 10 } },
+                          },
+                          y: {
+                            beginAtZero: true,
+                            title: { display: true, text: "Sales", font: { size: 11 } },
+                            ticks: {
+                              callback: (v) => formatCurrency(Number(v || 0)),
+                              font: { size: 10 },
+                            },
+                          },
+                        },
+                      }}
+                    />
+                  </div>
+                  {(() => {
+                    const peak = Math.max(...hourlyOfDay);
+                    if (peak <= 0) return null;
+                    const peakHour = hourlyOfDay.indexOf(peak);
+                    return (
+                      <p className="mt-3 text-center text-xs text-gray-400">
+                        Peak hour:{" "}
+                        <span className="font-semibold text-cyan-700">{DASH_HOUR_LABELS[peakHour]}</span>
+                        {" — "}{formatCurrency(peak)} in sales
+                      </p>
+                    );
+                  })()}
+                </div>
+              )}
+            </section>
+
+            {/* TIME PERIOD COMPARISON (collapsible) */}
+            <section
+              className="overflow-hidden border border-gray-200 bg-white"
+              style={{ borderRadius: "var(--radius-lg)" }}
+            >
+              <button
+                type="button"
+                className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+                onClick={() => setShowComparison((v) => !v)}
+              >
+                <div>
+                  <h2 className="text-base font-bold tracking-tight text-gray-900">
+                    Time Period Comparison
+                  </h2>
+                  <p className="mt-0.5 text-xs text-gray-400">
+                    {PERIOD_LABELS[selectedPeriod] || "Current period"} vs {COMPARISON_LABELS[selectedPeriod]?.replace("vs ", "") || "previous period"}
+                  </p>
+                </div>
+                {showComparison
+                  ? <ChevronUp className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                  : <ChevronDown className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                }
+              </button>
+
+              {showComparison && (() => {
+                const currTotal = kpis.sales;
+                const prevTotal = prevKpis.sales;
+                const diffVal = currTotal - prevTotal;
+                const diffPct = prevTotal > 0 ? ((diffVal / prevTotal) * 100).toFixed(1) : null;
+                const cmpLbl = COMPARISON_LABELS[selectedPeriod]?.replace("vs ", "") || "Previous period";
+                const currLbl = PERIOD_LABELS[selectedPeriod] || "Current";
+                return (
+                  <div className="border-t border-gray-200 px-5 pb-5 pt-4">
+                    {/* Summary Cards */}
+                    <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                      <div className="rounded-xl border border-sky-200 bg-sky-50 p-4">
+                        <p className="text-xs font-medium text-sky-600">{currLbl}</p>
+                        <p className="mt-1 text-xl font-bold text-sky-800">{formatCurrency(currTotal)}</p>
+                        <p className="mt-0.5 text-xs text-sky-400">{kpis.transactions} transactions</p>
+                      </div>
+                      <div className="rounded-xl border border-purple-200 bg-purple-50 p-4">
+                        <p className="text-xs font-medium text-purple-600">{cmpLbl}</p>
+                        <p className="mt-1 text-xl font-bold text-purple-800">{formatCurrency(prevTotal)}</p>
+                        <p className="mt-0.5 text-xs text-purple-400">{prevKpis.transactions} transactions</p>
+                      </div>
+                      <div className={`rounded-xl border p-4 ${diffVal >= 0 ? "border-emerald-200 bg-emerald-50" : "border-red-200 bg-red-50"}`}>
+                        <p className={`text-xs font-medium ${diffVal >= 0 ? "text-emerald-600" : "text-red-500"}`}>Difference</p>
+                        <p className={`mt-1 text-xl font-bold ${diffVal >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+                          {diffVal >= 0 ? "+" : ""}{formatCurrency(diffVal)}
+                        </p>
+                      </div>
+                      <div className={`rounded-xl border p-4 ${diffVal >= 0 ? "border-emerald-200 bg-emerald-50" : "border-red-200 bg-red-50"}`}>
+                        <p className={`text-xs font-medium ${diffVal >= 0 ? "text-emerald-600" : "text-red-500"}`}>Change</p>
+                        <p className={`mt-1 text-xl font-bold ${diffVal >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+                          {diffPct !== null ? `${diffVal >= 0 ? "+" : ""}${diffPct}%` : "N/A"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Comparison Line Chart */}
+                    <div className="h-[280px] sm:h-[320px]">
+                      <Line
+                        data={{
+                          labels: comparisonChartData.labels,
+                          datasets: [
+                            {
+                              label: currLbl,
+                              data: comparisonChartData.curr,
+                              borderColor: "#0ea5e9",
+                              backgroundColor: "rgba(14,165,233,0.1)",
+                              fill: true,
+                              tension: 0.4,
+                              pointRadius: comparisonChartData.labels.length <= 31 ? 3 : 1,
+                              borderWidth: 2,
+                            },
+                            {
+                              label: cmpLbl,
+                              data: comparisonChartData.prev,
+                              borderColor: "#8b5cf6",
+                              backgroundColor: "rgba(139,92,246,0.07)",
+                              fill: true,
+                              tension: 0.4,
+                              pointRadius: comparisonChartData.labels.length <= 31 ? 3 : 1,
+                              borderWidth: 2,
+                              borderDash: [5, 3],
+                            },
+                          ],
+                        }}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: {
+                            legend: {
+                              position: "top",
+                              labels: { usePointStyle: true, padding: 16, font: { size: 11 } },
+                            },
+                            tooltip: {
+                              callbacks: {
+                                label: (ctx) => ` ${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)}`,
+                              },
+                            },
+                          },
+                          scales: {
+                            y: {
+                              beginAtZero: true,
+                              ticks: {
+                                callback: (v) => formatCurrency(Number(v || 0)),
+                                font: { size: 10 },
+                              },
+                            },
+                            x: {
+                              grid: { display: false },
+                              ticks: { font: { size: 10 } },
+                            },
+                          },
+                        }}
+                      />
+                    </div>
+
+                    {/* Comparison Table */}
+                    {comparisonChartData.labels.length > 0 && (
+                      <div className="mt-5 overflow-x-auto">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="border-b border-gray-200">
+                              <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-400">Period</th>
+                              <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wide text-sky-500">{currLbl}</th>
+                              <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wide text-purple-500">{cmpLbl}</th>
+                              <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wide text-gray-400">Δ Change</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {comparisonChartData.labels.map((lbl, i) => {
+                              const v1 = comparisonChartData.curr[i] || 0;
+                              const v2 = comparisonChartData.prev[i] || 0;
+                              const d = v1 - v2;
+                              const pct = v2 > 0 ? ((d / v2) * 100).toFixed(1) : null;
+                              return (
+                                <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                                  <td className="px-3 py-2 font-medium text-gray-600">{lbl}</td>
+                                  <td className="px-3 py-2 text-right text-gray-800">{formatCurrency(v1)}</td>
+                                  <td className="px-3 py-2 text-right text-gray-500">{formatCurrency(v2)}</td>
+                                  <td className={`px-3 py-2 text-right font-semibold ${d >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                                    {d >= 0 ? "+" : ""}{formatCurrency(d)}
+                                    {pct !== null && (
+                                      <span className="ml-1 font-normal opacity-70">({d >= 0 ? "+" : ""}{pct}%)</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </section>
+
             <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <TopProductsTable
                 products={topProductsWithTrend}

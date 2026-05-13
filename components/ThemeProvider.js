@@ -3,20 +3,6 @@ import { apiClient } from "@/lib/api-client";
 
 const ThemeContext = createContext(null);
 
-function hexToRgb(hex) {
-  const normalized = hex.replace("#", "");
-  const value = normalized.length === 3
-    ? normalized.split("").map((char) => char + char).join("")
-    : normalized;
-
-  const int = parseInt(value, 16);
-  return {
-    r: (int >> 16) & 255,
-    g: (int >> 8) & 255,
-    b: int & 255,
-  };
-}
-
 // Generate lighter/darker shades from a hex color
 function hexToHSL(hex) {
   hex = hex.replace("#", "");
@@ -76,13 +62,6 @@ function applyThemeToDOM(theme) {
   const root = document.documentElement;
   const primary = generatePalette(theme.primaryColor || "#0ea5e9");
   const secondary = generatePalette(theme.secondaryColor || "#06b6d4");
-  const success = generatePalette(theme.successColor || "#10b981");
-  const warning = generatePalette(theme.warningColor || "#f59e0b");
-  const error = generatePalette(theme.errorColor || "#ef4444");
-  const info = generatePalette(theme.infoColor || "#3b82f6");
-  const primaryRgb = hexToRgb(primary[600]);
-  const secondaryRgb = hexToRgb(secondary[500]);
-  const pageBg = "#f9fafb";
 
   // Primary palette
   Object.entries(primary).forEach(([shade, color]) => {
@@ -94,22 +73,6 @@ function applyThemeToDOM(theme) {
     root.style.setProperty(`--color-secondary-${shade}`, color);
   });
 
-  Object.entries(success).forEach(([shade, color]) => {
-    root.style.setProperty(`--color-success-${shade}`, color);
-  });
-
-  Object.entries(warning).forEach(([shade, color]) => {
-    root.style.setProperty(`--color-warning-${shade}`, color);
-  });
-
-  Object.entries(error).forEach(([shade, color]) => {
-    root.style.setProperty(`--color-error-${shade}`, color);
-  });
-
-  Object.entries(info).forEach(([shade, color]) => {
-    root.style.setProperty(`--color-info-${shade}`, color);
-  });
-
   // Semantic colors
   if (theme.successColor) root.style.setProperty("--color-success", theme.successColor);
   if (theme.warningColor) root.style.setProperty("--color-warning", theme.warningColor);
@@ -119,29 +82,11 @@ function applyThemeToDOM(theme) {
   // Component-level variables
   if (theme.sidebarActiveGradientFrom) root.style.setProperty("--sidebar-active-from", theme.sidebarActiveGradientFrom);
   if (theme.sidebarActiveGradientTo) root.style.setProperty("--sidebar-active-to", theme.sidebarActiveGradientTo);
-  root.style.setProperty("--sidebar-active-bg", theme.sidebarActiveGradientFrom || primary[600]);
-  root.style.setProperty("--sidebar-active-border", theme.sidebarActiveGradientTo || primary[700]);
-  if (theme.sidebarBg) root.style.setProperty("--sidebar-bg", theme.sidebarBg);
   if (theme.tableHeaderGradientFrom) root.style.setProperty("--table-header-from", theme.tableHeaderGradientFrom);
   if (theme.tableHeaderGradientTo) root.style.setProperty("--table-header-to", theme.tableHeaderGradientTo);
-  root.style.setProperty("--table-header-bg", theme.tableHeaderGradientFrom || primary[700]);
-  root.style.setProperty("--table-header-border", theme.tableHeaderGradientTo || primary[800]);
   if (theme.buttonPrimaryBg) root.style.setProperty("--btn-primary-bg", theme.buttonPrimaryBg);
   if (theme.buttonPrimaryHover) root.style.setProperty("--btn-primary-hover", theme.buttonPrimaryHover);
-  // page-bg is always forced neutral (not theme-controlled)
-
-  root.style.setProperty("--surface-card", "#ffffff");
-  root.style.setProperty("--surface-card-alt", "#f8fafc");
-  root.style.setProperty("--surface-muted", "#f1f5f9");
-  root.style.setProperty("--surface-raised", "#ffffff");
-  root.style.setProperty("--page-bg", pageBg);
-  root.style.setProperty("--border-subtle", "#e5e7eb");
-  root.style.setProperty("--border-strong", "#d1d5db");
-  root.style.setProperty("--focus-ring", `rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.22)`);
-  root.style.setProperty("--text-strong", primary[900]);
-  root.style.setProperty("--text-muted", "#6b7280");
-  root.style.setProperty("--shell-shadow", "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)");
-  root.style.setProperty("--shell-shadow-sm", "0 1px 2px 0 rgba(0, 0, 0, 0.05)");
+  if (theme.pageBg) root.style.setProperty("--page-bg", theme.pageBg);
 }
 
 export function ThemeProvider({ children }) {

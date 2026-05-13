@@ -221,6 +221,45 @@ export default async function handler(req, res) {
     const transactionQty = periods.map((p) => txMap[p] || 0);
 
     /* ---------------------------------------------
+       HOURLY-OF-DAY AGGREGATION (0–23)
+    ---------------------------------------------- */
+    const hourlyOfDay = new Array(24).fill(0);
+    for (const tx of transactions) {
+      const h = new Date(tx.createdAt).getHours();
+      hourlyOfDay[h] += tx.total || 0;
+    }
+
+    /* ---------------------------------------------
+       PREVIOUS PERIOD (same duration, shifted back)
+    ---------------------------------------------- */
+    const currentDuration = rangeEnd.getTime() - rangeStart.getTime();
+    const prevRangeStart = new Date(rangeStart.getTime() - currentDuration);
+    const prevRangeEnd = rangeStart;
+
+    const prevQueryFilter = {
+      createdAt: { $gte: prevRangeStart, $lt: prevRangeEnd },
+      status: "completed",
+    };
+    if (location !== "All") prevQueryFilter.location = location;
+
+    const prevTransactions = await Transaction.find(prevQueryFilter).lean();
+
+    const prevSalesMap = {};
+    const prevTxMap = {};
+    for (const tx of prevTransactions) {
+      // Shift into current-period time space so keys align with `periods`
+      const shifted = new Date(new Date(tx.createdAt).getTime() + currentDuration);
+      const key = format(shifted, fmt);
+      prevSalesMap[key] = (prevSalesMap[key] || 0) + (tx.total || 0);
+      prevTxMap[key] = (prevTxMap[key] || 0) + 1;
+    }
+
+    const comparisonSalesData = periods.map((p) => prevSalesMap[p] || 0);
+    const comparisonTransactionQty = periods.map((p) => prevTxMap[p] || 0);
+    const prevTotalSales = prevTransactions.reduce((s, t) => s + (t.total || 0), 0);
+    const prevTotalTransactions = prevTransactions.length;
+
+    /* ---------------------------------------------
        BEST SELLING PRODUCTS
     ---------------------------------------------- */
     const bestSellingProducts = aggregateProductSales(transactions)
@@ -237,6 +276,11 @@ export default async function handler(req, res) {
       dates: periods,
       salesData,
       transactionQty,
+      hourlyOfDay,
+      comparisonSalesData,
+      comparisonTransactionQty,
+      prevTotalSales,
+      prevTotalTransactions,
       salesByLocation,
       salesByTender,
       bestSellingProducts,

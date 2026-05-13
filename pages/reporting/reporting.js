@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import {
   Chart as ChartJS,
   BarElement,
@@ -38,6 +39,8 @@ export default function Reporting() {
   const [period, setPeriod] = useState("DAY");
   const [timeRange, setTimeRange] = useState("Last 14 days");
   const [availableLocations, setAvailableLocations] = useState([]);
+  const [showHourlyChart, setShowHourlyChart] = useState(true);
+  const [showComparison, setShowComparison] = useState(true);
 
   useEffect(() => {
     async function loadLocations() {
@@ -86,7 +89,12 @@ export default function Reporting() {
     salesByTender = {}, 
     salesByLocation = {}, 
     bestSellingProducts = [], 
-    summary = {} 
+    summary = {},
+    hourlyOfDay = new Array(24).fill(0),
+    comparisonSalesData = [],
+    comparisonTransactionQty = [],
+    prevTotalSales = 0,
+    prevTotalTransactions = 0,
   } = report;
 
   const locationOptions = Array.from(
@@ -109,6 +117,7 @@ export default function Reporting() {
           <div className="page-header">
             <div>
               <h1 className="page-title">Sales Report</h1>
+              <p className="page-subtitle">Track your business performance and metrics in real-time</p>
             </div>
             <Link
               href="/reporting/end-of-day-report"
@@ -214,8 +223,8 @@ export default function Reporting() {
         </div>
 
         {/* SALES LINE CHART */}
-        <div className="content-card mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Sales Trend</h2>
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Sales Trend</h2>
           <div className="h-[400px]">
             <Line
               data={{
@@ -303,7 +312,7 @@ export default function Reporting() {
                         "#ef4444",
                         "#8b5cf6",
                       ],
-                      borderRadius: 2,
+                      borderRadius: 8,
                       borderSkipped: false,
                     },
                   ],
@@ -323,10 +332,248 @@ export default function Reporting() {
             </div>
           </div>
         </div>
+
+        {/* HOURLY SALES CHART (collapsible) */}
+        <div className="bg-white rounded-lg shadow-lg mt-6 md:mt-8 overflow-hidden">
+          <button
+            onClick={() => setShowHourlyChart(!showHourlyChart)}
+            className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-gray-50 transition-colors"
+          >
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Hourly Sales Distribution</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Sales broken down by hour of day across the selected period</p>
+            </div>
+            {showHourlyChart ? <ChevronUp className="w-5 h-5 text-gray-400 flex-shrink-0" /> : <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />}
+          </button>
+          {showHourlyChart && (
+            <div className="px-6 pb-6">
+              <div className="h-[320px]">
+                <Bar
+                  data={{
+                    labels: HOUR_LABELS,
+                    datasets: [
+                      {
+                        label: "Sales",
+                        data: hourlyOfDay,
+                        backgroundColor: hourlyOfDay.map((v) =>
+                          v === Math.max(...hourlyOfDay) ? "#0891b2" : "rgba(8,145,178,0.45)"
+                        ),
+                        borderRadius: 6,
+                        borderSkipped: false,
+                      },
+                    ],
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: { display: false },
+                      tooltip: {
+                        callbacks: {
+                          label: (ctx) => ` ${formatCurrency(ctx.parsed.y)}`,
+                        },
+                      },
+                    },
+                    scales: {
+                      x: {
+                        title: { display: true, text: "Hour of Day", font: { size: 12 } },
+                        grid: { display: false },
+                      },
+                      y: {
+                        beginAtZero: true,
+                        title: { display: true, text: "Sales", font: { size: 12 } },
+                        ticks: { callback: (v) => formatCurrency(Number(v || 0)) },
+                      },
+                    },
+                  }}
+                />
+              </div>
+              {/* Peak hour callout */}
+              {Math.max(...hourlyOfDay) > 0 && (() => {
+                const peakHour = hourlyOfDay.indexOf(Math.max(...hourlyOfDay));
+                return (
+                  <p className="mt-3 text-sm text-gray-500 text-center">
+                    Peak hour: <span className="font-semibold text-cyan-700">{HOUR_LABELS[peakHour]}</span>
+                    {" — "}{formatCurrency(hourlyOfDay[peakHour])} in sales
+                  </p>
+                );
+              })()}
+            </div>
+          )}
+        </div>
+
+        {/* TIME PERIOD COMPARISON (collapsible) */}
+        <div className="bg-white rounded-lg shadow-lg mt-6 md:mt-8 overflow-hidden">
+          <button
+            onClick={() => setShowComparison(!showComparison)}
+            className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-gray-50 transition-colors"
+          >
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Time Period Comparison</h2>
+              <p className="text-sm text-gray-500 mt-0.5">
+                {getComparisonLabels(timeRange).current} vs {getComparisonLabels(timeRange).previous}
+              </p>
+            </div>
+            {showComparison ? <ChevronUp className="w-5 h-5 text-gray-400 flex-shrink-0" /> : <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />}
+          </button>
+          {showComparison && (() => {
+            const cmpLabels = getComparisonLabels(timeRange);
+            const currTotal = summary?.totalSales || 0;
+            const diffVal = currTotal - prevTotalSales;
+            const diffPct = prevTotalSales > 0 ? ((diffVal / prevTotalSales) * 100).toFixed(1) : null;
+            const relativeLabels = dates.map((_, i) => `Point ${i + 1}`);
+            return (
+              <div className="px-6 pb-6">
+                {/* Summary Cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                  <div className="bg-sky-50 border border-sky-200 rounded-xl p-4">
+                    <p className="text-xs font-medium text-sky-600 mb-1">{cmpLabels.current}</p>
+                    <p className="text-xl font-bold text-sky-800">{formatCurrency(currTotal)}</p>
+                    <p className="text-xs text-sky-500 mt-1">{summary?.totalTransactions || 0} transactions</p>
+                  </div>
+                  <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+                    <p className="text-xs font-medium text-purple-600 mb-1">{cmpLabels.previous}</p>
+                    <p className="text-xl font-bold text-purple-800">{formatCurrency(prevTotalSales)}</p>
+                    <p className="text-xs text-purple-500 mt-1">{prevTotalTransactions} transactions</p>
+                  </div>
+                  <div className={`border rounded-xl p-4 ${diffVal >= 0 ? "bg-emerald-50 border-emerald-200" : "bg-red-50 border-red-200"}`}>
+                    <p className={`text-xs font-medium mb-1 ${diffVal >= 0 ? "text-emerald-600" : "text-red-500"}`}>Difference</p>
+                    <p className={`text-xl font-bold ${diffVal >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+                      {diffVal >= 0 ? "+" : ""}{formatCurrency(diffVal)}
+                    </p>
+                  </div>
+                  <div className={`border rounded-xl p-4 ${diffVal >= 0 ? "bg-emerald-50 border-emerald-200" : "bg-red-50 border-red-200"}`}>
+                    <p className={`text-xs font-medium mb-1 ${diffVal >= 0 ? "text-emerald-600" : "text-red-500"}`}>Change</p>
+                    <p className={`text-xl font-bold ${diffVal >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+                      {diffPct !== null ? `${diffVal >= 0 ? "+" : ""}${diffPct}%` : "N/A"}
+                    </p>
+                  </div>
+                </div>
+                {/* Comparison Line Chart */}
+                <div className="h-[320px]">
+                  <Line
+                    data={{
+                      labels: relativeLabels,
+                      datasets: [
+                        {
+                          label: cmpLabels.current,
+                          data: salesData,
+                          borderColor: "#0ea5e9",
+                          backgroundColor: "rgba(14,165,233,0.1)",
+                          fill: true,
+                          tension: 0.4,
+                          pointRadius: dates.length <= 31 ? 4 : 2,
+                          borderWidth: 2,
+                        },
+                        {
+                          label: cmpLabels.previous,
+                          data: comparisonSalesData,
+                          borderColor: "#8b5cf6",
+                          backgroundColor: "rgba(139,92,246,0.08)",
+                          fill: true,
+                          tension: 0.4,
+                          pointRadius: dates.length <= 31 ? 4 : 2,
+                          borderWidth: 2,
+                          borderDash: [5, 3],
+                        },
+                      ],
+                    }}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: {
+                          position: "top",
+                          labels: { usePointStyle: true, padding: 20, font: { size: 12 } },
+                        },
+                        tooltip: {
+                          callbacks: {
+                            label: (ctx) => ` ${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)}`,
+                            title: (items) => {
+                              const i = items[0].dataIndex;
+                              const currDate = dates[i] || `Point ${i + 1}`;
+                              return currDate;
+                            },
+                          },
+                        },
+                      },
+                      scales: {
+                        y: {
+                          beginAtZero: true,
+                          ticks: { callback: (v) => formatCurrency(Number(v || 0)) },
+                        },
+                        x: { grid: { display: false } },
+                      },
+                    }}
+                  />
+                </div>
+                {/* Comparison Table */}
+                {dates.length > 0 && (
+                  <div className="mt-6 overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-200">
+                          <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Date</th>
+                          <th className="px-3 py-2 text-right text-xs font-semibold text-sky-600 uppercase">{cmpLabels.current}</th>
+                          <th className="px-3 py-2 text-right text-xs font-semibold text-purple-600 uppercase">{cmpLabels.previous}</th>
+                          <th className="px-3 py-2 text-right text-xs font-semibold text-gray-500 uppercase">Δ Change</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {dates.map((date, i) => {
+                          const v1 = salesData[i] || 0;
+                          const v2 = comparisonSalesData[i] || 0;
+                          const d = v1 - v2;
+                          const pct = v2 > 0 ? ((d / v2) * 100).toFixed(1) : null;
+                          return (
+                            <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                              <td className="px-3 py-2 font-medium text-gray-700">{date}</td>
+                              <td className="px-3 py-2 text-right text-gray-800">{formatCurrency(v1)}</td>
+                              <td className="px-3 py-2 text-right text-gray-600">{formatCurrency(v2)}</td>
+                              <td className={`px-3 py-2 text-right font-medium ${d >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                                {d >= 0 ? "+" : ""}{formatCurrency(d)}
+                                {pct !== null && <span className="ml-1 text-xs opacity-75">({d >= 0 ? "+" : ""}{pct}%)</span>}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </div>
       </div>
       </div>
     </Layout>
   );
+}
+
+const HOUR_LABELS = Array.from({ length: 24 }, (_, i) => {
+  if (i === 0) return "12 AM";
+  if (i < 12) return `${i} AM`;
+  if (i === 12) return "12 PM";
+  return `${i - 12} PM`;
+});
+
+function getComparisonLabels(timeRange) {
+  const map = {
+    "Today": { current: "Today", previous: "Yesterday" },
+    "Yesterday": { current: "Yesterday", previous: "Day Before" },
+    "Last 7 days": { current: "Last 7 Days", previous: "Prev 7 Days" },
+    "Last 14 days": { current: "Last 14 Days", previous: "Prev 14 Days" },
+    "Last 30 days": { current: "Last 30 Days", previous: "Prev 30 Days" },
+    "Last 90 days": { current: "Last 90 Days", previous: "Prev 90 Days" },
+    "This week": { current: "This Week", previous: "Last Week" },
+    "This month": { current: "This Month", previous: "Last Month" },
+    "This year": { current: "This Year", previous: "Last Year" },
+    "Last week": { current: "Last Week", previous: "Week Before Last" },
+    "Last month": { current: "Last Month", previous: "Month Before Last" },
+    "Last year": { current: "Last Year", previous: "Year Before Last" },
+  };
+  return map[timeRange] || { current: "Current Period", previous: "Previous Period" };
 }
 
 function Card({ title, value, icon, color }) {
@@ -430,8 +677,8 @@ function BarChart({ title, data }) {
               label: "Sales",
               data: sortedValues.length > 0 ? sortedValues : [0],
               backgroundColor: "#06B6D4",
-              borderRadius: 0,
-              borderSkipped: 'bottom',
+              borderRadius: 8,
+              borderSkipped: false,
             }] 
           }}
           options={{

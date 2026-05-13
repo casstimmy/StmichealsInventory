@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { Bar, Line } from "react-chartjs-2";
+import { Bar } from "react-chartjs-2";
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/router";
 import { apiClient } from "@/lib/api-client";
@@ -14,9 +14,9 @@ import { aggregateProductSales } from "@/lib/product-sales-report";
 import {
   ArrowRight,
   ChevronDown,
-  ChevronUp,
   List,
   Mail,
+  Minus,
   PackagePlus,
   RefreshCw,
   ShoppingCart,
@@ -57,13 +57,13 @@ const PERIOD_LABELS = {
 };
 
 const COMPARISON_LABELS = {
-  today:     { current: "Today",        prev: "Week Before" },
-  yesterday: { current: "Yesterday",    prev: "Week Before" },
-  week:      { current: "This Week",    prev: "Last Week" },
-  lastWeek:  { current: "Last Week",    prev: "Week Before" },
-  month:     { current: "This Month",   prev: "Last Month" },
-  lastMonth: { current: "Last Month",   prev: "Month Before" },
-  custom:    { current: "Selected",     prev: null },
+  today:     "vs yesterday",
+  yesterday: "vs day before",
+  week:      "vs previous week",
+  lastWeek:  "vs week before that",
+  month:     "vs last month",
+  lastMonth: "vs month before that",
+  custom:    "",
 };
 
 function computeTrend(current, previous) {
@@ -121,7 +121,6 @@ export default function Home() {
     startDate: "",
     endDate: "",
   });
-  const [salesChartOpen, setSalesChartOpen] = useState(true);
 
   /* =======================
      FETCH DATA (Optimized with caching + parallel calls)
@@ -340,130 +339,28 @@ export default function Home() {
   }, [prevFilteredTransactions]);
 
   /* =======================
-     SALES TREND CHART DATA
-  ======================= */
-  const salesChartData = useMemo(() => {
-    const DAY = 86400000;
-    const now = new Date();
-    const completed = allTransactions.filter(
-      (tx) =>
-        tx.status === "completed" && matchesSelectedLocation(tx, selectedLocation)
-    );
-
-    const HOUR_LABELS = Array.from({ length: 24 }, (_, h) => {
-      if (h === 0) return "12AM";
-      if (h === 12) return "12PM";
-      return h < 12 ? `${h}AM` : `${h - 12}PM`;
-    });
-    const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-    if (selectedPeriod === "today" || selectedPeriod === "yesterday") {
-      const curDay =
-        selectedPeriod === "today"
-          ? new Date(now.getFullYear(), now.getMonth(), now.getDate())
-          : new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-      const prevDay = new Date(curDay.getTime() - 7 * DAY);
-
-      const currentData = Array(24).fill(0);
-      const prevData = Array(24).fill(0);
-
-      completed.forEach((tx) => {
-        const d = new Date(tx.createdAt);
-        const dKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-        const curKey = `${curDay.getFullYear()}-${curDay.getMonth()}-${curDay.getDate()}`;
-        const prevKey = `${prevDay.getFullYear()}-${prevDay.getMonth()}-${prevDay.getDate()}`;
-        if (dKey === curKey) currentData[d.getHours()] += Number(tx.total || 0);
-        if (dKey === prevKey) prevData[d.getHours()] += Number(tx.total || 0);
-      });
-
-      // Null-out future hours for "today" so line doesn't extend into future
-      if (selectedPeriod === "today") {
-        for (let h = now.getHours() + 1; h < 24; h++) currentData[h] = null;
-      }
-
-      // Trim to active window: find first and last hour with any data
-      let startH = 23;
-      let endH = 0;
-      for (let h = 0; h < 24; h++) {
-        const hasData = (currentData[h] ?? 0) > 0 || prevData[h] > 0;
-        if (hasData) { if (h < startH) startH = h; if (h > endH) endH = h; }
-      }
-      // For today also include the current hour even if no sales yet
-      if (selectedPeriod === "today") endH = Math.max(endH, now.getHours());
-      // If no transactions at all, fall back to full day
-      if (startH > endH) { startH = 0; endH = 23; }
-
-      const slicedLabels = HOUR_LABELS.slice(startH, endH + 1);
-      return {
-        labels: slicedLabels,
-        currentData: currentData.slice(startH, endH + 1),
-        prevData: prevData.slice(startH, endH + 1),
-      };
-    }
-
-    if (selectedPeriod === "week" || selectedPeriod === "lastWeek") {
-      const weekStart =
-        selectedPeriod === "week"
-          ? new Date(now.getTime() - 7 * DAY)
-          : new Date(now.getTime() - 14 * DAY);
-      weekStart.setHours(0, 0, 0, 0);
-      const prevWeekStart = new Date(weekStart.getTime() - 7 * DAY);
-
-      const labels = Array.from({ length: 7 }, (_, i) => {
-        const d = new Date(weekStart.getTime() + i * DAY);
-        return `${DAY_NAMES[d.getDay()]} ${d.getDate()}`;
-      });
-
-      const currentData = Array(7).fill(0);
-      const prevData = Array(7).fill(0);
-
-      completed.forEach((tx) => {
-        const d = new Date(tx.createdAt);
-        const diffCur = Math.floor((d - weekStart) / DAY);
-        const diffPrev = Math.floor((d - prevWeekStart) / DAY);
-        if (diffCur >= 0 && diffCur < 7) currentData[diffCur] += Number(tx.total || 0);
-        if (diffPrev >= 0 && diffPrev < 7) prevData[diffPrev] += Number(tx.total || 0);
-      });
-
-      return { labels, currentData, prevData };
-    }
-
-    if (selectedPeriod === "month" || selectedPeriod === "lastMonth") {
-      const refDate =
-        selectedPeriod === "month"
-          ? new Date(now.getFullYear(), now.getMonth(), 1)
-          : new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const prevRefDate = new Date(refDate.getFullYear(), refDate.getMonth() - 1, 1);
-
-      const daysInCur = new Date(refDate.getFullYear(), refDate.getMonth() + 1, 0).getDate();
-      const daysInPrev = new Date(prevRefDate.getFullYear(), prevRefDate.getMonth() + 1, 0).getDate();
-      const maxDays = Math.max(daysInCur, daysInPrev);
-
-      const labels = Array.from({ length: maxDays }, (_, i) => `${i + 1}`);
-      const currentData = Array(maxDays).fill(0);
-      const prevData = Array(maxDays).fill(0);
-
-      completed.forEach((tx) => {
-        const d = new Date(tx.createdAt);
-        const dayIdx = d.getDate() - 1;
-        if (d.getFullYear() === refDate.getFullYear() && d.getMonth() === refDate.getMonth())
-          currentData[dayIdx] += Number(tx.total || 0);
-        if (d.getFullYear() === prevRefDate.getFullYear() && d.getMonth() === prevRefDate.getMonth())
-          prevData[dayIdx] += Number(tx.total || 0);
-      });
-
-      return { labels, currentData, prevData };
-    }
-
-    return { labels: [], currentData: [], prevData: [] };
-  }, [allTransactions, selectedPeriod, selectedLocation]);
-
-  /* =======================
      PRODUCT SALES
   ======================= */
   const productSales = useMemo(() => {
     return aggregateProductSales(filteredTransactions);
   }, [filteredTransactions]);
+
+  const prevProductSales = useMemo(() => {
+    return aggregateProductSales(prevFilteredTransactions);
+  }, [prevFilteredTransactions]);
+
+  // Merge current + previous period for per-product trend column
+  const topProductsWithTrend = useMemo(() => {
+    const prevMap = new Map(prevProductSales.map((p) => [p.key, p]));
+    return productSales.slice(0, 10).map((p) => {
+      const prev = prevMap.get(p.key);
+      const prevQty = prev?.unitsSold ?? 0;
+      const prevAmt = prev?.totalSales ?? 0;
+      const qtyTrend = computeTrend(p.unitsSold, prevQty);
+      const amtTrend = computeTrend(p.totalSales, prevAmt);
+      return { ...p, prevQty, prevAmt, qtyTrend, amtTrend };
+    });
+  }, [productSales, prevProductSales]);
 
   /* =======================
      TOP STAFF
@@ -487,17 +384,6 @@ export default function Home() {
   /* =======================
      CHART DATA
   ======================= */
-  const salesByProductData = {
-    labels: productSales.map((product) => product.name),
-    datasets: [
-      {
-        label: "Sales",
-        data: productSales.map((product) => product.totalSales),
-        backgroundColor: "#06B6D4",
-      },
-    ],
-  };
-
   const expenseChart = {
     labels: filteredExpenses.map((e) => e.title),
     datasets: [
@@ -548,6 +434,7 @@ export default function Home() {
   const salesTrend = computeTrend(kpis.sales, prevKpis.sales);
   const txTrend = computeTrend(kpis.transactions, prevKpis.transactions);
   const avgTrend = computeTrend(kpis.avg, prevKpis.avg);
+  const comparisonLabel = COMPARISON_LABELS[selectedPeriod] ?? "";
 
   return (
     <div className="page-container">
@@ -696,6 +583,7 @@ export default function Home() {
                 label="Sales"
                 value={formatCurrency(kpis.sales)}
                 trend={salesTrend}
+                comparisonLabel={comparisonLabel}
                 linkLabel="Sales breakdown"
                 onClick={() => router.push("/reporting/reporting")}
               />
@@ -703,6 +591,7 @@ export default function Home() {
                 label="Transactions"
                 value={formatNumber(kpis.transactions)}
                 trend={txTrend}
+                comparisonLabel={comparisonLabel}
                 linkLabel="Transactions report"
                 onClick={() => router.push("/reporting/completed-transactions")}
               />
@@ -710,6 +599,7 @@ export default function Home() {
                 label="Avg. transaction value"
                 value={formatCurrency(kpis.avg.toFixed(2))}
                 trend={avgTrend}
+                comparisonLabel={comparisonLabel}
               />
               {kpis.heldCount > 0 && (
                 <MetricCard
@@ -724,140 +614,14 @@ export default function Home() {
           )}
         </section>
 
-        {/* Sales Trend Chart — collapsible */}
-        {!loading && salesChartData.labels.length > 0 && selectedPeriod !== "custom" && (
-          <section
-            className="overflow-hidden border border-gray-200 bg-white"
-            style={{ borderRadius: "var(--radius-lg)" }}
-          >
-            {/* Header row */}
-            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
-              <div>
-                <h2 className="text-base font-bold tracking-tight text-gray-900">
-                  Sales Over Time
-                </h2>
-                <p className="mt-0.5 text-xs text-gray-400">
-                  {COMPARISON_LABELS[selectedPeriod]?.current} vs{" "}
-                  {COMPARISON_LABELS[selectedPeriod]?.prev} · refunds excluded
-                </p>
-              </div>
-              <button
-                type="button"
-                className="inline-flex items-center gap-1.5 rounded border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 shadow-sm transition hover:bg-white hover:border-gray-300"
-                onClick={() => setSalesChartOpen((o) => !o)}
-                aria-label={salesChartOpen ? "Collapse chart" : "Expand chart"}
-              >
-                {salesChartOpen ? (
-                  <>
-                    <ChevronUp className="h-3.5 w-3.5" />
-                    Collapse
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown className="h-3.5 w-3.5" />
-                    Expand
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* Chart body */}
-            {salesChartOpen && (
-              <div className="px-5 pt-4 pb-5">
-                <div className="h-[220px] sm:h-[280px] md:h-[320px]">
-                  <Line
-                    data={{
-                      labels: salesChartData.labels,
-                      datasets: [
-                        {
-                          label: COMPARISON_LABELS[selectedPeriod]?.current || "Current",
-                          data: salesChartData.currentData,
-                          borderColor: "#2563eb",
-                          backgroundColor: "rgba(37,99,235,0.08)",
-                          pointRadius: 3,
-                          pointHoverRadius: 5,
-                          borderWidth: 2,
-                          tension: 0.3,
-                          fill: true,
-                          spanGaps: false,
-                        },
-                        {
-                          label: COMPARISON_LABELS[selectedPeriod]?.prev || "Previous",
-                          data: salesChartData.prevData,
-                          borderColor: "#f97316",
-                          backgroundColor: "transparent",
-                          pointRadius: 3,
-                          pointHoverRadius: 5,
-                          borderWidth: 2,
-                          borderDash: [6, 4],
-                          tension: 0.3,
-                          fill: false,
-                        },
-                      ],
-                    }}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      interaction: { mode: "index", intersect: false },
-                      plugins: {
-                        legend: {
-                          position: "top",
-                          align: "end",
-                          labels: {
-                            usePointStyle: true,
-                            pointStyle: "line",
-                            boxWidth: 24,
-                            font: { size: 11 },
-                            padding: 16,
-                          },
-                        },
-                        tooltip: {
-                          callbacks: {
-                            label: (ctx) =>
-                              ` ${ctx.dataset.label}: ${formatCurrency(ctx.raw ?? 0)}`,
-                          },
-                        },
-                      },
-                      scales: {
-                        x: {
-                          grid: { display: false },
-                          ticks: {
-                            font: { size: 10 },
-                            maxRotation: 0,
-                            autoSkip: true,
-                            maxTicksLimit: 12,
-                          },
-                        },
-                        y: {
-                          grid: { color: "rgba(0,0,0,0.04)" },
-                          ticks: {
-                            font: { size: 10 },
-                            callback: (v) =>
-                              v >= 1000000
-                                ? `₦${(v / 1000000).toFixed(1)}M`
-                                : v >= 1000
-                                ? `₦${(v / 1000).toFixed(0)}k`
-                                : `₦${v}`,
-                          },
-                        },
-                      },
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-          </section>
-        )}
-
         {!loading && (
           <>
             <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <ChartCard
-                title="Sales by Product"
+              <TopProductsTable
+                products={topProductsWithTrend}
+                comparisonLabel={comparisonLabel}
                 onViewMore={() => router.push("/reporting/reporting")}
-              >
-                <Bar data={salesByProductData} />
-              </ChartCard>
+              />
 
               <ChartCard
                 title="Expenses Breakdown"
@@ -949,7 +713,7 @@ function FilterSelect({ label, value, onChange, children }) {
   );
 }
 
-function MetricCard({ label, value, trend, detail, linkLabel, onClick }) {
+function MetricCard({ label, value, trend, comparisonLabel, detail, linkLabel, onClick }) {
   return (
     <div className="flex flex-col px-5 py-5">
       <div className="text-sm font-medium text-gray-600">{label}</div>
@@ -957,17 +721,24 @@ function MetricCard({ label, value, trend, detail, linkLabel, onClick }) {
         {value}
       </div>
       {trend ? (
-        <div
-          className={`mt-2 flex items-center gap-1 text-sm font-semibold ${
-            trend.direction === 'up' ? 'text-emerald-600' : 'text-red-600'
-          }`}
-        >
-          {trend.direction === 'up' ? (
-            <TrendingUp className="h-3.5 w-3.5 flex-shrink-0" />
-          ) : (
-            <TrendingDown className="h-3.5 w-3.5 flex-shrink-0" />
+        <div className="mt-2 flex items-center gap-1.5">
+          <span
+            className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-bold ${
+              trend.direction === 'up'
+                ? 'bg-emerald-50 text-emerald-700'
+                : 'bg-red-50 text-red-700'
+            }`}
+          >
+            {trend.direction === 'up' ? (
+              <TrendingUp className="h-3 w-3 flex-shrink-0" />
+            ) : (
+              <TrendingDown className="h-3 w-3 flex-shrink-0" />
+            )}
+            {trend.label}
+          </span>
+          {comparisonLabel && (
+            <span className="text-xs text-gray-400">{comparisonLabel}</span>
           )}
-          <span>{trend.label}</span>
         </div>
       ) : detail ? (
         <div className="mt-2 text-sm text-gray-500">{detail}</div>
@@ -984,6 +755,119 @@ function MetricCard({ label, value, trend, detail, linkLabel, onClick }) {
       ) : (
         <div className="mt-auto pt-3" />
       )}
+    </div>
+  );
+}
+
+function TrendBadge({ trend }) {
+  if (!trend) {
+    return (
+      <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-gray-400">
+        <Minus className="h-3 w-3" /> 0%
+      </span>
+    );
+  }
+  return (
+    <span
+      className={`inline-flex items-center gap-0.5 text-xs font-semibold ${
+        trend.direction === 'up' ? 'text-emerald-600' : 'text-red-600'
+      }`}
+    >
+      {trend.direction === 'up' ? (
+        <TrendingUp className="h-3.5 w-3.5 flex-shrink-0" />
+      ) : (
+        <TrendingDown className="h-3.5 w-3.5 flex-shrink-0" />
+      )}
+      {trend.label}
+    </span>
+  );
+}
+
+function TopProductsTable({ products, comparisonLabel, onViewMore }) {
+  return (
+    <div
+      className="border border-gray-200 bg-white overflow-hidden flex flex-col"
+      style={{ borderRadius: 'var(--radius-lg)' }}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3 border-b border-gray-200 px-5 py-3.5 flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <ShoppingCart className="h-4 w-4 text-gray-500" />
+          <h2 className="text-sm font-bold text-gray-900">Top Products By Quantity</h2>
+        </div>
+        <div className="flex items-center gap-2">
+          {onViewMore && (
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-white hover:border-gray-300"
+              style={{ borderRadius: 'var(--radius-md)' }}
+              onClick={onViewMore}
+            >
+              <span className="text-gray-400 text-[10px]">&#9646;&#9646;</span> VIEW REPORT
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="overflow-x-auto flex-1">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-gray-100 bg-gray-50">
+              <th className="px-4 py-2.5 text-left font-semibold text-gray-500 w-8">#</th>
+              <th className="px-3 py-2.5 text-left font-semibold text-gray-500">PRODUCT</th>
+              <th className="px-3 py-2.5 text-right font-semibold text-gray-500">
+                QTY{" "}
+                <span className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-gray-300 text-[9px] font-bold text-white cursor-default" title="Units sold in selected period">i</span>
+              </th>
+              <th className="px-3 py-2.5 text-right font-semibold text-gray-500">
+                AMOUNT{" "}
+                <span className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-gray-300 text-[9px] font-bold text-white cursor-default" title="Revenue in selected period">i</span>
+              </th>
+              <th className="px-3 py-2.5 text-right font-semibold text-gray-500">
+                TREND{" "}
+                <span className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-gray-300 text-[9px] font-bold text-white cursor-default" title={comparisonLabel || 'vs previous period'}>i</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {products.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-4 py-8 text-center text-gray-400 italic">
+                  No sales data for this period
+                </td>
+              </tr>
+            ) : (
+              products.map((p, idx) => (
+                <tr key={p.key} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-2.5 text-gray-500 font-medium">{idx + 1}</td>
+                  <td className="px-3 py-2.5 font-medium text-gray-900 max-w-[180px] truncate" title={p.name}>
+                    {p.name}
+                  </td>
+                  <td className={`px-3 py-2.5 text-right font-semibold ${
+                    idx < 3 ? 'text-orange-500' : 'text-gray-800'
+                  }`}>
+                    {formatNumber(p.unitsSold)}
+                  </td>
+                  <td className="px-3 py-2.5 text-right text-gray-700 font-medium">
+                    {formatCurrency(p.totalSales)}
+                  </td>
+                  <td className="px-3 py-2.5 text-right">
+                    <TrendBadge trend={p.qtyTrend} />
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Footer note */}
+      <div className="border-t border-gray-100 px-4 py-2 text-right flex-shrink-0">
+        <span className="text-[10px] italic text-gray-400">
+          Note: only standard products, refunds excluded
+        </span>
+      </div>
     </div>
   );
 }

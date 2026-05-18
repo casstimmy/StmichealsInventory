@@ -200,17 +200,19 @@ export default function Home() {
     }
 
     if (selectedPeriod === "week") {
-      const weekAgo = new Date();
-      weekAgo.setDate(now.getDate() - 7);
-      return d >= weekAgo && d <= now;
+      const thisWeekStart = new Date(now);
+      thisWeekStart.setDate(now.getDate() - now.getDay()); // back to Sunday
+      thisWeekStart.setHours(0, 0, 0, 0);
+      return d >= thisWeekStart && d <= now;
     }
 
     if (selectedPeriod === "lastWeek") {
-      const lastWeekStart = new Date();
-      lastWeekStart.setDate(now.getDate() - 14);
-      const lastWeekEnd = new Date();
-      lastWeekEnd.setDate(now.getDate() - 7);
-      return d >= lastWeekStart && d <= lastWeekEnd;
+      const thisWeekStart = new Date(now);
+      thisWeekStart.setDate(now.getDate() - now.getDay());
+      thisWeekStart.setHours(0, 0, 0, 0);
+      const lastWeekStart = new Date(thisWeekStart);
+      lastWeekStart.setDate(thisWeekStart.getDate() - 7);
+      return d >= lastWeekStart && d < thisWeekStart;
     }
 
     if (selectedPeriod === "month")
@@ -252,14 +254,24 @@ export default function Home() {
       return d.toDateString() === dayBefore.toDateString();
     }
     if (selectedPeriod === "week") {
-      const s = new Date(); s.setDate(now.getDate() - 14);
-      const e = new Date(); e.setDate(now.getDate() - 7);
-      return d >= s && d <= e;
+      // prev period of "This Week" = Last Week (Sun–Sat)
+      const thisWeekStart = new Date(now);
+      thisWeekStart.setDate(now.getDate() - now.getDay());
+      thisWeekStart.setHours(0, 0, 0, 0);
+      const lastWeekStart = new Date(thisWeekStart);
+      lastWeekStart.setDate(thisWeekStart.getDate() - 7);
+      return d >= lastWeekStart && d < thisWeekStart;
     }
     if (selectedPeriod === "lastWeek") {
-      const s = new Date(); s.setDate(now.getDate() - 21);
-      const e = new Date(); e.setDate(now.getDate() - 14);
-      return d >= s && d <= e;
+      // prev period of "Last Week" = week before last (Sun–Sat)
+      const thisWeekStart = new Date(now);
+      thisWeekStart.setDate(now.getDate() - now.getDay());
+      thisWeekStart.setHours(0, 0, 0, 0);
+      const lastWeekStart = new Date(thisWeekStart);
+      lastWeekStart.setDate(thisWeekStart.getDate() - 7);
+      const weekBeforeLastStart = new Date(lastWeekStart);
+      weekBeforeLastStart.setDate(lastWeekStart.getDate() - 7);
+      return d >= weekBeforeLastStart && d < lastWeekStart;
     }
     if (selectedPeriod === "month") {
       const lm = new Date(); lm.setMonth(now.getMonth() - 1);

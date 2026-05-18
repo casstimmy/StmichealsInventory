@@ -55,6 +55,7 @@ export default function VendorsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [productSearchMap, setProductSearchMap] = useState({});
   const [activeProductDropdown, setActiveProductDropdown] = useState(null);
+  const productsEndRef = useRef(null);
 
   // Order form state
   const [selectedVendor, setSelectedVendor] = useState(null);
@@ -167,6 +168,7 @@ export default function VendorsPage() {
       ...prev,
       products: [...prev.products, createEmptyVendorProduct({ isNewProductCard: true })],
     }));
+    setTimeout(() => productsEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
   }
 
   function removeVendorProduct(idx) {
@@ -1064,6 +1066,7 @@ export default function VendorsPage() {
                     </div>
                   ))}
                 </div>
+                <div ref={productsEndRef} />
               </div>
 
               <div className="flex gap-3 pt-2">

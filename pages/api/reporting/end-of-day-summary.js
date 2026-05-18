@@ -53,9 +53,8 @@ export default async function handler(req, res) {
     } else if (period === "week") {
       dateGte.setDate(dateGte.getDate() - 7);
     } else if (period === "thisWeek") {
-      const dayOfWeek = dateGte.getDay();
-      const diff = dateGte.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-      dateGte.setDate(diff);
+      // Start of current calendar week: Sunday midnight (Sun–Sat)
+      dateGte.setDate(dateGte.getDate() - dateGte.getDay());
       dateGte.setHours(0, 0, 0, 0);
     } else if (period === "month") {
       dateGte.setMonth(dateGte.getMonth() - 1);

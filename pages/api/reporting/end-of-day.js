@@ -2,6 +2,7 @@ import { mongooseConnect } from "../../../lib/mongodb";
 import EndOfDayReport from "../../../models/EndOfDayReport";
 import { buildLocationCache, resolveLocationName } from "../../../lib/serverLocationHelper";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
+import { normalizeEndOfDayReports } from "@/lib/end-of-day-report-normalize";
 import createOrCloseHandler from "./end-of-day-create";
 
 export default async function handler(req, res) {
@@ -73,14 +74,15 @@ export default async function handler(req, res) {
         locationName: await resolveLocationName(report.locationId, locationCache, report.storeId),
       }))
     );
+    const normalizedReports = normalizeEndOfDayReports(enrichedReports);
 
     const total = await EndOfDayReport.countDocuments(filter);
 
-    console.log(`📊 Found ${enrichedReports.length} EndOfDay reports`);
+    console.log(`📊 Found ${normalizedReports.length} EndOfDay reports`);
 
     return res.status(200).json({
       success: true,
-      reports: enrichedReports,
+      reports: normalizedReports,
       pagination: {
         total,
         page: parseInt(page),

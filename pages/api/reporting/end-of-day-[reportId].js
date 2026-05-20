@@ -2,6 +2,7 @@ import { mongooseConnect } from '../../../lib/mongodb';
 import EndOfDayReport from '../../../models/EndOfDayReport';
 import { buildLocationCache, resolveLocationName } from '../../../lib/serverLocationHelper';
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
+import { normalizeEndOfDayReport } from "@/lib/end-of-day-report-normalize";
 
 
 export default async function handler(req, res) {
@@ -42,13 +43,15 @@ export default async function handler(req, res) {
 
     console.log("✅ Report fetched successfully");
 
+    const normalizedReport = normalizeEndOfDayReport({
+      ...report,
+      locationId: String(report.locationId), // Ensure it's a string
+      locationName: locationName, // Add resolved location name
+    });
+
     return res.status(200).json({
       success: true,
-      report: {
-        ...report,
-        locationId: String(report.locationId), // Ensure it's a string
-        locationName: locationName, // Add resolved location name
-      },
+      report: normalizedReport,
     });
   } catch (error) {
     console.error("❌ Error fetching EndOfDay report:", error.message);

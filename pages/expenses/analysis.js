@@ -210,7 +210,7 @@ export default function ExpenseAnalysis() {
           {/* Period Quick Filters */}
           <div className="content-card">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-3">
-              <Calendar className="w-5 h-5 text-sky-600" /> Quick Date Filter
+              <Calendar className="w-5 h-5 theme-accent-text" /> Quick Date Filter
             </h2>
             <div className="flex flex-wrap gap-2">
               {[
@@ -225,10 +225,10 @@ export default function ExpenseAnalysis() {
                 <button
                   key={key}
                   onClick={() => handlePeriodSelect(key)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  className={`border px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     activePeriod === key
-                      ? "bg-sky-600 text-white shadow-md"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      ? "theme-toggle-active"
+                      : "theme-toggle-neutral"
                   }`}
                 >
                   {label}
@@ -240,7 +240,7 @@ export default function ExpenseAnalysis() {
           {/* Filters */}
           <div className="content-card space-y-4">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <Filter className="w-5 h-5 text-sky-600" /> Filter Expenses
+              <Filter className="w-5 h-5 theme-accent-text" /> Filter Expenses
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <select
@@ -337,7 +337,7 @@ export default function ExpenseAnalysis() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="content-card relative">
                   <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-lg font-semibold text-sky-700">
+                    <h2 className="text-lg font-semibold theme-section-title">
                       Category Breakdown
                     </h2>
                     <button
@@ -408,7 +408,7 @@ export default function ExpenseAnalysis() {
 
                 {/* Expense List */}
                 <div className="content-card overflow-auto">
-                  <h2 className="text-lg font-semibold text-sky-700 mb-4">
+                  <h2 className="text-lg font-semibold theme-section-title mb-4">
                     All Expenses
                   </h2>
                   <ul className="space-y-3 max-h-[320px] overflow-y-auto pr-2">

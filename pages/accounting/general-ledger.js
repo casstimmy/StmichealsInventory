@@ -124,7 +124,7 @@ export default function GeneralLedgerPage() {
               <div className="flex justify-between items-center">
                 <div>
                   <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                    <BookOpen size={20} className="text-blue-600" />
+                    <BookOpen size={20} className="theme-accent-text" />
                     {ledgerData.account?.code} - {ledgerData.account?.name}
                   </h2>
                   <p className="text-sm text-gray-500">{ledgerData.account?.type}</p>
@@ -151,18 +151,18 @@ export default function GeneralLedgerPage() {
                 </thead>
                 <tbody>
                   {/* Opening Balance Row */}
-                  <tr className="bg-blue-50 font-medium">
-                    <td colSpan={4} className="px-4 py-2 text-blue-700">Opening Balance</td>
+                  <tr className="theme-surface-soft font-medium">
+                    <td colSpan={4} className="px-4 py-2 theme-accent-text">Opening Balance</td>
                     <td className="px-4 py-2"></td>
                     <td className="px-4 py-2"></td>
-                    <td className="px-4 py-2 text-right font-bold text-blue-700">{(ledgerData.openingBalance || 0).toLocaleString()}</td>
+                    <td className="px-4 py-2 text-right font-bold theme-accent-text">{(ledgerData.openingBalance || 0).toLocaleString()}</td>
                   </tr>
                   {ledgerData.rows?.length === 0 ? (
                     <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">No transactions found for this account</td></tr>
                   ) : ledgerData.rows?.map((row, i) => (
                     <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="px-4 py-2 text-gray-600">{new Date(row.date).toLocaleDateString()}</td>
-                      <td className="px-4 py-2 font-mono text-blue-600">{row.entryNumber}</td>
+                      <td className="px-4 py-2 font-mono theme-accent-text">{row.entryNumber}</td>
                       <td className="px-4 py-2 text-gray-900">{row.description}{row.lineDescription ? ` — ${row.lineDescription}` : ""}</td>
                       <td className="px-4 py-2 text-xs text-gray-500">{row.referenceType}</td>
                       <td className="px-4 py-2 text-right text-gray-700">{row.debit ? row.debit.toLocaleString() : ""}</td>

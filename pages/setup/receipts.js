@@ -538,8 +538,8 @@ export default function Receipts() {
                       onClick={() => setQrScope("all")}
                       className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${
                         qrScope === "all"
-                          ? "bg-blue-600 text-white border-blue-600"
-                          : "bg-white text-gray-600 border-gray-300 hover:border-blue-400"
+                          ? "theme-toggle-active"
+                          : "theme-toggle-neutral"
                       }`}
                     >
                       All Locations (Default)
@@ -551,8 +551,8 @@ export default function Receipts() {
                         onClick={() => setQrScope(String(loc._id))}
                         className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${
                           qrScope === String(loc._id)
-                            ? "bg-blue-600 text-white border-blue-600"
-                            : "bg-white text-gray-600 border-gray-300 hover:border-blue-400"
+                            ? "theme-toggle-active"
+                            : "theme-toggle-neutral"
                         }`}
                       >
                         {loc.name}
@@ -579,7 +579,7 @@ export default function Receipts() {
                           type="button"
                           onClick={generateQRCode}
                           disabled={!qrUrl.trim() || qrGenerating}
-                          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                            className="btn-action-primary px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                         >
                           {qrGenerating ? "Generating..." : "Generate QR"}
                         </button>
@@ -626,7 +626,7 @@ export default function Receipts() {
                             type="button"
                             onClick={() => generateLocationQRCode(qrScope)}
                             disabled={!locQr.qrUrl?.trim() || locQr.generating}
-                            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                            className="btn-action-primary px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                           >
                             {locQr.generating ? "Generating..." : "Generate QR"}
                           </button>
@@ -798,7 +798,7 @@ export default function Receipts() {
                             <div className="mt-2 break-all text-[0.8em]">{previewQrUrl}</div>
                           )}
                           {locQr?.qrDataUrl && (
-                            <div className="text-[0.75em] text-blue-600 mt-0.5">📍 {previewLocation?.name}</div>
+                            <div className="theme-accent-text text-[0.75em] mt-0.5">📍 {previewLocation?.name}</div>
                           )}
                         </div>
                       );

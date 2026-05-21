@@ -407,8 +407,8 @@ export default function SupportPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => setView("chat")}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  view === "chat" ? "bg-sky-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                className={`flex items-center gap-2 border px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  view === "chat" ? "theme-toggle-active" : "theme-toggle-neutral"
                 }`}
               >
                 <MessageCircle className="w-4 h-4" />
@@ -416,8 +416,8 @@ export default function SupportPage() {
               </button>
               <button
                 onClick={() => setView("tickets")}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  view === "tickets" ? "bg-sky-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                className={`flex items-center gap-2 border px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  view === "tickets" ? "theme-toggle-active" : "theme-toggle-neutral"
                 }`}
               >
                 <TicketIcon className="w-4 h-4" />

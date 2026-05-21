@@ -472,7 +472,7 @@ export default function VendorsPage() {
               <h2 className="text-xl font-semibold text-gray-800">Vendors</h2>
               <button
                 onClick={openAdd}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
+                className="btn-action-primary text-sm"
               >
                 + Add Vendor
               </button>
@@ -577,7 +577,7 @@ export default function VendorsPage() {
                                           <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${p.packType === "pack" ? "bg-purple-100 text-purple-700" : "bg-gray-100 text-gray-600"}`}>
                                             {p.packType === "pack" ? "Pack" : "Unit"}
                                           </span>
-                                          {p.price > 0 && <span className="text-blue-600 font-semibold">{formatCurrency(p.price)}</span>}
+                                          {p.price > 0 && <span className="theme-accent-text font-semibold">{formatCurrency(p.price)}</span>}
                                         </div>
                                       </div>
                                     ))}
@@ -636,15 +636,15 @@ export default function VendorsPage() {
             >
               {/* Vendor Info Header */}
               <div className="p-3 sm:p-5 rounded-xl shadow-md border border-gray-200" style={{ backgroundColor: 'var(--surface-card-alt)' }}>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between px-3 sm:px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl shadow-sm mb-4 gap-2">
-                  <h2 className="text-base sm:text-xl font-bold text-blue-900 flex items-center gap-2">
+                <div className="theme-note-primary flex flex-col sm:flex-row sm:items-center justify-between px-3 sm:px-4 py-3 rounded-xl shadow-sm mb-4 gap-2">
+                  <h2 className="text-base sm:text-xl font-bold theme-section-title flex items-center gap-2">
                     <Package size={20} />
                     Vendor Order:{" "}
-                    <span className="text-blue-700 font-semibold">
+                    <span className="theme-accent-text font-semibold">
                       {selectedVendor.mainProduct || selectedVendor.companyName}
                     </span>
                   </h2>
-                  <span className="text-xs sm:text-sm font-medium text-blue-700 bg-blue-100 border border-blue-300 px-3 py-1 rounded-full shadow-sm">
+                  <span className="theme-pill-soft text-xs sm:text-sm font-medium px-3 py-1 rounded-full shadow-sm">
                     Order Mode
                   </span>
                 </div>
@@ -680,7 +680,7 @@ export default function VendorsPage() {
                       <button
                         type="button"
                         onClick={addOrderProductRow}
-                        className="text-sm text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded flex items-center gap-1"
+                        className="theme-toggle-neutral border text-sm px-3 py-1 rounded flex items-center gap-1"
                       >
                         <Plus size={14} /> Add Row
                       </button>
@@ -742,14 +742,14 @@ export default function VendorsPage() {
                         </div>
                       </div>
                       <div className="text-right text-sm text-gray-600">
-                        Subtotal: <span className="font-semibold text-blue-700">{formatCurrency((Number(product.quantity) || 0) * (Number(product.costPrice) || 0))}</span>
+                        Subtotal: <span className="font-semibold theme-accent-text">{formatCurrency((Number(product.quantity) || 0) * (Number(product.costPrice) || 0))}</span>
                       </div>
                     </div>
                   ))}
 
                   <div className="flex justify-between w-full text-right font-medium pt-2">
                     <div className="text-gray-700">Total</div>
-                    <div className="font-semibold text-blue-700 text-lg">
+                    <div className="font-semibold theme-accent-text text-lg">
                       {formatCurrency(orderGrandTotal)}
                     </div>
                   </div>
@@ -757,7 +757,7 @@ export default function VendorsPage() {
               )}
 
               <div className="text-right">
-                <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 font-medium">
+                <button type="submit" className="btn-action-primary font-medium px-6 py-2">
                   Add Order
                 </button>
               </div>
@@ -767,10 +767,10 @@ export default function VendorsPage() {
           {/* Order Review / Summary */}
           {orders.length > 0 && (
             <section ref={orderSummaryRef} className="content-card space-y-4 sm:space-y-6">
-              <h2 className="text-lg sm:text-xl font-bold text-gray-800 border-b pb-2">Purchase Order Summary</h2>
+              <h2 className="text-lg sm:text-xl font-bold theme-section-title border-b pb-2">Purchase Order Summary</h2>
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm text-left border border-gray-200">
-                  <thead className="bg-blue-50 text-gray-700 uppercase tracking-wide">
+                  <thead className="table-header-gradient text-white uppercase tracking-wide">
                     <tr>
                       <th className="px-4 py-2 border">#</th>
                       <th className="px-4 py-2 border">Product Name</th>
@@ -803,7 +803,7 @@ export default function VendorsPage() {
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-blue-100 text-blue-800 font-bold">
+                    <tr className="theme-table-summary-row font-bold">
                       <td colSpan="4" className="px-4 py-2 text-right border">Grand Total:</td>
                       <td className="px-4 py-2 border">{formatCurrency(orders.reduce((sum, o) => sum + o.total, 0))}</td>
                     </tr>
@@ -936,7 +936,7 @@ export default function VendorsPage() {
                           </p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${isNewProductCard ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"}`}>
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${isNewProductCard ? "theme-badge-soft" : "bg-gray-100 text-gray-600"}`}>
                             {isNewProductCard ? "New product card" : "Existing product card"}
                           </span>
                           <button type="button" onClick={() => removeVendorProduct(i)} className="p-1 text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
@@ -1071,7 +1071,7 @@ export default function VendorsPage() {
 
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => { setShowForm(false); setEditingVendor(null); setProductSearchMap({}); setForm(createEmptyForm()); clearVendorDraftState(); }} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
-                <button type="submit" disabled={saving} className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium text-white transition ${saving ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}>
+                <button type="submit" disabled={saving} className={`btn-action-primary flex-1 px-4 py-2 rounded-lg text-sm font-medium text-white transition ${saving ? "bg-gray-400 cursor-not-allowed" : ""}`}>
                   {saving ? "Saving..." : editingVendor ? "Update Vendor" : "Add Vendor"}
                 </button>
               </div>

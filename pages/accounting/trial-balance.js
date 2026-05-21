@@ -116,7 +116,7 @@ export default function TrialBalancePage() {
                   <tr><td colSpan={5} className="px-4 py-12 text-center text-gray-500">No posted journal entries found</td></tr>
                 ) : rows.map((row) => (
                   <tr key={row._id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="px-4 py-2 font-mono text-blue-700">{row.code}</td>
+                    <td className="px-4 py-2 font-mono theme-accent-text">{row.code}</td>
                     <td className="px-4 py-2 font-medium text-gray-900">{row.name}</td>
                     <td className="px-4 py-2 text-xs text-gray-500">{row.type}</td>
                     <td className="px-4 py-2 text-right font-medium">{row.debit > 0 ? row.debit.toLocaleString() : ""}</td>

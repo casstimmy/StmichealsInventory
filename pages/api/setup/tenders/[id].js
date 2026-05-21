@@ -3,6 +3,10 @@ import Tender from "@/models/Tender";
 import { mongooseConnect } from "@/lib/mongodb";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 
+function normalizeTenderName(name) {
+  return String(name || "").trim().toLowerCase();
+}
+
 async function connectDB() {
   await mongooseConnect();
 }
@@ -56,23 +60,39 @@ export default async function handler(req, res) {
         });
       }
 
-      // Check if another tender has this name
-      const existingTender = await Tender.findOne({ 
-        name, 
-        _id: { $ne: id } 
+      const cleanName = String(name).trim();
+      const normalizedName = normalizeTenderName(cleanName);
+      if (!normalizedName) {
+        return res.status(400).json({
+          success: false,
+          message: "Tender name is required",
+        });
+      }
+
+      // Check if another tender has this name (case/space-insensitive)
+      const existingTender = await Tender.findOne({
+        _id: { $ne: id },
+        $expr: {
+          $eq: [
+            { $toLower: { $trim: { input: "$name" } } },
+            normalizedName,
+          ],
+        },
       });
 
       if (existingTender) {
-        return res.status(400).json({
-          success: false,
-          message: "A tender with this name already exists",
+        return res.status(200).json({
+          success: true,
+          message: "Existing tender with same name found. Using existing tender ID.",
+          tender: existingTender,
+          linkedExisting: true,
         });
       }
 
       const tender = await Tender.findByIdAndUpdate(
         id,
         {
-          name,
+          name: cleanName,
           description: description || "",
           buttonColor: buttonColor || "#FF69B4",
           tillOrder: tillOrder || 1,

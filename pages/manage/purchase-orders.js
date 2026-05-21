@@ -477,7 +477,7 @@ export default function PurchaseOrdersPage() {
       <div className="min-h-screen bg-gray-100 p-3 sm:p-4 md:p-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-blue-800">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold theme-section-title">
               Vendor Payment Tracker
             </h1>
             <div className="flex items-center gap-3">
@@ -487,7 +487,7 @@ export default function PurchaseOrdersPage() {
               >
                 <Plus size={16} /> Quick Entry
               </button>
-              <p className="text-sm text-gray-500">Orders are placed from the <Link href="/manage/vendors" className="font-medium text-blue-600 hover:underline">Vendor page</Link></p>
+              <p className="text-sm text-gray-500">Orders are placed from the <Link href="/manage/vendors" className="font-medium theme-accent-text hover:underline">Vendor page</Link></p>
             </div>
           </div>
 
@@ -528,15 +528,15 @@ export default function PurchaseOrdersPage() {
 
               {/* Credit Orders */}
               {creditOrders.length > 0 && (
-                <div className="bg-blue-50 border border-blue-200 text-blue-800 p-4 sm:p-5 rounded-xl shadow-md">
+                <div className="theme-note-primary p-4 sm:p-5 rounded-xl shadow-md">
                   <div className="font-semibold mb-3 text-sm md:text-base flex items-center justify-between">
                     <span>{creditOrders.length} Credit Order{creditOrders.length > 1 ? "s" : ""}</span>
-                    <span className="text-xs sm:text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-bold">{formatCurrency(totalCreditValue)}</span>
+                    <span className="theme-badge-soft text-xs sm:text-sm px-2 py-1 rounded-full font-bold">{formatCurrency(totalCreditValue)}</span>
                   </div>
-                  <p className="text-xs text-blue-700/80 mb-3">These orders are fully prepaid but still waiting for stock to be received.</p>
+                  <p className="text-xs theme-accent-text opacity-80 mb-3">These orders are fully prepaid but still waiting for stock to be received.</p>
                   <div className="space-y-2">
                     {creditOrders.map((order, i) => (
-                      <div key={order._id ?? i} className="flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm bg-white px-3 py-2 rounded-lg border border-blue-100">
+                      <div key={order._id ?? i} className="theme-border-soft flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm bg-white px-3 py-2 rounded-lg border">
                         <div>
                           <span className="font-medium">{order.vendorName || "Unknown"}</span>
                           <span className="text-gray-400 ml-2">{order.date ? new Date(order.date).toLocaleDateString() : ""}</span>
@@ -544,7 +544,7 @@ export default function PurchaseOrdersPage() {
                         <div className="flex gap-3">
                           <span className="text-gray-600">Total: {formatCurrency(order.grandTotal)}</span>
                           <span className="text-green-700 font-medium">Paid: {formatCurrency(order.paymentMade)}</span>
-                          <span className="text-blue-700 font-bold">Credit Held: {formatCurrency(toNumber(order.paymentMade || order.grandTotal || 0))}</span>
+                          <span className="theme-accent-text font-bold">Credit Held: {formatCurrency(toNumber(order.paymentMade || order.grandTotal || 0))}</span>
                         </div>
                       </div>
                     ))}
@@ -709,7 +709,7 @@ export default function PurchaseOrdersPage() {
                       ) : (
                         <div className="flex items-center gap-2 justify-end">
                           <span className="text-sm font-medium">{formatCurrency(order.paymentMade)}</span>
-                          <button disabled={isBusy} onClick={() => handleEdit(idx)} className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs font-medium transition">Edit</button>
+                          <button disabled={isBusy} onClick={() => handleEdit(idx)} className="btn-action-primary px-2 py-1 text-xs font-medium transition">Edit</button>
                         </div>
                       )}
                     </td>
@@ -760,7 +760,7 @@ export default function PurchaseOrdersPage() {
               <div className="flex justify-center items-center gap-2 my-4">
                 <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 text-sm">Prev</button>
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <button key={page} onClick={() => { setCurrentPage(page); setEditIndex(null); }} className={`px-3 py-1 rounded text-sm ${page === currentPage ? "bg-blue-600 text-white" : "bg-gray-200 hover:bg-gray-300"}`}>{page}</button>
+                  <button key={page} onClick={() => { setCurrentPage(page); setEditIndex(null); }} className={`px-3 py-1 rounded text-sm border ${page === currentPage ? "theme-toggle-active" : "theme-toggle-neutral"}`}>{page}</button>
                 ))}
                 <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 text-sm">Next</button>
               </div>
@@ -791,7 +791,7 @@ export default function PurchaseOrdersPage() {
                     ) : (
                       <div className="flex items-center justify-between">
                         <span>{formatCurrency(order.paymentMade)}</span>
-                        <button onClick={() => handleEdit(idx)} className="bg-blue-600 text-white px-2 py-1 rounded text-xs">Edit</button>
+                        <button onClick={() => handleEdit(idx)} className="btn-action-primary px-2 py-1 text-xs">Edit</button>
                       </div>
                     )}
                   </div>
@@ -814,7 +814,7 @@ export default function PurchaseOrdersPage() {
               <div className="flex justify-center items-center gap-2 mt-4">
                 <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50 text-sm">Prev</button>
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <button key={page} onClick={() => setCurrentPage(page)} className={`px-3 py-1 rounded text-sm ${page === currentPage ? "bg-blue-600 text-white" : "bg-gray-200"}`}>{page}</button>
+                  <button key={page} onClick={() => setCurrentPage(page)} className={`px-3 py-1 rounded text-sm border ${page === currentPage ? "theme-toggle-active" : "theme-toggle-neutral"}`}>{page}</button>
                 ))}
                 <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50 text-sm">Next</button>
               </div>

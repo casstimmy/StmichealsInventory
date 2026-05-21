@@ -267,7 +267,7 @@ export default function TimeIntervals() {
                       </tr>
                     ))}
                     {/* Total Row */}
-                    <tr className="bg-sky-50 font-bold border-t-2 border-gray-300">
+                    <tr className="theme-table-summary-row font-bold border-t-2 border-gray-300">
                       <td className="px-4 py-3 text-gray-800">TOTAL</td>
                       <td className="px-4 py-3 text-right">{formatNumber(totals.transactionQty)}</td>
                       <td className="px-4 py-3 text-right">{formatNumber(totals.refundQty)}</td>

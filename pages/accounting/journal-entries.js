@@ -385,7 +385,7 @@ export default function JournalEntriesPage() {
                 ) : entries.map((entry) => (
                   <>
                     <tr key={entry._id} className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer" onClick={() => setExpandedEntry(expandedEntry === entry._id ? null : entry._id)}>
-                      <td className="px-4 py-3 font-mono text-blue-700 font-semibold">{entry.entryNumber}</td>
+                      <td className="px-4 py-3 font-mono theme-accent-text font-semibold">{entry.entryNumber}</td>
                       <td className="px-4 py-3 text-gray-600">{new Date(entry.date).toLocaleDateString()}</td>
                       <td className="px-4 py-3 text-gray-900 font-medium max-w-xs truncate">{entry.description}</td>
                       <td className="px-4 py-3 text-gray-600 text-xs">{entry.referenceType}</td>
@@ -434,7 +434,7 @@ export default function JournalEntriesPage() {
                                 {entry.lines?.map((line, i) => (
                                   <tr key={i} className="border-t border-gray-100">
                                     <td className="px-3 py-2 font-medium">
-                                      <span className="text-blue-600 font-mono">{line.accountCode}</span> {line.accountName}
+                                      <span className="theme-accent-text font-mono">{line.accountCode}</span> {line.accountName}
                                     </td>
                                     <td className="px-3 py-2 text-gray-600">{line.description || "—"}</td>
                                     <td className="px-3 py-2 text-right font-medium">{line.debit ? line.debit.toLocaleString() : ""}</td>

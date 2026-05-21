@@ -188,9 +188,9 @@ function BalanceSheet({ data }) {
     <div>
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="content-card text-center border-t-4 border-blue-500">
+        <div className="content-card text-center border-t-4" style={{ borderTopColor: "var(--btn-primary-bg, #0284c7)" }}>
           <p className="text-sm text-gray-600 font-semibold">Total Assets</p>
-          <p className="text-2xl font-bold text-blue-700">{(data.totalAssets || 0).toLocaleString()}</p>
+          <p className="text-2xl font-bold theme-accent-text">{(data.totalAssets || 0).toLocaleString()}</p>
         </div>
         <div className="content-card text-center border-t-4 border-red-500">
           <p className="text-sm text-gray-600 font-semibold">Total Liabilities</p>
@@ -203,7 +203,7 @@ function BalanceSheet({ data }) {
       </div>
 
       <div className="space-y-6">
-        <BSSection title="Assets" items={data.assets || []} total={data.totalAssets || 0} colorClass="bg-blue-50 text-blue-800" />
+        <BSSection title="Assets" items={data.assets || []} total={data.totalAssets || 0} colorClass="theme-surface-soft theme-border-soft" />
         <BSSection title="Liabilities" items={data.liabilities || []} total={data.totalLiabilities || 0} colorClass="bg-red-50 text-red-800" />
         <BSSection title="Equity" items={data.equity || []} total={data.totalEquity || 0} colorClass="bg-purple-50 text-purple-800" />
       </div>
@@ -235,7 +235,7 @@ function BSSection({ title, items, total, colorClass }) {
           ) : items.map((item, i) => (
             <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
               <td className="px-4 py-2">
-                <span className="font-mono text-blue-600 text-xs mr-2">{item.code}</span>
+                <span className="font-mono theme-accent-text text-xs mr-2">{item.code}</span>
                 <span className="font-medium text-gray-900">{item.name}</span>
               </td>
               <td className="px-4 py-2 text-right font-semibold">{Math.abs(item.amount).toLocaleString()}</td>
@@ -278,7 +278,7 @@ function TrialBalance({ data }) {
                 <tr><td colSpan={5} className="px-4 py-12 text-center text-gray-500">No posted journal entries found</td></tr>
               ) : rows.map((row) => (
                 <tr key={row._id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="px-4 py-2 font-mono text-blue-700">{row.code}</td>
+                  <td className="px-4 py-2 font-mono theme-accent-text">{row.code}</td>
                   <td className="px-4 py-2 font-medium text-gray-900">{row.name}</td>
                   <td className="px-4 py-2 text-xs text-gray-500">{row.type}</td>
                   <td className="px-4 py-2 text-right font-medium">{row.debit > 0 ? row.debit.toLocaleString() : ""}</td>

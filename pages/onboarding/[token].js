@@ -96,7 +96,7 @@ export default function OnboardingPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="animate-spin text-blue-600" size={40} />
+        <Loader2 className="animate-spin theme-accent-text" size={40} />
       </div>
     );
   }
@@ -133,15 +133,15 @@ export default function OnboardingPage() {
         <div className="max-w-2xl mx-auto">
           <div className="bg-white rounded-xl shadow-lg overflow-hidden">
             {/* Header */}
-            <div className="bg-blue-700 text-white px-6 py-6">
+            <div className="theme-accent-bg text-white px-6 py-6">
               <h1 className="text-2xl font-bold">Staff Onboarding Form</h1>
-              <p className="text-blue-100 mt-1">Welcome, {staff?.name}! Please fill in your details below.</p>
+              <p className="text-white/80 mt-1">Welcome, {staff?.name}! Please fill in your details below.</p>
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-8">
               {/* Section 1: Personal Details */}
               <div>
-                <h2 className="text-lg font-semibold text-blue-700 mb-4 border-b border-blue-100 pb-2">Personal Details</h2>
+                <h2 className="text-lg font-semibold theme-section-title mb-4 border-b theme-border-soft pb-2">Personal Details</h2>
 
                 {/* Photo Upload */}
                 <div className="flex items-center gap-4 mb-5">
@@ -150,7 +150,7 @@ export default function OnboardingPage() {
                     className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition overflow-hidden shrink-0"
                   >
                     {uploadingStaffPhoto ? (
-                      <Loader2 size={24} className="text-blue-400 animate-spin" />
+                      <Loader2 size={24} className="theme-accent-text animate-spin" />
                     ) : staffPhotoPreview ? (
                       <img src={staffPhotoPreview} alt="Photo" className="w-full h-full object-cover" />
                     ) : (
@@ -202,7 +202,7 @@ export default function OnboardingPage() {
 
               {/* Section 2: Guarantor */}
               <div>
-                <h2 className="text-lg font-semibold text-blue-700 mb-4 border-b border-blue-100 pb-2">Guarantor Information</h2>
+                <h2 className="text-lg font-semibold theme-section-title mb-4 border-b theme-border-soft pb-2">Guarantor Information</h2>
 
                 {/* Guarantor Photo */}
                 <div className="flex items-center gap-4 mb-5">
@@ -211,7 +211,7 @@ export default function OnboardingPage() {
                     className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition overflow-hidden shrink-0"
                   >
                     {uploadingGuarantorPhoto ? (
-                      <Loader2 size={24} className="text-blue-400 animate-spin" />
+                      <Loader2 size={24} className="theme-accent-text animate-spin" />
                     ) : guarantorPhotoPreview ? (
                       <img src={guarantorPhotoPreview} alt="Guarantor" className="w-full h-full object-cover" />
                     ) : (

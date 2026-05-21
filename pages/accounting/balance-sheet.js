@@ -59,7 +59,7 @@ export default function BalanceSheetPage() {
             ) : items.map((item, i) => (
               <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
                 <td className="px-4 py-2">
-                  <span className="font-mono text-blue-600 text-xs mr-2">{item.code}</span>
+                  <span className="font-mono theme-accent-text text-xs mr-2">{item.code}</span>
                   <span className="font-medium text-gray-900">{item.name}</span>
                   {item.subType && <span className="text-xs text-gray-500 ml-2">({item.subType})</span>}
                 </td>
@@ -102,9 +102,9 @@ export default function BalanceSheetPage() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="content-card text-center border-t-4 border-blue-500">
+          <div className="content-card text-center border-t-4" style={{ borderTopColor: "var(--btn-primary-bg, #0284c7)" }}>
             <p className="text-sm text-gray-600 font-semibold">Total Assets</p>
-            <p className="text-2xl font-bold text-blue-700">{(data?.totalAssets || 0).toLocaleString()}</p>
+            <p className="text-2xl font-bold theme-accent-text">{(data?.totalAssets || 0).toLocaleString()}</p>
           </div>
           <div className="content-card text-center border-t-4 border-red-500">
             <p className="text-sm text-gray-600 font-semibold">Total Liabilities</p>
@@ -117,7 +117,7 @@ export default function BalanceSheetPage() {
         </div>
 
         <div className="space-y-6">
-          <Section title="Assets" items={data?.assets || []} total={data?.totalAssets || 0} colorClass="bg-blue-50 text-blue-800" />
+          <Section title="Assets" items={data?.assets || []} total={data?.totalAssets || 0} colorClass="theme-surface-soft theme-border-soft" />
           <Section title="Liabilities" items={data?.liabilities || []} total={data?.totalLiabilities || 0} colorClass="bg-red-50 text-red-800" />
           <Section title="Equity" items={data?.equity || []} total={data?.totalEquity || 0} colorClass="bg-purple-50 text-purple-800" />
         </div>

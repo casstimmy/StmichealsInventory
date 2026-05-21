@@ -324,18 +324,18 @@ export default function StockTakeList() {
               </div>
             ) : (
               <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200 text-left">
-                    <th className="py-3 px-3 font-semibold text-gray-600">Reference</th>
-                    <th className="py-3 px-3 font-semibold text-gray-600">Title</th>
-                    <th className="py-3 px-3 font-semibold text-gray-600 hidden md:table-cell">Type</th>
-                    <th className="py-3 px-3 font-semibold text-gray-600">Location</th>
-                    <th className="py-3 px-3 font-semibold text-gray-600 hidden md:table-cell">Items</th>
-                    <th className="py-3 px-3 font-semibold text-gray-600 hidden md:table-cell">Progress</th>
-                    <th className="py-3 px-3 font-semibold text-gray-600 hidden lg:table-cell">Variance</th>
-                    <th className="py-3 px-3 font-semibold text-gray-600">Status</th>
-                    <th className="py-3 px-3 font-semibold text-gray-600 hidden md:table-cell">Date</th>
-                    <th className="py-3 px-3 font-semibold text-gray-600 text-right">Actions</th>
+                <thead className="table-header-gradient">
+                  <tr className="text-left">
+                    <th className="py-3 px-3 font-semibold text-white">Reference</th>
+                    <th className="py-3 px-3 font-semibold text-white">Title</th>
+                    <th className="py-3 px-3 font-semibold text-white hidden md:table-cell">Type</th>
+                    <th className="py-3 px-3 font-semibold text-white">Location</th>
+                    <th className="py-3 px-3 font-semibold text-white hidden md:table-cell">Items</th>
+                    <th className="py-3 px-3 font-semibold text-white hidden md:table-cell">Progress</th>
+                    <th className="py-3 px-3 font-semibold text-white hidden lg:table-cell">Variance</th>
+                    <th className="py-3 px-3 font-semibold text-white">Status</th>
+                    <th className="py-3 px-3 font-semibold text-white hidden md:table-cell">Date</th>
+                    <th className="py-3 px-3 font-semibold text-white text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -343,16 +343,16 @@ export default function StockTakeList() {
                     const progressPct = st.totalItems > 0 ? Math.round((st.countedItems / st.totalItems) * 100) : 0;
                     return (
                       <tr key={st._id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                        <td className="py-3 px-3 font-mono text-xs text-blue-600">{st.reference}</td>
+                        <td className="py-3 px-3 font-mono text-xs theme-accent-text">{st.reference}</td>
                         <td className="py-3 px-3 font-medium text-gray-900">{st.title}</td>
                         <td className="py-3 px-3 text-gray-600 hidden md:table-cell">{TYPE_LABELS[st.type] || st.type}</td>
                         <td className="py-3 px-3 text-gray-600">{st.locationName}</td>
                         <td className="py-3 px-3 text-gray-600 hidden md:table-cell">{st.countedItems}/{st.totalItems}</td>
                         <td className="py-3 px-3 hidden md:table-cell">
                           <div className="flex items-center gap-2">
-                            <div className="w-16 bg-gray-200 rounded-full h-1.5">
+                            <div className="w-16 theme-progress-track h-1.5">
                               <div
-                                className={`h-1.5 rounded-full ${progressPct === 100 ? "bg-green-500" : "bg-blue-500"}`}
+                                className={`h-1.5 rounded-full ${progressPct === 100 ? "theme-progress-fill-success" : "theme-progress-fill"}`}
                                 style={{ width: `${progressPct}%` }}
                               />
                             </div>
@@ -379,7 +379,7 @@ export default function StockTakeList() {
                         <td className="py-3 px-3 text-right">
                           <button
                             onClick={() => router.push(`/stock/stock-take/${st._id}`)}
-                            className="text-blue-600 hover:text-blue-800 transition-colors p-1"
+                            className="theme-accent-text transition-opacity hover:opacity-75 p-1"
                             title="View Details"
                           >
                             <FontAwesomeIcon icon={faEye} className="w-4 h-4" />
@@ -417,7 +417,7 @@ export default function StockTakeList() {
                       key={preset.key}
                       type="button"
                       onClick={() => applyQuickPreset(preset)}
-                      className={`rounded-lg border px-3 py-2 text-left text-sm transition ${form.type === preset.type ? "border-blue-300 bg-blue-50 text-blue-700" : "border-gray-200 hover:border-blue-200 hover:bg-gray-50"}`}
+                      className={`rounded-lg border px-3 py-2 text-left text-sm transition ${form.type === preset.type ? "theme-toggle-active" : "theme-toggle-neutral"}`}
                     >
                       <div className="font-medium">{preset.label}</div>
                       <div className="text-xs opacity-80 mt-1">{preset.helper}</div>
@@ -477,7 +477,7 @@ export default function StockTakeList() {
                 </div>
               </div>
               {form.type === "full" ? (
-                <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-700">
+                <div className="theme-note-primary rounded-lg px-3 py-2 text-sm">
                   Full count will include every stock-managed product in this location.
                 </div>
               ) : (

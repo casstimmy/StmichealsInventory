@@ -14,7 +14,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 
 function MetricCard({ title, value, icon, color }) {
   const colors = {
-    sky: "bg-sky-50 border-sky-200 text-sky-700",
+    sky: "theme-note-primary",
     emerald: "bg-emerald-50 border-emerald-200 text-emerald-700",
     amber: "bg-amber-50 border-amber-200 text-amber-700",
     purple: "bg-purple-50 border-purple-200 text-purple-700",
@@ -212,8 +212,8 @@ export default function TimeComparisons() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="p-4 bg-sky-50 border border-sky-200 rounded-lg">
-                <h4 className="text-sm font-semibold text-sky-700 mb-3">Period 1</h4>
+              <div className="p-4 theme-note-primary rounded-lg">
+                <h4 className="text-sm font-semibold theme-section-title mb-3">Period 1</h4>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Start</label>
@@ -302,7 +302,7 @@ export default function TimeComparisons() {
                       </tr>
                     ))}
                     {/* Total Row */}
-                    <tr className="bg-sky-50 font-bold border-t-2 border-gray-300">
+                    <tr className="theme-table-summary-row font-bold border-t-2 border-gray-300">
                       <td className="px-4 py-3 text-gray-800">Total</td>
                       <td className="px-4 py-3 text-right">{fmt(data.p1Total)}</td>
                       <td className="px-4 py-3 text-gray-800">Total</td>

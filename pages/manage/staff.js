@@ -321,7 +321,7 @@ export default function StaffPage() {
           <div className="flex flex-col lg:flex-row justify-between gap-6">
             {/* Staff List */}
             <div className="content-card w-full lg:w-2/3">
-              <h2 className="text-xl font-semibold mb-6 text-sky-700">All Staff</h2>
+              <h2 className="text-xl font-semibold mb-6 theme-section-title">All Staff</h2>
               {loadingStaffList ? (
                 <div className="flex justify-center items-center py-10"><Loader size="md" text="Loading staff list..." progress={progress} /></div>
               ) : staffList.length === 0 ? (
@@ -376,7 +376,7 @@ export default function StaffPage() {
                         <>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
-                            {staff.photo ? <img src={staff.photo} alt={staff.name} className="w-10 h-10 rounded-full object-cover shrink-0" /> : <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm shrink-0">{staff.name?.charAt(0).toUpperCase()}</div>}
+                            {staff.photo ? <img src={staff.photo} alt={staff.name} className="w-10 h-10 rounded-full object-cover shrink-0" /> : <div className="w-10 h-10 rounded-full theme-badge-soft flex items-center justify-center font-bold text-sm shrink-0">{staff.name?.charAt(0).toUpperCase()}</div>}
                             <div>
                               <div className="font-semibold text-gray-800">{toCamelCase(staff.name || "")}</div>
                               {staff.accountName && <div className="text-xs text-gray-400">{toCamelCase(staff.accountName)}</div>}
@@ -385,7 +385,7 @@ export default function StaffPage() {
                         </td>
                         <td className="px-4 py-3 text-gray-600">{toCamelCase(staff.location || "—")}</td>
                         <td className="px-4 py-3">
-                          <span className={`text-xs font-medium px-2 py-1 rounded-full ${staff.role === "admin" || staff.role === "manager" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"}`}>
+                          <span className={`text-xs font-medium px-2 py-1 rounded-full ${staff.role === "admin" || staff.role === "manager" ? "bg-red-100 text-red-700" : "theme-badge-soft"}`}>
                             {toCamelCase(STAFF_ROLE_OPTIONS.find((o) => o.value === staff.role)?.label || staff.role)}
                           </span>
                         </td>
@@ -403,7 +403,7 @@ export default function StaffPage() {
                                 <button onClick={() => copyOnboardingLink(staff)} className="flex items-center gap-1 text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded hover:bg-indigo-100 transition font-medium">
                                   {copiedLink === staff._id ? <><CheckCircle size={12} /> Copied!</> : <><Copy size={12} /> Copy Link</>}
                                 </button>
-                                <button onClick={() => { setShowOnboardingEmailModal(staff._id); setOnboardingEmail(""); }} className="flex items-center gap-1 text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded hover:bg-blue-100 transition font-medium">
+                                <button onClick={() => { setShowOnboardingEmailModal(staff._id); setOnboardingEmail(""); }} className="theme-toggle-neutral flex items-center gap-1 text-xs px-2 py-1 rounded transition font-medium border">
                                   <Send size={12} /> Send
                                 </button>
                                 <a href={`${typeof window !== "undefined" ? window.location.origin : ""}/onboarding/${staff.onboardingToken}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs bg-green-50 text-green-600 px-2 py-1 rounded hover:bg-green-100 transition font-medium">
@@ -420,7 +420,7 @@ export default function StaffPage() {
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex justify-end gap-2">
-                            <button onClick={() => startEdit(staff)} className="text-xs px-3 py-1 border border-blue-500 text-blue-600 rounded-full hover:bg-blue-500 hover:text-white transition font-semibold">Edit</button>
+                            <button onClick={() => startEdit(staff)} className="theme-outline-accent text-xs px-3 py-1 rounded-full transition font-semibold">Edit</button>
                             <button onClick={() => handleDelete(staff._id)} className="text-xs px-3 py-1 border border-red-500 text-red-600 rounded-full hover:bg-red-500 hover:text-white transition font-semibold">Delete</button>
                           </div>
                         </td>
@@ -433,7 +433,7 @@ export default function StaffPage() {
                           <div className="bg-gray-50 rounded-lg p-3 text-xs space-y-3">
                             {staff.onboardingData && (
                               <div>
-                                <h4 className="font-semibold text-blue-700 mb-1">Personal Details</h4>
+                                <h4 className="font-semibold theme-section-title mb-1">Personal Details</h4>
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
                                   {staff.onboardingData.fullName && <p><span className="text-gray-500">Name:</span> {toCamelCase(staff.onboardingData.fullName)}</p>}
                                   {staff.onboardingData.phone && <p><span className="text-gray-500">Phone:</span> {staff.onboardingData.phone}</p>}
@@ -449,7 +449,7 @@ export default function StaffPage() {
                             )}
                             {staff.guarantor?.name && (
                               <div>
-                                <h4 className="font-semibold text-blue-700 mb-1">Guarantor</h4>
+                                <h4 className="font-semibold theme-section-title mb-1">Guarantor</h4>
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
                                   <p><span className="text-gray-500">Name:</span> {toCamelCase(staff.guarantor.name)}</p>
                                   {staff.guarantor.phone && <p><span className="text-gray-500">Phone:</span> {staff.guarantor.phone}</p>}
@@ -476,10 +476,10 @@ export default function StaffPage() {
 
             {/* Staff Penalty */}
             <div className="bg-white p-6 shadow rounded-lg w-full lg:w-1/3">
-              <h2 className="text-xl font-semibold mb-4 text-blue-700">Staff Penalty</h2>
+              <h2 className="text-xl font-semibold mb-4 theme-section-title">Staff Penalty</h2>
               <div className="flex space-x-4 mb-6">
-                <button className={`px-4 py-2 rounded-full font-semibold transition ${activeTab === "list" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300"}`} onClick={() => setActiveTab("list")}>Penalty List</button>
-                <button className={`px-4 py-2 rounded-full font-semibold transition ${activeTab === "form" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300"}`} onClick={() => setActiveTab("form")}>Add Penalty</button>
+                <button className={`px-4 py-2 rounded-full font-semibold transition border ${activeTab === "list" ? "theme-toggle-active" : "theme-toggle-neutral"}`} onClick={() => setActiveTab("list")}>Penalty List</button>
+                <button className={`px-4 py-2 rounded-full font-semibold transition border ${activeTab === "form" ? "theme-toggle-active" : "theme-toggle-neutral"}`} onClick={() => setActiveTab("form")}>Add Penalty</button>
               </div>
 
               {activeTab === "list" && (
@@ -490,10 +490,10 @@ export default function StaffPage() {
                     staffList.filter((s) => s.penalty?.length).map((staff) => (
                       <div key={staff._id} className="bg-white border border-gray-200 p-5 rounded-lg shadow hover:shadow-md transition">
                         <div className="flex justify-between items-center mb-2">
-                          <h3 className="text-lg font-semibold text-blue-800">{staff.name} <span className="text-sm text-gray-500 ml-2">({staff.role})</span></h3>
+                          <h3 className="text-lg font-semibold theme-section-title">{staff.name} <span className="text-sm text-gray-500 ml-2">({staff.role})</span></h3>
                           <span className="text-sm bg-red-100 text-red-600 px-2 py-1 rounded-full">{staff.penalty.length} Penalt{staff.penalty.length > 1 ? "ies" : "y"}</span>
                         </div>
-                        <ul className="space-y-2 pl-4 border-l-2 border-blue-100">
+                        <ul className="space-y-2 pl-4 border-l-2 border-[var(--color-primary-100,#dbeafe)]">
                           {staff.penalty.map((p, i) => (
                             <li key={i} className="text-sm text-gray-800">
                               {editingPenalty?.staffId === staff._id && editingPenalty?.index === i ? (
@@ -508,7 +508,7 @@ export default function StaffPage() {
                                 <div className="flex items-center justify-between gap-2">
                                   <span><span className="font-medium text-red-700">{p.amount}</span> - <span className="italic">{p.reason}</span> <span className="text-gray-500">({new Date(p.date).toLocaleDateString()})</span></span>
                                   <div className="flex gap-1 shrink-0">
-                                    <button onClick={() => handleEditPenalty(staff._id, i, p)} className="text-xs text-blue-600 border border-blue-400 px-2 py-0.5 rounded hover:bg-blue-500 hover:text-white">Edit</button>
+                                    <button onClick={() => handleEditPenalty(staff._id, i, p)} className="theme-outline-accent text-xs px-2 py-0.5 rounded">Edit</button>
                                     <button onClick={() => handleDeletePenalty(staff._id, i)} className="text-xs text-red-600 border border-red-400 px-2 py-0.5 rounded hover:bg-red-500 hover:text-white">Del</button>
                                   </div>
                                 </div>
@@ -531,16 +531,16 @@ export default function StaffPage() {
                   <input type="number" name="amount" placeholder="Penalty Amount" value={penaltyForm.amount} onChange={(e) => setPenaltyForm((prev) => ({ ...prev, amount: e.target.value }))} className="form-input" required />
                   <input type="text" name="reason" placeholder="Reason" value={penaltyForm.reason} onChange={(e) => setPenaltyForm((prev) => ({ ...prev, reason: e.target.value }))} className="form-input" required />
                   <input type="date" name="date" value={penaltyForm.date} onChange={(e) => setPenaltyForm((prev) => ({ ...prev, date: e.target.value }))} className="form-input" />
-                  <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 font-semibold">Submit</button>
+                  <button type="submit" className="btn-action-primary px-4 py-2 font-semibold">Submit</button>
                 </form>
               )}
-              {message && <p className="text-sm text-blue-700 mt-4 p-3 bg-blue-50 rounded">{message}</p>}
+              {message && <p className="theme-note-primary text-sm mt-4 p-3 rounded">{message}</p>}
             </div>
           </div>
 
           {/* Salary Table */}
           <div className="bg-white mt-8 p-6 shadow rounded-lg w-full">
-            <h2 className="text-xl font-semibold text-blue-700 mb-6">Salary Table</h2>
+            <h2 className="text-xl font-semibold theme-section-title mb-6">Salary Table</h2>
             {staffList.length > 0 ? (
               <>
                 <div className="overflow-x-auto">
@@ -557,7 +557,7 @@ export default function StaffPage() {
                     </thead>
                     <tbody>
                       {staffList.map((s) => (
-                        <tr key={s._id} className="border-b border-gray-200 hover:bg-blue-50">
+                        <tr key={s._id} className="border-b border-gray-200 hover:bg-[var(--color-primary-50,#eff6ff)]">
                           <td className="px-6 py-3 font-medium text-gray-900">{toCamelCase(s.name || "")}</td>
                           <td className="px-6 py-3 text-gray-700">{toCamelCase(s.location || "-")}</td>
                           <td className="px-6 py-3 text-gray-700">{toCamelCase(s.accountName || "-")}</td>
@@ -569,15 +569,15 @@ export default function StaffPage() {
                     </tbody>
                   </table>
                 </div>
-                <div className="flex justify-between items-center mt-8 bg-blue-100 px-6 py-4 rounded-lg border-2 border-blue-400 mb-6">
-                  <span className="text-xl font-bold text-blue-900">T-Total</span>
-                  <span className="text-xl font-bold text-blue-900">{calculateGrandTotal().toLocaleString()}</span>
+                <div className="theme-panel-soft flex justify-between items-center mt-8 px-6 py-4 rounded-lg border-2 mb-6">
+                  <span className="text-xl font-bold theme-section-title">T-Total</span>
+                  <span className="text-xl font-bold theme-section-title">{calculateGrandTotal().toLocaleString()}</span>
                 </div>
                 <div className="flex justify-end gap-3">
                   <button onClick={handleSendingMail} disabled={isSending} className={`${isSending ? "bg-gray-400 cursor-not-allowed" : "bg-gray-600 hover:bg-gray-700"} text-white px-6 py-2 rounded-lg font-semibold flex items-center gap-2`}>
                     <Mail size={18} /> {isSending ? "Sending..." : "Send Salary Mail"}
                   </button>
-                  <button onClick={handlePrintSalaryTable} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold flex items-center gap-2">
+                  <button onClick={handlePrintSalaryTable} className="btn-action-primary px-6 py-2 font-semibold flex items-center gap-2">
                     <Printer size={18} /> Print Salary Table
                   </button>
                 </div>
@@ -592,7 +592,7 @@ export default function StaffPage() {
         {showOnboardingEmailModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowOnboardingEmailModal(null)}>
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
-              <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2"><Send size={18} className="text-blue-600" /> Send Onboarding Link</h3>
+              <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2"><Send size={18} className="theme-accent-text" /> Send Onboarding Link</h3>
               <p className="text-sm text-gray-500 mb-4">Send the onboarding form link (staff details + guarantor info) to the staff member&apos;s email.</p>
               <input
                 type="email"
@@ -606,7 +606,7 @@ export default function StaffPage() {
                 <button
                   onClick={() => sendOnboardingEmail(showOnboardingEmailModal)}
                   disabled={!!sendingOnboarding}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold disabled:opacity-50 flex items-center gap-2"
+                  className="btn-action-primary px-4 py-2 transition font-semibold disabled:opacity-50 flex items-center gap-2"
                 >
                   {sendingOnboarding ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
                   {sendingOnboarding ? "Sending..." : "Send Link"}

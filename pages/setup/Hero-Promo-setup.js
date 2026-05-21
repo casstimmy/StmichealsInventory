@@ -464,9 +464,9 @@ function renderUploader(label, ref, handleChange, progress, images, setImages) {
         className="hidden"
       />
       {progress > 0 && progress < 100 && (
-        <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+        <div className="theme-progress-track w-full h-2 mt-2">
           <div
-            className="bg-sky-600 h-2 rounded-full transition-all"
+            className="theme-progress-fill h-2 rounded-full transition-all"
             style={{ width: `${progress}%` }}
           />
         </div>

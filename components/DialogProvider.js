@@ -40,11 +40,11 @@ const TONE_STYLES = {
   },
   info: {
     icon: Info,
-    iconWrap: "bg-sky-100 text-sky-600",
+    iconWrap: "theme-badge-soft",
     confirm: "bg-sky-600 hover:bg-sky-700 text-white",
-    toast: "border-sky-200 bg-white",
-    toastIcon: "bg-sky-100 text-sky-600",
-    toastAccent: "bg-sky-500",
+    toast: "theme-border-soft bg-white",
+    toastIcon: "theme-badge-soft",
+    toastAccent: "theme-accent-bg",
   },
   neutral: {
     icon: MessageSquare,

@@ -134,7 +134,7 @@ export default function PersonalTaxCalculator() {
           <div className="content-card mb-6">
             <div className="content-card-header">
               <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <FontAwesomeIcon icon={faReceipt} className="text-sky-600" />
+                <FontAwesomeIcon icon={faReceipt} className="theme-accent-text" />
                 Salary Input Mode
               </h2>
             </div>
@@ -143,8 +143,8 @@ export default function PersonalTaxCalculator() {
                 onClick={() => setMode("monthly")}
                 className={`flex-1 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 border-2 ${
                   mode === "monthly"
-                    ? "bg-sky-600 text-white border-sky-600 shadow-md"
-                    : "bg-white text-gray-700 border-gray-200 hover:border-sky-300 hover:bg-sky-50"
+                    ? "theme-toggle-active"
+                    : "theme-toggle-neutral"
                 }`}
               >
                 Monthly
@@ -153,8 +153,8 @@ export default function PersonalTaxCalculator() {
                 onClick={() => setMode("yearly")}
                 className={`flex-1 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 border-2 ${
                   mode === "yearly"
-                    ? "bg-sky-600 text-white border-sky-600 shadow-md"
-                    : "bg-white text-gray-700 border-gray-200 hover:border-sky-300 hover:bg-sky-50"
+                    ? "theme-toggle-active"
+                    : "theme-toggle-neutral"
                 }`}
               >
                 Yearly
@@ -423,7 +423,7 @@ export default function PersonalTaxCalculator() {
                       </div>
                       <div className="flex justify-between py-2 border-t border-gray-200">
                         <span className="text-sm font-bold text-gray-900">Effective Tax Rate</span>
-                        <span className="text-sm font-bold text-sky-600 font-mono">{result.effectiveRate.toFixed(2)}%</span>
+                        <span className="text-sm font-bold theme-accent-text font-mono">{result.effectiveRate.toFixed(2)}%</span>
                       </div>
                     </div>
                   </div>

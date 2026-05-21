@@ -563,7 +563,7 @@ export default function ProductForm(props) {
                   return (
                     <span
                       key={vId}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-medium"
+                      className="theme-badge-soft inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium"
                     >
                       {vendor?.companyName || vId}
                       <button

@@ -298,7 +298,7 @@ export default function CampaignsPage() {
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">{campaign.name}</h3>
                   <p className="text-sm text-gray-600 mb-3">{campaign.description}</p>
                   <div className="mb-3">
-                    <span className="inline-block bg-sky-100 text-sky-800 text-xl font-bold px-3 py-1 rounded-lg">
+                    <span className="theme-badge-soft inline-block text-xl font-bold px-3 py-1 rounded-lg">
                       {campaign.discount}% OFF
                     </span>
                   </div>

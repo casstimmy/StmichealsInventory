@@ -179,19 +179,19 @@ export default function PromotionManagement() {
     <div className="min-h-full bg-slate-50 p-3 md:p-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between gap-3 mb-6">
-        <h2 className="text-2xl md:text-3xl font-bold text-blue-900">Promotions</h2>
+        <h2 className="text-2xl md:text-3xl font-bold theme-section-title">Promotions</h2>
         <button
           onClick={openModal}
-          className="w-full sm:w-auto bg-blue-600 text-white px-4 md:px-6 py-2 rounded-lg text-sm md:text-base"
+          className="btn-action-primary w-full sm:w-auto px-4 md:px-6 py-2 text-sm md:text-base"
         >
           + Add Promotion
         </button>
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto bg-white rounded-lg shadow">
+      <div className="data-table-container overflow-x-auto bg-white rounded-lg shadow">
         <table className="min-w-full text-xs md:text-sm">
-          <thead className="bg-blue-600 text-white">
+          <thead className="table-header-gradient text-white">
             <tr>
               <th className="p-2 md:p-3 text-left">Product</th>
               <th className="p-2 md:p-3">Promo Price</th>
@@ -256,13 +256,13 @@ export default function PromotionManagement() {
                     <>
                       <button
                         onClick={() => handleUpdateClick(promo._id)}
-                        className="bg-green-600 text-white px-2 md:px-3 py-1 rounded text-xs md:text-sm"
+                        className="btn-action-success px-2 md:px-3 py-1 text-xs md:text-sm"
                       >
                         Save
                       </button>
                       <button
                         onClick={handleCancelClick}
-                        className="bg-gray-400 text-white px-2 md:px-3 py-1 rounded text-xs md:text-sm"
+                        className="btn-action-secondary px-2 md:px-3 py-1 text-xs md:text-sm"
                       >
                         Cancel
                       </button>
@@ -271,13 +271,13 @@ export default function PromotionManagement() {
                     <>
                       <button
                         onClick={() => handleEditClick(index, promo)}
-                        className="border px-2 md:px-3 py-1 rounded text-xs md:text-sm"
+                        className="btn-action-secondary px-2 md:px-3 py-1 text-xs md:text-sm"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => handleDeleteClick(promo._id)}
-                        className="bg-red-500 text-white px-2 md:px-3 py-1 rounded text-xs md:text-sm"
+                        className="btn-action-danger px-2 md:px-3 py-1 text-xs md:text-sm"
                       >
                         Remove
                       </button>
@@ -335,10 +335,10 @@ export default function PromotionManagement() {
             />
 
             <div className="flex flex-col sm:flex-row justify-end gap-2">
-              <button onClick={closeModal} className="px-4 py-2 bg-gray-400 text-white rounded text-sm sm:text-base w-full sm:w-auto">
+              <button onClick={closeModal} className="btn-action-secondary w-full sm:w-auto text-sm sm:text-base">
                 Cancel
               </button>
-              <button onClick={handleSavePromotion} className="px-4 py-2 bg-blue-600 text-white rounded text-sm sm:text-base w-full sm:w-auto">
+              <button onClick={handleSavePromotion} className="btn-action-primary w-full sm:w-auto text-sm sm:text-base">
                 Save
               </button>
             </div>

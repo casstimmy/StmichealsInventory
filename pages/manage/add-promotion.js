@@ -287,7 +287,7 @@ export default function AddPromotion() {
         {/* Header */}
         <div className="page-header">
           <h1 className="page-title">Add a Promotion</h1>
-          <span className="text-xs bg-sky-100 text-sky-700 px-2 py-1 rounded-full font-medium">
+          <span className="theme-badge-soft text-xs px-2 py-1 rounded-full font-medium">
             HELP
           </span>
         </div>

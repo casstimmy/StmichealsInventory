@@ -9,7 +9,7 @@ import { Plus, Pencil, Trash2, X, Check, ChevronDown, ChevronRight } from "lucid
 
 const ACCOUNT_TYPES = ["ASSET", "LIABILITY", "EQUITY", "REVENUE", "EXPENSE"];
 const TYPE_COLORS = {
-  ASSET: "bg-blue-100 text-blue-800",
+  ASSET: "theme-badge-soft",
   LIABILITY: "bg-red-100 text-red-800",
   EQUITY: "bg-purple-100 text-purple-800",
   REVENUE: "bg-green-100 text-green-800",
@@ -316,7 +316,7 @@ export default function ChartOfAccountsPage() {
                     <tbody>
                       {grouped[type].map((acc) => (
                         <tr key={acc._id} className="border-b border-gray-100 hover:bg-gray-50">
-                          <td className="px-4 py-2 font-mono text-blue-700 font-semibold">{acc.code}</td>
+                          <td className="px-4 py-2 font-mono theme-accent-text font-semibold">{acc.code}</td>
                           <td className="px-4 py-2 font-medium text-gray-900">
                             {acc.name}
                             {acc.isSystem && <span className="ml-2 text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded">System</span>}

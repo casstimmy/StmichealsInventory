@@ -175,7 +175,7 @@ export default function Promotions() {
         <div className="page-header flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-3">
             <h1 className="page-title">Promotions</h1>
-            <span className="text-xs bg-sky-100 text-sky-700 px-2 py-1 rounded-full font-medium">
+            <span className="theme-badge-soft text-xs px-2 py-1 rounded-full font-medium">
               HELP
             </span>
           </div>
@@ -344,7 +344,7 @@ export default function Promotions() {
                           <option>Fixed Discount</option>
                         </select>
                       ) : (
-                        <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold">
+                        <span className="theme-badge-soft px-3 py-1 rounded-full text-xs font-semibold">
                           {promo.dealType || "X For N"}
                         </span>
                       )}

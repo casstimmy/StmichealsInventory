@@ -426,10 +426,10 @@ export default function Reporting() {
               <div className="px-6 pb-6">
                 {/* Summary Cards */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-                  <div className="bg-sky-50 border border-sky-200 rounded-xl p-4">
-                    <p className="text-xs font-medium text-sky-600 mb-1">{cmpLabels.current}</p>
-                    <p className="text-xl font-bold text-sky-800">{formatCurrency(currTotal)}</p>
-                    <p className="text-xs text-sky-500 mt-1">{summary?.totalTransactions || 0} transactions</p>
+                  <div className="theme-note-primary rounded-xl p-4">
+                    <p className="text-xs font-medium theme-accent-text mb-1">{cmpLabels.current}</p>
+                    <p className="text-xl font-bold theme-accent-text">{formatCurrency(currTotal)}</p>
+                    <p className="text-xs theme-accent-text opacity-70 mt-1">{summary?.totalTransactions || 0} transactions</p>
                   </div>
                   <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
                     <p className="text-xs font-medium text-purple-600 mb-1">{cmpLabels.previous}</p>
@@ -514,7 +514,7 @@ export default function Reporting() {
                       <thead>
                         <tr className="border-b border-gray-200">
                           <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Date</th>
-                          <th className="px-3 py-2 text-right text-xs font-semibold text-sky-600 uppercase">{cmpLabels.current}</th>
+                          <th className="px-3 py-2 text-right text-xs font-semibold theme-accent-text uppercase">{cmpLabels.current}</th>
                           <th className="px-3 py-2 text-right text-xs font-semibold text-purple-600 uppercase">{cmpLabels.previous}</th>
                           <th className="px-3 py-2 text-right text-xs font-semibold text-gray-500 uppercase">Δ Change</th>
                         </tr>
@@ -578,7 +578,7 @@ function getComparisonLabels(timeRange) {
 
 function Card({ title, value, icon, color }) {
   const colorClass = {
-    blue: "border-l-4 border-sky-600",
+    blue: "border-l-4 theme-border-left-accent",
     green: "border-l-4 border-emerald-600",
     purple: "border-l-4 border-purple-600",
     orange: "border-l-4 border-orange-600",

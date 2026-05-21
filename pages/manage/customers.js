@@ -308,7 +308,7 @@ export default function CustomersPage() {
                       <td className="text-center">
                         <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold ${
                           customer.type === "VIP" ? "bg-purple-100 text-purple-800" :
-                          customer.type === "NEW" ? "bg-blue-100 text-blue-800" :
+                          customer.type === "NEW" ? "theme-badge-soft" :
                           customer.type === "BULK_BUYER" ? "bg-orange-100 text-orange-800" :
                           customer.type === "INACTIVE" ? "bg-gray-100 text-gray-800" :
                           "bg-green-100 text-green-800"

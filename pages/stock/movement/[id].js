@@ -165,7 +165,7 @@ if (!movement)
                     </tr>
                   );
                 })}
-                <tr className="bg-sky-600 text-white font-bold">
+                <tr className="theme-table-summary-row font-bold">
                   <td colSpan={4}>
                     Total:
                   </td>

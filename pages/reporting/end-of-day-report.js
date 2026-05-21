@@ -325,7 +325,7 @@ export default function EndOfDayReporting() {
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold text-sky-600">
+                        <p className="font-semibold theme-accent-text">
                           {staff.totalSales.toLocaleString("en-NG", {
                             maximumFractionDigits: 0,
                           })}
@@ -482,7 +482,7 @@ export default function EndOfDayReporting() {
 
 function SummaryCard({ title, value, subtext, icon }) {
   return (
-    <div className="stat-card border-l-4 border-sky-600">
+    <div className="stat-card border-l-4 theme-border-left-accent">
       <div className="flex items-center justify-between">
         <div>
           <p className="stat-card-label">{title}</p>

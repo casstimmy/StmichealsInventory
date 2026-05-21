@@ -839,7 +839,7 @@ export default function PromotionsManagementPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleEdit(promo)}
-                      className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-semibold"
+                      className="btn-action-primary flex-1 px-3 py-2 text-sm font-semibold"
                     >
                       Edit
                     </button>

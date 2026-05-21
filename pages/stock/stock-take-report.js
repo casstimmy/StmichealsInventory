@@ -23,7 +23,7 @@ import {
 
 const STATUS_COLORS = {
   draft: "bg-gray-100 text-gray-700",
-  "in-progress": "bg-blue-100 text-blue-700",
+  "in-progress": "theme-badge-soft",
   completed: "bg-yellow-100 text-yellow-700",
   approved: "bg-green-100 text-green-700",
   cancelled: "bg-red-100 text-red-700",
@@ -251,7 +251,7 @@ export default function StockTakeReport() {
               </div>
             </div>
             <div className="content-card !p-4 text-center">
-              <div className="text-2xl font-bold text-blue-600">{aggregateStats.adjustedCount}</div>
+              <div className="text-2xl font-bold theme-accent-text">{aggregateStats.adjustedCount}</div>
               <div className="text-xs text-gray-500 mt-1">Adjustments Applied</div>
             </div>
           </div>
@@ -277,8 +277,8 @@ export default function StockTakeReport() {
               </div>
             </div>
             <div className="content-card !p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                <FontAwesomeIcon icon={faBalanceScale} className="w-4 h-4 text-blue-600" />
+              <div className="w-10 h-10 rounded-lg theme-note-primary flex items-center justify-center">
+                <FontAwesomeIcon icon={faBalanceScale} className="w-4 h-4 theme-accent-text" />
               </div>
               <div>
                 <div className="text-lg font-bold text-gray-900">{aggregateStats.totalItemsCounted.toLocaleString()}</div>
@@ -290,22 +290,22 @@ export default function StockTakeReport() {
           {/* Top Discrepancies */}
           {topDiscrepancies.length > 0 && (
             <div className="content-card mb-6">
-              <h2 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <h2 className="font-semibold theme-section-title mb-3 flex items-center gap-2">
                 <FontAwesomeIcon icon={faExclamationTriangle} className="w-4 h-4 text-orange-500" />
                 Highest Variance Items
               </h2>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b-2 border-gray-200 text-left">
-                      <th className="py-2 px-2 font-semibold text-gray-600">Product</th>
-                      <th className="py-2 px-2 font-semibold text-gray-600 hidden md:table-cell">Barcode</th>
-                      <th className="py-2 px-2 font-semibold text-gray-600 text-center">System</th>
-                      <th className="py-2 px-2 font-semibold text-gray-600 text-center">Counted</th>
-                      <th className="py-2 px-2 font-semibold text-gray-600 text-center">Variance</th>
-                      <th className="py-2 px-2 font-semibold text-gray-600 text-right hidden lg:table-cell">Value</th>
-                      <th className="py-2 px-2 font-semibold text-gray-600 hidden md:table-cell">Stock Take</th>
-                      <th className="py-2 px-2 font-semibold text-gray-600 hidden md:table-cell">Date</th>
+                  <thead className="table-header-gradient">
+                    <tr className="text-left">
+                      <th className="py-2 px-2 font-semibold text-white">Product</th>
+                      <th className="py-2 px-2 font-semibold text-white hidden md:table-cell">Barcode</th>
+                      <th className="py-2 px-2 font-semibold text-white text-center">System</th>
+                      <th className="py-2 px-2 font-semibold text-white text-center">Counted</th>
+                      <th className="py-2 px-2 font-semibold text-white text-center">Variance</th>
+                      <th className="py-2 px-2 font-semibold text-white text-right hidden lg:table-cell">Value</th>
+                      <th className="py-2 px-2 font-semibold text-white hidden md:table-cell">Stock Take</th>
+                      <th className="py-2 px-2 font-semibold text-white hidden md:table-cell">Date</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -326,7 +326,7 @@ export default function StockTakeReport() {
                           </span>
                         </td>
                         <td className="py-2 px-2 hidden md:table-cell">
-                          <span className="font-mono text-xs text-blue-600">{item.stockTakeRef}</span>
+                          <span className="font-mono text-xs theme-accent-text">{item.stockTakeRef}</span>
                         </td>
                         <td className="py-2 px-2 hidden md:table-cell text-xs text-gray-500">
                           {new Date(item.stockTakeDate).toLocaleDateString()}
@@ -341,28 +341,28 @@ export default function StockTakeReport() {
 
           {/* Stock Take History Table */}
           <div className="content-card">
-            <h2 className="font-semibold text-gray-800 mb-3">Stock Take History</h2>
+            <h2 className="font-semibold theme-section-title mb-3">Stock Take History</h2>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b-2 border-gray-200 text-left">
-                    <th className="py-2 px-2 font-semibold text-gray-600">Reference</th>
-                    <th className="py-2 px-2 font-semibold text-gray-600">Title</th>
-                    <th className="py-2 px-2 font-semibold text-gray-600 hidden md:table-cell">Location</th>
-                    <th className="py-2 px-2 font-semibold text-gray-600 text-center">Status</th>
-                    <th className="py-2 px-2 font-semibold text-gray-600 text-center">Accuracy</th>
-                    <th className="py-2 px-2 font-semibold text-gray-600 text-center">Items</th>
-                    <th className="py-2 px-2 font-semibold text-gray-600 text-center">Variance</th>
-                    <th className="py-2 px-2 font-semibold text-gray-600 text-right hidden lg:table-cell">Variance Value</th>
-                    <th className="py-2 px-2 font-semibold text-gray-600">Date</th>
-                    <th className="py-2 px-2 font-semibold text-gray-600 text-center">Actions</th>
+                <thead className="table-header-gradient">
+                  <tr className="text-left">
+                    <th className="py-2 px-2 font-semibold text-white">Reference</th>
+                    <th className="py-2 px-2 font-semibold text-white">Title</th>
+                    <th className="py-2 px-2 font-semibold text-white hidden md:table-cell">Location</th>
+                    <th className="py-2 px-2 font-semibold text-white text-center">Status</th>
+                    <th className="py-2 px-2 font-semibold text-white text-center">Accuracy</th>
+                    <th className="py-2 px-2 font-semibold text-white text-center">Items</th>
+                    <th className="py-2 px-2 font-semibold text-white text-center">Variance</th>
+                    <th className="py-2 px-2 font-semibold text-white text-right hidden lg:table-cell">Variance Value</th>
+                    <th className="py-2 px-2 font-semibold text-white">Date</th>
+                    <th className="py-2 px-2 font-semibold text-white text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredData.map((st) => (
                     <tr key={st._id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                       <td className="py-2 px-2">
-                        <span className="font-mono text-xs text-blue-600">{st.reference}</span>
+                        <span className="font-mono text-xs theme-accent-text">{st.reference}</span>
                       </td>
                       <td className="py-2 px-2 font-medium text-gray-900">{st.title}</td>
                       <td className="py-2 px-2 text-gray-500 hidden md:table-cell">{st.locationName}</td>
@@ -397,7 +397,7 @@ export default function StockTakeReport() {
                       <td className="py-2 px-2 text-center">
                         <button
                           onClick={() => router.push(`/stock/stock-take/${st._id}`)}
-                          className="text-blue-600 hover:text-blue-800 p-1"
+                          className="theme-accent-text p-1 hover:opacity-80"
                           title="View Details"
                         >
                           <FontAwesomeIcon icon={faEye} className="w-4 h-4" />

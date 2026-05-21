@@ -74,7 +74,7 @@ const ROLE_COLORS = {
   admin: "bg-red-100 text-red-700",
   "sub-admin": "bg-purple-100 text-purple-700",
   inventory: "bg-green-100 text-green-700",
-  account: "bg-blue-100 text-blue-700",
+  account: "theme-badge-soft",
   manager: "bg-yellow-100 text-yellow-700",
   staff: "bg-gray-100 text-gray-700",
   viewer: "bg-gray-50 text-gray-500",
@@ -295,7 +295,7 @@ export default function UsersPage() {
           </div>
           <button
             onClick={() => { setShowForm(true); setEditingUser(null); setForm(emptyForm); setShowPin(false); }}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
+            className="btn-action-primary flex items-center gap-2 px-4 py-2 transition font-semibold"
           >
             <UserPlus size={18} /> Add User
           </button>
@@ -307,14 +307,14 @@ export default function UsersPage() {
         ) : (
           <div className="overflow-x-auto cursor-grab active:cursor-grabbing" style={{ WebkitOverflowScrolling: "touch" }}>
             <table className="w-full text-sm bg-white rounded-xl shadow border border-gray-200">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="table-header-gradient text-white">
                 <tr>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Name</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Email</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Role</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Permissions</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Status</th>
-                  <th className="px-4 py-3 text-right font-semibold text-gray-600">Actions</th>
+                  <th className="px-4 py-3 text-left font-semibold text-white">Name</th>
+                  <th className="px-4 py-3 text-left font-semibold text-white">Email</th>
+                  <th className="px-4 py-3 text-left font-semibold text-white">Role</th>
+                  <th className="px-4 py-3 text-left font-semibold text-white">Permissions</th>
+                  <th className="px-4 py-3 text-left font-semibold text-white">Status</th>
+                  <th className="px-4 py-3 text-right font-semibold text-white">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -330,7 +330,7 @@ export default function UsersPage() {
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">
                         {(u.permissions || []).filter(p => !p.includes(".")).map(p => (
-                          <span key={p} className="px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-xs">{p}</span>
+                          <span key={p} className="theme-badge-soft px-1.5 py-0.5 rounded text-xs">{p}</span>
                         ))}
                         {(!u.permissions || u.permissions.filter(p => !p.includes(".")).length === 0) && (
                           <span className="text-gray-400 text-xs">No permissions</span>
@@ -348,7 +348,7 @@ export default function UsersPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => startEdit(u)} className="px-3 py-1.5 text-sm text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition font-medium">
+                        <button onClick={() => startEdit(u)} className="theme-toggle-neutral px-3 py-1.5 text-sm rounded-lg transition font-medium border">
                           Edit
                         </button>
                         {u._id !== currentUser?.id && (
@@ -516,7 +516,7 @@ export default function UsersPage() {
                               {p.children.map(c => {
                                 const cChecked = form.permissions.includes(c.key);
                                 return (
-                                  <label key={c.key} className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs cursor-pointer transition ${cChecked ? "bg-blue-100 text-blue-800" : "bg-gray-50 text-gray-600 hover:bg-gray-100"}`}>
+                                  <label key={c.key} className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs cursor-pointer transition ${cChecked ? "theme-badge-soft" : "bg-gray-50 text-gray-600 hover:bg-gray-100"}`}>
                                     <input
                                       type="checkbox"
                                       checked={cChecked}
@@ -534,7 +534,7 @@ export default function UsersPage() {
                               {p.children.map(c => {
                                 const cChecked = form.permissions.includes(c.key);
                                 return (
-                                  <label key={c.key} className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs cursor-not-allowed ${cChecked ? "bg-blue-100 text-blue-800" : "bg-gray-50 text-gray-600"}`}>
+                                  <label key={c.key} className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs cursor-not-allowed ${cChecked ? "theme-badge-soft" : "bg-gray-50 text-gray-600"}`}>
                                     <input type="checkbox" checked={cChecked} disabled className="w-3.5 h-3.5 text-blue-600 rounded border-gray-300" />
                                     {c.label}
                                   </label>
@@ -557,11 +557,11 @@ export default function UsersPage() {
                   >
                     Cancel
                   </button>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold disabled:opacity-50 flex items-center gap-2"
-                  >
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="btn-action-primary px-6 py-2 transition font-semibold disabled:opacity-50 flex items-center gap-2"
+                    >
                     {saving ? <Loader size="sm" /> : <Check size={18} />}
                     {editingUser ? "Update User" : "Create User"}
                   </button>

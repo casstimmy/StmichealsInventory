@@ -23,7 +23,7 @@ const STATUS_COLORS = {
   Retired: "bg-gray-200 text-gray-600",
   Disposed: "bg-red-100 text-red-600",
   Lost: "bg-red-200 text-red-700",
-  "In Storage": "bg-blue-100 text-blue-700",
+  "In Storage": "theme-badge-soft",
 };
 
 export default function AssetsPage() {
@@ -229,16 +229,16 @@ export default function AssetsPage() {
             <h1 className="text-2xl font-bold text-gray-800">Asset Management</h1>
             <p className="text-sm text-gray-500 mt-1">{summary.totalAssets} asset{summary.totalAssets !== 1 ? "s" : ""} tracked</p>
           </div>
-          <button onClick={() => { setForm(emptyForm); setEditingAsset(null); setPhotoPreview(null); setShowFinancial(false); setShowStatusAssignment(false); setShowForm(true); }} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+          <button onClick={() => { setForm(emptyForm); setEditingAsset(null); setPhotoPreview(null); setShowFinancial(false); setShowStatusAssignment(false); setShowForm(true); }} className="btn-action-primary flex items-center gap-2 px-4 py-2 text-sm font-medium transition">
             <Plus size={16} /> Add Asset
           </button>
         </div>
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-            <div className="flex items-center gap-2 text-blue-600 mb-1"><Package size={18} /><span className="text-xs font-medium uppercase tracking-wide">Total Assets</span></div>
-            <div className="text-2xl font-bold text-blue-700">{summary.totalAssets}</div>
+          <div className="theme-panel-soft rounded-xl p-4">
+            <div className="flex items-center gap-2 theme-accent-text mb-1"><Package size={18} /><span className="text-xs font-medium uppercase tracking-wide">Total Assets</span></div>
+            <div className="text-2xl font-bold theme-section-title">{summary.totalAssets}</div>
           </div>
           <div className="bg-green-50 border border-green-200 rounded-xl p-4">
             <div className="flex items-center gap-2 text-green-600 mb-1"><BarChart3 size={18} /><span className="text-xs font-medium uppercase tracking-wide">Current Value</span></div>
@@ -296,7 +296,7 @@ export default function AssetsPage() {
                       {a.location && <span className="rounded-full bg-gray-100 px-2 py-0.5">{a.location}</span>}
                       {a.assignedTo && <span className="rounded-full bg-gray-100 px-2 py-0.5">Assigned: {a.assignedTo}</span>}
                       {(a.customProperties || []).slice(0, 2).map((prop, index) => (
-                        <span key={`${a._id}-prop-${index}`} className="rounded-full bg-blue-50 px-2 py-0.5 text-blue-700">
+                        <span key={`${a._id}-prop-${index}`} className="theme-badge-soft rounded-full px-2 py-0.5">
                           {prop.key}: {prop.value || "-"}
                         </span>
                       ))}
@@ -316,7 +316,7 @@ export default function AssetsPage() {
                 <div className="border-t border-gray-100 bg-gray-50 px-4 py-4 space-y-4 text-sm">
                   {/* Action buttons - only visible when expanded */}
                   <div className="flex items-center gap-1 flex-wrap">
-                    <button onClick={(e) => { e.stopPropagation(); openEdit(a); }} className="text-xs px-3 py-1 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition font-medium">Edit</button>
+                    <button onClick={(e) => { e.stopPropagation(); openEdit(a); }} className="theme-toggle-neutral text-xs px-3 py-1 rounded-lg transition font-medium border">Edit</button>
                     <button onClick={(e) => { e.stopPropagation(); setShowMaintenance(a._id); }} className="text-xs px-3 py-1 text-amber-600 border border-amber-300 rounded-lg hover:bg-amber-50 transition font-medium">Maintain</button>
                     {a.status !== "Disposed" && (
                       <button onClick={(e) => { e.stopPropagation(); setShowDispose(a._id); }} className="text-xs px-3 py-1 text-red-500 border border-red-300 rounded-lg hover:bg-red-50 transition font-medium">Dispose</button>
@@ -627,7 +627,7 @@ export default function AssetsPage() {
 
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => { setShowForm(false); setEditingAsset(null); }} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
-                <button type="submit" disabled={saving} className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium text-white transition ${saving ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}>
+                <button type="submit" disabled={saving} className={`btn-action-primary flex-1 px-4 py-2 rounded-lg text-sm font-medium text-white transition ${saving ? "bg-gray-400 cursor-not-allowed" : ""}`}>
                   {saving ? "Saving..." : editingAsset ? "Update Asset" : "Add Asset"}
                 </button>
               </div>

@@ -17,7 +17,7 @@ const STATUS_OPTIONS = ["Pending", "Processing", "Shipped", "Delivered", "Cancel
 const STATUS_CLASS = {
   Pending: "bg-cyan-100 text-cyan-700",
   Processing: "bg-yellow-100 text-yellow-700",
-  Shipped: "bg-sky-100 text-sky-700",
+  Shipped: "theme-badge-soft",
   Delivered: "bg-green-100 text-green-700",
   Cancelled: "bg-red-100 text-red-700",
 };
@@ -526,7 +526,7 @@ export default function OrderInventoryPage() {
                             )}
                             onClick={() => setExpandedOrderId(isExpanded ? null : order._id)}
                           >
-                            <td className="font-mono text-sky-700 font-semibold">
+                            <td className="font-mono theme-accent-text font-semibold">
                               <div className="flex items-center gap-2">
                                 {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                                 {order._id.slice(-8)}

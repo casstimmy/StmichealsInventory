@@ -358,7 +358,7 @@ export default function CategoriesSales() {
 
 function MetricCard({ title, value, color }) {
   const colorMap = {
-    sky: "bg-sky-50 border-sky-200 text-sky-700",
+    sky: "theme-note-primary",
     emerald: "bg-emerald-50 border-emerald-200 text-emerald-700",
     amber: "bg-amber-50 border-amber-200 text-amber-700",
     purple: "bg-purple-50 border-purple-200 text-purple-700",

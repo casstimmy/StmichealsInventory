@@ -153,14 +153,14 @@ function applyFilters() {
   }
 
   function getStatusBadgeClass(status, subStatus) {
-    if (subStatus === "edited") return "bg-blue-100 text-blue-800";
+    if (subStatus === "edited") return "theme-badge-soft";
     if (subStatus === "void") return "bg-purple-100 text-purple-800";
     switch (status) {
       case "completed": return "bg-emerald-100 text-emerald-800";
       case "held": return "bg-amber-100 text-amber-800";
       case "refunded":
       case "voided": return "bg-red-100 text-red-800";
-      case "edited": return "bg-blue-100 text-blue-800";
+      case "edited": return "theme-badge-soft";
       default: return "bg-gray-100 text-gray-800";
     }
   }
@@ -516,7 +516,7 @@ function applyFilters() {
             {/* Date Range - same card */}
             <div className="border-t border-gray-200 pt-3 mt-auto">
               <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 mb-2">
-                <span className="w-1 h-3 bg-sky-500 rounded"></span>
+                <span className="w-1 h-3 theme-accent-bg rounded"></span>
                 Date Range
               </label>
               <div className="grid grid-cols-2 gap-2">

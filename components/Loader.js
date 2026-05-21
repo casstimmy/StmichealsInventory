@@ -40,6 +40,13 @@ export default function Loader({
   };
 
   const sizeClass = sizeClasses[size];
+  const clampedProgress =
+    progress === null ? null : Math.min(100, Math.max(0, progress));
+  const useSuccessProgress = clampedProgress !== null && (clampedProgress >= 100 || color === "success");
+  const progressFillClass = useSuccessProgress ? "theme-progress-fill-success" : "theme-progress-fill";
+  const progressLabelColor = useSuccessProgress
+    ? "var(--color-success-600, #059669)"
+    : "var(--btn-primary-bg, #0284c7)";
 
   const getPhaseLabel = (pct) => {
     if (pct <= 0) return "Initializing...";
@@ -66,17 +73,14 @@ export default function Loader({
         <div className="w-48 sm:w-64">
           <div className="flex justify-between text-xs mb-1">
             <span className="text-gray-500 font-medium">{getPhaseLabel(progress)}</span>
-            <span className="text-cyan-600 font-bold tabular-nums">{Math.round(progress)}%</span>
+            <span className="font-bold tabular-nums" style={{ color: progressLabelColor }}>
+              {Math.round(clampedProgress)}%
+            </span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+          <div className="theme-progress-track w-full h-2.5">
             <div
-              className="h-2.5 rounded-full transition-all duration-300 ease-out"
-              style={{
-                width: `${Math.min(100, Math.max(0, progress))}%`,
-                background: progress >= 100
-                  ? "linear-gradient(90deg, #10b981, #34d399)"
-                  : "linear-gradient(90deg, #06b6d4, #0ea5e9)",
-              }}
+              className={`h-2.5 rounded-full transition-all duration-300 ease-out ${progressFillClass}`}
+              style={{ width: `${clampedProgress}%` }}
             />
           </div>
         </div>

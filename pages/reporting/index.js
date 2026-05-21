@@ -71,7 +71,7 @@ export default function Reporting() {
       <div className="page-container">
         <div className="page-content">
         <div className="mb-6 text-sm">
-          <Link href="/" className="text-sky-600 hover:text-sky-700">Home</Link>
+          <Link href="/" className="theme-accent-text hover:opacity-80">Home</Link>
           <span className="mx-2 text-gray-400"></span>
           <span className="text-gray-600">Reporting</span>
         </div>
@@ -106,8 +106,8 @@ export default function Reporting() {
                 onClick={() => setPeriod(p)}
                 className={`btn-action ${
                   period === p 
-                    ? "bg-sky-600 text-white shadow-md" 
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    ? "theme-toggle-active" 
+                    : "theme-toggle-neutral"
                 }`}
               >
                 {p.toUpperCase()}
@@ -159,7 +159,7 @@ export default function Reporting() {
 
 function MetricCard({ title, value, icon, color }) {
   const colorMap = {
-    sky: "bg-sky-50 border-sky-200 text-sky-700",
+    sky: "theme-note-primary",
     emerald: "bg-emerald-50 border-emerald-200 text-emerald-700",
     amber: "bg-amber-50 border-amber-200 text-amber-700",
     purple: "bg-purple-50 border-purple-200 text-purple-700",

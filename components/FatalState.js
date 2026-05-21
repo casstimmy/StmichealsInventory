@@ -11,13 +11,13 @@ const THEMES = {
     headerGradient: "bg-blue-600",
     subtitle: "text-blue-100",
     primaryButton: "bg-blue-600 hover:bg-blue-700",
-    accentText: "text-blue-600 hover:text-blue-700",
-    bulletAccent: "text-blue-600",
+    accentText: "theme-accent-text hover:opacity-80",
+    bulletAccent: "theme-accent-text",
     tones: {
       primary: {
-        panel: "bg-blue-100",
-        icon: "text-blue-600",
-        link: "text-blue-600 hover:text-blue-700",
+        panel: "theme-badge-soft",
+        icon: "theme-accent-text",
+        link: "theme-accent-text hover:opacity-80",
       },
       secondary: {
         panel: "bg-cyan-100",
@@ -189,7 +189,7 @@ export default function FatalState({
                     <Link
                       key={link.href}
                       href={link.href}
-                      className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700 transition hover:bg-blue-100 hover:text-blue-600 sm:text-sm"
+                      className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700 transition hover:bg-[var(--color-primary-100,#dbeafe)] hover:text-[var(--color-primary-700,#1d4ed8)] sm:text-sm"
                     >
                       {link.label}
                     </Link>

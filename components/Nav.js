@@ -164,8 +164,8 @@ export default function Sidebar() {
   const mobileActiveLink = "px-3 py-3 text-white border-l-4 nav-active-gradient flex items-center gap-3 text-sm font-semibold";
 
   const submenuPanelStyle = {
-    backgroundColor: "#ffffff",
-    borderColor: "#e5e7eb",
+    backgroundColor: "var(--surface-card, #ffffff)",
+    borderColor: "var(--border-subtle, #e5e7eb)",
     boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
   };
 
@@ -191,8 +191,8 @@ export default function Sidebar() {
   };
 
   const mobileSubmenuSurfaceStyle = {
-    backgroundColor: "#f9fafb",
-    borderLeftColor: "#2563eb",
+    backgroundColor: "var(--surface-muted, #f9fafb)",
+    borderLeftColor: "var(--sidebar-active-bg, #2563eb)",
     borderLeftWidth: "4px",
   };
 
@@ -278,7 +278,7 @@ export default function Sidebar() {
       {/* DESKTOP SIDEBAR */}
       <aside 
         ref={sidebarRef}
-        className="fixed top-12 md:top-16 left-0 w-20 h-screen border-r z-10 shadow-lg hidden md:block overflow-visible"
+        className="nav-theme fixed top-12 md:top-16 left-0 w-20 h-screen border-r z-10 shadow-lg hidden md:block overflow-visible"
         style={sidebarShellStyle}
       >
         <nav className="mt-6 h-full overflow-visible">
@@ -710,7 +710,7 @@ export default function Sidebar() {
 
       {/* MOBILE SIDEBAR - FULL SCREEN */}
       {isMobileMenuOpen && isMobile && (
-        <nav className="fixed top-0 left-0 right-0 bottom-0 w-full bg-white shadow-2xl z-40 overflow-y-auto">
+        <nav className="nav-theme fixed top-0 left-0 right-0 bottom-0 w-full bg-white shadow-2xl z-40 overflow-y-auto">
           {/* Mobile Header */}
           <div className="sticky top-0 text-white px-4 py-4 flex items-center justify-between" style={mobileHeaderStyle}>
             <span className="text-lg font-bold">Menu</span>

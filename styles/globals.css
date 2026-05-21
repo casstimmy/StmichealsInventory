@@ -166,8 +166,38 @@ body {
 
 /* Theme-aware nav active color */
 .nav-active-gradient {
-  background: var(--sidebar-active-bg, #2563eb) !important;
+  background: linear-gradient(
+    180deg,
+    var(--sidebar-active-from, #2563eb),
+    var(--sidebar-active-to, #1d4ed8)
+  ) !important;
   border-left-color: var(--sidebar-active-border, #1d4ed8) !important;
+}
+
+.nav-theme .hover\:bg-blue-50:hover {
+  background-color: var(--color-primary-50, #eff6ff) !important;
+}
+
+.nav-theme .hover\:text-blue-600:hover {
+  color: var(--sidebar-active-bg, #2563eb) !important;
+}
+
+.nav-theme .bg-blue-50.text-blue-700.border-blue-600 {
+  background-color: var(--color-primary-50, #eff6ff) !important;
+  color: var(--sidebar-active-bg, #2563eb) !important;
+  border-left-color: var(--sidebar-active-bg, #2563eb) !important;
+}
+
+.nav-theme .text-blue-600 {
+  color: var(--sidebar-active-bg, #2563eb) !important;
+}
+
+.nav-theme .bg-blue-600 {
+  background-color: var(--sidebar-active-bg, #2563eb) !important;
+}
+
+.nav-theme .group:hover .group-hover\:bg-blue-400 {
+  background-color: var(--color-primary-400, #38bdf8) !important;
 }
 
 .main {
@@ -351,7 +381,11 @@ table {
 }
 
 thead {
-  background: var(--table-header-bg, #0284c7);
+  background: linear-gradient(
+    180deg,
+    var(--table-header-from, #0284c7),
+    var(--table-header-to, #0369a1)
+  );
   @apply text-white;
 }
 
@@ -445,7 +479,11 @@ tbody td {
 }
 
 .gradient-primary {
-  background: var(--table-header-bg, #0284c7);
+  background: linear-gradient(
+    180deg,
+    var(--table-header-from, #0284c7),
+    var(--table-header-to, #0369a1)
+  );
 }
 
 .gradient-secondary {
@@ -645,7 +683,11 @@ a:active,
 }
 
 .data-table thead {
-  background: var(--table-header-bg, #0284c7);
+  background: linear-gradient(
+    180deg,
+    var(--table-header-from, #0284c7),
+    var(--table-header-to, #0369a1)
+  );
 }
 
 .data-table th {
@@ -744,7 +786,11 @@ a:active,
 }
 
 .table-header-gradient {
-  background: var(--table-header-bg, #0284c7);
+  background: linear-gradient(
+    180deg,
+    var(--table-header-from, #0284c7),
+    var(--table-header-to, #0369a1)
+  );
 }
 
 /* Nav submenu panel header */

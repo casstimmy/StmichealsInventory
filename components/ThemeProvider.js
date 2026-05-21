@@ -62,6 +62,14 @@ function applyThemeToDOM(theme) {
   const root = document.documentElement;
   const primary = generatePalette(theme.primaryColor || "#0ea5e9");
   const secondary = generatePalette(theme.secondaryColor || "#06b6d4");
+  const sidebarActiveFrom = theme.sidebarActiveGradientFrom || primary[600] || "#2563eb";
+  const sidebarActiveTo = theme.sidebarActiveGradientTo || primary[700] || "#1d4ed8";
+  const tableHeaderFrom =
+    theme.tableHeaderGradientFrom || theme.buttonPrimaryBg || primary[600] || "#0284c7";
+  const tableHeaderTo =
+    theme.tableHeaderGradientTo || theme.buttonPrimaryHover || primary[700] || "#0369a1";
+  const buttonPrimaryBg = theme.buttonPrimaryBg || tableHeaderFrom;
+  const buttonPrimaryHover = theme.buttonPrimaryHover || tableHeaderTo;
 
   // Primary palette
   Object.entries(primary).forEach(([shade, color]) => {
@@ -80,12 +88,18 @@ function applyThemeToDOM(theme) {
   if (theme.infoColor) root.style.setProperty("--color-info", theme.infoColor);
 
   // Component-level variables
-  if (theme.sidebarActiveGradientFrom) root.style.setProperty("--sidebar-active-from", theme.sidebarActiveGradientFrom);
-  if (theme.sidebarActiveGradientTo) root.style.setProperty("--sidebar-active-to", theme.sidebarActiveGradientTo);
-  if (theme.tableHeaderGradientFrom) root.style.setProperty("--table-header-from", theme.tableHeaderGradientFrom);
-  if (theme.tableHeaderGradientTo) root.style.setProperty("--table-header-to", theme.tableHeaderGradientTo);
-  if (theme.buttonPrimaryBg) root.style.setProperty("--btn-primary-bg", theme.buttonPrimaryBg);
-  if (theme.buttonPrimaryHover) root.style.setProperty("--btn-primary-hover", theme.buttonPrimaryHover);
+  root.style.setProperty("--sidebar-active-from", sidebarActiveFrom);
+  root.style.setProperty("--sidebar-active-to", sidebarActiveTo);
+  root.style.setProperty("--sidebar-active-bg", sidebarActiveFrom);
+  root.style.setProperty("--sidebar-active-border", sidebarActiveTo);
+  root.style.setProperty("--table-header-from", tableHeaderFrom);
+  root.style.setProperty("--table-header-to", tableHeaderTo);
+  root.style.setProperty("--table-header-bg", tableHeaderFrom);
+  root.style.setProperty("--table-header-border", tableHeaderTo);
+  root.style.setProperty("--btn-primary-bg", buttonPrimaryBg);
+  root.style.setProperty("--btn-primary-hover", buttonPrimaryHover);
+
+  if (theme.sidebarBg) root.style.setProperty("--sidebar-bg", theme.sidebarBg);
   if (theme.pageBg) root.style.setProperty("--page-bg", theme.pageBg);
 }
 

@@ -20,7 +20,6 @@ const STATUS_OPTIONS = [
   "Shipped",
   "Delivered",
   "Cancelled",
-  "Reservation Expired",
 ];
 
 const STATUS_CLASS = {

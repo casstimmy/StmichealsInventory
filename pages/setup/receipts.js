@@ -6,6 +6,11 @@ import Loader from "@/components/Loader";
 import useProgress from "@/lib/useProgress";
 import QRCode from "qrcode";
 
+function parseNumberOrDefault(value, fallback) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
 export default function Receipts() {
   const [companyName, setCompanyName] = useState("");
   const [storeName, setStoreName] = useState("");
@@ -26,6 +31,9 @@ export default function Receipts() {
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [qrGenerating, setQrGenerating] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState("paid");
+  const [shippingBaseCost, setShippingBaseCost] = useState(2000);
+  const [shippingRatePerKm, setShippingRatePerKm] = useState(100);
+  const [shippingFallbackCost, setShippingFallbackCost] = useState(2000);
   const [locations, setLocations] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState("");
   const [loading, setLoading] = useState(true);
@@ -73,6 +81,14 @@ export default function Receipts() {
         setQrDescription(data.store.qrDescription || "");
         setQrDataUrl(data.store.qrDataUrl || "");
         setPaymentStatus(data.store.paymentStatus || "paid");
+        setShippingBaseCost(parseNumberOrDefault(data.store.shippingBaseCost, 2000));
+        setShippingRatePerKm(parseNumberOrDefault(data.store.shippingRatePerKm, 100));
+        setShippingFallbackCost(
+          parseNumberOrDefault(
+            data.store.shippingFallbackCost,
+            parseNumberOrDefault(data.store.shippingBaseCost, 2000)
+          )
+        );
         
         // Load locations from store
         if (data.store.locations && data.store.locations.length > 0) {
@@ -100,6 +116,14 @@ export default function Receipts() {
           setQrDescription(settings.qrDescription || data.store.qrDescription || "");
           setQrDataUrl(settings.qrDataUrl || data.store.qrDataUrl || "");
           setPaymentStatus(settings.paymentStatus || data.store.paymentStatus || "paid");
+          setShippingBaseCost(parseNumberOrDefault(settings.shippingBaseCost ?? data.store.shippingBaseCost, 2000));
+          setShippingRatePerKm(parseNumberOrDefault(settings.shippingRatePerKm ?? data.store.shippingRatePerKm, 100));
+          setShippingFallbackCost(
+            parseNumberOrDefault(
+              settings.shippingFallbackCost ?? data.store.shippingFallbackCost,
+              parseNumberOrDefault(settings.shippingBaseCost ?? data.store.shippingBaseCost, 2000)
+            )
+          );
           // Load logo from localStorage if it exists
           if (settings.companyLogo) {
             setCompanyLogo(settings.companyLogo);
@@ -178,6 +202,9 @@ export default function Receipts() {
         qrDescription,
         qrDataUrl,
         paymentStatus,
+        shippingBaseCost: Number(shippingBaseCost) || 0,
+        shippingRatePerKm: Number(shippingRatePerKm) || 0,
+        shippingFallbackCost: Number(shippingFallbackCost) || Number(shippingBaseCost) || 0,
         companyLogo,
         staffName,
       };
@@ -370,6 +397,49 @@ export default function Receipts() {
                       className="form-input"
                       rows={3}
                     />
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="mb-3">
+                      <h3 className="text-sm font-semibold text-slate-900">Shipping Pricing</h3>
+                      <p className="text-xs text-slate-600 mt-1">
+                        These values are used by the webpage checkout when calculating delivery totals.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="form-group mb-0">
+                        <label className="form-label">Base Cost</label>
+                        <input
+                          type="number"
+                          min={0}
+                          value={shippingBaseCost}
+                          onChange={(e) => setShippingBaseCost(e.target.value)}
+                          className="form-input"
+                        />
+                      </div>
+
+                      <div className="form-group mb-0">
+                        <label className="form-label">Rate Per KM</label>
+                        <input
+                          type="number"
+                          min={0}
+                          value={shippingRatePerKm}
+                          onChange={(e) => setShippingRatePerKm(e.target.value)}
+                          className="form-input"
+                        />
+                      </div>
+
+                      <div className="form-group mb-0">
+                        <label className="form-label">Fallback Cost</label>
+                        <input
+                          type="number"
+                          min={0}
+                          value={shippingFallbackCost}
+                          onChange={(e) => setShippingFallbackCost(e.target.value)}
+                          className="form-input"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 

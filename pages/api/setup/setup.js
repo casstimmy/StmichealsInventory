@@ -174,6 +174,14 @@ async function handlePost(req, res) {
           qrDescription: receiptSettings.qrDescription || "",
           qrDataUrl: receiptSettings.qrDataUrl || "",
           paymentStatus: receiptSettings.paymentStatus || "paid",
+          shippingBaseCost: Math.max(0, Number(receiptSettings.shippingBaseCost) || 0),
+          shippingRatePerKm: Math.max(0, Number(receiptSettings.shippingRatePerKm) || 0),
+          shippingFallbackCost: Math.max(
+            0,
+            Number(receiptSettings.shippingFallbackCost) ||
+              Number(receiptSettings.shippingBaseCost) ||
+              0
+          ),
         }
       : null;
 

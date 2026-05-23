@@ -53,6 +53,9 @@ const StoreSchema = new mongoose.Schema(
     qrDescription: { type: String, default: "Please scan and leave us a review" },
     qrDataUrl: { type: String, default: "" },
     paymentStatus: { type: String, default: "paid" },
+    shippingBaseCost: { type: Number, default: 2000 },
+    shippingRatePerKm: { type: Number, default: 100 },
+    shippingFallbackCost: { type: Number, default: 2000 },
   },
   { timestamps: true }
 );

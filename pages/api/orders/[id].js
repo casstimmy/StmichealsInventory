@@ -61,11 +61,14 @@ export default async function handler(req, res) {
     }
 
     const allowedStatuses = [
+      "Pending Payment",
+      "Inventory Reserved",
       "Pending",
       "Processing",
       "Shipped",
       "Delivered",
       "Cancelled",
+      "Reservation Expired",
     ];
     if (hasStatusUpdate && !allowedStatuses.includes(status)) {
       return res.status(400).json({ error: `Invalid status: ${status}` });

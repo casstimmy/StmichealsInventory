@@ -446,7 +446,7 @@ export default async function handler(req, res) {
       }
 
       const existingProduct = await Product.findById(_id)
-        .select("vendors packType qtyPerPack category productType isStockManaged isChildProduct parentProduct")
+        .select("vendors packType qtyPerPack category productType isStockManaged")
         .lean();
 
       if (!existingProduct) {
@@ -488,18 +488,6 @@ export default async function handler(req, res) {
       }
 
       const updateData = sanitizeProductPayload(req.body);
-
-      // 🔒 Child product independence: costPrice and quantity are derived from
-      // the parent — never allow direct edits on a child product.
-      const isDerivedChild =
-        existingProduct.isChildProduct &&
-        existingProduct.parentProduct &&
-        existingProduct.packType !== "pack";
-
-      if (isDerivedChild) {
-        delete updateData.costPrice;
-        delete updateData.quantity;
-      }
 
       updateData.productType = await resolveProductTypeFromCategory(
         Object.prototype.hasOwnProperty.call(updateData, "category")
@@ -574,12 +562,17 @@ export default async function handler(req, res) {
         const childCostPrice = (Number(updated.costPrice) || 0) / (Number(updated.qtyPerPack) || 1);
         const childSalePrice = Number(updateData.childSalePrice) || (Number(updated.salePriceIncTax) || 0) / (Number(updated.qtyPerPack) || 1);
         if (existingChild) {
-          // 🔒 After creation, only sync cost-related and quantity fields to the child.
-          // All other fields (name, description, category, images, sale price,
-          // vendors, locations) are independent on the child product.
           const childQty = (Number(updated.quantity) || 0) * (Number(updated.qtyPerPack) || 1);
           await Product.findByIdAndUpdate(existingChild._id, {
+            name: `${updated.name} (Unit)`,
+            description: `${updated.description || updated.name} - Single unit from pack of ${updated.qtyPerPack}`,
             costPrice: Math.round(childCostPrice * 100) / 100,
+            taxRate: updated.taxRate || 0,
+            salePriceIncTax: Math.round(childSalePrice * 100) / 100,
+            category: updated.category,
+            images: updated.images || [],
+            vendors: updated.vendors || [],
+            locations: updated.locations || [],
             quantity: childQty,
           });
         } else {

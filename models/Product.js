@@ -51,8 +51,6 @@ const ProductSchema = new Schema(
        STOCK CONTROL
     ===================== */
     quantity: { type: Number, default: 0 },
-    // Tracks qty held by active online-order reservations (set by webpage-app)
-    reservedQuantity: { type: Number, default: 0 },
     isStockManaged: { type: Boolean, default: true },
     minStock: { type: Number, default: 0 },
     maxStock: { type: Number, default: 0 },

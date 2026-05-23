@@ -15,7 +15,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
 function MetricCard({ title, value, icon, color }) {
   const colors = {
-    sky: "theme-note-primary",
+    sky: "bg-sky-50 border-sky-200 text-sky-700",
     emerald: "bg-emerald-50 border-emerald-200 text-emerald-700",
     amber: "bg-amber-50 border-amber-200 text-amber-700",
     purple: "bg-purple-50 border-purple-200 text-purple-700",

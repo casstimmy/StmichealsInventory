@@ -25,8 +25,6 @@ export default function Receipts() {
   const [qrDescription, setQrDescription] = useState("");
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [qrGenerating, setQrGenerating] = useState(false);
-  const [qrScope, setQrScope] = useState("all"); // "all" or locationId
-  const [locationQrCodes, setLocationQrCodes] = useState({}); // { [locationId]: { qrUrl, qrDescription, qrDataUrl, generating } }
   const [paymentStatus, setPaymentStatus] = useState("paid");
   const [locations, setLocations] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState("");
@@ -80,19 +78,6 @@ export default function Receipts() {
         if (data.store.locations && data.store.locations.length > 0) {
           setLocations(data.store.locations);
           setSelectedLocation(data.store.locations[0].name);
-          // Load per-location QR codes
-          const qrMap = {};
-          for (const loc of data.store.locations) {
-            if (loc._id) {
-              qrMap[String(loc._id)] = {
-                qrUrl: loc.qrUrl || "",
-                qrDescription: loc.qrDescription || "",
-                qrDataUrl: loc.qrDataUrl || "",
-                generating: false,
-              };
-            }
-          }
-          setLocationQrCodes(qrMap);
         }
         
         // Use logo from /public/images/logo.png or fall back to images folder
@@ -167,40 +152,6 @@ export default function Receipts() {
     if (!qrUrl.trim()) setQrDataUrl("");
   }, [qrUrl]);
 
-  const generateLocationQRCode = async (locationId) => {
-    const locQr = locationQrCodes[locationId];
-    if (!locQr?.qrUrl?.trim()) return;
-    setLocationQrCodes((prev) => ({
-      ...prev,
-      [locationId]: { ...prev[locationId], generating: true },
-    }));
-    try {
-      const dataUrl = await QRCode.toDataURL(locQr.qrUrl.trim(), {
-        width: 150,
-        margin: 1,
-        color: { dark: "#000000", light: "#ffffff" },
-        errorCorrectionLevel: "M",
-      });
-      setLocationQrCodes((prev) => ({
-        ...prev,
-        [locationId]: { ...prev[locationId], generating: false, qrDataUrl: dataUrl },
-      }));
-    } catch (err) {
-      console.error("QR generation failed for location:", err);
-      setLocationQrCodes((prev) => ({
-        ...prev,
-        [locationId]: { ...prev[locationId], generating: false },
-      }));
-    }
-  };
-
-  const updateLocationQrField = (locationId, field, value) => {
-    setLocationQrCodes((prev) => ({
-      ...prev,
-      [locationId]: { ...prev[locationId], [field]: value },
-    }));
-  };
-
   const handleSave = async () => {
     try {
       setSaving(true);
@@ -252,32 +203,6 @@ export default function Receipts() {
       if (data.success) {
         // Also save to localStorage as backup
         localStorage.setItem("receiptSettings", JSON.stringify(payload));
-
-        // Save per-location QR codes
-        for (const loc of locations) {
-          const locId = String(loc._id);
-          const locQr = locationQrCodes[locId];
-          if (!locQr) continue;
-          try {
-            await fetch(`/api/setup/update-location?locationId=${locId}`, {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                name: loc.name,
-                address: loc.address || "",
-                phone: loc.phone || "",
-                email: loc.email || "",
-                code: loc.code || "",
-                qrUrl: locQr.qrUrl || "",
-                qrDescription: locQr.qrDescription || "",
-                qrDataUrl: locQr.qrDataUrl || "",
-              }),
-            });
-          } catch (locErr) {
-            console.error("Failed to save QR for location", loc.name, locErr);
-          }
-        }
-
         setSuccess("Receipt settings saved successfully!");
         setTimeout(() => setSuccess(""), 3000);
       } else {
@@ -526,140 +451,45 @@ export default function Receipts() {
 
                 {/* QR Code */}
                 <div className="form-group space-y-3">
-                  <label className="form-label font-semibold">QR Code on Receipt</label>
-                  <p className="text-xs text-gray-500 -mt-1">
-                    Add a QR code per location or one for all locations as a fallback.
-                  </p>
-
-                  {/* Scope Selector */}
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setQrScope("all")}
-                      className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${
-                        qrScope === "all"
-                          ? "theme-toggle-active"
-                          : "theme-toggle-neutral"
-                      }`}
-                    >
-                      All Locations (Default)
-                    </button>
-                    {locations.map((loc) => (
+                  <div>
+                    <label className="form-label">QR Code URL or Link</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Example: https://google.com"
+                        value={qrUrl}
+                        onChange={(e) => setQrUrl(e.target.value)}
+                        className="form-input flex-1"
+                      />
                       <button
-                        key={loc._id}
                         type="button"
-                        onClick={() => setQrScope(String(loc._id))}
-                        className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${
-                          qrScope === String(loc._id)
-                            ? "theme-toggle-active"
-                            : "theme-toggle-neutral"
-                        }`}
+                        onClick={generateQRCode}
+                        disabled={!qrUrl.trim() || qrGenerating}
+                        className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
                       >
-                        {loc.name}
-                        {locationQrCodes[String(loc._id)]?.qrDataUrl && (
-                          <span className="ml-1.5 inline-block w-2 h-2 rounded-full bg-green-400 align-middle" title="QR set" />
-                        )}
+                        {qrGenerating ? "Generating..." : "Generate QR Code"}
                       </button>
-                    ))}
+                    </div>
                   </div>
-
-                  {/* All Locations QR */}
-                  {qrScope === "all" && (
-                    <div className="space-y-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                      <p className="text-xs text-gray-500">Used as fallback when a location has no specific QR.</p>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          placeholder="Example: https://google.com"
-                          value={qrUrl}
-                          onChange={(e) => setQrUrl(e.target.value)}
-                          className="form-input flex-1"
-                        />
-                        <button
-                          type="button"
-                          onClick={generateQRCode}
-                          disabled={!qrUrl.trim() || qrGenerating}
-                            className="btn-action-primary px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                        >
-                          {qrGenerating ? "Generating..." : "Generate QR"}
-                        </button>
-                      </div>
-                      {qrDataUrl && (
-                        <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                          <img src={qrDataUrl} alt="QR Code Preview" className="w-20 h-20 rounded" />
-                          <div className="text-sm text-green-700">
-                            <p className="font-medium">QR Code Generated</p>
-                            <p className="text-xs text-green-600 mt-0.5 break-all">{qrUrl}</p>
-                          </div>
-                        </div>
-                      )}
-                      <div>
-                        <label className="form-label">QR Code Description</label>
-                        <input
-                          type="text"
-                          placeholder="Please scan here and leave us a review"
-                          value={qrDescription}
-                          onChange={(e) => setQrDescription(e.target.value)}
-                          className="form-input"
-                        />
+                  {qrDataUrl && (
+                    <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <img src={qrDataUrl} alt="QR Code Preview" className="w-20 h-20 rounded" />
+                      <div className="text-sm text-green-700">
+                        <p className="font-medium">QR Code Generated</p>
+                        <p className="text-xs text-green-600 mt-0.5 break-all">{qrUrl}</p>
                       </div>
                     </div>
                   )}
-
-                  {/* Per-location QR */}
-                  {qrScope !== "all" && (() => {
-                    const loc = locations.find((l) => String(l._id) === qrScope);
-                    const locQr = locationQrCodes[qrScope] || { qrUrl: "", qrDescription: "", qrDataUrl: "", generating: false };
-                    if (!loc) return null;
-                    return (
-                      <div className="space-y-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                        <p className="text-xs text-gray-500">QR code shown on receipts from <strong>{loc.name}</strong>.</p>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            placeholder="Example: https://maps.google.com/?q=your+address"
-                            value={locQr.qrUrl}
-                            onChange={(e) => updateLocationQrField(qrScope, "qrUrl", e.target.value)}
-                            className="form-input flex-1"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => generateLocationQRCode(qrScope)}
-                            disabled={!locQr.qrUrl?.trim() || locQr.generating}
-                            className="btn-action-primary px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                          >
-                            {locQr.generating ? "Generating..." : "Generate QR"}
-                          </button>
-                        </div>
-                        {locQr.qrDataUrl && (
-                          <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                            <img src={locQr.qrDataUrl} alt="QR Code Preview" className="w-20 h-20 rounded" />
-                            <div className="text-sm text-green-700">
-                              <p className="font-medium">QR Code Generated</p>
-                              <p className="text-xs text-green-600 mt-0.5 break-all">{locQr.qrUrl}</p>
-                              <button
-                                type="button"
-                                onClick={() => updateLocationQrField(qrScope, "qrDataUrl", "")}
-                                className="mt-1 text-xs text-red-500 hover:text-red-700"
-                              >
-                                Remove QR
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                        <div>
-                          <label className="form-label">QR Code Description</label>
-                          <input
-                            type="text"
-                            placeholder="Scan to visit our page"
-                            value={locQr.qrDescription}
-                            onChange={(e) => updateLocationQrField(qrScope, "qrDescription", e.target.value)}
-                            className="form-input"
-                          />
-                        </div>
-                      </div>
-                    );
-                  })()}
+                  <div>
+                    <label className="form-label">QR Code Description</label>
+                    <input
+                      type="text"
+                      placeholder="Please scan here and leave us a review"
+                      value={qrDescription}
+                      onChange={(e) => setQrDescription(e.target.value)}
+                      className="form-input"
+                    />
+                  </div>
                 </div>
 
                 {/* Payment Status */}
@@ -782,27 +612,16 @@ export default function Receipts() {
                       <div>Refund within {refundDays} days with receipt</div>
                     ) : null}
 
-                    {(() => {
-                      const locId = previewLocation?._id ? String(previewLocation._id) : null;
-                      const locQr = locId ? locationQrCodes[locId] : null;
-                      const previewQrDataUrl = locQr?.qrDataUrl || qrDataUrl;
-                      const previewQrUrl = locQr?.qrUrl || qrUrl;
-                      const previewQrDesc = locQr?.qrDescription || qrDescription;
-                      if (!previewQrDataUrl && !previewQrUrl) return null;
-                      return (
-                        <div className="mt-2">
-                          {previewQrDesc ? <div>{previewQrDesc}</div> : null}
-                          {previewQrDataUrl ? (
-                            <img src={previewQrDataUrl} alt="QR Code" className="mx-auto my-2 h-16 w-16" />
-                          ) : (
-                            <div className="mt-2 break-all text-[0.8em]">{previewQrUrl}</div>
-                          )}
-                          {locQr?.qrDataUrl && (
-                            <div className="theme-accent-text text-[0.75em] mt-0.5">📍 {previewLocation?.name}</div>
-                          )}
-                        </div>
-                      );
-                    })()}
+                    {(qrDataUrl || qrUrl) ? (
+                      <div className="mt-2">
+                        {qrDescription ? <div>{qrDescription}</div> : null}
+                        {qrDataUrl ? (
+                          <img src={qrDataUrl} alt="QR Code" className="mx-auto my-2 h-16 w-16" />
+                        ) : (
+                          <div className="mt-2 break-all text-[0.8em]">{qrUrl}</div>
+                        )}
+                      </div>
+                    ) : null}
 
                     {receiptMessage ? (
                       <div className="mt-2 whitespace-pre-wrap">{receiptMessage}</div>

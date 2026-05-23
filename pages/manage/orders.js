@@ -12,14 +12,31 @@ import { showConfirmDialog } from "@/lib/dialogs";
 import { useAuth } from "@/lib/useAuth";
 import { getCachedSetup } from "@/lib/setupCache";
 
-const STATUS_OPTIONS = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"];
+const STATUS_OPTIONS = [
+  "Pending Payment",
+  "Inventory Reserved",
+  "Pending",
+  "Processing",
+  "Shipped",
+  "Delivered",
+  "Cancelled",
+  "Reservation Expired",
+];
 
 const STATUS_CLASS = {
+  "Pending Payment": "bg-amber-100 text-amber-700",
+  "Inventory Reserved": "bg-blue-100 text-blue-700",
   Pending: "bg-cyan-100 text-cyan-700",
   Processing: "bg-yellow-100 text-yellow-700",
   Shipped: "theme-badge-soft",
   Delivered: "bg-green-100 text-green-700",
   Cancelled: "bg-red-100 text-red-700",
+  "Reservation Expired": "bg-gray-100 text-gray-700",
+};
+
+const SITE_LABELS = {
+  store: "Store",
+  hotel: "Hotel",
 };
 
 const NOTICE_CLASS = {
@@ -203,20 +220,35 @@ function getStatusSuccessNotice({ order, newStatus, emailState = "skipped" }) {
 
 function getOrderCustomerDetails(order) {
   const customer = order?.customer || {};
+  const customerSnapshot = order?.customerSnapshot || {};
   const shippingDetails = order?.shippingDetails || {};
 
   return {
-    name: customer?.name || shippingDetails?.name || "N/A",
-    email: customer?.email || shippingDetails?.email || "N/A",
-    phone: shippingDetails?.phone || customer?.phone || "N/A",
-    address: shippingDetails?.address || customer?.address || "No address",
+    name: customer?.name || customerSnapshot?.name || shippingDetails?.name || "N/A",
+    email: customer?.email || customerSnapshot?.email || shippingDetails?.email || "N/A",
+    phone: shippingDetails?.phone || customerSnapshot?.phone || customer?.phone || "N/A",
+    address: shippingDetails?.address || customerSnapshot?.address || customer?.address || "No address",
     city:
       shippingDetails?.city ||
+      customerSnapshot?.city ||
       customer?.city ||
       order?.deliveryDetails?.city ||
       order?.deliveryPerson?.city ||
       "N/A",
   };
+}
+
+function getOrderSourceLabel(order) {
+  return SITE_LABELS[String(order?.siteKey || "store").trim().toLowerCase()] || "Store";
+}
+
+function getOrderLocationLabel(order) {
+  if (order?.locationName) {
+    return order.locationName;
+  }
+
+  const source = getOrderSourceLabel(order);
+  return `Unassigned (${source})`;
 }
 
 function buildEmailPayload(order, status) {
@@ -225,7 +257,8 @@ function buildEmailPayload(order, status) {
     : order.items || [];
 
   return {
-    name: order.customer?.name || order.shippingDetails?.name || "Customer",
+    name: order.customer?.name || order.customerSnapshot?.name || order.shippingDetails?.name || "Customer",
+    email: order.customer?.email || order.customerSnapshot?.email || order.shippingDetails?.email || "",
     orderId: order._id,
     status,
     total: order.total,
@@ -234,7 +267,7 @@ function buildEmailPayload(order, status) {
       quantity: Number(product?.quantity || 0),
       price: Number(product?.price || 0),
     })),
-    shippingDetails: order.shippingDetails || {},
+    shippingDetails: order.shippingDetails || order.customerSnapshot || {},
     deliveryPerson: order.deliveryPerson || undefined,
   };
 }
@@ -533,7 +566,7 @@ export default function OrderInventoryPage() {
                               </div>
                             </td>
                             <td className="text-gray-900">{customerDetails.name}</td>
-                            <td className="text-gray-700">{order.locationName || "Unassigned"}</td>
+                            <td className="text-gray-700">{getOrderLocationLabel(order)}</td>
                             <td className="font-bold text-gray-900">{formatCurrency(order.total || 0)}</td>
                             <td>
                               <select
@@ -568,6 +601,11 @@ export default function OrderInventoryPage() {
                                       <p><strong>Phone:</strong> {customerDetails.phone}</p>
                                       <p><strong>Address:</strong> {customerDetails.address}</p>
                                       <p><strong>City:</strong> {customerDetails.city}</p>
+                                      <p><strong>Order source:</strong> {getOrderSourceLabel(order)}</p>
+                                      <p><strong>Payment status:</strong> {order.paymentStatus || "Pending"}</p>
+                                      {order.reservationStatus ? (
+                                        <p><strong>Reservation:</strong> {order.reservationStatus}</p>
+                                      ) : null}
                                       <div className="pt-2">
                                         <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
                                           Fulfilment Location

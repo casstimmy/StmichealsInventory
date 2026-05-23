@@ -1,45 +1,63 @@
 import mongoose from "mongoose";
 
+const CustomerSnapshotSchema = new mongoose.Schema(
+  {
+    name: String,
+    email: String,
+    phone: String,
+    address: String,
+    city: String,
+    type: String,
+  },
+  { _id: false }
+);
+
+const ShippingDetailsSchema = new mongoose.Schema(
+  {
+    name: { type: String, default: "" },
+    email: { type: String, default: "" },
+    phone: { type: String, default: "" },
+    address: { type: String, default: "" },
+    city: { type: String, default: "" },
+  },
+  { _id: false }
+);
+
+const OrderItemSchema = new mongoose.Schema(
+  {
+    productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: false },
+    name: { type: String, default: "" },
+    price: { type: Number, default: 0 },
+    quantity: { type: Number, default: 0 },
+    category: String,
+    description: String,
+    images: [String],
+  },
+  { _id: false }
+);
+
 const orderSchema = new mongoose.Schema(
   {
     customer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Customer",
-      required: true,
+      required: false,
+      default: null,
     },
 
-    shippingDetails: {
-      name: { type: String, required: true },
-      email: { type: String, required: true },
-      phone: { type: String, required: true },
-      address: { type: String, required: true },
-      city: { type: String, required: true },
+    siteKey: {
+      type: String,
+      enum: ["store", "hotel"],
+      default: "store",
     },
 
-    items: [
-      {
-        productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
-        name: { type: String, required: true },
-        price: { type: Number, required: true },
-        quantity: { type: Number, required: true },
-        category: String,
-        description: String,
-        images: [String],
-      },
-    ],
+    customerSnapshot: CustomerSnapshotSchema,
 
-    cartProducts: [
+    shippingDetails: ShippingDetailsSchema,
 
-      {
-        productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
-        name: { type: String, required: true },
-        price: { type: Number, required: true },
-        quantity: { type: Number, required: true },
-        category: String,
-        description: String,
-        images: [String],
-      },
-    ],
+    items: [OrderItemSchema],
+
+    cartProducts: [OrderItemSchema],
 
     subtotal: { type: Number, required: true },
     shippingCost: { type: Number, default: 0 },
@@ -62,6 +80,10 @@ const orderSchema = new mongoose.Schema(
       enum: ["Pending", "Paid", "Failed"],
       default: "Pending",
     },
+    paymentChannel: {
+      type: String,
+      default: "paystack",
+    },
 
     status: {
       type: String,
@@ -80,6 +102,16 @@ const orderSchema = new mongoose.Schema(
     },
 
     paid: { type: Boolean, default: false },
+
+    reservationStatus: {
+      type: String,
+      enum: ["active", "releasing", "released", "finalizing", "finalized", null],
+      default: "active",
+    },
+    reservationExpiresAt: Date,
+    reservationReleasedAt: Date,
+    finalizedAt: Date,
+    cancellationReason: String,
 
     // Prevents double inventory deduction across systems.
     // Set to 'paystack' when online payment finalizes, 'admin' when admin delivers.

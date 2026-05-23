@@ -2,7 +2,6 @@ import { mongooseConnect } from "@/lib/mongodb";
 import EndOfDayReport from "@/models/EndOfDayReport";
 import { buildLocationCache, resolveLocationName } from "@/lib/serverLocationHelper";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
-import { normalizeEndOfDayReports } from "@/lib/end-of-day-report-normalize";
 
 /**
  * GET /api/reporting/end-of-day-summary
@@ -118,20 +117,19 @@ export default async function handler(req, res) {
         locationName: locationName,
       };
     }));
-    const normalizedReports = normalizeEndOfDayReports(enrichedReports);
 
-    console.log(`✅ Enriched ${normalizedReports.length} reports with location names`);
+    console.log(`✅ Enriched ${enrichedReports.length} reports with location names`);
 
     // Calculate summary statistics
-    const totalSales = normalizedReports.reduce((sum, r) => sum + (r.totalSales || 0), 0);
-    const totalTransactions = normalizedReports.reduce((sum, r) => sum + (r.transactionCount || 0), 0);
-    const totalVariance = normalizedReports.reduce((sum, r) => sum + (r.variance || 0), 0);
-    const reconciled = normalizedReports.filter((r) => r.status === "RECONCILED").length;
-    const varianceNoted = normalizedReports.filter((r) => r.status === "VARIANCE_NOTED").length;
+    const totalSales = enrichedReports.reduce((sum, r) => sum + (r.totalSales || 0), 0);
+    const totalTransactions = enrichedReports.reduce((sum, r) => sum + (r.transactionCount || 0), 0);
+    const totalVariance = enrichedReports.reduce((sum, r) => sum + (r.variance || 0), 0);
+    const reconciled = enrichedReports.filter((r) => r.status === "RECONCILED").length;
+    const varianceNoted = enrichedReports.filter((r) => r.status === "VARIANCE_NOTED").length;
 
     // Group by location
     const byLocation = {};
-    normalizedReports.forEach((report) => {
+    enrichedReports.forEach((report) => {
       const locName = report.locationName || "Unknown";
       if (!byLocation[locName]) {
         byLocation[locName] = {
@@ -150,7 +148,7 @@ export default async function handler(req, res) {
 
     // Group by staff
     const byStaff = {};
-    normalizedReports.forEach((report) => {
+    enrichedReports.forEach((report) => {
       const staffName = report.staffName || "Unknown";
       if (!byStaff[staffName]) {
         byStaff[staffName] = {
@@ -169,7 +167,7 @@ export default async function handler(req, res) {
 
     // Build tender breakdown
     const tenderSummary = {};
-    normalizedReports.forEach((report) => {
+    enrichedReports.forEach((report) => {
       if (report.tenderBreakdown && typeof report.tenderBreakdown === "object") {
         Object.entries(report.tenderBreakdown).forEach(([tender, amount]) => {
           tenderSummary[tender] = (tenderSummary[tender] || 0) + amount;
@@ -179,7 +177,7 @@ export default async function handler(req, res) {
 
     // Aggregate by date
     const byDate = {};
-    normalizedReports.forEach((report) => {
+    enrichedReports.forEach((report) => {
       const dateKey = new Date(report.closedAt).toISOString().split("T")[0];
       if (!byDate[dateKey]) {
         byDate[dateKey] = {
@@ -209,15 +207,15 @@ export default async function handler(req, res) {
         to: now,
       },
       totals: {
-        reports: normalizedReports.length,
+        reports: enrichedReports.length,
         sales: totalSales,
         transactions: totalTransactions,
         variance: totalVariance,
         averageVariancePercentage:
-          normalizedReports.length > 0
+          enrichedReports.length > 0
             ? (
-                normalizedReports.reduce((sum, r) => sum + (r.variancePercentage || 0), 0) /
-                normalizedReports.length
+                enrichedReports.reduce((sum, r) => sum + (r.variancePercentage || 0), 0) /
+                enrichedReports.length
               ).toFixed(2)
             : 0,
       },
@@ -231,12 +229,12 @@ export default async function handler(req, res) {
       dailyData,
     };
 
-    console.log(`✅ Generated summary with ${normalizedReports.length} reports`);
+    console.log(`✅ Generated summary with ${enrichedReports.length} reports`);
 
     return res.status(200).json({
       success: true,
       summary,
-      reports: normalizedReports,
+      reports: enrichedReports,
     });
   } catch (error) {
     console.error("❌ Error fetching EOD summary:", error);

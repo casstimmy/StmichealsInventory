@@ -3,6 +3,20 @@ import Order from "@/models/Order";
 import Transaction from "@/models/Transactions";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 
+const ONLINE_TENDER_NAME = "ONLINE";
+const MANUAL_ENTRY_TENDER_NAME = "MANUAL ENTRY";
+const ONLINE_PAYMENT_CHANNELS = new Set(["paystack", "paystack-webhook", "online"]);
+
+const normalizePaymentChannel = (value) => String(value || "").trim().toLowerCase();
+
+const getOrderTenderName = (order) => {
+  const hasRecordedOnlinePayment =
+    ONLINE_PAYMENT_CHANNELS.has(normalizePaymentChannel(order?.paymentChannel)) &&
+    Boolean(order?.paid || order?.paymentStatus === "Paid" || order?.paymentReference);
+
+  return hasRecordedOnlinePayment ? ONLINE_TENDER_NAME : MANUAL_ENTRY_TENDER_NAME;
+};
+
 export default async function handler(req, res) {
   const authError = authMiddleware(req, res);
   if (authError) return authError;
@@ -52,8 +66,10 @@ export default async function handler(req, res) {
       quantity: Number(product.quantity || 0),
     }));
 
+    const recordedTenderName = getOrderTenderName(order);
+
     const transaction = await Transaction.create({
-      tenderType: "online",
+      tenderType: recordedTenderName,
       amountPaid: Number(order.total || 0),
       total: Number(order.total || 0),
       subtotal: Number(order.subtotal || order.total || 0),

@@ -13,6 +13,18 @@ import {
 } from "@/lib/orderStatusEmail";
 
 const ONLINE_TENDER_NAME = "ONLINE";
+const MANUAL_ENTRY_TENDER_NAME = "MANUAL ENTRY";
+const ONLINE_PAYMENT_CHANNELS = new Set(["paystack", "paystack-webhook", "online"]);
+
+const normalizePaymentChannel = (value) => String(value || "").trim().toLowerCase();
+
+const getOrderTenderName = (order) => {
+  const hasRecordedOnlinePayment =
+    ONLINE_PAYMENT_CHANNELS.has(normalizePaymentChannel(order?.paymentChannel)) &&
+    Boolean(order?.paid || order?.paymentStatus === "Paid" || order?.paymentReference);
+
+  return hasRecordedOnlinePayment ? ONLINE_TENDER_NAME : MANUAL_ENTRY_TENDER_NAME;
+};
 
 const getOrderItems = (order) => {
   if (Array.isArray(order?.cartProducts) && order.cartProducts.length > 0) {
@@ -175,6 +187,7 @@ export default async function handler(req, res) {
     if (nextStatus === "Delivered" && prevStatus !== "Delivered") {
       const items = normalizeItems(getOrderItems(order));
       linkedTransaction = await Transaction.findOne({ externalId });
+      const recordedTenderName = getOrderTenderName(order);
 
       if (!linkedTransaction) {
         if (!items.length) {
@@ -182,10 +195,10 @@ export default async function handler(req, res) {
         }
 
         linkedTransaction = await Transaction.create({
-          tenderType: ONLINE_TENDER_NAME,
+          tenderType: recordedTenderName,
           tenderPayments: [{
-            tenderType: ONLINE_TENDER_NAME,
-            tenderName: ONLINE_TENDER_NAME,
+            tenderType: recordedTenderName,
+            tenderName: recordedTenderName,
             amount: Number(order.total || 0),
           }],
           amountPaid: Number(order.total || 0),
@@ -253,6 +266,10 @@ export default async function handler(req, res) {
     if (nextStatus === "Delivered") {
       updatePayload.paid = true;
       updatePayload.paymentStatus = "Paid";
+      updatePayload.paymentChannel =
+        order.paid || order.paymentStatus === "Paid"
+          ? order.paymentChannel || "manual-entry"
+          : "manual-entry";
       updatePayload.paymentReference = order.paymentReference || String(linkedTransaction?._id || "");
       updatePayload.reservationStatus = "finalized";
       updatePayload.reservationReleasedAt = order.reservationReleasedAt || new Date();

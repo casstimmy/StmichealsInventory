@@ -41,6 +41,7 @@ export default function Sidebar() {
     if (isAdmin) return true;
     return permKeys.some((key) => hasPermission(key));
   };
+  const canAccessTransactionReport = canAccessAny(["reporting.transaction-report", "reporting.transactions"]);
 
   // Detect mobile view
   useEffect(() => {
@@ -466,7 +467,7 @@ export default function Sidebar() {
             </li>
             )}
 
-            {canAccessAny(["reporting", "reporting.sales-report", "reporting.eod", "reporting.transaction-report", "reporting.time-intervals", "reporting.time-comparisons", "reporting.sales-by-product", "reporting.employees", "reporting.locations", "reporting.categories"]) && (
+            {canAccessAny(["reporting", "reporting.sales-report", "reporting.eod", "reporting.transaction-report", "reporting.transactions", "reporting.time-intervals", "reporting.time-comparisons", "reporting.sales-by-product", "reporting.employees", "reporting.locations", "reporting.categories"]) && (
             <li
               className={`${
                 pathname.startsWith("/reporting") ? activeLink : baseLink
@@ -548,7 +549,7 @@ export default function Sidebar() {
                 {/* Transaction Report */}
                 {renderSubMenu([
                   { href: "/reporting/transaction-report/completed-transactions", label: "Completed Transactions", indent: true },
-                ].filter(item => canAccess("reporting.transaction-report")))}
+                ].filter(() => canAccessTransactionReport))}
               </ul>
             </li>
             )}
@@ -973,7 +974,7 @@ export default function Sidebar() {
             )}
 
             {/* Reporting Menu */}
-            {canAccessAny(["reporting", "reporting.sales-report", "reporting.eod", "reporting.transaction-report", "reporting.time-intervals", "reporting.time-comparisons", "reporting.sales-by-product", "reporting.employees", "reporting.locations", "reporting.categories"]) && (
+            {canAccessAny(["reporting", "reporting.sales-report", "reporting.eod", "reporting.transaction-report", "reporting.transactions", "reporting.time-intervals", "reporting.time-comparisons", "reporting.sales-by-product", "reporting.employees", "reporting.locations", "reporting.categories"]) && (
             <li>
               <button
                 onClick={() => toggleMenu("reporting")}
@@ -1004,14 +1005,14 @@ export default function Sidebar() {
                     </Link>
                   </li>
                   )}
-                  {canAccess("reporting.transaction-report") && (
+                  {canAccessTransactionReport && (
                   <li onClick={closeMenu}>
                     <Link href="/reporting/transaction-report" className={`block px-8 py-3 text-sm transition-all ${pathname === "/reporting/transaction-report" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Transaction Reports
                     </Link>
                   </li>
                   )}
-                  {canAccess("reporting.transaction-report") && (
+                  {canAccessTransactionReport && (
                   <li onClick={closeMenu}>
                     <Link href="/reporting/transaction-report/completed-transactions" className={`block px-10 py-3 text-sm transition-all ${pathname === "/reporting/transaction-report/completed-transactions" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Completed Transactions

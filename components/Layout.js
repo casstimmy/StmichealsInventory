@@ -40,7 +40,7 @@ const ROUTE_PERMISSIONS = {
   "/stock": "stock",
   "/reporting/sales-report": "reporting.sales-report",
   "/reporting/end-of-day-report": "reporting.eod",
-  "/reporting/transaction-report": "reporting.transactions",
+  "/reporting/transaction-report": ["reporting.transaction-report", "reporting.transactions"],
   "/reporting/reporting": "reporting.sales-report",
   "/reporting": "reporting",
   "/expenses/expenses": "expenses.entry",
@@ -85,7 +85,11 @@ export default function Layout({ children, title = "Dashboard" }) {
 
   // CHECK PAGE PERMISSIONS
   const requiredPermission = getRequiredPermission(router.pathname);
-  const hasAccess = !requiredPermission || isAdmin || hasPermission(requiredPermission);
+  const hasAccess = !requiredPermission || isAdmin || (
+    Array.isArray(requiredPermission)
+      ? requiredPermission.some((permission) => hasPermission(permission))
+      : hasPermission(requiredPermission)
+  );
 
   // Dashboard access control: only admin or users with "dashboard" permission
   const isDashboard = router.pathname === "/";

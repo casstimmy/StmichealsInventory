@@ -151,6 +151,24 @@ export default function JournalEntriesPage() {
     setSuccess("");
 
     if (!form.description) return setError("Description is required");
+    if (form.lines.some((l) => !l.account)) return setError("All lines must have an account selected");
+    if (!isBalanced) return setError("Debits must equal credits");
+
+    try {
+      const res = await fetch("/api/accounting/journal-entries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      setSuccess("Journal entry created");
+      resetForm();
+      fetchEntries();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
 
   async function handleManualSync() {
     try {
@@ -181,24 +199,6 @@ export default function JournalEntriesPage() {
   const syncSummary = syncStatus?.lastSummary
     ? `${syncStatus.lastSummary.salesSynced || 0} sales, ${syncStatus.lastSummary.expensesSynced || 0} expenses, ${syncStatus.lastSummary.purchaseOrdersSynced || 0} purchase orders`
     : "";
-    if (form.lines.some((l) => !l.account)) return setError("All lines must have an account selected");
-    if (!isBalanced) return setError("Debits must equal credits");
-
-    try {
-      const res = await fetch("/api/accounting/journal-entries", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
-      setSuccess("Journal entry created");
-      resetForm();
-      fetchEntries();
-    } catch (err) {
-      setError(err.message);
-    }
-  }
 
   async function postEntry(id) {
     try {

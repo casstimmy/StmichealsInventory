@@ -71,7 +71,7 @@ const KNOWLEDGE_BASE = [
   {
     keywords: ["report", "sales report", "analytics", "reporting", "sales data"],
     question: "How do I view sales reports?",
-    answer: "Go to **Reporting** in the sidebar. **Sales Report** shows overall sales overview. Under the **Sales Report** submenu, you can view: **Time Intervals** (daily/weekly/monthly trends), **Time Comparisons** (compare periods side by side), **Sales by Product** (top sellers), **Employees** (staff performance), **Locations** (per-location sales), and **Categories** (product category performance). Use date range and location filters to narrow your data.",
+    answer: "Go to **Reporting** in the sidebar. **Sales Report** gives you the main summary, while the reporting submenu breaks data down into **Time Intervals**, **Time Comparisons**, **Sales by Product**, **Employees**, **Locations**, and **Categories**. For transaction-level investigation, use **Completed Transactions** to search, expand, edit, void, or refund sales. Use the date filters before exporting or comparing figures so all charts and tables are working from the same period.",
   },
   {
     keywords: ["staff", "employee", "add staff", "onboarding", "staff management"],
@@ -106,7 +106,7 @@ const KNOWLEDGE_BASE = [
   {
     keywords: ["password", "login", "access", "permission", "user", "pin"],
     question: "How do I manage user access and permissions?",
-    answer: "Go to **Setup** → **Users** to manage system access. Create users with name, email, and a 4-digit PIN. Assign a role: **Admin** has all permissions, **Sub-Admin/Manager/Staff/Viewer** get custom permissions. Use the checkbox grid to assign specific page access — each submenu item can be individually granted or revoked. Deactivate users to temporarily block access without deleting them. Note: this is separate from POS staff/till access.",
+    answer: "Go to **Setup** → **Users** to manage admin-app access. Create users with name, email, and a 4-digit PIN, then assign a role and page-level permissions. **Admin** gets full access, while **Sub-Admin**, **Manager**, **Staff**, and **Viewer** can be restricted down to individual submenu items. This is separate from POS staff access in **Manage** → **Staff**. If a permission change does not appear immediately, refresh the page or sign out and back in so the latest user profile is loaded.",
   },
   {
     keywords: ["till", "pos", "point of sale", "checkout", "register"],
@@ -121,7 +121,7 @@ const KNOWLEDGE_BASE = [
   {
     keywords: ["eod", "end of day", "close day", "daily report", "reconciliation"],
     question: "How does End of Day (EOD) work?",
-    answer: "Navigate to **Reporting** → **End of Day Reports** to view daily summaries. EOD reports include: total sales by tender type, expected vs actual cash counts, variance analysis, transaction count, average sale value, and staff performance for the day. Reports can be generated for each location. This helps with daily cash reconciliation and identifying any discrepancies between expected and actual drawer amounts.",
+    answer: "Navigate to **Reporting** → **End of Day Reports** to review daily summaries by location. EOD reports show tender totals, expected closing balance, variance, transaction count, and other daily reconciliation metrics. This is the best place to review drawer performance and investigate mismatches after trading hours. If you need a fully guided till-closing flow with physical count entry and close-day actions, contact support or your system admin because the current admin app focuses mainly on viewing and analysing EOD data rather than a full cashier close-out wizard.",
   },
   {
     keywords: ["held", "hold transaction", "pending", "saved transaction"],
@@ -171,7 +171,7 @@ const KNOWLEDGE_BASE = [
   {
     keywords: ["support", "ticket", "help", "issue", "support ticket"],
     question: "How do I create a support ticket?",
-    answer: "If this Q&A doesn't answer your question, click the **Tickets** tab at the top of this page. Click **New Ticket**, fill in the subject, description, category (General, Technical, Tax, Inventory, Billing), and priority level. Submit the ticket and our team will respond. You can track ticket status, add comments, and view the conversation history all from this page.",
+    answer: "If this Q&A doesn't solve the issue, open the **Tickets** tab at the top of this page and click **New Ticket**. Add a clear subject, detailed description, category, priority, and location if the issue is location-specific. The fastest tickets usually include what page you were on, what you expected to happen, what actually happened, and any screenshot or exact error message. After submitting, you can track status, add comments, and follow the full conversation from the same page.",
   },
   {
     keywords: ["pack", "bundle", "pack product", "child product", "unit"],
@@ -183,7 +183,68 @@ const KNOWLEDGE_BASE = [
     question: "How does expiry tracking work?",
     answer: "When adding or editing a product, you can set an **Expiry Date**. The system automatically marks products as expired when the date passes. View all products approaching or past expiry in **Stock** → **Expiration Report**. This report helps you identify products that need to be sold quickly, discounted, or removed from shelves. Expired flags update automatically on each page load.",
   },
+  {
+    keywords: ["accounting", "profit and loss", "p&l", "balance sheet", "trial balance", "general ledger", "journal entry", "chart of accounts"],
+    question: "How do accounting reports and journals work?",
+    answer: "Use the **Accounting** section for formal financial records. **Reports** gives you **Profit & Loss**, **Balance Sheet**, and **Trial Balance**. **Journal Entries** is where you create manual entries, save drafts, post them, or void them. **General Ledger** shows the running activity for a single account, and **Chart of Accounts** controls the account list. Operational activity such as sales, expenses, refunds, and purchase-order payments feeds accounting automatically, but owner capital, loans, depreciation, and corrections should still be entered manually as journal entries.",
+  },
+  {
+    keywords: ["sync accounting", "accounting sync", "stale report", "refresh accounting", "journal not updated"],
+    question: "How does accounting sync work?",
+    answer: "Accounting pages now use a throttled background sync so they stay responsive. If a report, journal list, or ledger looks behind current sales or expenses, click **Sync Accounting** at the top of the accounting page you are on. That forces a fresh pull from transactions, expenses, and purchase orders, then updates the last-sync time shown on the page. Use manual sync before checking month-end figures, after bulk imports, or when investigating a mismatch.",
+  },
+  {
+    keywords: ["receive purchase order", "confirm received", "po receipt", "goods received", "restock from po"],
+    question: "How do I receive a purchase order into stock?",
+    answer: "Open **Manage** → **Procurement** → **Payment Tracker** and locate the purchase order. Update payment details if needed, then use the receive/confirm action to mark the order as received. That receipt step is important because it is what creates the stock movement, updates inventory, and changes the purchase order's receiving status. If you only record payment without confirming receipt, the stock will not be added yet.",
+  },
+  {
+    keywords: ["operational loss", "damaged stock", "waste", "expired stock", "missing stock", "write off"],
+    question: "How do I record operational loss or damaged stock?",
+    answer: "Use **Stock** → **Stock Movement** when stock leaves the business for a real operational reason such as damage, waste, expiry, or unexplained loss. Select the operational-loss style movement option, choose the location, add the affected products, and enter the quantities with a clear note. This keeps your stock on hand realistic and helps management separate normal sales from shrinkage or wastage.",
+  },
+  {
+    keywords: ["split payment", "split tender", "multiple payment methods", "cash and card", "pay partly cash partly transfer"],
+    question: "How do split payments work at the Till?",
+    answer: "At the **Till**, you can complete one sale with more than one tender type, for example part cash and part transfer. First make sure the tender methods are active in **Setup** → **POS Tenders** and assigned to the location in **Setup** → **Location Tenders**. During checkout, enter the amounts against each tender until the full balance is covered. The completed transaction and reports will keep the tender breakdown so you can reconcile each payment method correctly.",
+  },
+  {
+    keywords: ["order location", "fulfilment location", "fulfillment location", "assign order location", "online order location"],
+    question: "How do order fulfilment locations work?",
+    answer: "Go to **Manage** → **Orders** and open the order details to assign or clear a fulfilment location. This is useful for routing online or central orders to the branch that should handle them. The chosen location improves management visibility and reporting context, especially after delivery. If a delivered order's location changes later, the system keeps the transaction location in sync for reporting purposes.",
+  },
+  {
+    keywords: ["offline", "internet down", "queued transaction", "offline pos", "sync later"],
+    question: "What happens if the Till goes offline?",
+    answer: "The system supports offline POS queueing, so temporary internet loss should not mean lost sales. Transactions created while offline can be held locally and synced when the connection returns. If staff believe a sale may have been queued, avoid ringing it twice immediately. First confirm whether the transaction appears as held, completed, or synced after connectivity is restored, then escalate to support if the count still looks wrong.",
+  },
+  {
+    keywords: ["hotel", "reservation", "room booking", "guest", "hotel reservations"],
+    question: "How do hotel reservations work?",
+    answer: "Use **Manage** → **Hotel Reservations** to view, update, and track guest bookings. Reservations store guest details, booking dates, room or room-product information, and reservation status. The system can also send reservation-related guest communications from the reservation workflow. If a room-related booking behaves unexpectedly, include the reservation status, guest name, room, and dates when raising a support ticket so the issue can be traced quickly.",
+  },
 ];
+
+const FEATURED_TOPIC_QUESTIONS = [
+  "How do I add a new product?",
+  "How do I manage stock levels?",
+  "How do I perform a stock take?",
+  "How do I manage vendors?",
+  "How do I receive a purchase order into stock?",
+  "How do split payments work at the Till?",
+  "How do I view sales reports?",
+  "How do accounting reports and journals work?",
+  "How does accounting sync work?",
+  "How does End of Day (EOD) work?",
+  "How do I manage user access and permissions?",
+  "How do I create a support ticket?",
+  "How do hotel reservations work?",
+  "How do I record operational loss or damaged stock?",
+];
+
+const FEATURED_TOPICS = FEATURED_TOPIC_QUESTIONS
+  .map((question) => KNOWLEDGE_BASE.find((entry) => entry.question === question))
+  .filter(Boolean);
 
 function formatStatusLabel(value) {
   return String(value || "open").replace(/_/g, " ");
@@ -506,7 +567,7 @@ export default function SupportPage() {
                   Common topics:
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {KNOWLEDGE_BASE.slice(0, 10).map((entry, i) => (
+                  {FEATURED_TOPICS.map((entry, i) => (
                     <button
                       key={i}
                       onClick={() => handleQuickTopic(entry)}

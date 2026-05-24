@@ -4,7 +4,12 @@ import Layout from "@/components/Layout";
 import { Loader } from "@/components/ui";
 import { formatCurrency } from "@/lib/format";
 import { useState, useEffect } from "react";
-import { BookOpen } from "lucide-react";
+import { BookOpen, RefreshCw } from "lucide-react";
+
+function formatSyncTime(value) {
+  if (!value) return "No recent sync";
+  return new Date(value).toLocaleString("en-NG");
+}
 
 export default function GeneralLedgerPage() {
   const [accounts, setAccounts] = useState([]);
@@ -12,6 +17,9 @@ export default function GeneralLedgerPage() {
   const [ledgerData, setLedgerData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadingLedger, setLoadingLedger] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState(null);
+  const [syncMessage, setSyncMessage] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [error, setError] = useState("");
@@ -19,6 +27,22 @@ export default function GeneralLedgerPage() {
   useEffect(() => {
     fetchAccounts();
   }, []);
+
+  useEffect(() => {
+    refreshSyncStatus();
+  }, []);
+
+  async function refreshSyncStatus() {
+    try {
+      const res = await fetch("/api/accounting/sync");
+      if (!res.ok) return;
+
+      const payload = await res.json();
+      setSyncStatus(payload.status || null);
+    } catch {
+      // Keep ledger page usable even if sync status cannot be read.
+    }
+  }
 
   async function fetchAccounts() {
     try {
@@ -47,6 +71,7 @@ export default function GeneralLedgerPage() {
       if (res.ok) {
         const data = await res.json();
         setLedgerData(data);
+        void refreshSyncStatus();
       } else {
         const data = await res.json();
         setError(data.message || "Failed to load ledger");
@@ -61,6 +86,40 @@ export default function GeneralLedgerPage() {
   useEffect(() => {
     if (selectedAccount) fetchLedger();
   }, [selectedAccount, dateFrom, dateTo]);
+
+  async function handleManualSync() {
+    try {
+      setSyncing(true);
+      setError("");
+      setSyncMessage("");
+
+      const res = await fetch("/api/accounting/sync", { method: "POST" });
+      const payload = await res.json();
+      if (!res.ok) {
+        throw new Error(payload.message || "Failed to sync accounting");
+      }
+
+      const result = payload.result || {};
+      setSyncStatus(payload.status || null);
+      setSyncMessage(
+        `Accounting synced. ${result.salesSynced || 0} sales, ${result.expensesSynced || 0} expenses, ${result.purchaseOrdersSynced || 0} purchase orders refreshed.`
+      );
+
+      if (selectedAccount) {
+        await fetchLedger();
+      } else {
+        await refreshSyncStatus();
+      }
+    } catch (syncError) {
+      setError(syncError.message || "Failed to sync accounting");
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  const syncSummary = syncStatus?.lastSummary
+    ? `${syncStatus.lastSummary.salesSynced || 0} sales, ${syncStatus.lastSummary.expensesSynced || 0} expenses, ${syncStatus.lastSummary.purchaseOrdersSynced || 0} purchase orders`
+    : "";
 
   // Group accounts by type for the dropdown
   const groupedAccounts = {};
@@ -87,12 +146,27 @@ export default function GeneralLedgerPage() {
     <Layout>
       <div className="page-container">
         <div className="page-content">
-        <div className="mb-6">
-          <h1 className="page-title">General Ledger</h1>
-          <p className="page-subtitle">View transaction history for any account</p>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+          <div>
+            <h1 className="page-title">General Ledger</h1>
+            <p className="page-subtitle">View transaction history for any account</p>
+          </div>
+          <div className="flex flex-col items-stretch sm:items-end gap-2 w-full sm:w-auto">
+            <div className="flex flex-wrap justify-end gap-2">
+              <button onClick={handleManualSync} disabled={syncing} className="btn-action btn-action-secondary disabled:opacity-60 disabled:cursor-not-allowed">
+                <RefreshCw size={18} className={syncing ? "animate-spin" : ""} /> {syncing ? "Syncing..." : "Sync Accounting"}
+              </button>
+            </div>
+            <div className="text-xs text-gray-500 sm:text-right">
+              <p>Last synced: {formatSyncTime(syncStatus?.lastSyncAt)}</p>
+              {syncStatus?.lastDurationMs ? <p>Latest sync duration: {(syncStatus.lastDurationMs / 1000).toFixed(1)}s</p> : null}
+              {syncSummary ? <p>{syncSummary}</p> : null}
+            </div>
+          </div>
         </div>
 
         {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">{error}</div>}
+        {syncMessage && <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">{syncMessage}</div>}
 
         {/* Filters */}
         <div className="content-card mb-6">

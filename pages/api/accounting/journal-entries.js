@@ -1,6 +1,6 @@
 import { mongooseConnect } from "@/lib/mongodb";
 import { ensureAccountingEntriesSynced } from "@/lib/accounting";
-import JournalEntry from "@/models/JournalEntry";
+import JournalEntry, { createJournalEntry } from "@/models/JournalEntry";
 import Account from "@/models/Account";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 
@@ -74,14 +74,8 @@ export default async function handler(req, res) {
         });
       }
 
-      // Generate entry number
-      const last = await JournalEntry.findOne({}, { entryNumber: 1 }).sort({ createdAt: -1 }).lean();
-      const num = last ? (parseInt(last.entryNumber.replace("JE-", "")) || 0) + 1 : 1;
-      const entryNumber = `JE-${String(num).padStart(4, "0")}`;
-
       const entryStatus = status || "DRAFT";
-      const entry = await JournalEntry.create({
-        entryNumber,
+      const entry = await createJournalEntry({
         date: date ? new Date(date) : new Date(),
         description,
         lines: resolvedLines,

@@ -1,4 +1,9 @@
 import mongoose, { Schema, models } from "mongoose";
+import Counter from "@/models/Counter";
+
+const ENTRY_NUMBER_PREFIX = "JE-";
+const ENTRY_SEQUENCE_KEY = "journalEntry";
+const ENTRY_NUMBER_RETRY_LIMIT = 5;
 
 const JournalLineSchema = new Schema(
   {
@@ -71,4 +76,93 @@ JournalEntrySchema.index({ status: 1 });
 JournalEntrySchema.index({ referenceType: 1 });
 JournalEntrySchema.index({ "lines.account": 1 });
 
-export default models.JournalEntry || mongoose.model("JournalEntry", JournalEntrySchema);
+const JournalEntry = models.JournalEntry || mongoose.model("JournalEntry", JournalEntrySchema);
+
+function formatJournalEntryNumber(sequence) {
+  return `${ENTRY_NUMBER_PREFIX}${String(sequence).padStart(4, "0")}`;
+}
+
+function isEntryNumberDuplicateError(error) {
+  return error?.code === 11000 && Boolean(error?.keyPattern?.entryNumber || error?.message?.includes("entryNumber_1"));
+}
+
+async function getHighestJournalEntrySequence() {
+  const [result] = await JournalEntry.aggregate([
+    {
+      $match: {
+        entryNumber: {
+          $type: "string",
+          $regex: `^${ENTRY_NUMBER_PREFIX}[0-9]+$`,
+        },
+      },
+    },
+    {
+      $project: {
+        sequence: {
+          $toInt: {
+            $substrCP: [
+              "$entryNumber",
+              ENTRY_NUMBER_PREFIX.length,
+              {
+                $subtract: [{ $strLenCP: "$entryNumber" }, ENTRY_NUMBER_PREFIX.length],
+              },
+            ],
+          },
+        },
+      },
+    },
+    { $sort: { sequence: -1 } },
+    { $limit: 1 },
+  ]);
+
+  return result?.sequence || 0;
+}
+
+export async function getNextJournalEntryNumber() {
+  for (let attempt = 0; attempt < ENTRY_NUMBER_RETRY_LIMIT; attempt += 1) {
+    const existingCounter = await Counter.findById(ENTRY_SEQUENCE_KEY).lean();
+
+    if (!existingCounter) {
+      const highestSequence = await getHighestJournalEntrySequence();
+
+      try {
+        await Counter.create({ _id: ENTRY_SEQUENCE_KEY, seq: highestSequence });
+      } catch (error) {
+        if (error?.code !== 11000) {
+          throw error;
+        }
+      }
+
+      continue;
+    }
+
+    const updatedCounter = await Counter.findOneAndUpdate(
+      { _id: ENTRY_SEQUENCE_KEY },
+      { $inc: { seq: 1 } },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    ).lean();
+
+    return formatJournalEntryNumber(updatedCounter.seq);
+  }
+
+  throw new Error("Failed to reserve a journal entry number");
+}
+
+export async function createJournalEntry(entryPayload) {
+  for (let attempt = 0; attempt < ENTRY_NUMBER_RETRY_LIMIT; attempt += 1) {
+    try {
+      return await JournalEntry.create({
+        entryNumber: await getNextJournalEntryNumber(),
+        ...entryPayload,
+      });
+    } catch (error) {
+      if (!isEntryNumberDuplicateError(error) || attempt === ENTRY_NUMBER_RETRY_LIMIT - 1) {
+        throw error;
+      }
+    }
+  }
+
+  throw new Error("Failed to create journal entry");
+}
+
+export default JournalEntry;

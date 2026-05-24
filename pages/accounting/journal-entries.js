@@ -5,7 +5,7 @@ import { Loader } from "@/components/ui";
 import { formatCurrency } from "@/lib/format";
 import { useState, useEffect } from "react";
 import { showConfirmDialog, showPromptDialog, showToast } from "@/lib/dialogs";
-import { Plus, Trash2, Check, X, FileText, Play, Ban, Eye, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Trash2, Check, X, FileText, Play, Ban, Eye, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 
 const REF_TYPES = ["MANUAL", "SALE", "EXPENSE", "PURCHASE_ORDER", "SALARY", "REFUND", "OTHER"];
 const STATUS_COLORS = {
@@ -14,10 +14,18 @@ const STATUS_COLORS = {
   VOIDED: "bg-red-100 text-red-800",
 };
 
+function formatSyncTime(value) {
+  if (!value) return "No recent sync";
+  return new Date(value).toLocaleString("en-NG");
+}
+
 export default function JournalEntriesPage() {
   const [entries, setEntries] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState(null);
+  const [syncMessage, setSyncMessage] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -46,6 +54,22 @@ export default function JournalEntriesPage() {
     Promise.all([fetchEntries(), fetchAccounts()]);
   }, []);
 
+  useEffect(() => {
+    refreshSyncStatus();
+  }, []);
+
+  async function refreshSyncStatus() {
+    try {
+      const res = await fetch("/api/accounting/sync");
+      if (!res.ok) return;
+
+      const payload = await res.json();
+      setSyncStatus(payload.status || null);
+    } catch {
+      // Journal entries remain usable even if sync status cannot be read.
+    }
+  }
+
   async function fetchEntries() {
     try {
       setLoading(true);
@@ -62,6 +86,7 @@ export default function JournalEntriesPage() {
         const data = await res.json();
         setEntries(data.entries || []);
         setTotal(data.total || 0);
+        void refreshSyncStatus();
       }
     } catch (err) {
       setError("Failed to load journal entries");
@@ -126,6 +151,36 @@ export default function JournalEntriesPage() {
     setSuccess("");
 
     if (!form.description) return setError("Description is required");
+
+  async function handleManualSync() {
+    try {
+      setSyncing(true);
+      setError("");
+      setSyncMessage("");
+
+      const res = await fetch("/api/accounting/sync", { method: "POST" });
+      const payload = await res.json();
+      if (!res.ok) {
+        throw new Error(payload.message || "Failed to sync accounting");
+      }
+
+      const result = payload.result || {};
+      setSyncStatus(payload.status || null);
+      setSyncMessage(
+        `Accounting synced. ${result.salesSynced || 0} sales, ${result.expensesSynced || 0} expenses, ${result.purchaseOrdersSynced || 0} purchase orders refreshed.`
+      );
+
+      await fetchEntries();
+    } catch (syncError) {
+      setError(syncError.message || "Failed to sync accounting");
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  const syncSummary = syncStatus?.lastSummary
+    ? `${syncStatus.lastSummary.salesSynced || 0} sales, ${syncStatus.lastSummary.expensesSynced || 0} expenses, ${syncStatus.lastSummary.purchaseOrdersSynced || 0} purchase orders`
+    : "";
     if (form.lines.some((l) => !l.account)) return setError("All lines must have an account selected");
     if (!isBalanced) return setError("Debits must equal credits");
 
@@ -249,10 +304,24 @@ export default function JournalEntriesPage() {
             <h1 className="page-title">Journal Entries</h1>
             <p className="page-subtitle">{total} entries total</p>
           </div>
-          <button onClick={() => { resetForm(); setShowForm(!showForm); }} className="btn-action btn-action-primary">
-            <Plus size={18} /> {showForm ? "Close" : "New Entry"}
-          </button>
+          <div className="flex flex-col items-stretch sm:items-end gap-2 w-full sm:w-auto">
+            <div className="flex flex-wrap justify-end gap-2">
+              <button onClick={handleManualSync} disabled={syncing} className="btn-action btn-action-secondary disabled:opacity-60 disabled:cursor-not-allowed">
+                <RefreshCw size={18} className={syncing ? "animate-spin" : ""} /> {syncing ? "Syncing..." : "Sync Accounting"}
+              </button>
+              <button onClick={() => { resetForm(); setShowForm(!showForm); }} className="btn-action btn-action-primary">
+                <Plus size={18} /> {showForm ? "Close" : "New Entry"}
+              </button>
+            </div>
+            <div className="text-xs text-gray-500 sm:text-right">
+              <p>Last synced: {formatSyncTime(syncStatus?.lastSyncAt)}</p>
+              {syncStatus?.lastDurationMs ? <p>Latest sync duration: {(syncStatus.lastDurationMs / 1000).toFixed(1)}s</p> : null}
+              {syncSummary ? <p>{syncSummary}</p> : null}
+            </div>
+          </div>
         </div>
+
+        {syncMessage && <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">{syncMessage}</div>}
 
         {/* Form */}
         {showForm && (

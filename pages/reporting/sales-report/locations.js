@@ -103,7 +103,7 @@ export default function LocationsSales() {
   const pieData = data ? {
     labels: data.locations.map((l) => l.name),
     datasets: [{
-      data: data.locations.map((l) => l.totalSales),
+      data: data.locations.map((l) => l.transactionCount),
       backgroundColor: chartColors.slice(0, data.locations.length),
       borderWidth: 2, borderColor: "#fff",
     }],
@@ -112,7 +112,7 @@ export default function LocationsSales() {
   const barData = data ? {
     labels: data.locations.map((l) => l.name),
     datasets: [{
-      label: "Total Sales",
+      label: "Sales Value",
       data: data.locations.map((l) => l.totalSales),
       backgroundColor: chartColors.slice(0, data.locations.length),
       borderRadius: 2,
@@ -185,15 +185,17 @@ export default function LocationsSales() {
               {/* Charts */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 <div className="content-card">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Sales Distribution</h3>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-1">Sales Distribution</h3>
+                  <p className="text-sm text-gray-500 mb-4">Transaction count by location.</p>
                   <div className="flex justify-center" style={{ maxHeight: "320px" }}>
-                    {pieData && <Pie data={pieData} options={{ responsive: true, maintainAspectRatio: true, plugins: { legend: { position: "bottom" } } }} />}
+                    {pieData && <Pie data={pieData} options={{ responsive: true, maintainAspectRatio: true, plugins: { legend: { position: "bottom" }, tooltip: { callbacks: { label: (context) => `${context.label}: ${formatNumber(context.raw || 0)} transactions` } } } }} />}
                   </div>
                 </div>
                 <div className="content-card">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Sales by Location</h3>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-1">Sales by Location</h3>
+                  <p className="text-sm text-gray-500 mb-4">Value volume by total sales.</p>
                   <div style={{ maxHeight: "320px" }}>
-                    {barData && <Bar data={barData} options={{ responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }} />}
+                    {barData && <Bar data={barData} options={{ responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (context) => formatCurrency(context.raw || 0) } } }, scales: { y: { beginAtZero: true } } }} />}
                   </div>
                 </div>
               </div>

@@ -169,8 +169,12 @@ export default function ChartOfAccountsPage() {
   if (loading) {
     return (
       <Layout>
-        <div className="flex justify-center items-center py-20">
-          <Loader size="lg" text="Loading chart of accounts..." />
+        <div className="page-container">
+          <div className="page-content">
+            <div className="flex justify-center items-center py-20">
+              <Loader size="lg" text="Loading chart of accounts..." />
+            </div>
+          </div>
         </div>
       </Layout>
     );
@@ -179,6 +183,7 @@ export default function ChartOfAccountsPage() {
   return (
     <Layout>
       <div className="page-container">
+        <div className="page-content">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
           <div>
             <h1 className="page-title">Chart of Accounts</h1>
@@ -344,6 +349,7 @@ export default function ChartOfAccountsPage() {
               )}
             </div>
           ))}
+        </div>
         </div>
       </div>
     </Layout>

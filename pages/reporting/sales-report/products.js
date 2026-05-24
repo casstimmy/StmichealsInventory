@@ -2,7 +2,7 @@ import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
 import useProgress from "@/lib/useProgress";
 import { formatCurrency, formatNumber } from "@/lib/format";
-import { isInTimeRange } from "@/lib/dateFilter";
+import { isInTimeRange, REPORT_TIME_ZONE } from "@/lib/dateFilter";
 import { aggregateProductSales } from "@/lib/product-sales-report";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -12,6 +12,84 @@ import {
 } from "chart.js";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+
+function normalizeProductId(value) {
+  if (typeof value === "string" && value.trim()) {
+    return value.trim();
+  }
+
+  if (value && typeof value.toString === "function") {
+    const normalized = value.toString().trim();
+    return normalized || null;
+  }
+
+  return null;
+}
+
+function getProductKey(item = {}) {
+  const productId = normalizeProductId(item.productId);
+  if (productId) return `product:${productId}`;
+
+  const name = String(item.name || "").trim().toLowerCase();
+  return name ? `name:${name}` : null;
+}
+
+function buildProductTransactionDrilldown(transactions = []) {
+  const productTransactionMap = new Map();
+
+  (Array.isArray(transactions) ? transactions : []).forEach((transaction) => {
+    const itemMap = new Map();
+
+    (Array.isArray(transaction?.items) ? transaction.items : []).forEach((item) => {
+      const key = getProductKey(item);
+      if (!key) return;
+
+      const quantity = Number(item?.qty ?? item?.quantity ?? 0) || 0;
+      if (quantity <= 0) return;
+
+      const lineTotal = quantity * (Number(item?.salePriceIncTax ?? item?.price ?? 0) || 0);
+      const existing = itemMap.get(key) || {
+        productId: normalizeProductId(item?.productId),
+        productName: String(item?.name || "").trim() || "Unknown",
+        quantity: 0,
+        lineTotal: 0,
+      };
+
+      existing.quantity += quantity;
+      existing.lineTotal += lineTotal;
+
+      if (!existing.productId) {
+        existing.productId = normalizeProductId(item?.productId);
+      }
+
+      itemMap.set(key, existing);
+    });
+
+    itemMap.forEach((match, key) => {
+      if (!productTransactionMap.has(key)) {
+        productTransactionMap.set(key, []);
+      }
+
+      productTransactionMap.get(key).push({
+        transactionId: transaction._id,
+        createdAt: transaction.createdAt,
+        location: transaction.location || "Online",
+        staffName: transaction.staff?.name || transaction.staffName || transaction.staff || "Unknown",
+        customerName: transaction.customerName || "Walk-in",
+        transactionTotal: Number(transaction.total || 0),
+        quantity: match.quantity,
+        lineTotal: match.lineTotal,
+      });
+    });
+  });
+
+  return Object.fromEntries(
+    Array.from(productTransactionMap.entries()).map(([key, rows]) => [
+      key,
+      rows.sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt)),
+    ])
+  );
+}
 
 function MetricCard({ title, value, icon, color }) {
   const colors = {
@@ -34,10 +112,16 @@ function MetricCard({ title, value, icon, color }) {
 export default function ProductsSales() {
   const [data, setData] = useState(null);
   const [timeRange, setTimeRange] = useState("last7");
+  const [selectedProductKey, setSelectedProductKey] = useState("");
   const [loading, setLoading] = useState(true);
   const { progress, start, onFetch, onProcess, complete } = useProgress();
 
   useEffect(() => { fetchData(); }, [timeRange]);
+  useEffect(() => {
+    if (selectedProductKey && !data?.productTransactions?.[selectedProductKey]) {
+      setSelectedProductKey("");
+    }
+  }, [data, selectedProductKey]);
 
   async function fetchData() {
     try {
@@ -54,11 +138,13 @@ export default function ProductsSales() {
       });
 
       const products = aggregateProductSales(filteredTx);
+      const productTransactions = buildProductTransactionDrilldown(filteredTx);
       const totalSales = products.reduce((s, p) => s + p.totalSales, 0);
       const totalUnits = products.reduce((s, p) => s + p.unitsSold, 0);
 
       setData({
         products,
+        productTransactions,
         totalSales,
         totalUnits,
         totalProducts: products.length,
@@ -74,6 +160,10 @@ export default function ProductsSales() {
   ];
 
   const top10 = data ? data.products.slice(0, 10) : [];
+  const selectedProduct = data?.products.find((product) => product.key === selectedProductKey) || null;
+  const selectedProductTransactions = selectedProduct
+    ? data?.productTransactions?.[selectedProduct.key] || []
+    : [];
   const barData = data ? {
     labels: top10.map((p) => p.name.length > 20 ? p.name.substring(0, 20) + "..." : p.name),
     datasets: [{
@@ -178,9 +268,18 @@ export default function ProductsSales() {
                         <p className="text-sm mt-1">Try adjusting your time range filter</p>
                       </td></tr>
                     ) : data.products.map((prod, idx) => (
-                      <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                      <tr
+                        key={prod.key || idx}
+                        className={`${idx % 2 === 0 ? "bg-white" : "bg-gray-50"} cursor-pointer transition-colors hover:bg-cyan-50 ${selectedProductKey === prod.key ? "bg-cyan-50" : ""}`}
+                        onClick={() => setSelectedProductKey((current) => current === prod.key ? "" : prod.key)}
+                      >
                         <td className="px-4 py-3 font-medium text-gray-800">#{idx + 1}</td>
-                        <td className="px-4 py-3 font-medium text-gray-800">{prod.name}</td>
+                        <td className="px-4 py-3 font-medium text-gray-800">
+                          <div className="flex flex-col">
+                            <span>{prod.name}</span>
+                            <span className="text-xs font-normal text-cyan-700">Click to view completed transactions for this product</span>
+                          </div>
+                        </td>
                         <td className="px-4 py-3 text-right">{formatNumber(prod.unitsSold)}</td>
                         <td className="px-4 py-3 text-right">{formatCurrency(prod.totalSales)}</td>
                         <td className="px-4 py-3 text-right">
@@ -191,6 +290,61 @@ export default function ProductsSales() {
                   </tbody>
                 </table>
               </div>
+
+              {selectedProduct && (
+                <div className="content-card mt-6">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-800">Completed Transactions for {selectedProduct.name}</h3>
+                      <p className="text-sm text-gray-500">Showing {selectedProductTransactions.length} completed transaction{selectedProductTransactions.length === 1 ? "" : "s"} in the selected period.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedProductKey("")}
+                      className="text-sm font-medium text-cyan-600 hover:text-cyan-700"
+                    >
+                      Close
+                    </button>
+                  </div>
+
+                  <div className="data-table-container">
+                    <table className="data-table">
+                      <thead className="sticky top-0">
+                        <tr>
+                          <th className="px-4 py-3 text-left font-semibold">Date</th>
+                          <th className="px-4 py-3 text-left font-semibold">Transaction</th>
+                          <th className="px-4 py-3 text-left font-semibold">Location</th>
+                          <th className="px-4 py-3 text-left font-semibold">Staff</th>
+                          <th className="px-4 py-3 text-left font-semibold">Customer</th>
+                          <th className="px-4 py-3 text-right font-semibold">Product Qty</th>
+                          <th className="px-4 py-3 text-right font-semibold">Product Sales</th>
+                          <th className="px-4 py-3 text-right font-semibold">Transaction Total</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {selectedProductTransactions.length === 0 ? (
+                          <tr>
+                            <td colSpan={8} className="px-4 py-10 text-center text-gray-500">
+                              No completed transactions found for this product in the selected period.
+                            </td>
+                          </tr>
+                        ) : selectedProductTransactions.map((transaction, index) => (
+                          <tr key={`${transaction.transactionId}-${index}`} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                            <td className="px-4 py-3 text-gray-700 text-sm">{new Date(transaction.createdAt).toLocaleString("en-NG", { timeZone: REPORT_TIME_ZONE })}</td>
+                            <td className="px-4 py-3 font-mono text-xs text-cyan-700">{transaction.transactionId}</td>
+                            <td className="px-4 py-3 text-gray-700">{transaction.location}</td>
+                            <td className="px-4 py-3 text-gray-700">{transaction.staffName}</td>
+                            <td className="px-4 py-3 text-gray-700">{transaction.customerName}</td>
+                            <td className="px-4 py-3 text-right">{formatNumber(transaction.quantity)}</td>
+                            <td className="px-4 py-3 text-right font-medium">{formatCurrency(transaction.lineTotal)}</td>
+                            <td className="px-4 py-3 text-right font-semibold text-cyan-700">{formatCurrency(transaction.transactionTotal)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <div className="content-card text-center text-gray-500 py-12">No data available for the selected filters.</div>

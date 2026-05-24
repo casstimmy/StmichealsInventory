@@ -16,8 +16,6 @@ const Field = ({ label, ...props }) => (
   </div>
 );
 
-const normalizeEmailValue = (value) => String(value || "").trim().toLowerCase();
-
 export default function Setup() {
   const { isAdmin } = useAuth();
   const { alert: showAlert, confirm: showConfirm } = useDialog();
@@ -38,9 +36,6 @@ export default function Setup() {
   const [adminName, setAdminName] = useState("");
   const [adminEmail, setAdminEmail] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
-  const [currentAdminEmail, setCurrentAdminEmail] = useState("");
-  const [pendingAdminEmail, setPendingAdminEmail] = useState("");
-  const [pendingAdminEmailExpiresAt, setPendingAdminEmailExpiresAt] = useState("");
 
   const [logo, setLogo] = useState("");
   const [logoLoading, setLogoLoading] = useState(false);
@@ -84,9 +79,6 @@ export default function Setup() {
 
         if (user) {
           setAdminName(user.name || "");
-          setCurrentAdminEmail(user.email || "");
-          setPendingAdminEmail(user.pendingEmail || "");
-          setPendingAdminEmailExpiresAt(user.emailChangeExpiresAt || "");
           setAdminEmail(user.pendingEmail || user.email || "");
         }
       } catch (err) {
@@ -278,9 +270,6 @@ export default function Setup() {
         const savedUser = data?.data?.user;
         if (savedUser) {
           setAdminName(savedUser.name || adminName);
-          setCurrentAdminEmail(savedUser.email || "");
-          setPendingAdminEmail(savedUser.pendingEmail || "");
-          setPendingAdminEmailExpiresAt(savedUser.emailChangeExpiresAt || "");
           setAdminEmail(savedUser.pendingEmail || savedUser.email || adminEmail);
         }
 
@@ -300,15 +289,6 @@ export default function Setup() {
       setLoading(false);
     }
   };
-
-  const hasPendingEmailChange = Boolean(pendingAdminEmail);
-  const isRequestingNewAdminEmail =
-    Boolean(currentAdminEmail) &&
-    normalizeEmailValue(adminEmail) !== normalizeEmailValue(currentAdminEmail);
-
-  const pendingEmailExpiryLabel = pendingAdminEmailExpiresAt
-    ? new Date(pendingAdminEmailExpiresAt).toLocaleString("en-NG")
-    : "";
 
   return (
     <Layout>
@@ -504,26 +484,6 @@ export default function Setup() {
                   <p className="text-sm font-semibold text-gray-700">Admin Settings</p>
                   <Field label="Admin Name" value={adminName} onChange={(e) => setAdminName(e.target.value)} />
                   <Field label="Admin Email" type="email" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} />
-                  {currentAdminEmail ? (
-                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                      <p>
-                        <span className="font-semibold">Current login email:</span> {currentAdminEmail}
-                      </p>
-                      {hasPendingEmailChange ? (
-                        <p className="mt-1">
-                          A change to <span className="font-semibold">{pendingAdminEmail}</span> is waiting for verification from the current inbox{pendingEmailExpiryLabel ? ` until ${pendingEmailExpiryLabel}` : ""}.
-                        </p>
-                      ) : isRequestingNewAdminEmail ? (
-                        <p className="mt-1">
-                          Saving this page will send a verification link to <span className="font-semibold">{currentAdminEmail}</span>. The admin login email stays unchanged until that link is approved.
-                        </p>
-                      ) : (
-                        <p className="mt-1">
-                          Changing the admin email sends a verification link to the current admin inbox before the login email is updated.
-                        </p>
-                      )}
-                    </div>
-                  ) : null}
                   <Field label="New Password (Optional)" type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} />
                 </div>
 

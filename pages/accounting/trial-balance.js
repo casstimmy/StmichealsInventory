@@ -50,8 +50,12 @@ export default function TrialBalancePage() {
   if (loading) {
     return (
       <Layout>
-        <div className="flex justify-center items-center py-20">
-          <Loader size="lg" text="Calculating trial balance..." />
+        <div className="page-container">
+          <div className="page-content">
+            <div className="flex justify-center items-center py-20">
+              <Loader size="lg" text="Calculating trial balance..." />
+            </div>
+          </div>
         </div>
       </Layout>
     );
@@ -60,6 +64,7 @@ export default function TrialBalancePage() {
   return (
     <Layout>
       <div className="page-container">
+        <div className="page-content">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
           <div>
             <h1 className="page-title">Trial Balance</h1>
@@ -133,6 +138,7 @@ export default function TrialBalancePage() {
               </tfoot>
             </table>
           </div>
+        </div>
         </div>
       </div>
     </Layout>

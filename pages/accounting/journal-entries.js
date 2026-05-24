@@ -229,8 +229,12 @@ export default function JournalEntriesPage() {
   if (loading && entries.length === 0) {
     return (
       <Layout>
-        <div className="flex justify-center items-center py-20">
-          <Loader size="lg" text="Loading journal entries..." />
+        <div className="page-container">
+          <div className="page-content">
+            <div className="flex justify-center items-center py-20">
+              <Loader size="lg" text="Loading journal entries..." />
+            </div>
+          </div>
         </div>
       </Layout>
     );
@@ -239,6 +243,7 @@ export default function JournalEntriesPage() {
   return (
     <Layout>
       <div className="page-container">
+        <div className="page-content">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
           <div>
             <h1 className="page-title">Journal Entries</h1>
@@ -464,6 +469,7 @@ export default function JournalEntriesPage() {
               <button disabled={(page + 1) * 50 >= total} onClick={() => setPage(page + 1)} className="btn-action btn-action-secondary btn-sm">Next</button>
             </div>
           )}
+        </div>
         </div>
       </div>
     </Layout>

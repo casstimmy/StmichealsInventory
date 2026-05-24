@@ -37,8 +37,12 @@ export default function ProfitLossPage() {
   if (loading) {
     return (
       <Layout>
-        <div className="flex justify-center items-center py-20">
-          <Loader size="lg" text="Loading profit & loss..." />
+        <div className="page-container">
+          <div className="page-content">
+            <div className="flex justify-center items-center py-20">
+              <Loader size="lg" text="Loading profit & loss..." />
+            </div>
+          </div>
         </div>
       </Layout>
     );
@@ -49,6 +53,7 @@ export default function ProfitLossPage() {
   return (
     <Layout>
       <div className="page-container">
+        <div className="page-content">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
           <div>
             <h1 className="page-title">Profit & Loss Statement</h1>
@@ -150,6 +155,7 @@ export default function ProfitLossPage() {
               </tfoot>
             </table>
           </div>
+        </div>
         </div>
       </div>
     </Layout>

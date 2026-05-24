@@ -62,11 +62,11 @@ Every financial event creates a journal entry with at least 2 lines (one debit, 
 
 | Event | Debit Account | Credit Account | Reference Type |
 |-------|--------------|----------------|---------------|
-| POS Sale (cash) | Cash (1000) | Revenue (4000) + Tax (2100) | SALE |
-| POS Sale (card) | Bank (1010) | Revenue (4000) + Tax (2100) | SALE |
+| POS Sale (cash) | Cash (1000) + COGS (5000) | Revenue (4000) + Tax (2100) + Inventory (1200) | SALE |
+| POS Sale (card) | Bank (1010) + COGS (5000) | Revenue (4000) + Tax (2100) + Inventory (1200) | SALE |
 | Expense recorded | General Expense (6100) | Cash (1000) | EXPENSE |
 | PO Payment made | Inventory (1200) | Cash (1000) | PURCHASE_ORDER |
-| Refund issued | Refund Expense (6200) | Cash (1000) | REFUND |
+| Refund issued | Refund Expense (6200) + Inventory (1200) | Cash/Bank + COGS (5000) | REFUND |
 
 You do **not** need to create these manually — they are auto-generated when you:
 - Complete a POS sale
@@ -88,8 +88,13 @@ Select any account to see all its transactions in chronological order with runni
 ### 4. Financial Reports (tabbed page)
 
 **Profit & Loss (Income Statement)**
-- Revenue accounts minus Expense accounts = Net Profit/Loss
+- Revenue accounts minus COGS and other Expense accounts = Net Profit/Loss
+- Executive summary cards highlight gross profit, operating profit, and net margin
 - Filter by date range to see any period
+
+**Accounting Sync**
+- Accounting pages use a throttled sync from transactions, expenses, and purchase orders so reports stay responsive
+- Use the `Sync Accounting` action on the Financial Reports page when you need an immediate refresh
 
 **Balance Sheet**
 - Assets = Liabilities + Equity (the accounting equation)

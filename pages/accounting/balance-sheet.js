@@ -35,8 +35,12 @@ export default function BalanceSheetPage() {
   if (loading) {
     return (
       <Layout>
-        <div className="flex justify-center items-center py-20">
-          <Loader size="lg" text="Loading balance sheet..." />
+        <div className="page-container">
+          <div className="page-content">
+            <div className="flex justify-center items-center py-20">
+              <Loader size="lg" text="Loading balance sheet..." />
+            </div>
+          </div>
         </div>
       </Layout>
     );
@@ -75,6 +79,7 @@ export default function BalanceSheetPage() {
   return (
     <Layout>
       <div className="page-container">
+        <div className="page-content">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
           <div>
             <h1 className="page-title">Balance Sheet</h1>
@@ -130,6 +135,7 @@ export default function BalanceSheetPage() {
           <p className={`text-sm mt-1 font-semibold ${isBalanced ? "text-green-600" : "text-red-600"}`}>
             {isBalanced ? "✓ Balanced" : `✗ Difference: ${Math.abs((data?.totalAssets || 0) - totalLE).toLocaleString()}`}
           </p>
+        </div>
         </div>
       </div>
     </Layout>

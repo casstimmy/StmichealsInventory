@@ -72,8 +72,12 @@ export default function GeneralLedgerPage() {
   if (loading) {
     return (
       <Layout>
-        <div className="flex justify-center items-center py-20">
-          <Loader size="lg" text="Loading..." />
+        <div className="page-container">
+          <div className="page-content">
+            <div className="flex justify-center items-center py-20">
+              <Loader size="lg" text="Loading..." />
+            </div>
+          </div>
         </div>
       </Layout>
     );
@@ -82,6 +86,7 @@ export default function GeneralLedgerPage() {
   return (
     <Layout>
       <div className="page-container">
+        <div className="page-content">
         <div className="mb-6">
           <h1 className="page-title">General Ledger</h1>
           <p className="page-subtitle">View transaction history for any account</p>
@@ -191,6 +196,7 @@ export default function GeneralLedgerPage() {
             <p className="text-gray-500">Select an account to view its ledger</p>
           </div>
         )}
+        </div>
       </div>
     </Layout>
   );

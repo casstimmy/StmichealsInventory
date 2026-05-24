@@ -234,28 +234,73 @@ export default function CategoriesSales() {
             <MetricCard title="Total Units" value={formatNumber(categories.reduce((sum, c) => sum + c.units, 0))} color="purple" />
           </div>
 
-          {/* Doughnut Chart */}
-          <div className="content-card mb-6">
-            <h2 className="text-lg font-bold text-gray-800 mb-4">Sales Distribution by Category</h2>
-            <div className="h-[350px]">
-              <Doughnut
-                data={{
-                  labels: categories.map(c => c.name),
-                  datasets: [{ data: categories.map(c => c.sales), backgroundColor: ["#0ea5e9", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"], borderColor: "#fff", borderWidth: 2 }]
-                }}
-                options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "right", labels: { padding: 20 } } } }}
-              />
+          {/* Charts */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+            <div className="content-card">
+              <h2 className="text-lg font-bold text-gray-800">Sales Distribution by Category</h2>
+              <p className="text-sm text-gray-500 mb-4">Count volume by units sold.</p>
+              <div className="h-[350px]">
+                <Doughnut
+                  data={{
+                    labels: categories.map((category) => category.name),
+                    datasets: [{
+                      label: "Units Sold",
+                      data: categories.map((category) => category.units),
+                      backgroundColor: ["#0ea5e9", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"],
+                      borderColor: "#fff",
+                      borderWidth: 2,
+                    }],
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: "right",
+                        labels: { padding: 20 },
+                      },
+                      tooltip: {
+                        callbacks: {
+                          label: (context) => `${context.label}: ${formatNumber(context.raw || 0)} units`,
+                        },
+                      },
+                    },
+                  }}
+                />
+              </div>
             </div>
-          </div>
 
-          {/* Bar Chart */}
-          <div className="content-card mb-6">
-            <h2 className="text-lg font-bold text-gray-800 mb-4">Category Sales Comparison</h2>
-            <div className="h-[350px]">
-              <Bar
-                data={{ labels: categories.map(c => c.name), datasets: [{ label: "Sales", data: categories.map(c => c.sales), backgroundColor: "#06B6D4", borderRadius: 2, borderSkipped: false }] }}
-                options={{ indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }}
-              />
+            <div className="content-card">
+              <h2 className="text-lg font-bold text-gray-800">Category Sales Comparison</h2>
+              <p className="text-sm text-gray-500 mb-4">Value volume by sales amount.</p>
+              <div className="h-[350px]">
+                <Bar
+                  data={{
+                    labels: categories.map((category) => category.name),
+                    datasets: [{
+                      label: "Sales Value",
+                      data: categories.map((category) => category.sales),
+                      backgroundColor: "#06B6D4",
+                      borderRadius: 2,
+                      borderSkipped: false,
+                    }],
+                  }}
+                  options={{
+                    indexAxis: "y",
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: { display: false },
+                      tooltip: {
+                        callbacks: {
+                          label: (context) => formatCurrency(context.raw || 0),
+                        },
+                      },
+                    },
+                    scales: { x: { beginAtZero: true } },
+                  }}
+                />
+              </div>
             </div>
           </div>
 

@@ -1,4 +1,5 @@
 import { mongooseConnect } from "@/lib/mongodb";
+import { ensureAccountingEntriesSynced } from "@/lib/accounting";
 import JournalEntry from "@/models/JournalEntry";
 import Account from "@/models/Account";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
@@ -15,6 +16,8 @@ export default async function handler(req, res) {
   await mongooseConnect();
 
   try {
+    await ensureAccountingEntriesSynced();
+
     const { report, from, to, accountId } = req.query;
 
     const dateFilter = {};
@@ -89,6 +92,11 @@ export default async function handler(req, res) {
       const expenses = [];
       let totalRevenue = 0;
       let totalExpenses = 0;
+      let operatingRevenue = 0;
+      let otherIncome = 0;
+      let costOfSales = 0;
+      let operatingExpenses = 0;
+      let otherExpenses = 0;
 
       for (const acc of accounts) {
         const bal = balances[acc._id.toString()] || { debit: 0, credit: 0 };
@@ -100,11 +108,31 @@ export default async function handler(req, res) {
         if (acc.type === "REVENUE") {
           revenue.push(row);
           totalRevenue += amount;
+          if (acc.subType === "Non-Operating Revenue" || acc.code === "4200") {
+            otherIncome += amount;
+          } else {
+            operatingRevenue += amount;
+          }
         } else {
           expenses.push(row);
           totalExpenses += amount;
+
+          if (acc.code === "5000" || acc.subType === "Cost of Sales") {
+            costOfSales += amount;
+          } else if (!acc.subType || acc.subType === "Operating Expense") {
+            operatingExpenses += amount;
+          } else {
+            otherExpenses += amount;
+          }
         }
       }
+
+      const grossProfit = Math.round((operatingRevenue - costOfSales) * 100) / 100;
+      const operatingProfit = Math.round((grossProfit - operatingExpenses) * 100) / 100;
+      const netIncome = Math.round((totalRevenue - totalExpenses) * 100) / 100;
+      const grossMargin = operatingRevenue > 0 ? Math.round((grossProfit / operatingRevenue) * 10000) / 10000 : 0;
+      const operatingMargin = operatingRevenue > 0 ? Math.round((operatingProfit / operatingRevenue) * 10000) / 10000 : 0;
+      const netMargin = totalRevenue > 0 ? Math.round((netIncome / totalRevenue) * 10000) / 10000 : 0;
 
       return res.status(200).json({
         success: true,
@@ -112,7 +140,19 @@ export default async function handler(req, res) {
         expenses,
         totalRevenue: Math.round(totalRevenue * 100) / 100,
         totalExpenses: Math.round(totalExpenses * 100) / 100,
-        netIncome: Math.round((totalRevenue - totalExpenses) * 100) / 100,
+        netIncome,
+        summary: {
+          operatingRevenue: Math.round(operatingRevenue * 100) / 100,
+          otherIncome: Math.round(otherIncome * 100) / 100,
+          costOfSales: Math.round(costOfSales * 100) / 100,
+          operatingExpenses: Math.round(operatingExpenses * 100) / 100,
+          otherExpenses: Math.round(otherExpenses * 100) / 100,
+          grossProfit,
+          operatingProfit,
+          grossMargin,
+          operatingMargin,
+          netMargin,
+        },
       });
     }
 
@@ -203,12 +243,32 @@ export default async function handler(req, res) {
       const postedFilter = { status: "POSTED", "lines.account": accountId };
       if (from || to) postedFilter.date = dateFilter;
 
+      let openingBalance = account.openingBalance || 0;
+      if (from) {
+        const openingEntries = await JournalEntry.find({
+          status: "POSTED",
+          "lines.account": accountId,
+          date: { $lt: new Date(from) },
+        }, { lines: 1 }).lean();
+
+        for (const entry of openingEntries) {
+          for (const line of entry.lines) {
+            if (line.account.toString() !== accountId) continue;
+            if (account.normalBalance === "DEBIT") {
+              openingBalance += (line.debit - line.credit);
+            } else {
+              openingBalance += (line.credit - line.debit);
+            }
+          }
+        }
+      }
+
       const entries = await JournalEntry.find(postedFilter)
         .sort({ date: 1, createdAt: 1 })
         .lean();
 
       // Build ledger rows with running balance
-      let runningBalance = account.openingBalance || 0;
+      let runningBalance = openingBalance;
       const rows = [];
 
       for (const entry of entries) {
@@ -239,7 +299,7 @@ export default async function handler(req, res) {
       return res.status(200).json({
         success: true,
         account: { _id: account._id, code: account.code, name: account.name, type: account.type },
-        openingBalance: account.openingBalance || 0,
+        openingBalance: Math.round(openingBalance * 100) / 100,
         rows,
         closingBalance: Math.round(runningBalance * 100) / 100,
       });

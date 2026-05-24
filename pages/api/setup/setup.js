@@ -2,7 +2,9 @@ import { mongooseConnect } from "@/lib/mongodb";
 import Store from "@/models/Store";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { authMiddleware, isAdmin, isStaff } from "@/lib/auth-middleware";
+import { createMailTransport, getMailFromAddress } from "@/lib/mail";
 
 function sanitizeUser(user) {
   if (!user) return null;
@@ -12,9 +14,105 @@ function sanitizeUser(user) {
     email: user.email,
     role: user.role,
     isActive: user.isActive,
+    pendingEmail: user.pendingEmail || "",
+    emailChangeExpiresAt: user.emailChangeExpiresAt || null,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };
+}
+
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(value));
+}
+
+function getAppBaseUrl(req) {
+  const configuredBaseUrl = [
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.APP_URL,
+    process.env.NEXTAUTH_URL,
+    process.env.SITE_URL,
+    process.env.NEXT_PUBLIC_BASE_URL,
+  ].find((value) => typeof value === "string" && value.trim());
+
+  if (configuredBaseUrl) {
+    return configuredBaseUrl.replace(/\/+$/, "");
+  }
+
+  const proto = req.headers["x-forwarded-proto"] || "http";
+  const host = req.headers["x-forwarded-host"] || req.headers.host;
+  return `${proto}://${host}`;
+}
+
+function hashEmailChangeToken(token) {
+  return crypto.createHash("sha256").update(String(token || "")).digest("hex");
+}
+
+function buildPendingEmailRestoreUpdate(user) {
+  const set = {};
+  const unset = {};
+
+  if (user?.pendingEmail) set.pendingEmail = user.pendingEmail;
+  else unset.pendingEmail = 1;
+
+  if (user?.emailChangeTokenHash) set.emailChangeTokenHash = user.emailChangeTokenHash;
+  else unset.emailChangeTokenHash = 1;
+
+  if (user?.emailChangeExpiresAt) set.emailChangeExpiresAt = user.emailChangeExpiresAt;
+  else unset.emailChangeExpiresAt = 1;
+
+  const update = {};
+  if (Object.keys(set).length > 0) update.$set = set;
+  if (Object.keys(unset).length > 0) update.$unset = unset;
+  return update;
+}
+
+async function sendAdminEmailChangeVerificationEmail({ req, currentEmail, currentName, pendingEmail, token }) {
+  const transporter = createMailTransport();
+  if (!transporter) {
+    throw new Error("Email configuration is missing. Configure SMTP or EMAIL_USER/EMAIL_PASS to verify admin email changes.");
+  }
+
+  const verifyUrl = new URL(
+    `/setup/verify-admin-email?token=${encodeURIComponent(token)}`,
+    getAppBaseUrl(req)
+  ).toString();
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 24px; background: #f8fafc; color: #0f172a;">
+      <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);">
+        <div style="background: #0f766e; color: white; padding: 24px;">
+          <h1 style="margin: 0; font-size: 22px;">Verify Admin Email Change</h1>
+          <p style="margin: 8px 0 0; opacity: 0.9;">Confirm this change from the current admin inbox before the login email is updated.</p>
+        </div>
+        <div style="padding: 24px; line-height: 1.6;">
+          <p>Hello ${currentName || "Admin"},</p>
+          <p>You requested to change the admin login email for your inventory system.</p>
+          <div style="background: #f1f5f9; border-radius: 12px; padding: 16px; margin: 16px 0;">
+            <p style="margin: 0 0 8px;"><strong>Current email:</strong> ${currentEmail}</p>
+            <p style="margin: 0;"><strong>New email:</strong> ${pendingEmail}</p>
+          </div>
+          <p>If you initiated this request, verify it below. This link expires in 24 hours.</p>
+          <div style="margin: 24px 0; text-align: center;">
+            <a href="${verifyUrl}" style="display: inline-block; background: #0f766e; color: white; text-decoration: none; padding: 12px 22px; border-radius: 999px; font-weight: 700;">
+              Verify Admin Email Change
+            </a>
+          </div>
+          <p style="margin-bottom: 0; color: #475569; font-size: 14px;">If the button does not work, copy and paste this link into your browser:<br /><a href="${verifyUrl}">${verifyUrl}</a></p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  await transporter.sendMail({
+    from: getMailFromAddress("Inventory Setup"),
+    to: currentEmail,
+    subject: "Verify your admin email change",
+    html,
+  });
 }
 
 export default async function handler(req, res) {
@@ -25,7 +123,7 @@ export default async function handler(req, res) {
       const [store, user] = await Promise.all([
         Store.findOne({}),
         User.findOne({ role: "admin" }).select(
-          "name email role isActive createdAt updatedAt"
+          "name email role isActive pendingEmail emailChangeExpiresAt createdAt updatedAt"
         ),
       ]);
 
@@ -37,6 +135,18 @@ export default async function handler(req, res) {
           return res
             .status(403)
             .json({ success: false, message: "Insufficient permissions" });
+        }
+
+        if (req.user?.id) {
+          const currentUser = await User.findById(req.user.id).select(
+            "name email role isActive pendingEmail emailChangeExpiresAt createdAt updatedAt"
+          );
+
+          return res.status(200).json({
+            success: true,
+            store: store ? store.toObject() : null,
+            user: sanitizeUser(currentUser || user),
+          });
         }
       }
 
@@ -83,6 +193,7 @@ async function handlePost(req, res) {
       Store.findOne({}).select("_id"),
     ]);
     const bootstrapMode = !existingAdmin || !existingStore;
+    const normalizedAdminEmail = normalizeEmail(adminEmail);
 
     if (bootstrapMode && (!storeName || !storePhone || !country || !adminName || !adminEmail)) {
       return res.status(400).json({
@@ -95,6 +206,13 @@ async function handlePost(req, res) {
       return res.status(400).json({
         success: false,
         message: "adminPassword is required during initial setup",
+      });
+    }
+
+    if (bootstrapMode && !isValidEmail(normalizedAdminEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: "A valid adminEmail is required during initial setup",
       });
     }
 
@@ -113,6 +231,38 @@ async function handlePost(req, res) {
     let passwordUpdate = {};
     if (adminPassword) {
       passwordUpdate.password = await bcrypt.hash(adminPassword, 10);
+    }
+
+    let adminRecord = null;
+    if (bootstrapMode && existingAdmin?._id) {
+      adminRecord = await User.findById(existingAdmin._id).select(
+        "_id name email role isActive pendingEmail emailChangeTokenHash emailChangeExpiresAt createdAt updatedAt"
+      );
+    } else if (!bootstrapMode && req.user?.id) {
+      adminRecord = await User.findById(req.user.id).select(
+        "_id name email role isActive pendingEmail emailChangeTokenHash emailChangeExpiresAt createdAt updatedAt"
+      );
+
+      if (!adminRecord || adminRecord.role !== "admin") {
+        return res.status(404).json({
+          success: false,
+          message: "Admin user not found",
+        });
+      }
+    }
+
+    if (bootstrapMode && adminRecord && normalizedAdminEmail) {
+      const existingEmailOwner = await User.findOne({
+        email: normalizedAdminEmail,
+        _id: { $ne: adminRecord._id },
+      }).select("_id");
+
+      if (existingEmailOwner) {
+        return res.status(409).json({
+          success: false,
+          message: "That admin email is already in use by another account",
+        });
+      }
     }
 
     let store = await Store.findOne({});
@@ -221,25 +371,129 @@ async function handlePost(req, res) {
 
     const savedStore = await store.save();
 
-    let user = existingAdmin ? sanitizeUser(existingAdmin) : null;
-    const nextAdminName = adminName || existingAdmin?.name;
-    const nextAdminEmail = adminEmail || existingAdmin?.email;
+    let user = adminRecord ? sanitizeUser(adminRecord) : null;
+    const messageParts = ["✅ Setup saved successfully."];
 
-    if (nextAdminName && nextAdminEmail && (bootstrapMode || adminName || adminEmail || adminPassword)) {
-      user = await User.findOneAndUpdate(
-        { email: nextAdminEmail },
-        {
-          name: nextAdminName,
-          email: nextAdminEmail,
-          role: "admin",
-          ...passwordUpdate,
-        },
-        { upsert: true, new: true }
-      ).select("name email role isActive createdAt updatedAt");
+    if (bootstrapMode) {
+      const nextAdminName = adminName || adminRecord?.name;
+
+      if (nextAdminName && normalizedAdminEmail && (bootstrapMode || adminName || adminEmail || adminPassword)) {
+        if (adminRecord?._id) {
+          user = await User.findByIdAndUpdate(
+            adminRecord._id,
+            {
+              $set: {
+                name: nextAdminName,
+                email: normalizedAdminEmail,
+                role: "admin",
+                ...passwordUpdate,
+              },
+              $unset: {
+                pendingEmail: 1,
+                emailChangeTokenHash: 1,
+                emailChangeExpiresAt: 1,
+              },
+            },
+            { new: true }
+          ).select("name email role isActive pendingEmail emailChangeExpiresAt createdAt updatedAt");
+        } else {
+          user = await User.create({
+            name: nextAdminName,
+            email: normalizedAdminEmail,
+            role: "admin",
+            ...passwordUpdate,
+          });
+        }
+      }
+    } else if (adminRecord?._id) {
+      const nextAdminName = adminName || adminRecord.name;
+      const currentAdminEmail = normalizeEmail(adminRecord.email);
+      const requestedAdminEmail = normalizedAdminEmail || currentAdminEmail;
+      const now = new Date();
+
+      const userSet = {
+        role: "admin",
+        name: nextAdminName,
+        ...passwordUpdate,
+      };
+
+      let pendingEmailRequest = null;
+
+      if (requestedAdminEmail && requestedAdminEmail !== currentAdminEmail) {
+        if (!isValidEmail(requestedAdminEmail)) {
+          messageParts.push("⚠️ Admin email was not updated because the new email address is invalid.");
+        } else if (
+          normalizeEmail(adminRecord.pendingEmail) === requestedAdminEmail &&
+          adminRecord.emailChangeExpiresAt &&
+          new Date(adminRecord.emailChangeExpiresAt) > now
+        ) {
+          messageParts.push(`📧 Admin email change is already pending verification for ${requestedAdminEmail}. Check ${adminRecord.email} to approve it.`);
+        } else {
+          const existingEmailOwner = await User.findOne({
+            email: requestedAdminEmail,
+            _id: { $ne: adminRecord._id },
+          }).select("_id");
+
+          if (existingEmailOwner) {
+            messageParts.push("⚠️ Admin email was not updated because that email address is already in use.");
+          } else {
+            const rawToken = crypto.randomBytes(32).toString("hex");
+            const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+            userSet.pendingEmail = requestedAdminEmail;
+            userSet.emailChangeTokenHash = hashEmailChangeToken(rawToken);
+            userSet.emailChangeExpiresAt = expiresAt;
+            pendingEmailRequest = {
+              token: rawToken,
+              currentEmail: adminRecord.email,
+              currentName: nextAdminName,
+              pendingEmail: requestedAdminEmail,
+            };
+          }
+        }
+      }
+
+      user = await User.findByIdAndUpdate(
+        adminRecord._id,
+        { $set: userSet },
+        { new: true }
+      ).select("name email role isActive pendingEmail emailChangeExpiresAt createdAt updatedAt");
+
+      if (pendingEmailRequest) {
+        try {
+          await sendAdminEmailChangeVerificationEmail({
+            req,
+            currentEmail: pendingEmailRequest.currentEmail,
+            currentName: pendingEmailRequest.currentName,
+            pendingEmail: pendingEmailRequest.pendingEmail,
+            token: pendingEmailRequest.token,
+          });
+
+          messageParts.push(
+            `📧 We sent a verification link to ${pendingEmailRequest.currentEmail}. The admin login email will switch to ${pendingEmailRequest.pendingEmail} after you approve the change from the current inbox.`
+          );
+        } catch (mailError) {
+          console.error("Admin email change mail error:", mailError);
+
+          await User.findByIdAndUpdate(
+            adminRecord._id,
+            buildPendingEmailRestoreUpdate(adminRecord)
+          );
+
+          user = await User.findById(adminRecord._id).select(
+            "name email role isActive pendingEmail emailChangeExpiresAt createdAt updatedAt"
+          );
+
+          messageParts.push(
+            `⚠️ Setup was saved, but the admin email verification mail could not be sent. ${mailError.message || "Please check your email configuration and try again."}`
+          );
+        }
+      }
     }
 
     return res.status(200).json({
       success: true,
+      message: messageParts.join(" "),
       data: { store: savedStore, user: sanitizeUser(user) },
     });
   } catch (error) {

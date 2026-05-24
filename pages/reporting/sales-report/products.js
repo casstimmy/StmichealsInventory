@@ -4,7 +4,7 @@ import useProgress from "@/lib/useProgress";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { isInTimeRange, REPORT_TIME_ZONE } from "@/lib/dateFilter";
 import { aggregateProductSales } from "@/lib/product-sales-report";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Bar } from "react-chartjs-2";
 import {
@@ -114,6 +114,7 @@ export default function ProductsSales() {
   const [timeRange, setTimeRange] = useState("last7");
   const [selectedProductKey, setSelectedProductKey] = useState("");
   const [loading, setLoading] = useState(true);
+  const drilldownRef = useRef(null);
   const { progress, start, onFetch, onProcess, complete } = useProgress();
 
   useEffect(() => { fetchData(); }, [timeRange]);
@@ -122,6 +123,11 @@ export default function ProductsSales() {
       setSelectedProductKey("");
     }
   }, [data, selectedProductKey]);
+  useEffect(() => {
+    if (!selectedProductKey || !drilldownRef.current) return;
+
+    drilldownRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [selectedProductKey]);
 
   async function fetchData() {
     try {
@@ -274,12 +280,7 @@ export default function ProductsSales() {
                         onClick={() => setSelectedProductKey((current) => current === prod.key ? "" : prod.key)}
                       >
                         <td className="px-4 py-3 font-medium text-gray-800">#{idx + 1}</td>
-                        <td className="px-4 py-3 font-medium text-gray-800">
-                          <div className="flex flex-col">
-                            <span>{prod.name}</span>
-                            <span className="text-xs font-normal text-cyan-700">Click to view completed transactions for this product</span>
-                          </div>
-                        </td>
+                        <td className="px-4 py-3 font-medium text-gray-800">{prod.name}</td>
                         <td className="px-4 py-3 text-right">{formatNumber(prod.unitsSold)}</td>
                         <td className="px-4 py-3 text-right">{formatCurrency(prod.totalSales)}</td>
                         <td className="px-4 py-3 text-right">
@@ -292,7 +293,7 @@ export default function ProductsSales() {
               </div>
 
               {selectedProduct && (
-                <div className="content-card mt-6">
+                <div ref={drilldownRef} className="content-card mt-6">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
                     <div>
                       <h3 className="text-lg font-semibold text-gray-800">Completed Transactions for {selectedProduct.name}</h3>

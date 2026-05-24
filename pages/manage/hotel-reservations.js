@@ -111,7 +111,7 @@ function getRevenueBadgeState(reservation) {
     return {
       label: "Pending completion",
       detail: `${formatCurrency(totalAmount)} will be recorded when completed`,
-      badgeClass: "theme-badge-soft",
+      badgeClass: "bg-sky-100 text-sky-700",
     };
   }
 
@@ -317,7 +317,7 @@ export default function HotelReservationsPage() {
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
             <SummaryCard title="Total" value={summary.total} />
-            <SummaryCard title="Stay Requests" value={summary.stay} tone="theme-accent-text" />
+            <SummaryCard title="Stay Requests" value={summary.stay} tone="text-sky-700" />
             <SummaryCard title="Table Requests" value={summary.table} tone="text-fuchsia-700" />
             <SummaryCard title="Requested" value={summary.byStatus.requested} tone="text-cyan-700" />
             <SummaryCard title="Confirmed" value={summary.byStatus.confirmed} tone="text-emerald-700" />
@@ -405,7 +405,7 @@ export default function HotelReservationsPage() {
                           <tr key={`${reservation.kind}-${reservation._id}`} className="align-top">
                             <td className="px-4 py-4">
                               <div className="font-semibold text-slate-900">{reservation.reference}</div>
-                              <span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${reservation.kind === "stay" ? "theme-badge-soft" : "bg-fuchsia-100 text-fuchsia-700"}`}>
+                              <span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${reservation.kind === "stay" ? "bg-sky-100 text-sky-700" : "bg-fuchsia-100 text-fuchsia-700"}`}>
                                 {reservation.kind === "stay" ? "Stay" : "Table"}
                               </span>
                             </td>

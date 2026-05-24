@@ -158,43 +158,12 @@ export default function Sidebar() {
 
   const baseLink =
     "px-2 py-4 text-gray-600 transition-all duration-300 hover:bg-blue-50 hover:text-blue-600 flex items-center justify-center flex-col text-xs cursor-pointer border-l-4 border-transparent hidden md:flex";
-  const activeLink = "px-2 py-4 text-white nav-active-gradient flex items-center justify-center flex-col text-xs cursor-pointer font-semibold border-l-4 transition-all duration-300 hidden md:flex shadow-md";
+  const activeLinkStyle = { background: `linear-gradient(to right, var(--sidebar-active-from, #2563eb), var(--sidebar-active-to, #1d4ed8))`, borderLeftColor: `var(--sidebar-active-to, #1d4ed8)` };
+  const activeLink = `px-2 py-4 text-white nav-active-gradient flex items-center justify-center flex-col text-xs cursor-pointer font-semibold border-l-4 transition-all duration-300 hidden md:flex shadow-md`;
 
   const mobileBaseLink = "px-3 py-3 text-gray-700 transition-all duration-300 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent flex items-center gap-3 text-sm";
+  const mobileActiveLinkStyle = { background: `linear-gradient(to right, var(--sidebar-active-from, #2563eb), var(--sidebar-active-to, #1d4ed8))`, borderLeftColor: `var(--sidebar-active-to, #1d4ed8)` };
   const mobileActiveLink = "px-3 py-3 text-white border-l-4 nav-active-gradient flex items-center gap-3 text-sm font-semibold";
-
-  const submenuPanelStyle = {
-    backgroundColor: "var(--surface-card, #ffffff)",
-    borderColor: "var(--border-subtle, #e5e7eb)",
-    boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-  };
-
-  const sidebarShellStyle = {
-    backgroundColor: "#ffffff",
-    borderColor: "var(--border-subtle, #e5e7eb)",
-    boxShadow: "1px 0 0 0 #e5e7eb",
-  };
-
-  const nestedActiveStyle = {
-    backgroundColor: "var(--color-primary-50, #f0f9ff)",
-    borderLeftColor: "var(--sidebar-active-bg, #2563eb)",
-    color: "var(--sidebar-active-bg, #2563eb)",
-  };
-
-  const mobileMenuButtonStyle = {
-    background: "var(--sidebar-active-bg, #2563eb)",
-    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-  };
-
-  const mobileHeaderStyle = {
-    background: "var(--sidebar-active-bg, #2563eb)",
-  };
-
-  const mobileSubmenuSurfaceStyle = {
-    backgroundColor: "var(--surface-muted, #f9fafb)",
-    borderLeftColor: "var(--sidebar-active-bg, #2563eb)",
-    borderLeftWidth: "4px",
-  };
 
   const renderMenuItem = (href, icon, label) => (
     <li key={href} className={pathname === href ? activeLink : baseLink}>
@@ -229,10 +198,9 @@ export default function Sidebar() {
               indent ? "px-8 py-3" : "px-4 py-3"
             } ${
               isActive
-                ? "font-semibold shadow-sm border-l-4"
+                ? "bg-gradient-to-r from-blue-50 to-transparent border-l-4 border-blue-600 text-blue-600 shadow-sm"
                 : "text-gray-700 hover:bg-gray-50 hover:text-blue-600 border-l-4 border-transparent"
             }`}
-            style={isActive ? nestedActiveStyle : undefined}
           >
             <span className="flex items-center gap-3">
               {!indent && (
@@ -243,7 +211,7 @@ export default function Sidebar() {
               {label}
             </span>
             {isActive && (
-              <span className="text-blue-600 text-lg">&rsaquo;</span>
+              <span className="text-blue-600 text-lg">›</span>
             )}
           </Link>
         </li>
@@ -257,7 +225,7 @@ export default function Sidebar() {
         <button
           onClick={() => setIsMobileMenuOpen(true)}
           className="md:hidden fixed bottom-6 right-6 w-16 h-16 rounded-full text-white flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-110 z-40"
-          style={mobileMenuButtonStyle}
+          style={{ background: `linear-gradient(to right, var(--sidebar-active-from, #2563eb), var(--sidebar-active-to, #1d4ed8))` }}
           aria-label="Open menu"
         >
           <div className="flex flex-col items-center justify-center gap-1">
@@ -278,8 +246,7 @@ export default function Sidebar() {
       {/* DESKTOP SIDEBAR */}
       <aside 
         ref={sidebarRef}
-        className="nav-theme fixed top-12 md:top-16 left-0 w-20 h-screen border-r z-10 shadow-lg hidden md:block overflow-visible"
-        style={sidebarShellStyle}
+        className="fixed top-12 md:top-16 left-0 w-20 h-screen bg-gradient-to-b from-gray-50 to-gray-100 border-r border-gray-200 z-10 shadow-lg hidden md:block overflow-visible"
       >
         <nav className="mt-6 h-full overflow-visible">
           <ul className="space-y-1">
@@ -303,15 +270,14 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] border-r overflow-y-auto transition-all duration-300 ease-in-out z-40 ${
+                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-40 ${
                   openMenu === "setup"
                     ? "translate-x-0 opacity-100 visible"
                     : "translate-x-4 opacity-0 invisible"
                 }`}
-                style={submenuPanelStyle}
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="px-4 py-3 border-b sticky top-0 nav-submenu-header">
+                <div className="px-4 py-3 border-b border-gray-200 sticky top-0 bg-white">
                   <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Setup</p>
                 </div>
                 {renderSubMenu([
@@ -359,15 +325,14 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] border-r overflow-y-auto transition-all duration-300 ease-in-out z-40 ${
+                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-40 ${
                   openMenu === "manage"
                     ? "translate-x-0 opacity-100 visible"
                     : "translate-x-4 opacity-0 invisible"
                 }`}
-                style={submenuPanelStyle}
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="px-4 py-3 border-b sticky top-0 nav-submenu-header">
+                <div className="px-4 py-3 border-b border-gray-200 sticky top-0 bg-white">
                   <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Manage</p>
                 </div>
                 {renderSubMenu([
@@ -402,7 +367,7 @@ export default function Sidebar() {
                       <span className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-blue-400 transition-all"></span>
                       Staff
                     </span>
-                    <span className={`text-lg transition-transform duration-300 ${openSubMenu === "staff-menu" ? "rotate-90" : ""}`}>&rsaquo;</span>
+                    <span className={`text-lg transition-transform duration-300 ${openSubMenu === "staff-menu" ? "rotate-90" : ""}`}>›</span>
                   </button>
                   {openSubMenu === "staff-menu" && (
                     <div className="bg-gray-50 border-t border-gray-100">
@@ -430,7 +395,7 @@ export default function Sidebar() {
                       <span className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-blue-400 transition-all"></span>
                       Procurement
                     </span>
-                    <span className={`text-lg transition-transform duration-300 ${openSubMenu === "procurement-menu" ? "rotate-90" : ""}`}>&rsaquo;</span>
+                    <span className={`text-lg transition-transform duration-300 ${openSubMenu === "procurement-menu" ? "rotate-90" : ""}`}>›</span>
                   </button>
                   {openSubMenu === "procurement-menu" && (
                     <div className="bg-gray-50 border-t border-gray-100">
@@ -471,15 +436,14 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] border-r overflow-y-auto transition-all duration-300 ease-in-out z-40 ${
+                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-40 ${
                   openMenu === "stock"
                     ? "translate-x-0 opacity-100 visible"
                     : "translate-x-4 opacity-0 invisible"
                 }`}
-                style={submenuPanelStyle}
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="px-4 py-3 border-b sticky top-0 nav-submenu-header">
+                <div className="px-4 py-3 border-b border-gray-200 sticky top-0 bg-white">
                   <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Stock</p>
                 </div>
                 {renderSubMenu([
@@ -502,7 +466,7 @@ export default function Sidebar() {
             </li>
             )}
 
-            {canAccessAny(["reporting", "reporting.sales-report", "reporting.eod", "reporting.completed-transactions", "reporting.time-intervals", "reporting.time-comparisons", "reporting.sales-by-product", "reporting.employees", "reporting.locations", "reporting.categories"]) && (
+            {canAccessAny(["reporting", "reporting.sales-report", "reporting.eod", "reporting.transaction-report", "reporting.time-intervals", "reporting.time-comparisons", "reporting.sales-by-product", "reporting.employees", "reporting.locations", "reporting.categories"]) && (
             <li
               className={`${
                 pathname.startsWith("/reporting") ? activeLink : baseLink
@@ -522,32 +486,29 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] border-r overflow-y-auto transition-all duration-300 ease-in-out z-40 ${
+                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-40 ${
                   openMenu === "reporting"
                     ? "translate-x-0 opacity-100 visible"
                     : "translate-x-4 opacity-0 invisible"
                 }`}
-                style={submenuPanelStyle}
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="px-4 py-3 border-b sticky top-0 nav-submenu-header">
+                <div className="px-4 py-3 border-b border-gray-200 sticky top-0 bg-white">
                   <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Reporting</p>
                 </div>
                 {renderSubMenu([
                   { href: "/reporting/reporting", label: "Sales Report" },
                   { href: "/reporting/end-of-day-report", label: "End of Day Reports" },
-                  { href: "/reporting/completed-transactions", label: "Completed Transactions" },
                 ].filter(item => {
                   const permMap = {
                     "/reporting/reporting": "reporting.sales-report",
                     "/reporting/end-of-day-report": "reporting.eod",
-                    "/reporting/completed-transactions": "reporting.completed-transactions",
                   };
                   return canAccess(permMap[item.href] || "reporting");
                 }))}
                 
                 {/* Sales Report Dropdown */}
-                {canAccessAny(["reporting.time-intervals", "reporting.time-comparisons", "reporting.sales-by-product", "reporting.employees", "reporting.locations", "reporting.categories", "reporting.completed-transactions"]) && (
+                {canAccessAny(["reporting.time-intervals", "reporting.time-comparisons", "reporting.sales-by-product", "reporting.employees", "reporting.locations", "reporting.categories"]) && (
                 <li className="border-b border-gray-100 transition-all duration-300 group">
                   <button
                     onClick={() => toggleSubMenu("sales-report")}
@@ -557,7 +518,7 @@ export default function Sidebar() {
                       <span className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-blue-400 transition-all"></span>
                       Sales Report
                     </span>
-                    <span className={`text-lg transition-transform duration-300 ${openSubMenu === "sales-report" ? "rotate-90" : ""}`}>&rsaquo;</span>
+                    <span className={`text-lg transition-transform duration-300 ${openSubMenu === "sales-report" ? "rotate-90" : ""}`}>›</span>
                   </button>
                   {openSubMenu === "sales-report" && (
                     <div className="bg-gray-50 border-t border-gray-100">
@@ -583,6 +544,11 @@ export default function Sidebar() {
                   )}
                 </li>
                 )}
+
+                {/* Transaction Report */}
+                {renderSubMenu([
+                  { href: "/reporting/transaction-report/completed-transactions", label: "Completed Transactions", indent: true },
+                ].filter(item => canAccess("reporting.transaction-report")))}
               </ul>
             </li>
             )}
@@ -607,15 +573,14 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] border-r overflow-y-auto transition-all duration-300 ease-in-out z-40 ${
+                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-40 ${
                   openMenu === "expenses"
                     ? "translate-x-0 opacity-100 visible"
                     : "translate-x-4 opacity-0 invisible"
                 }`}
-                style={submenuPanelStyle}
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="px-4 py-3 border-b sticky top-0 nav-submenu-header">
+                <div className="px-4 py-3 border-b border-gray-200 sticky top-0 bg-white">
                   <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Expenses</p>
                 </div>
                 {renderSubMenu([
@@ -658,15 +623,14 @@ export default function Sidebar() {
                 />
               </div>
               <ul
-                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] border-r overflow-y-auto transition-all duration-300 ease-in-out z-40 ${
+                className={`fixed top-12 md:top-16 left-20 w-56 h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] bg-white border-r border-gray-200 overflow-y-auto shadow-2xl transition-all duration-300 ease-in-out z-40 ${
                   openMenu === "accounting"
                     ? "translate-x-0 opacity-100 visible"
                     : "translate-x-4 opacity-0 invisible"
                 }`}
-                style={submenuPanelStyle}
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="px-4 py-3 border-b sticky top-0 nav-submenu-header">
+                <div className="px-4 py-3 border-b border-gray-200 sticky top-0 bg-white">
                   <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Accounting</p>
                 </div>
                 {renderSubMenu([
@@ -710,9 +674,9 @@ export default function Sidebar() {
 
       {/* MOBILE SIDEBAR - FULL SCREEN */}
       {isMobileMenuOpen && isMobile && (
-        <nav className="nav-theme fixed top-0 left-0 right-0 bottom-0 w-full bg-white shadow-2xl z-40 overflow-y-auto">
+        <nav className="fixed top-0 left-0 right-0 bottom-0 w-full bg-white shadow-2xl z-40 overflow-y-auto">
           {/* Mobile Header */}
-          <div className="sticky top-0 text-white px-4 py-4 flex items-center justify-between" style={mobileHeaderStyle}>
+          <div className="sticky top-0 text-white px-4 py-4 flex items-center justify-between" style={{ background: `linear-gradient(to right, var(--sidebar-active-from, #2563eb), var(--sidebar-active-to, #1d4ed8))` }}>
             <span className="text-lg font-bold">Menu</span>
             <button
               onClick={() => setIsMobileMenuOpen(false)}
@@ -751,7 +715,7 @@ export default function Sidebar() {
                 />
               </button>
               {openMenu === "setup" && (
-                <ul className="border-l-2" style={mobileSubmenuSurfaceStyle}>
+                <ul className="bg-gray-50 border-l-4 border-blue-600">
                   {canAccess("setup.company") && (
                   <li onClick={closeMenu}>
                     <Link href="/setup/setup" className={`block px-8 py-3 text-sm transition-all ${pathname === "/setup/setup" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
@@ -830,7 +794,7 @@ export default function Sidebar() {
                 />
               </button>
               {openMenu === "manage" && (
-                <ul className="border-l-2" style={mobileSubmenuSurfaceStyle}>
+                <ul className="bg-gray-50 border-l-4 border-blue-600">
                   {canAccess("manage.products") && (
                   <li onClick={closeMenu}>
                     <Link href="/manage/products" className={`block px-8 py-3 text-sm transition-all ${(pathname === "/manage/products" || pathname.startsWith("/products")) ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
@@ -967,7 +931,7 @@ export default function Sidebar() {
                 />
               </button>
               {openMenu === "stock" && (
-                <ul className="border-l-2" style={mobileSubmenuSurfaceStyle}>
+                <ul className="bg-gray-50 border-l-4 border-blue-600">
                   {canAccess("stock.management") && (
                   <li onClick={closeMenu}>
                     <Link href="/stock/management" className={`block px-8 py-3 text-sm transition-all ${pathname === "/stock/management" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
@@ -1009,7 +973,7 @@ export default function Sidebar() {
             )}
 
             {/* Reporting Menu */}
-            {canAccessAny(["reporting", "reporting.sales-report", "reporting.eod", "reporting.completed-transactions", "reporting.time-intervals", "reporting.time-comparisons", "reporting.sales-by-product", "reporting.employees", "reporting.locations", "reporting.categories"]) && (
+            {canAccessAny(["reporting", "reporting.sales-report", "reporting.eod", "reporting.transaction-report", "reporting.time-intervals", "reporting.time-comparisons", "reporting.sales-by-product", "reporting.employees", "reporting.locations", "reporting.categories"]) && (
             <li>
               <button
                 onClick={() => toggleMenu("reporting")}
@@ -1025,7 +989,7 @@ export default function Sidebar() {
                 />
               </button>
               {openMenu === "reporting" && (
-                <ul className="border-l-2" style={mobileSubmenuSurfaceStyle}>
+                <ul className="bg-gray-50 border-l-4 border-blue-600">
                   {canAccess("reporting.sales-report") && (
                   <li onClick={closeMenu}>
                     <Link href="/reporting/reporting" className={`block px-8 py-3 text-sm transition-all ${pathname === "/reporting/reporting" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
@@ -1040,9 +1004,16 @@ export default function Sidebar() {
                     </Link>
                   </li>
                   )}
-                  {canAccess("reporting.completed-transactions") && (
+                  {canAccess("reporting.transaction-report") && (
                   <li onClick={closeMenu}>
-                    <Link href="/reporting/completed-transactions" className={`block px-8 py-3 text-sm transition-all ${pathname === "/reporting/completed-transactions" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                    <Link href="/reporting/transaction-report" className={`block px-8 py-3 text-sm transition-all ${pathname === "/reporting/transaction-report" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                      Transaction Reports
+                    </Link>
+                  </li>
+                  )}
+                  {canAccess("reporting.transaction-report") && (
+                  <li onClick={closeMenu}>
+                    <Link href="/reporting/transaction-report/completed-transactions" className={`block px-10 py-3 text-sm transition-all ${pathname === "/reporting/transaction-report/completed-transactions" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Completed Transactions
                     </Link>
                   </li>
@@ -1094,6 +1065,7 @@ export default function Sidebar() {
             </li>
             )}
 
+            {/* Expenses Menu */}
             {canAccessAny(["expenses", "expenses.entry", "expenses.analysis", "expenses.tax-analysis", "expenses.tax-personal"]) && (
             <li>
               <button
@@ -1110,7 +1082,7 @@ export default function Sidebar() {
                 />
               </button>
               {openMenu === "expenses" && (
-                <ul className="border-l-2" style={mobileSubmenuSurfaceStyle}>
+                <ul className="bg-gray-50 border-l-4 border-blue-600">
                   {canAccess("expenses.entry") && (
                   <li onClick={closeMenu}>
                     <Link href="/expenses/expenses" className={`block px-8 py-3 text-sm transition-all ${pathname === "/expenses/expenses" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
@@ -1156,7 +1128,7 @@ export default function Sidebar() {
                 <FontAwesomeIcon icon={faChevronRight} className={`w-4 h-4 ml-auto transition-transform ${openMenu === "accounting" ? "rotate-90" : ""}`} />
               </button>
               {openMenu === "accounting" && (
-                <ul className="border-l-2" style={mobileSubmenuSurfaceStyle}>
+                <ul className="bg-gray-50 border-l-4 border-blue-600">
                   {canAccess("accounting.chart-of-accounts") && (
                   <li onClick={closeMenu}>
                     <Link href="/accounting/chart-of-accounts" className={`block px-8 py-3 text-sm transition-all ${pathname === "/accounting/chart-of-accounts" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>

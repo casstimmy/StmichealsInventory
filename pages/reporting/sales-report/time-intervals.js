@@ -2,7 +2,7 @@ import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
 import useProgress from "@/lib/useProgress";
 import { formatCurrency, formatNumber } from "@/lib/format";
-import { isInTimeRange } from "@/lib/dateFilter";
+import { getDateTimeParts, getTodayDateKey, getWeekStartDateKey, isInTimeRange } from "@/lib/dateFilter";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { saveAs } from "file-saver";
@@ -58,21 +58,24 @@ export default function TimeIntervals() {
       const buckets = {};
       onProcess();
       filteredTx.forEach((tx) => {
-        const d = new Date(tx.createdAt);
+        const parts = getDateTimeParts(tx.createdAt);
+        if (!parts) return;
+
         let key;
         switch (intervalType) {
-          case "yearly": key = `${d.getFullYear()}`; break;
-          case "monthly": key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; break;
+          case "yearly": key = parts.year; break;
+          case "monthly": key = `${parts.year}-${parts.month}`; break;
           case "weekly": {
-            const ws = new Date(d); ws.setDate(d.getDate() - d.getDay());
-            key = ws.toISOString().split("T")[0]; break;
+            const weekStart = getWeekStartDateKey(parts.dateKey);
+            if (!weekStart) return;
+            key = weekStart; break;
           }
-          case "hourly": key = `${d.toISOString().split("T")[0]} ${String(d.getHours()).padStart(2, "0")}:00`; break;
+          case "hourly": key = `${parts.dateKey} ${parts.hour}:00`; break;
           case "halfHourly": {
-            const half = d.getMinutes() < 30 ? "00" : "30";
-            key = `${d.toISOString().split("T")[0]} ${String(d.getHours()).padStart(2, "0")}:${half}`; break;
+            const half = Number(parts.minute) < 30 ? "00" : "30";
+            key = `${parts.dateKey} ${parts.hour}:${half}`; break;
           }
-          default: key = d.toISOString().split("T")[0]; break;
+          default: key = parts.dateKey; break;
         }
 
         if (!buckets[key]) {
@@ -134,7 +137,7 @@ export default function TimeIntervals() {
       ].join(","));
     });
     const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
-    saveAs(blob, `time-intervals-${new Date().toISOString().split("T")[0]}.csv`);
+    saveAs(blob, `time-intervals-${getTodayDateKey() || "report"}.csv`);
   }
 
   return (

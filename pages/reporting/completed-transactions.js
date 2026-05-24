@@ -5,10 +5,42 @@ import Link from "next/link";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { saveAs } from "file-saver";
 import { formatCurrency, formatNumber } from "@/lib/format";
-import { isInDateRange } from "@/lib/dateFilter";
 import useProgress from "@/lib/useProgress";
 import { apiClient } from "@/lib/api-client";
 import { showAlertDialog, showConfirmDialog } from "@/lib/dialogs";
+
+const REPORT_TIME_ZONE = "Africa/Lagos";
+const reportDateFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: REPORT_TIME_ZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+function parseDateKey(value) {
+  if (!value) return null;
+
+  const [year, month, day] = String(value).split("-").map(Number);
+  if (!year || !month || !day) return null;
+
+  return {
+    year,
+    month,
+    day,
+    key: `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
+  };
+}
+
+function getReportDateKey(value) {
+  const parts = reportDateFormatter.formatToParts(new Date(value));
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  if (!year || !month || !day) return null;
+
+  return `${year}-${month}-${day}`;
+}
 
 export default function CompletedTransactions() {
   const [transactions, setTransactions] = useState([]);
@@ -113,28 +145,42 @@ function applyFilters() {
 
     // Filter by selected date (calendar)
     if (selectedDate) {
-      const target = new Date(selectedDate);
-      const year = target.getFullYear();
-      const month = target.getMonth();
-      const day = target.getDate();
-      
-      filtered = filtered.filter((tx) => {
-        const txDate = new Date(tx.createdAt);
-        return (
-          txDate.getFullYear() === year &&
-          txDate.getMonth() === month &&
-          txDate.getDate() === day
-        );
-      });
+      const target = parseDateKey(selectedDate);
+
+      if (target) {
+        filtered = filtered.filter((tx) => getReportDateKey(tx.createdAt) === target.key);
+      }
     }
 
     // Filter by date range
     if (startDate && endDate) {
-      filtered = filtered.filter((tx) => isInDateRange(tx.createdAt, startDate, endDate));
+      const rangeStart = parseDateKey(startDate)?.key;
+      const rangeEnd = parseDateKey(endDate)?.key;
+
+      if (rangeStart && rangeEnd) {
+        filtered = filtered.filter((tx) => {
+          const txDateKey = getReportDateKey(tx.createdAt);
+          return txDateKey && txDateKey >= rangeStart && txDateKey <= rangeEnd;
+        });
+      }
     } else if (startDate) {
-      filtered = filtered.filter((tx) => new Date(tx.createdAt) >= new Date(startDate));
+      const rangeStart = parseDateKey(startDate)?.key;
+
+      if (rangeStart) {
+        filtered = filtered.filter((tx) => {
+          const txDateKey = getReportDateKey(tx.createdAt);
+          return txDateKey && txDateKey >= rangeStart;
+        });
+      }
     } else if (endDate) {
-      filtered = filtered.filter((tx) => new Date(tx.createdAt) <= new Date(endDate + "T23:59:59"));
+      const rangeEnd = parseDateKey(endDate)?.key;
+
+      if (rangeEnd) {
+        filtered = filtered.filter((tx) => {
+          const txDateKey = getReportDateKey(tx.createdAt);
+          return txDateKey && txDateKey <= rangeEnd;
+        });
+      }
     }
 
     // Sort by newest first
@@ -377,7 +423,7 @@ function applyFilters() {
   // Calendar utility functions
   const getDaysInMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
   
-  const getFirstDayOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+  const getFirstDayOfMonth = (date) => (new Date(date.getFullYear(), date.getMonth(), 1).getDay() + 6) % 7;
 
   const getCalendarDays = () => {
     const days = [];

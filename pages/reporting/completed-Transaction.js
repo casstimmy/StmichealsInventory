@@ -3,6 +3,7 @@ import Layout from "@/components/Layout";
 import React, { useEffect, useState, useCallback } from "react";
 import { saveAs } from "file-saver";
 import { formatCurrency, formatNumber } from "@/lib/format";
+import { getDateKey, parseDateKey, REPORT_TIME_ZONE } from "@/lib/dateFilter";
 
 export default function SalesReport() {
   const [transactions, setTransactions] = useState([]);
@@ -50,19 +51,11 @@ export default function SalesReport() {
 
     // Filter by selected date
     if (selectedDate) {
-      const target = new Date(selectedDate);
-      const year = target.getFullYear();
-      const month = target.getMonth();
-      const day = target.getDate();
-      
-      filtered = filtered.filter((tx) => {
-        const txDate = new Date(tx.createdAt);
-        return (
-          txDate.getFullYear() === year &&
-          txDate.getMonth() === month &&
-          txDate.getDate() === day
-        );
-      });
+      const target = parseDateKey(selectedDate);
+
+      if (target) {
+        filtered = filtered.filter((tx) => getDateKey(tx.createdAt) === target.key);
+      }
     }
 
     setTransactions(filtered);
@@ -88,7 +81,7 @@ export default function SalesReport() {
         tx.staff?.name || tx.staff || "N/A",
         tx.location || "N/A",
         tx.device,
-        new Date(tx.createdAt).toLocaleString(),
+        new Date(tx.createdAt).toLocaleString("en-NG", { timeZone: REPORT_TIME_ZONE }),
         tx.customerName || "N/A",
         tx.discount,
         tx.discountReason,
@@ -151,7 +144,7 @@ export default function SalesReport() {
   // Calendar utility functions
   const getDaysInMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
   
-  const getFirstDayOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+  const getFirstDayOfMonth = (date) => (new Date(date.getFullYear(), date.getMonth(), 1).getDay() + 6) % 7;
 
   const getCalendarDays = () => {
     const days = [];
@@ -419,7 +412,7 @@ export default function SalesReport() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-gray-600">{tx.device || "Till 1"}</td>
-                        <td className="px-4 py-3 text-gray-600 text-xs">{new Date(tx.createdAt).toLocaleString("en-NG")}</td>
+                        <td className="px-4 py-3 text-gray-600 text-xs">{new Date(tx.createdAt).toLocaleString("en-NG", { timeZone: REPORT_TIME_ZONE })}</td>
                         <td className="px-4 py-3 text-gray-800">{tx.customerName || "Walk-in"}</td>
                         <td className="px-4 py-3 text-right font-medium text-gray-800">{formatCurrency(tx.discount || 0)}</td>
                         <td className="px-4 py-3 text-gray-600 text-xs">{tx.discountReason || "-"}</td>

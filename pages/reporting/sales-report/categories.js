@@ -1,5 +1,6 @@
 import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
+import { isInTimeRange, REPORT_TIME_ZONE } from "@/lib/dateFilter";
 import useProgress from "@/lib/useProgress";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { useEffect, useState } from "react";
@@ -104,23 +105,7 @@ export default function CategoriesSales() {
         if (location !== "All" && tx.location !== location) return false;
         if (device !== "All" && tx.device !== device) return false;
         if (staff !== "All" && tx.staff?.name !== staff) return false;
-
-        const txDate = new Date(tx.createdAt);
-        const today = new Date(); today.setHours(0, 0, 0, 0);
-        const txN = new Date(txDate); txN.setHours(0, 0, 0, 0);
-        const diff = Math.floor((today - txN) / 86400000);
-
-        if (timeRange === "today") return diff === 0;
-        if (timeRange === "yesterday") return diff === 1;
-        if (timeRange === "thisWeek") { const d = today.getDay(); const ws = new Date(today); ws.setDate(today.getDate() - (d === 0 ? 6 : d - 1)); return txN >= ws; }
-        if (timeRange === "thisMonth") return txN >= new Date(today.getFullYear(), today.getMonth(), 1);
-        if (timeRange === "lastWeek") { const d = today.getDay(); const lws = new Date(today); lws.setDate(today.getDate() - (d === 0 ? 6 : d - 1) - 7); const lwe = new Date(lws); lwe.setDate(lws.getDate() + 6); return txN >= lws && txN <= lwe; }
-        if (timeRange === "lastMonth") return txN >= new Date(today.getFullYear(), today.getMonth() - 1, 1) && txN <= new Date(today.getFullYear(), today.getMonth(), 0);
-        if (timeRange === "thisYear") return txN >= new Date(today.getFullYear(), 0, 1);
-        if (timeRange === "lastYear") return txN >= new Date(today.getFullYear() - 1, 0, 1) && txN <= new Date(today.getFullYear() - 1, 11, 31);
-
-        const daysMap = { last7: 7, last14: 14, last30: 30, last60: 60, last90: 90, last365: 365 };
-        return diff <= (daysMap[timeRange] || 30);
+        return isInTimeRange(tx.createdAt, timeRange);
       });
 
       const txWithCats = allTx.map((tx) => {
@@ -136,15 +121,16 @@ export default function CategoriesSales() {
         });
         return {
           id: tx._id,
-          date: new Date(tx.createdAt).toLocaleDateString('en-NG'),
-          time: new Date(tx.createdAt).toLocaleTimeString('en-NG'),
+          createdAt: tx.createdAt,
+          date: new Date(tx.createdAt).toLocaleDateString("en-NG", { timeZone: REPORT_TIME_ZONE }),
+          time: new Date(tx.createdAt).toLocaleTimeString("en-NG", { timeZone: REPORT_TIME_ZONE }),
           staff: tx.staff?.name || "Unknown",
           location: tx.location || "Online",
           device: tx.device || "-",
           total,
           categories: Object.values(breakdown),
         };
-      }).sort((a, b) => new Date(b.date) - new Date(a.date));
+      }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
       setTransactions(txWithCats);
 

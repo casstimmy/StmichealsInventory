@@ -2,6 +2,7 @@ import Layout from "@/components/Layout";
 import Loader from "@/components/Loader";
 import useProgress from "@/lib/useProgress";
 import { formatCurrency, formatNumber } from "@/lib/format";
+import { addDaysToDateKey, getDateKey, getDateTimeParts, getTodayDateKey, getWeekStartDateKey, parseDateKey } from "@/lib/dateFilter";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Line } from "react-chartjs-2";
@@ -41,21 +42,18 @@ const METRICS = [
   { value: "netSales", label: "Net Sales" },
 ];
 
+function getDefaultDateKey(offset = 0) {
+  const todayKey = getTodayDateKey();
+  if (!todayKey) return "";
+  return offset === 0 ? todayKey : addDaysToDateKey(todayKey, offset) || todayKey;
+}
+
 export default function TimeComparisons() {
   const [metric, setMetric] = useState("totalSales");
-  const [dateRange1Start, setDateRange1Start] = useState(() => {
-    const d = new Date(); d.setDate(d.getDate() - 7);
-    return d.toISOString().split("T")[0];
-  });
-  const [dateRange1End, setDateRange1End] = useState(() => new Date().toISOString().split("T")[0]);
-  const [dateRange2Start, setDateRange2Start] = useState(() => {
-    const d = new Date(); d.setDate(d.getDate() - 14);
-    return d.toISOString().split("T")[0];
-  });
-  const [dateRange2End, setDateRange2End] = useState(() => {
-    const d = new Date(); d.setDate(d.getDate() - 7);
-    return d.toISOString().split("T")[0];
-  });
+  const [dateRange1Start, setDateRange1Start] = useState(() => getDefaultDateKey(-7));
+  const [dateRange1End, setDateRange1End] = useState(() => getDefaultDateKey());
+  const [dateRange2Start, setDateRange2Start] = useState(() => getDefaultDateKey(-14));
+  const [dateRange2End, setDateRange2End] = useState(() => getDefaultDateKey(-7));
   const [interval, setInterval] = useState("daily");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -64,24 +62,29 @@ export default function TimeComparisons() {
   useEffect(() => { fetchData(); }, [metric, dateRange1Start, dateRange1End, dateRange2Start, dateRange2End, interval]);
 
   function aggregateByInterval(transactions, startDate, endDate, intervalType) {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    const rangeStart = parseDateKey(startDate)?.key;
+    const rangeEnd = parseDateKey(endDate)?.key;
     const buckets = {};
 
+    if (!rangeStart || !rangeEnd) return [];
+
     const filteredTx = transactions.filter((tx) => {
-      const d = new Date(tx.createdAt);
-      return tx.status === "completed" && d >= start && d <= new Date(end.getTime() + 86400000);
+      const txDateKey = getDateKey(tx.createdAt);
+      return tx.status === "completed" && txDateKey && txDateKey >= rangeStart && txDateKey <= rangeEnd;
     });
 
     filteredTx.forEach((tx) => {
-      const d = new Date(tx.createdAt);
+      const parts = getDateTimeParts(tx.createdAt);
+      if (!parts) return;
+
       let key;
-      if (intervalType === "daily") key = d.toISOString().split("T")[0];
+      if (intervalType === "daily") key = parts.dateKey;
       else if (intervalType === "weekly") {
-        const weekStart = new Date(d); weekStart.setDate(d.getDate() - d.getDay());
-        key = "W-" + weekStart.toISOString().split("T")[0];
-      } else if (intervalType === "monthly") key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      else key = d.toISOString().split("T")[0];
+        const weekStart = getWeekStartDateKey(parts.dateKey);
+        if (!weekStart) return;
+        key = "W-" + weekStart;
+      } else if (intervalType === "monthly") key = `${parts.year}-${parts.month}`;
+      else key = parts.dateKey;
 
       if (!buckets[key]) {
         buckets[key] = { totalSales: 0, transactionCount: 0, itemsSold: 0, discounts: 0, refunds: 0, refundValue: 0 };

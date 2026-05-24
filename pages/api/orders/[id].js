@@ -4,7 +4,84 @@ import Order from "@/models/Order";
 import Transaction from "@/models/Transactions";
 import mongoose from "mongoose";
 import { authMiddleware, isAdmin, isStaff } from "@/lib/auth-middleware";
-import { applyInventoryDelta } from "@/lib/transaction-utils";
+import { applyInventoryDelta, normalizeItems } from "@/lib/transaction-utils";
+import {
+  sendOrderCancelledEmail,
+  sendOrderDeliveredEmail,
+  sendOrderProcessingEmail,
+  sendOrderShippedEmail,
+} from "@/lib/orderStatusEmail";
+
+const ONLINE_TENDER_NAME = "ONLINE";
+
+const getOrderItems = (order) => {
+  if (Array.isArray(order?.cartProducts) && order.cartProducts.length > 0) {
+    return order.cartProducts;
+  }
+
+  return Array.isArray(order?.items) ? order.items : [];
+};
+
+const getOrderCustomerName = (order) =>
+  order?.shippingDetails?.name || order?.customerSnapshot?.name || order?.customer?.name || "Online User";
+
+const clearReservedInventory = async (items = []) => {
+  for (const item of items) {
+    const productId = item?.productId;
+    const qty = Number(item?.qty || item?.quantity || 0);
+
+    if (!productId || qty <= 0) {
+      continue;
+    }
+
+    try {
+      await Product.updateOne(
+        { _id: productId },
+        [{ $set: { reservedQuantity: { $max: [0, { $subtract: ["$reservedQuantity", qty] }] } } }]
+      );
+    } catch (error) {
+      console.warn("Failed to clear reservedQuantity for product:", productId, error?.message);
+    }
+  }
+};
+
+const appendSalesHistory = async (items = [], orderId) => {
+  for (const item of items) {
+    try {
+      await Product.findByIdAndUpdate(item.productId, {
+        $push: {
+          salesHistory: {
+            orderId,
+            quantity: item.qty,
+            salePrice: item.salePriceIncTax,
+            soldAt: new Date(),
+          },
+        },
+      });
+    } catch (error) {
+      console.warn("Failed to append product salesHistory:", error?.message);
+    }
+  }
+};
+
+async function sendStatusEmail({ previousStatus, nextStatus, order }) {
+  if (!order || previousStatus === nextStatus) {
+    return "skipped";
+  }
+
+  switch (nextStatus) {
+    case "Processing":
+      return sendOrderProcessingEmail(order);
+    case "Shipped":
+      return sendOrderShippedEmail(order);
+    case "Delivered":
+      return sendOrderDeliveredEmail(order);
+    case "Cancelled":
+      return sendOrderCancelledEmail(order);
+    default:
+      return "skipped";
+  }
+}
 
 export default async function handler(req, res) {
   const authError = authMiddleware(req, res);
@@ -82,6 +159,9 @@ export default async function handler(req, res) {
     const nextLocationName = hasLocationNameUpdate
       ? String(locationName || "").trim()
       : order.locationName || "";
+    const externalId = `order:${order._id.toString()}`;
+    let linkedTransaction = null;
+    let transactionCreated = false;
 
     if (
       hasStatusUpdate &&
@@ -93,89 +173,59 @@ export default async function handler(req, res) {
     }
 
     if (nextStatus === "Delivered" && prevStatus !== "Delivered") {
-      // Guard: if inventory was already finalized by another system (e.g. Paystack), skip deduction
-      if (order.inventoryFinalizedBy) {
-        console.log(`Order ${order._id} inventory already finalized by '${order.inventoryFinalizedBy}' — skipping deduction`);
-      } else {
-        const externalId = `order:${order._id.toString()}`;
-        const existingTx = await Transaction.findOne({ externalId });
+      const items = normalizeItems(getOrderItems(order));
+      linkedTransaction = await Transaction.findOne({ externalId });
 
-        if (!existingTx) {
-          const orderItems = Array.isArray(order.cartProducts) && order.cartProducts.length
-            ? order.cartProducts
-            : order.items || [];
-
-          const items = orderItems
-            .map((item) => ({
-              name: item.name,
-              qty: Number(item.quantity || 0),
-              quantity: Number(item.quantity || 0),
-              salePriceIncTax: Number(item.price || 0),
-              price: Number(item.price || 0),
-              productId: item.productId,
-            }))
-            .filter((item) => item.productId && item.qty > 0);
-
-          const transaction = await Transaction.create({
-            tenderType: "online",
-            amountPaid: Number(order.total || 0),
-            total: Number(order.total || 0),
-            subtotal: Number(order.subtotal || order.total || 0),
-            tax: 0,
-            staff: null,
-            staffName: "Online",
-            location: nextLocationName || "online",
-            device: "Web",
-            discount: 0,
-            discountReason: null,
-            customerName:
-              order.shippingDetails?.name || order.customer?.name || "Online User",
-            transactionType: "pos",
-            status: "completed",
-            change: 0,
-            items,
-            externalId,
-            dedupeKey: externalId,
-          });
-
-          await applyInventoryDelta(items, "decrement");
-          transaction.inventoryUpdated = true;
-          await transaction.save();
-
-          // Clear the online reservation on each product so the webpage's available-stock
-          // calculation (quantity - reservedQuantity) becomes accurate again.
-          for (const item of items) {
-            try {
-              // Use an aggregation pipeline update to safely floor at 0
-              await Product.updateOne(
-                { _id: item.productId },
-                [{ $set: { reservedQuantity: { $max: [0, { $subtract: ["$reservedQuantity", item.qty] }] } } }]
-              );
-            } catch (err) {
-              console.warn("Failed to clear reservedQuantity for product:", item.productId, err?.message);
-            }
-          }
-
-          for (const item of items) {
-            try {
-              await Product.findByIdAndUpdate(item.productId, {
-                $push: {
-                  salesHistory: {
-                    orderId: order._id,
-                    quantity: item.qty,
-                    salePrice: item.salePriceIncTax,
-                    soldAt: new Date(),
-                  },
-                },
-              });
-            } catch (error) {
-              console.warn("Failed to append product salesHistory:", error?.message);
-            }
-          }
-
-          // Mark the order so no other system tries to deduct inventory again
-          await Order.findByIdAndUpdate(id, { $set: { inventoryFinalizedBy: "admin" } });
+      if (!linkedTransaction) {
+        if (!items.length) {
+          return res.status(400).json({ error: "Order has no valid items to complete" });
         }
+
+        linkedTransaction = await Transaction.create({
+          tenderType: ONLINE_TENDER_NAME,
+          tenderPayments: [{
+            tenderType: ONLINE_TENDER_NAME,
+            tenderName: ONLINE_TENDER_NAME,
+            amount: Number(order.total || 0),
+          }],
+          amountPaid: Number(order.total || 0),
+          total: Number(order.total || 0),
+          subtotal: Number(order.subtotal || order.total || 0),
+          tax: 0,
+          staff: null,
+          staffName: "Online",
+          location: nextLocationName || order.locationName || "online",
+          device: "Web",
+          discount: 0,
+          discountReason: null,
+          customerName: getOrderCustomerName(order),
+          transactionType: "pos",
+          status: "completed",
+          change: 0,
+          items,
+          externalId,
+          dedupeKey: externalId,
+          inventoryUpdated: Boolean(order.inventoryFinalizedBy),
+        });
+
+        transactionCreated = true;
+      }
+
+      if (!order.inventoryFinalizedBy) {
+        await applyInventoryDelta(items, "decrement");
+        await clearReservedInventory(items);
+        linkedTransaction.inventoryUpdated = true;
+        await linkedTransaction.save();
+      } else {
+        console.log(`Order ${order._id} inventory already finalized by '${order.inventoryFinalizedBy}' — skipping deduction`);
+        if (linkedTransaction.inventoryUpdated !== true) {
+          linkedTransaction.inventoryUpdated = true;
+          await linkedTransaction.save();
+        }
+      }
+
+      if (transactionCreated) {
+        await appendSalesHistory(items, order._id);
       }
     }
 
@@ -200,6 +250,16 @@ export default async function handler(req, res) {
       updatePayload.locationName = nextLocationName;
     }
 
+    if (nextStatus === "Delivered") {
+      updatePayload.paid = true;
+      updatePayload.paymentStatus = "Paid";
+      updatePayload.paymentReference = order.paymentReference || String(linkedTransaction?._id || "");
+      updatePayload.reservationStatus = "finalized";
+      updatePayload.reservationReleasedAt = order.reservationReleasedAt || new Date();
+      updatePayload.finalizedAt = order.finalizedAt || new Date();
+      updatePayload.inventoryFinalizedBy = order.inventoryFinalizedBy || "admin";
+    }
+
     const updatedOrder = await Order.findByIdAndUpdate(
       id,
       { $set: updatePayload },
@@ -211,15 +271,24 @@ export default async function handler(req, res) {
       .populate("customer")
       .lean();
 
-    if (hasLocationUpdate && nextStatus === "Delivered") {
-      const externalId = `order:${id.toString()}`;
+    if (hasLocationUpdate || nextStatus === "Delivered") {
       await Transaction.findOneAndUpdate(
         { externalId },
-        { $set: { location: nextLocationName || "online" } }
+        { $set: { location: nextLocationName || updatedOrder?.locationName || "online" } }
       );
     }
 
-    return res.status(200).json(updatedOrder);
+    const emailState = await sendStatusEmail({
+      previousStatus: prevStatus,
+      nextStatus,
+      order: updatedOrder,
+    });
+
+    return res.status(200).json({
+      success: true,
+      emailState,
+      order: updatedOrder,
+    });
   } catch (error) {
     console.error("Order update failed:", error);
     return res.status(500).json({ error: "Internal Server Error" });

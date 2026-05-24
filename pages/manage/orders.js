@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, Search, Trash2 } from "lucide-react";
 import clsx from "clsx";
 import Layout from "@/components/Layout";
@@ -210,9 +210,17 @@ function getStatusSuccessNotice({ order, newStatus, emailState = "skipped" }) {
     details.push("The order was updated, but the customer email could not be sent.");
   }
 
+  if (emailState === "skipped" && ["Processing", "Shipped", "Delivered", "Cancelled"].includes(newStatus)) {
+    details.push("The order was updated, but customer notification was skipped.");
+  }
+
   return createNotice(
-    emailState === "failed" ? "warning" : "success",
-    emailState === "failed" ? "Order updated, email not sent" : "Order updated",
+    emailState === "failed" || emailState === "skipped" ? "warning" : "success",
+    emailState === "failed"
+      ? "Order updated, email not sent"
+      : emailState === "skipped"
+      ? "Order updated, email skipped"
+      : "Order updated",
     details.join(" ")
   );
 }
@@ -248,27 +256,6 @@ function getOrderLocationLabel(order) {
 
   const source = getOrderSourceLabel(order);
   return `Unassigned (${source})`;
-}
-
-function buildEmailPayload(order, status) {
-  const products = Array.isArray(order.cartProducts) && order.cartProducts.length > 0
-    ? order.cartProducts
-    : order.items || [];
-
-  return {
-    name: order.customer?.name || order.customerSnapshot?.name || order.shippingDetails?.name || "Customer",
-    email: order.customer?.email || order.customerSnapshot?.email || order.shippingDetails?.email || "",
-    orderId: order._id,
-    status,
-    total: order.total,
-    products: products.map((product) => ({
-      name: product?.name || "Item",
-      quantity: Number(product?.quantity || 0),
-      price: Number(product?.price || 0),
-    })),
-    shippingDetails: order.shippingDetails || order.customerSnapshot || {},
-    deliveryPerson: order.deliveryPerson || undefined,
-  };
 }
 
 export default function OrderInventoryPage() {
@@ -318,7 +305,7 @@ export default function OrderInventoryPage() {
     };
   }, []);
 
-  const fetchOrders = async (page = 1, searchTerm = "") => {
+  const fetchOrders = useCallback(async (page = 1, searchTerm = "") => {
     setLoading(true);
     start();
     onFetch();
@@ -339,11 +326,31 @@ export default function OrderInventoryPage() {
       setInitialLoad(false);
       complete();
     }
-  };
+  }, [complete, onFetch, onProcess, start]);
 
   useEffect(() => {
     fetchOrders(currentPage, search);
-  }, [currentPage, search]);
+  }, [currentPage, search, fetchOrders]);
+
+  useEffect(() => {
+    const handleVisibilityRefresh = () => {
+      if (document.visibilityState === "visible") {
+        fetchOrders(currentPage, search);
+      }
+    };
+
+    const handleWindowFocus = () => {
+      fetchOrders(currentPage, search);
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityRefresh);
+    window.addEventListener("focus", handleWindowFocus);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityRefresh);
+      window.removeEventListener("focus", handleWindowFocus);
+    };
+  }, [currentPage, fetchOrders, search]);
 
   const handleStatusChange = async (order, newStatus) => {
     if (!order?._id || order.status === newStatus) return;
@@ -352,32 +359,18 @@ export default function OrderInventoryPage() {
     setMessage(null);
 
     try {
-      const { data: updatedOrder } = await apiClient.put(`/api/orders/${order._id}`, {
+      const { data } = await apiClient.put(`/api/orders/${order._id}`, {
         status: newStatus,
       });
+
+      const updatedOrder = data?.order || data;
+      const emailState = data?.emailState || "skipped";
 
       setOrders((prev) =>
         prev.map((currentOrder) =>
           currentOrder._id === order._id ? { ...currentOrder, ...updatedOrder } : currentOrder
         )
       );
-
-      let emailState = "skipped";
-      const emailRecipient = order.customer?.email || order.shippingDetails?.email;
-
-      if (emailRecipient) {
-        try {
-          await apiClient.post("/api/send-email", {
-            to: emailRecipient,
-            status: newStatus,
-            customer: buildEmailPayload({ ...order, ...updatedOrder }, newStatus),
-          });
-          emailState = "sent";
-        } catch (emailError) {
-          emailState = "failed";
-          console.error("Order email failed:", emailError);
-        }
-      }
 
       if (newStatus === "Cancelled") {
         setExpandedOrderId(order._id);
@@ -460,10 +453,12 @@ export default function OrderInventoryPage() {
     setMessage(null);
 
     try {
-      const { data: updatedOrder } = await apiClient.put(`/api/orders/${order._id}`, {
+      const { data } = await apiClient.put(`/api/orders/${order._id}`, {
         locationId: normalizedLocationId,
         locationName: normalizedLocationName,
       });
+
+      const updatedOrder = data?.order || data;
 
       setOrders((prev) =>
         prev.map((currentOrder) =>

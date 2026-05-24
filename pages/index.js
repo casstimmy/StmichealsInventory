@@ -113,6 +113,79 @@ function matchesSelectedLocation(record, selectedLocation) {
   return resolveLocationName(record) === selectedLocation;
 }
 
+const DASHBOARD_COMPLETED_ORDER_STATUSES = new Set(["Processing", "Shipped", "Delivered"]);
+
+function getTransactionStaffDisplayName(record) {
+  const explicitName =
+    record?.staff?.name ||
+    record?.staffName ||
+    record?.completedByStaffName ||
+    "";
+
+  return String(explicitName).trim() || "Unknown";
+}
+
+function getOrderCompletionDate(order) {
+  return (
+    order?.finalizedAt ||
+    order?.reservationReleasedAt ||
+    order?.updatedAt ||
+    order?.createdAt ||
+    new Date().toISOString()
+  );
+}
+
+function isCompletedOrderForDashboard(order) {
+  const status = String(order?.status || "").trim();
+  const isPaid = Boolean(order?.paid || order?.paymentStatus === "Paid");
+  const isFinalized = Boolean(
+    order?.inventoryFinalizedBy ||
+    order?.reservationStatus === "finalized" ||
+    order?.paymentReference
+  );
+
+  return isPaid && isFinalized && DASHBOARD_COMPLETED_ORDER_STATUSES.has(status);
+}
+
+function getTransactionLookupKeys(tx) {
+  const keys = new Set();
+
+  [tx?._id, tx?.externalId, tx?.dedupeKey, tx?.sourceOrderId].forEach((value) => {
+    const normalized = String(value || "").trim();
+    if (normalized) {
+      keys.add(normalized);
+    }
+  });
+
+  return keys;
+}
+
+function getOrderLookupKeys(order) {
+  const keys = new Set();
+  const orderId = String(order?._id || "").trim();
+
+  if (orderId) {
+    keys.add(orderId);
+    keys.add(`order:${orderId}`);
+  }
+
+  const paymentReference = String(order?.paymentReference || "").trim();
+  if (paymentReference) {
+    keys.add(paymentReference);
+  }
+
+  return keys;
+}
+
+function getOrderCustomerDisplayName(order) {
+  return (
+    order?.customer?.name ||
+    order?.shippingDetails?.name ||
+    order?.customerSnapshot?.name ||
+    "Unknown"
+  );
+}
+
 export default function Home() {
   const router = useRouter();
 
@@ -133,6 +206,57 @@ export default function Home() {
     startDate: "",
     endDate: "",
   });
+
+  const dashboardTransactions = useMemo(() => {
+    const normalizedTransactions = Array.isArray(allTransactions) ? allTransactions : [];
+    if (!Array.isArray(allOrders) || allOrders.length === 0) {
+      return normalizedTransactions;
+    }
+
+    const existingLookupKeys = new Set();
+    normalizedTransactions.forEach((tx) => {
+      getTransactionLookupKeys(tx).forEach((key) => existingLookupKeys.add(key));
+    });
+
+    const fallbackTransactions = allOrders
+      .filter(isCompletedOrderForDashboard)
+      .filter((order) => {
+        const lookupKeys = getOrderLookupKeys(order);
+        if (lookupKeys.size === 0) {
+          return false;
+        }
+
+        for (const key of lookupKeys) {
+          if (existingLookupKeys.has(key)) {
+            return false;
+          }
+        }
+
+        return true;
+      })
+      .map((order) => ({
+        _id: `order-fallback:${String(order._id)}`,
+        externalId: `order:${String(order._id)}`,
+        sourceOrderId: String(order._id),
+        salesChannel: "ONLINE_STORE",
+        status: "completed",
+        total: Number(order.total || 0),
+        subtotal: Number(order.subtotal || order.total || 0),
+        tax: 0,
+        createdAt: getOrderCompletionDate(order),
+        location: order.locationName || "online",
+        locationName: order.locationName || "online",
+        staff: order.completedByStaffName
+          ? { name: order.completedByStaffName }
+          : null,
+        staffName: order.completedByStaffName || "Unknown",
+        completedByStaffName: order.completedByStaffName || "Unknown",
+        customerName: getOrderCustomerDisplayName(order),
+        isSyntheticOrderTransaction: true,
+      }));
+
+    return [...normalizedTransactions, ...fallbackTransactions];
+  }, [allTransactions, allOrders]);
 
   /* =======================
      FETCH DATA (Optimized with caching + parallel calls)
@@ -288,28 +412,28 @@ export default function Home() {
      FILTERED DATA
   ======================= */
   const filteredTransactions = useMemo(() => {
-    return allTransactions.filter((tx) => {
+    return dashboardTransactions.filter((tx) => {
       if (tx.status !== "completed") return false;
       if (!matchesSelectedLocation(tx, selectedLocation)) return false;
       return isWithinPeriod(tx.createdAt);
     });
-  }, [allTransactions, selectedLocation, selectedPeriod, customDateRange]);
+  }, [dashboardTransactions, selectedLocation, selectedPeriod, customDateRange]);
 
   const heldTransactions = useMemo(() => {
-    return allTransactions.filter((tx) => {
+    return dashboardTransactions.filter((tx) => {
       if (tx.status !== "held") return false;
       if (!matchesSelectedLocation(tx, selectedLocation)) return false;
       return isWithinPeriod(tx.createdAt);
     });
-  }, [allTransactions, selectedLocation, selectedPeriod, customDateRange]);
+  }, [dashboardTransactions, selectedLocation, selectedPeriod, customDateRange]);
 
   const prevFilteredTransactions = useMemo(() => {
-    return allTransactions.filter((tx) => {
+    return dashboardTransactions.filter((tx) => {
       if (tx.status !== "completed") return false;
       if (!matchesSelectedLocation(tx, selectedLocation)) return false;
       return isInPrevPeriod(tx.createdAt);
     });
-  }, [allTransactions, selectedLocation, selectedPeriod]);
+  }, [dashboardTransactions, selectedLocation, selectedPeriod]);
 
   const filteredOrders = useMemo(() => {
     if (!Array.isArray(allOrders)) return [];
@@ -319,6 +443,10 @@ export default function Home() {
       return isWithinPeriod(order.createdAt);
     });
   }, [allOrders, selectedLocation, selectedPeriod, customDateRange]);
+
+  const recentOrders = useMemo(() => {
+    return filteredOrders.filter((order) => !isCompletedOrderForDashboard(order));
+  }, [filteredOrders]);
 
   const filteredExpenses = useMemo(
     () =>
@@ -392,7 +520,7 @@ export default function Home() {
   const topStaff = useMemo(() => {
     const map = {};
     filteredTransactions.forEach((tx) => {
-      const staff = tx.staff?.name || "Unknown";
+      const staff = getTransactionStaffDisplayName(tx);
       map[staff] = (map[staff] || 0) + Number(tx.total || 0);
     });
 
@@ -841,8 +969,8 @@ export default function Home() {
                     ? "No data available"
                     : "No location-tagged orders available for this location."
                 }
-                items={filteredOrders.slice(0, 10).map((order) => ({
-                  label: order.customer?.name || "Unknown",
+                items={recentOrders.slice(0, 10).map((order) => ({
+                  label: getOrderCustomerDisplayName(order),
                   meta: formatCurrency(order.total),
                 }))}
               />

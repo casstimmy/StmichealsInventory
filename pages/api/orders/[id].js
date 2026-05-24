@@ -306,6 +306,8 @@ export default async function handler(req, res) {
         order.paid || order.paymentStatus === "Paid"
           ? order.paymentChannel || "manual-entry"
           : "manual-entry";
+      updatePayload.completedByStaffId = order.completedByStaffId || String(getActorStaffId(req) || "").trim();
+      updatePayload.completedByStaffName = order.completedByStaffName || getActorStaffName(req);
       updatePayload.paymentReference = order.paymentReference || String(linkedTransaction?._id || "");
       updatePayload.reservationStatus = "finalized";
       updatePayload.reservationReleasedAt = order.reservationReleasedAt || new Date();

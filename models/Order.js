@@ -101,6 +101,15 @@ const orderSchema = new mongoose.Schema(
       phone: { type: String, default: "" },
     },
 
+    completedByStaffId: {
+      type: String,
+      default: "",
+    },
+    completedByStaffName: {
+      type: String,
+      default: "",
+    },
+
     paid: { type: Boolean, default: false },
 
     reservationStatus: {

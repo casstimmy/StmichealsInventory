@@ -115,6 +115,14 @@
   --focus-ring: rgba(14, 165, 233, 0.22);
   --text-strong: #0f172a;
   --text-muted: #6b7280;
+  --loader-overlay-bg: rgba(249, 250, 251, 0.92);
+  --loader-caption-color: var(--text-muted);
+  --progress-track-bg: rgba(148, 163, 184, 0.2);
+  --progress-track-border: rgba(148, 163, 184, 0.34);
+  --progress-fill-start: var(--btn-primary-bg, #0284c7);
+  --progress-fill-end: var(--table-header-border, #0369a1);
+  --progress-fill-success-start: var(--color-success-500, #10b981);
+  --progress-fill-success-end: var(--color-success-700, #047857);
   --shell-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
   --shell-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 
@@ -424,12 +432,58 @@ tbody td {
   50% { box-shadow: 0 0 0 10px rgba(6, 182, 212, 0); }
 }
 
+@keyframes theme-progress-shimmer {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+
 .loader-spin {
   animation: spin-3d 2s linear infinite;
 }
 
 .loader-pulse {
   animation: pulse-glow 2s infinite;
+}
+
+.theme-progress-track {
+  border-radius: 9999px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.04) 100%),
+    var(--progress-track-bg, rgba(148, 163, 184, 0.2));
+  border: 1px solid var(--progress-track-border, rgba(148, 163, 184, 0.34));
+  box-shadow:
+    inset 0 1px 2px rgba(15, 23, 42, 0.12),
+    0 1px 0 rgba(255, 255, 255, 0.6);
+  overflow: hidden;
+}
+
+.theme-progress-fill,
+.theme-progress-fill-success {
+  min-width: 0.75rem;
+  background-size: 200% 100%;
+  animation: theme-progress-shimmer 1.6s linear infinite;
+}
+
+.theme-progress-fill {
+  background-image: linear-gradient(
+    90deg,
+    var(--progress-fill-start, #0284c7) 0%,
+    var(--progress-fill-end, #0369a1) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    0 6px 14px rgba(2, 132, 199, 0.28);
+}
+
+.theme-progress-fill-success {
+  background-image: linear-gradient(
+    90deg,
+    var(--progress-fill-success-start, #10b981) 0%,
+    var(--progress-fill-success-end, #047857) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    0 6px 14px rgba(5, 150, 105, 0.24);
 }
 
 /* Utility Classes */

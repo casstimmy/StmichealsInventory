@@ -68,11 +68,23 @@ export default function Loader({
           />
         </div>
       </div>
-      {text && progress === null && <p className="text-gray-600 font-medium text-center">{text}</p>}
+      {text && progress === null && (
+        <p
+          className="font-medium text-center"
+          style={{ color: "var(--loader-caption-color, var(--text-muted, #4b5563))" }}
+        >
+          {text}
+        </p>
+      )}
       {progress !== null && (
         <div className="w-48 sm:w-64">
           <div className="flex justify-between text-xs mb-1">
-            <span className="text-gray-500 font-medium">{getPhaseLabel(progress)}</span>
+            <span
+              className="font-medium"
+              style={{ color: "var(--loader-caption-color, var(--text-muted, #6b7280))" }}
+            >
+              {getPhaseLabel(progress)}
+            </span>
             <span className="font-bold tabular-nums" style={{ color: progressLabelColor }}>
               {Math.round(clampedProgress)}%
             </span>
@@ -90,7 +102,10 @@ export default function Loader({
 
   if (fullScreen) {
     return (
-      <div className="fixed inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50">
+      <div
+        className="fixed inset-0 flex items-center justify-center z-50"
+        style={{ backgroundColor: "var(--loader-overlay-bg, rgba(249, 250, 251, 0.92))" }}
+      >
         {loaderContent}
       </div>
     );

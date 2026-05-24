@@ -49,6 +49,13 @@ const TransactionSchema = new mongoose.Schema({
   promotionValueType: { type: String }, // "DISCOUNT" or "INCREMENT"
   customerType: { type: String }, // Customer type / promotion name
   customerName: String,
+
+  // Attribution for sales influenced by external channels such as the online store
+  salesChannel: { type: String, trim: true, default: "POS" },
+  sourceOrderId: { type: String, trim: true, default: "" },
+  sourceOrderType: { type: String, trim: true, default: "" },
+  sourceSiteKey: { type: String, trim: true, default: "" },
+
   transactionType: { type: String, enum: ["pos"], default: "pos" }, // Only POS transactions
   status: { 
     type: String, 
@@ -77,6 +84,8 @@ const TransactionSchema = new mongoose.Schema({
 
 TransactionSchema.index({ externalId: 1 }, { unique: true, sparse: true });
 TransactionSchema.index({ dedupeKey: 1 }, { unique: true, sparse: true });
+TransactionSchema.index({ salesChannel: 1, createdAt: -1 });
+TransactionSchema.index({ sourceOrderId: 1 }, { sparse: true });
 
 // Avoid re-registering the model in development
 const Transaction =

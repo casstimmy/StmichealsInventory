@@ -2,12 +2,31 @@ import { mongooseConnect } from "@/lib/mongodb";
 import Order from "@/models/Order";
 import Transaction from "@/models/Transactions";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
+import mongoose from "mongoose";
 
 const ONLINE_TENDER_NAME = "ONLINE";
 const MANUAL_ENTRY_TENDER_NAME = "MANUAL ENTRY";
 const ONLINE_PAYMENT_CHANNELS = new Set(["paystack", "paystack-webhook", "online"]);
+const ONLINE_SALES_CHANNEL = "ONLINE_STORE";
+const ONLINE_SOURCE_ORDER_TYPE = "ORDER";
+const ONLINE_SOURCE_SITE_KEY = "webpage-app";
 
 const normalizePaymentChannel = (value) => String(value || "").trim().toLowerCase();
+
+const getActorStaffId = (req) => {
+  const candidate = String(req?.user?.id || "").trim();
+  return mongoose.Types.ObjectId.isValid(candidate) ? candidate : null;
+};
+
+const getActorStaffName = (req) =>
+  String(req?.user?.name || req?.user?.email || "").trim() || "Online";
+
+const buildOnlineSourceMetadata = (order) => ({
+  salesChannel: ONLINE_SALES_CHANNEL,
+  sourceOrderId: String(order?._id || ""),
+  sourceOrderType: ONLINE_SOURCE_ORDER_TYPE,
+  sourceSiteKey: ONLINE_SOURCE_SITE_KEY,
+});
 
 const getOrderTenderName = (order) => {
   const hasRecordedOnlinePayment =
@@ -67,15 +86,23 @@ export default async function handler(req, res) {
     }));
 
     const recordedTenderName = getOrderTenderName(order);
+    const actorStaffId = getActorStaffId(req);
+    const actorStaffName = getActorStaffName(req);
+    const sourceMetadata = buildOnlineSourceMetadata(order);
 
     const transaction = await Transaction.create({
       tenderType: recordedTenderName,
+      tenderPayments: [{
+        tenderType: recordedTenderName,
+        tenderName: recordedTenderName,
+        amount: Number(order.total || 0),
+      }],
       amountPaid: Number(order.total || 0),
       total: Number(order.total || 0),
       subtotal: Number(order.subtotal || order.total || 0),
       tax: 0,
-      staff: null,
-      staffName: "Online",
+      staff: actorStaffId,
+      staffName: actorStaffName,
       location: order.locationName || "online",
       device: "WEB",
       tableName: "OrderCheckout",
@@ -88,6 +115,7 @@ export default async function handler(req, res) {
       items,
       externalId,
       dedupeKey: externalId,
+      ...sourceMetadata,
     });
 
     return res

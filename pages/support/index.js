@@ -36,12 +36,12 @@ const KNOWLEDGE_BASE = [
   {
     keywords: ["add product", "new product", "create product", "product list"],
     question: "How do I add a new product?",
-    answer: "Go to **Manage** → **Product List** from the sidebar. Click **Add Product**, then fill in the product name, description, cost price, sale price (inc. tax), category, and optional details like barcode, stock levels, and expiry date. Upload product images if needed. Click **Save** to add it to your inventory. Products marked as **stock managed** will be tracked across locations.",
+    answer: "Go to **Manage** → **Product List**.\n1. Click **Add Product**.\n2. Enter the product name, category, cost price, and sale price (inc. tax).\n3. Add barcode, stock controls, expiry date, images, or vendor details if needed.\n4. Turn on **stock managed** if the system should track inventory.\n5. Click **Save**.\n\nUse pack or child-product setup when you want to sell both units and bundles.",
   },
   {
     keywords: ["stock", "inventory level", "low stock", "out of stock", "stock management", "restock"],
     question: "How do I manage stock levels?",
-    answer: "Navigate to **Stock** → **Stock Management** to view current stock levels by product and location. To restock, go to **Stock** → **Stock Movement** and create a **Restock** movement from Vendor to a location. To transfer stock between locations, use a **Transfer** movement. You can set **min/max stock** alerts on each product so the system warns you when levels drop. The **Expiration Report** under Stock helps track products nearing expiry.",
+    answer: "Go to **Stock** → **Stock Management** to review on-hand stock by product and location.\n1. Use **Stock Movement** for **Restock**, **Transfer**, or **Return** actions.\n2. Set **min/max stock** on products so low levels are easier to spot.\n3. Review **Expiration Report** for stock nearing expiry.\n4. Use **Stock Take** when physical counts do not match expected quantities.\n\nIf numbers look wrong, check recent stock movements and stock takes before editing product records directly.",
   },
   {
     keywords: ["stock movement", "transfer", "restock", "return", "move stock"],
@@ -51,7 +51,7 @@ const KNOWLEDGE_BASE = [
   {
     keywords: ["stock take", "count", "physical count", "inventory count", "cycle count"],
     question: "How do I perform a stock take?",
-    answer: "Go to **Stock** → **Stock Take** to start a new count. You can do a **Full Count** (all products), **Partial Count** (specific products), or **Cycle Count** (by category). Select a location, then enter the actual counted quantities for each product. The system calculates the variance between expected and counted stock. Once submitted, review results in **Stock Take Report** which shows discrepancies and trends over time.",
+    answer: "Go to **Stock** → **Stock Take** to start a count.\n1. Choose **Full Count**, **Partial Count**, or **Cycle Count**.\n2. Select the location you are counting.\n3. Enter the actual counted quantity for each product.\n4. Submit the count so the system calculates variance against expected stock.\n5. Review the outcome in **Stock Take Report** for discrepancies and trends.\n\nUse stock takes when stock looks inaccurate after transfers, receipts, waste, or fast-moving sales periods.",
   },
   {
     keywords: ["expense", "add expense", "record expense", "expense entry", "track expenses"],
@@ -61,7 +61,7 @@ const KNOWLEDGE_BASE = [
   {
     keywords: ["vendor", "supplier", "add vendor", "manage vendor", "vendor management"],
     question: "How do I manage vendors?",
-    answer: "Navigate to **Manage** → **Procurement** → **Vendors**. Click **Add Vendor** to create a new supplier with their company name, contact person, phone, email, address, main product, and bank details. You can also attach specific products that the vendor supplies (with cost prices and pack types). To place an order, expand a vendor card and click **Place Order** — this lets you specify products, quantities, and costs, then submits a purchase order to the **Payment Tracker**.",
+    answer: "Go to **Manage** → **Procurement** → **Vendors**.\n1. Click **Add Vendor** to save supplier details such as company name, contact, phone, email, address, and bank information.\n2. Link the products the vendor supplies, including cost and pack details where relevant.\n3. Use **Place Order** from the vendor card to create a purchase order.\n4. Track payment and receiving status later in **Payment Tracker**.\n\nKeeping vendor-product links accurate improves procurement speed and receiving accuracy.",
   },
   {
     keywords: ["purchase order", "payment tracker", "vendor payment", "pay vendor"],
@@ -71,7 +71,7 @@ const KNOWLEDGE_BASE = [
   {
     keywords: ["report", "sales report", "analytics", "reporting", "sales data"],
     question: "How do I view sales reports?",
-    answer: "Go to **Reporting** in the sidebar. **Sales Report** gives you the main summary, while the reporting submenu breaks data down into **Time Intervals**, **Time Comparisons**, **Sales by Product**, **Employees**, **Locations**, and **Categories**. For transaction-level investigation, use **Completed Transactions** to search, expand, edit, void, or refund sales. Use the date filters before exporting or comparing figures so all charts and tables are working from the same period.",
+    answer: "Go to **Reporting** in the sidebar.\n1. Open **Sales Report** for the main overview.\n2. Use **Time Intervals** and **Time Comparisons** for trend analysis.\n3. Use **Sales by Product**, **Employees**, **Locations**, and **Categories** for focused breakdowns.\n4. Open **Completed Transactions** when you need transaction-level review, edits, voids, or refunds.\n\nApply the same date range and location filters before comparing pages so the numbers line up.",
   },
   {
     keywords: ["staff", "employee", "add staff", "onboarding", "staff management"],
@@ -106,7 +106,7 @@ const KNOWLEDGE_BASE = [
   {
     keywords: ["password", "login", "access", "permission", "user", "pin"],
     question: "How do I manage user access and permissions?",
-    answer: "Go to **Setup** → **Users** to manage admin-app access. Create users with name, email, and a 4-digit PIN, then assign a role and page-level permissions. **Admin** gets full access, while **Sub-Admin**, **Manager**, **Staff**, and **Viewer** can be restricted down to individual submenu items. This is separate from POS staff access in **Manage** → **Staff**. If a permission change does not appear immediately, refresh the page or sign out and back in so the latest user profile is loaded.",
+    answer: "Go to **Setup** → **Users** to manage admin-app access.\n1. Create or edit the user.\n2. Assign a role such as **Admin**, **Sub-Admin**, **Manager**, **Staff**, or **Viewer**.\n3. Adjust page-level permissions for the exact modules the user should access.\n4. Save and have the user refresh or sign in again if the menu does not update immediately.\n\nThis is separate from POS staff access in **Manage** → **Staff**.",
   },
   {
     keywords: ["till", "pos", "point of sale", "checkout", "register"],
@@ -121,7 +121,7 @@ const KNOWLEDGE_BASE = [
   {
     keywords: ["eod", "end of day", "close day", "daily report", "reconciliation"],
     question: "How does End of Day (EOD) work?",
-    answer: "Navigate to **Reporting** → **End of Day Reports** to review daily summaries by location. EOD reports show tender totals, expected closing balance, variance, transaction count, and other daily reconciliation metrics. This is the best place to review drawer performance and investigate mismatches after trading hours. If you need a fully guided till-closing flow with physical count entry and close-day actions, contact support or your system admin because the current admin app focuses mainly on viewing and analysing EOD data rather than a full cashier close-out wizard.",
+    answer: "Navigate to **Reporting** → **End of Day Reports**.\n1. Open the location and day you want to review.\n2. Check tender totals, transaction count, and expected closing balance.\n3. Compare the expected amount against the actual cash or till figure.\n4. Review variance and notes before escalating discrepancies.\n\nThe admin app is strongest for reviewing and analysing EOD data. If your team needs a full guided cashier close-out flow, raise it with support or your system administrator.",
   },
   {
     keywords: ["held", "hold transaction", "pending", "saved transaction"],
@@ -171,7 +171,7 @@ const KNOWLEDGE_BASE = [
   {
     keywords: ["support", "ticket", "help", "issue", "support ticket"],
     question: "How do I create a support ticket?",
-    answer: "If this Q&A doesn't solve the issue, open the **Tickets** tab at the top of this page and click **New Ticket**. Add a clear subject, detailed description, category, priority, and location if the issue is location-specific. The fastest tickets usually include what page you were on, what you expected to happen, what actually happened, and any screenshot or exact error message. After submitting, you can track status, add comments, and follow the full conversation from the same page.",
+    answer: "Open the **Tickets** tab at the top of this page.\n1. Click **New Ticket**.\n2. Add a clear subject and full description.\n3. Choose the right category, priority, and location if the issue is branch-specific.\n4. Submit the ticket and monitor status from the same page.\n\nThe fastest tickets include the page you were on, what you expected, what actually happened, and the exact error or screenshot.",
   },
   {
     keywords: ["pack", "bundle", "pack product", "child product", "unit"],
@@ -186,27 +186,27 @@ const KNOWLEDGE_BASE = [
   {
     keywords: ["accounting", "profit and loss", "p&l", "balance sheet", "trial balance", "general ledger", "journal entry", "chart of accounts"],
     question: "How do accounting reports and journals work?",
-    answer: "Use the **Accounting** section for formal financial records. **Reports** gives you **Profit & Loss**, **Balance Sheet**, and **Trial Balance**. **Journal Entries** is where you create manual entries, save drafts, post them, or void them. **General Ledger** shows the running activity for a single account, and **Chart of Accounts** controls the account list. Operational activity such as sales, expenses, refunds, and purchase-order payments feeds accounting automatically, but owner capital, loans, depreciation, and corrections should still be entered manually as journal entries.",
+    answer: "Use the **Accounting** section for formal financial records.\n1. Open **Reports** for **Profit & Loss**, **Balance Sheet**, and **Trial Balance**.\n2. Use **Journal Entries** to create manual entries, drafts, postings, and voids.\n3. Use **General Ledger** to inspect one account's running balance and history.\n4. Use **Chart of Accounts** to manage the account list.\n\nSales, expenses, refunds, and purchase-order payments feed accounting automatically. Owner capital, loans, depreciation, and corrections should still be entered manually.",
   },
   {
     keywords: ["sync accounting", "accounting sync", "stale report", "refresh accounting", "journal not updated"],
     question: "How does accounting sync work?",
-    answer: "Accounting pages now use a throttled background sync so they stay responsive. If a report, journal list, or ledger looks behind current sales or expenses, click **Sync Accounting** at the top of the accounting page you are on. That forces a fresh pull from transactions, expenses, and purchase orders, then updates the last-sync time shown on the page. Use manual sync before checking month-end figures, after bulk imports, or when investigating a mismatch.",
+    answer: "Accounting pages use a throttled background sync so they stay responsive.\n1. Open the accounting page you want to review.\n2. Check the last-sync time at the top.\n3. Click **Sync Accounting** if the data looks behind current sales, expenses, refunds, or purchase orders.\n4. Wait for the refresh message and then review the updated figures.\n\nUse manual sync before month-end checks, after bulk changes, or while investigating mismatches.",
   },
   {
     keywords: ["receive purchase order", "confirm received", "po receipt", "goods received", "restock from po"],
     question: "How do I receive a purchase order into stock?",
-    answer: "Open **Manage** → **Procurement** → **Payment Tracker** and locate the purchase order. Update payment details if needed, then use the receive/confirm action to mark the order as received. That receipt step is important because it is what creates the stock movement, updates inventory, and changes the purchase order's receiving status. If you only record payment without confirming receipt, the stock will not be added yet.",
+    answer: "Open **Manage** → **Procurement** → **Payment Tracker**.\n1. Locate the purchase order.\n2. Update payment details if needed.\n3. Use the receive or confirm-received action to mark the order as received.\n4. Verify the receiving status and stock update.\n\nThe receive step is what creates the stock movement and adds inventory. Recording payment alone does not increase stock.",
   },
   {
     keywords: ["operational loss", "damaged stock", "waste", "expired stock", "missing stock", "write off"],
     question: "How do I record operational loss or damaged stock?",
-    answer: "Use **Stock** → **Stock Movement** when stock leaves the business for a real operational reason such as damage, waste, expiry, or unexplained loss. Select the operational-loss style movement option, choose the location, add the affected products, and enter the quantities with a clear note. This keeps your stock on hand realistic and helps management separate normal sales from shrinkage or wastage.",
+    answer: "Use **Stock** → **Stock Movement** when stock leaves the business because of damage, waste, expiry, or unexplained loss.\n1. Choose the operational-loss style movement.\n2. Select the location.\n3. Add the affected products and quantities.\n4. Save with a clear reason or note.\n\nThis keeps stock realistic and helps reporting separate shrinkage or wastage from normal sales.",
   },
   {
     keywords: ["split payment", "split tender", "multiple payment methods", "cash and card", "pay partly cash partly transfer"],
     question: "How do split payments work at the Till?",
-    answer: "At the **Till**, you can complete one sale with more than one tender type, for example part cash and part transfer. First make sure the tender methods are active in **Setup** → **POS Tenders** and assigned to the location in **Setup** → **Location Tenders**. During checkout, enter the amounts against each tender until the full balance is covered. The completed transaction and reports will keep the tender breakdown so you can reconcile each payment method correctly.",
+    answer: "At the **Till**, one sale can be completed with more than one tender type.\n1. Confirm the needed tenders are active in **Setup** → **POS Tenders**.\n2. Confirm the location has those tenders assigned in **Setup** → **Location Tenders**.\n3. During checkout, enter amounts against each tender until the full balance is covered.\n4. Complete the sale and review the tender breakdown in reporting if needed.\n\nThis is useful for cash-plus-transfer, card-plus-cash, or other split-payment scenarios.",
   },
   {
     keywords: ["order location", "fulfilment location", "fulfillment location", "assign order location", "online order location"],
@@ -221,9 +221,62 @@ const KNOWLEDGE_BASE = [
   {
     keywords: ["hotel", "reservation", "room booking", "guest", "hotel reservations"],
     question: "How do hotel reservations work?",
-    answer: "Use **Manage** → **Hotel Reservations** to view, update, and track guest bookings. Reservations store guest details, booking dates, room or room-product information, and reservation status. The system can also send reservation-related guest communications from the reservation workflow. If a room-related booking behaves unexpectedly, include the reservation status, guest name, room, and dates when raising a support ticket so the issue can be traced quickly.",
+    answer: "Use **Manage** → **Hotel Reservations** to work with guest bookings.\n1. Open the reservation list and select the booking.\n2. Review guest details, booking dates, room details, and status.\n3. Update the booking or send guest communication from the reservation workflow when needed.\n4. Raise a support ticket with the guest name, room, dates, and status if the reservation behaves unexpectedly.\n\nThis gives support enough context to trace room or reservation issues quickly.",
   },
 ];
+
+const SECTION_DEFINITIONS = [
+  { key: "pos", label: "POS & Till", keywords: ["pos", "till", "checkout", "split payment", "held transaction", "tender", "receipt"] },
+  { key: "stock", label: "Stock & Inventory", keywords: ["stock", "inventory", "product", "restock", "stock take", "expiry", "operational loss", "category", "pack"] },
+  { key: "procurement", label: "Procurement", keywords: ["vendor", "supplier", "purchase order", "payment tracker", "receive"] },
+  { key: "reporting", label: "Reporting & EOD", keywords: ["report", "sales report", "completed transactions", "end of day", "eod", "employees", "locations", "categories"] },
+  { key: "accounting", label: "Accounting", keywords: ["accounting", "profit and loss", "balance sheet", "trial balance", "general ledger", "journal", "chart of accounts", "sync accounting"] },
+  { key: "users", label: "Users & Setup", keywords: ["user", "permission", "role", "location", "receipt", "hero promo", "setup", "access"] },
+  { key: "orders", label: "Orders & Customers", keywords: ["order", "customer", "promotion", "campaign", "fulfilment"] },
+  { key: "hotel", label: "Hotel", keywords: ["hotel", "reservation", "room", "guest"] },
+  { key: "support", label: "Support", keywords: ["support", "ticket", "help"] },
+];
+
+const QUESTION_SECTION_MAP = {
+  "How do I add a new product?": "stock",
+  "How do I manage stock levels?": "stock",
+  "How do stock movements work?": "stock",
+  "How do I perform a stock take?": "stock",
+  "How do I record an expense?": "accounting",
+  "How do I manage vendors?": "procurement",
+  "How does the Vendor Payment Tracker work?": "procurement",
+  "How do I view sales reports?": "reporting",
+  "How do I add and manage staff?": "users",
+  "How do staff roles work?": "users",
+  "How do I edit or refund a transaction?": "reporting",
+  "How do I manage store locations?": "users",
+  "How do I track assets and maintenance?": "accounting",
+  "How do I set up promotions?": "orders",
+  "How do I manage user access and permissions?": "users",
+  "How do I access the Point of Sale (Till)?": "pos",
+  "How do I view tax reports?": "accounting",
+  "How does End of Day (EOD) work?": "reporting",
+  "What are held transactions?": "pos",
+  "How do I manage product categories?": "stock",
+  "How do I manage customers?": "orders",
+  "How do campaigns work?": "orders",
+  "How do I customize receipts?": "users",
+  "How do I set up payment methods (tenders)?": "pos",
+  "How do I manage orders?": "orders",
+  "How do I archive or restore products?": "stock",
+  "What is Hero-Promo Setup?": "users",
+  "How do I create a support ticket?": "support",
+  "How do pack/bundle products work?": "stock",
+  "How does expiry tracking work?": "stock",
+  "How do accounting reports and journals work?": "accounting",
+  "How does accounting sync work?": "accounting",
+  "How do I receive a purchase order into stock?": "procurement",
+  "How do I record operational loss or damaged stock?": "stock",
+  "How do split payments work at the Till?": "pos",
+  "How do order fulfilment locations work?": "orders",
+  "What happens if the Till goes offline?": "pos",
+  "How do hotel reservations work?": "hotel",
+};
 
 const FEATURED_TOPIC_QUESTIONS = [
   "How do I add a new product?",
@@ -246,40 +299,181 @@ const FEATURED_TOPICS = FEATURED_TOPIC_QUESTIONS
   .map((question) => KNOWLEDGE_BASE.find((entry) => entry.question === question))
   .filter(Boolean);
 
+const FEATURED_TOPIC_GROUPS = SECTION_DEFINITIONS.map((section) => ({
+  ...section,
+  entries: FEATURED_TOPICS.filter((entry) => QUESTION_SECTION_MAP[entry.question] === section.key),
+})).filter((section) => section.entries.length > 0);
+
 function formatStatusLabel(value) {
   return String(value || "open").replace(/_/g, " ");
 }
 
+function normalizeSupportText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function tokenizeSupportText(value) {
+  return normalizeSupportText(value).split(" ").filter((token) => token.length > 1);
+}
+
+function getKnowledgeSection(entry) {
+  return QUESTION_SECTION_MAP[entry.question] || "support";
+}
+
+function getSectionDefinition(sectionKey) {
+  return SECTION_DEFINITIONS.find((section) => section.key === sectionKey) || SECTION_DEFINITIONS[SECTION_DEFINITIONS.length - 1];
+}
+
 function searchKnowledgeBase(query) {
   if (!query || query.trim().length < 2) return [];
-  const q = query.toLowerCase();
-  const words = q.split(/\s+/).filter(w => w.length > 1);
+  const normalizedQuery = normalizeSupportText(query);
+  const words = tokenizeSupportText(query);
   
   return KNOWLEDGE_BASE
-    .map(entry => {
+    .map((entry) => {
       let score = 0;
-      // Check keywords
-      entry.keywords.forEach(kw => {
-        if (q.includes(kw)) score += 10;
-        words.forEach(w => { if (kw.includes(w)) score += 3; });
+      const normalizedQuestion = normalizeSupportText(entry.question);
+      const normalizedAnswer = normalizeSupportText(entry.answer);
+      const normalizedKeywords = entry.keywords.map((keyword) => normalizeSupportText(keyword));
+      const section = getSectionDefinition(getKnowledgeSection(entry));
+
+      if (normalizedQuestion.includes(normalizedQuery)) score += 40;
+      if (normalizedAnswer.includes(normalizedQuery)) score += 10;
+
+      normalizedKeywords.forEach((keyword) => {
+        if (normalizedQuery.includes(keyword) || keyword.includes(normalizedQuery)) score += 18;
       });
-      // Check question text
-      words.forEach(w => {
-        if (entry.question.toLowerCase().includes(w)) score += 2;
-        if (entry.answer.toLowerCase().includes(w)) score += 1;
+
+      words.forEach((word) => {
+        if (normalizedQuestion.includes(word)) score += 6;
+        if (normalizedAnswer.includes(word)) score += 2;
+        normalizedKeywords.forEach((keyword) => {
+          if (keyword.includes(word)) score += 5;
+        });
+        if (section.label.toLowerCase().includes(word)) score += 3;
+        section.keywords.forEach((keyword) => {
+          if (keyword.includes(word) || word.includes(keyword)) score += 3;
+        });
       });
+
+      const matchedWords = new Set(
+        words.filter((word) =>
+          normalizedQuestion.includes(word)
+          || normalizedAnswer.includes(word)
+          || normalizedKeywords.some((keyword) => keyword.includes(word))
+        )
+      );
+      score += matchedWords.size * 2;
+
       return { ...entry, score };
     })
-    .filter(e => e.score > 0)
+    .filter((entry) => entry.score > 0)
     .sort((a, b) => b.score - a.score)
-    .slice(0, 3);
+    .slice(0, 5);
+}
+
+function buildRelatedQuestions(primaryEntry, searchResults) {
+  const related = [];
+  const seen = new Set([primaryEntry.question]);
+  const primarySection = getKnowledgeSection(primaryEntry);
+
+  const pushQuestion = (question) => {
+    if (!question || seen.has(question)) return;
+    seen.add(question);
+    related.push(question);
+  };
+
+  searchResults.forEach((entry) => {
+    if (entry.question !== primaryEntry.question && getKnowledgeSection(entry) === primarySection) {
+      pushQuestion(entry.question);
+    }
+  });
+
+  KNOWLEDGE_BASE.forEach((entry) => {
+    if (entry.question !== primaryEntry.question && getKnowledgeSection(entry) === primarySection) {
+      pushQuestion(entry.question);
+    }
+  });
+
+  searchResults.forEach((entry) => {
+    if (entry.question !== primaryEntry.question) {
+      pushQuestion(entry.question);
+    }
+  });
+
+  return related.slice(0, 3);
+}
+
+function renderInlineMarkdown(text) {
+  return String(text || "").split("**").map((part, index) => (
+    index % 2 === 1 ? <strong key={index}>{part}</strong> : <span key={index}>{part}</span>
+  ));
 }
 
 function renderMarkdown(text) {
-  // Simple markdown: bold
-  return text.split("**").map((part, i) =>
-    i % 2 === 1 ? <strong key={i}>{part}</strong> : <span key={i}>{part}</span>
-  );
+  const lines = String(text || "").split("\n");
+  const elements = [];
+  let listType = null;
+  let listItems = [];
+
+  const flushList = () => {
+    if (listItems.length === 0) return;
+
+    if (listType === "ordered") {
+      elements.push(
+        <ol key={`list-${elements.length}`} className="list-decimal pl-5 space-y-1">
+          {listItems.map((item, index) => <li key={index}>{renderInlineMarkdown(item)}</li>)}
+        </ol>
+      );
+    } else {
+      elements.push(
+        <ul key={`list-${elements.length}`} className="list-disc pl-5 space-y-1">
+          {listItems.map((item, index) => <li key={index}>{renderInlineMarkdown(item)}</li>)}
+        </ul>
+      );
+    }
+
+    listType = null;
+    listItems = [];
+  };
+
+  lines.forEach((rawLine, index) => {
+    const line = rawLine.trim();
+    if (!line) {
+      flushList();
+      return;
+    }
+
+    const orderedMatch = line.match(/^\d+\.\s+(.*)$/);
+    if (orderedMatch) {
+      if (listType && listType !== "ordered") flushList();
+      listType = "ordered";
+      listItems.push(orderedMatch[1]);
+      return;
+    }
+
+    const bulletMatch = line.match(/^[-*]\s+(.*)$/);
+    if (bulletMatch) {
+      if (listType && listType !== "unordered") flushList();
+      listType = "unordered";
+      listItems.push(bulletMatch[1]);
+      return;
+    }
+
+    flushList();
+    elements.push(
+      <p key={`paragraph-${index}`}>
+        {renderInlineMarkdown(line)}
+      </p>
+    );
+  });
+
+  flushList();
+  return elements;
 }
 
 export default function SupportPage() {
@@ -370,11 +564,12 @@ export default function SupportPage() {
 
     setTimeout(() => {
       if (results.length > 0) {
+        const primaryResult = results[0];
         const answer = {
           id: Date.now() + 1,
           role: "system",
-          text: results[0].answer,
-          relatedQuestions: results.slice(1).map(r => r.question),
+          text: primaryResult.answer,
+          relatedQuestions: buildRelatedQuestions(primaryResult, results),
         };
         setChatMessages(prev => [...prev, answer]);
       } else {
@@ -521,7 +716,7 @@ export default function SupportPage() {
                             : "bg-white text-gray-800 rounded-tl-none"
                         }`}
                       >
-                        <p>{renderMarkdown(msg.text)}</p>
+                        <div className="space-y-2">{renderMarkdown(msg.text)}</div>
 
                         {/* Related questions */}
                         {msg.relatedQuestions?.length > 0 && (
@@ -562,21 +757,38 @@ export default function SupportPage() {
 
               {/* Quick Topics - Always visible */}
               <div className="px-3 py-2 bg-white border-t border-gray-200">
-                <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
-                  <HelpCircle className="w-3.5 h-3.5" />
-                  Common topics:
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {FEATURED_TOPICS.map((entry, i) => (
-                    <button
-                      key={i}
-                      onClick={() => handleQuickTopic(entry)}
-                      className="text-xs px-3 py-1.5 rounded-full bg-gray-100 text-gray-700 hover:bg-[#4c63ae]/10 hover:text-[#4c63ae] transition-colors border border-gray-200"
-                    >
-                      {entry.question}
-                    </button>
-                  ))}
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowQuickTopics((prev) => !prev)}
+                  className="w-full flex items-center justify-between text-left"
+                >
+                  <span className="text-xs text-gray-500 flex items-center gap-1">
+                    <HelpCircle className="w-3.5 h-3.5" />
+                    Common topics by area
+                  </span>
+                  {showQuickTopics ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                </button>
+
+                {showQuickTopics && (
+                  <div className="mt-3 space-y-3">
+                    {FEATURED_TOPIC_GROUPS.map((section) => (
+                      <div key={section.key}>
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 mb-2">{section.label}</p>
+                        <div className="flex flex-wrap gap-2">
+                          {section.entries.map((entry, index) => (
+                            <button
+                              key={`${section.key}-${index}`}
+                              onClick={() => handleQuickTopic(entry)}
+                              className="text-xs px-3 py-1.5 rounded-full bg-gray-100 text-gray-700 hover:bg-[#4c63ae]/10 hover:text-[#4c63ae] transition-colors border border-gray-200"
+                            >
+                              {entry.question}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Chat Input - WhatsApp style */}

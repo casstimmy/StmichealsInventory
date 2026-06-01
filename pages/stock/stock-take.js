@@ -158,8 +158,6 @@ export default function StockTakeList() {
   const summary = useMemo(() => {
     const all = stockTakes;
     return {
-      total: all.length,
-      draft: all.filter((s) => s.status === "draft").length,
       inProgress: all.filter((s) => s.status === "in-progress").length,
       completed: all.filter((s) => s.status === "completed").length,
       approved: all.filter((s) => s.status === "approved").length,
@@ -196,10 +194,8 @@ export default function StockTakeList() {
           </div>
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
             {[
-              { label: "Total", value: summary.total, color: "bg-gray-50 border-gray-200" },
-              { label: "Draft", value: summary.draft, color: "bg-gray-50 border-gray-300" },
               { label: "In Progress", value: summary.inProgress, color: "bg-blue-50 border-blue-200" },
               { label: "Completed", value: summary.completed, color: "bg-yellow-50 border-yellow-200" },
               { label: "Approved", value: summary.approved, color: "bg-green-50 border-green-200" },

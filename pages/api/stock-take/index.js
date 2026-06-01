@@ -49,7 +49,7 @@ export default async function handler(req, res) {
   /* ========== POST — Create new stock take ========== */
   if (req.method === "POST") {
     try {
-      const { title, description, locationId, locationName, type = "full", category, createdBy } = req.body;
+      const { title, description, locationId, locationName, createdBy } = req.body;
 
       if (!title || !locationName) {
         return res.status(400).json({ success: false, message: "title and locationName are required" });
@@ -58,7 +58,6 @@ export default async function handler(req, res) {
       // Build product filter — exclude derived child products (unit products auto-created from packs)
       // A derived child has isChildProduct=true AND packType != "pack"
       const productFilter = { isArchived: { $ne: true }, isStockManaged: true };
-      if (category && category !== "all") productFilter.category = category;
 
       const products = await Product.find(productFilter)
         .select("name barcode category quantity costPrice packType qtyPerPack isChildProduct parentProduct")
@@ -109,8 +108,8 @@ export default async function handler(req, res) {
         description: description || "",
         locationId: locationId || null,
         locationName,
-        type,
-        category: category || "",
+        type: "full",
+        category: "",
         items,
         totalItems: items.length,
         totalSystemQty: items.reduce((s, i) => s + i.systemQty, 0),

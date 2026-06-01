@@ -7,7 +7,6 @@ import { Loader } from "@/components/ui";
 import useProgress from "@/lib/useProgress";
 import { formatCurrency } from "@/lib/format";
 import { getCachedSetup } from "@/lib/setupCache";
-import { getCachedCategories } from "@/lib/categoriesCache";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faPlus,
@@ -36,45 +35,14 @@ const TYPE_LABELS = {
   "spot-check": "Spot Check",
 };
 
-const QUICK_CREATE_PRESETS = [
-  {
-    key: "full",
-    label: "Full Location Count",
-    helper: "Count everything in one location.",
-    type: "full",
-    categoryMode: "all",
-    description: "Full physical count for this location.",
-  },
-  {
-    key: "spot-check",
-    label: "Quick Spot Check",
-    helper: "Fast recount for urgent checks.",
-    type: "spot-check",
-    categoryMode: "all",
-    description: "Quick spot check for selected shelves or products.",
-  },
-  {
-    key: "cycle",
-    label: "Category Cycle Count",
-    helper: "Count one category at a time.",
-    type: "cycle",
-    categoryMode: "first-category",
-    description: "Cycle count focused on one product category.",
-  },
-];
-
-function getSuggestedTitle(form, categories) {
-  const typeLabel = TYPE_LABELS[form.type] || "Stock Take";
-  const categoryName = form.category && form.category !== "all"
-    ? categories.find((category) => category._id === form.category)?.name || ""
-    : "";
+function getSuggestedTitle(form) {
   const dateLabel = new Date().toLocaleDateString("en-GB", {
     day: "2-digit",
     month: "short",
     year: "numeric",
   });
 
-  return [typeLabel, categoryName, form.locationName, dateLabel].filter(Boolean).join(" - ");
+  return ["Stock Take", form.locationName, dateLabel].filter(Boolean).join(" - ");
 }
 
 export default function StockTakeList() {
@@ -84,7 +52,6 @@ export default function StockTakeList() {
   const [stockTakes, setStockTakes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [locations, setLocations] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterLocation, setFilterLocation] = useState("all");
@@ -96,13 +63,11 @@ export default function StockTakeList() {
     description: "",
     locationName: "",
     locationId: "",
-    type: "full",
-    category: "all",
   });
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
 
-  const suggestedTitle = useMemo(() => getSuggestedTitle(form, categories), [form, categories]);
+  const suggestedTitle = useMemo(() => getSuggestedTitle(form), [form]);
 
   const fetchStockTakes = useCallback(async () => {
     try {
@@ -126,13 +91,9 @@ export default function StockTakeList() {
   useEffect(() => {
     async function init() {
       try {
-        const [setup, cats] = await Promise.all([
-          getCachedSetup(),
-          getCachedCategories(),
-        ]);
+        const setup = await getCachedSetup();
         const locs = setup?.store?.locations || [];
         setLocations(locs);
-        setCategories(Array.isArray(cats) ? cats : []);
         if (locs.length > 0) {
           setForm((f) => ({ ...f, locationName: locs[0].name, locationId: locs[0]._id }));
         }
@@ -182,7 +143,7 @@ export default function StockTakeList() {
       const data = await res.json();
       if (data.success) {
         setShowCreateModal(false);
-        setForm((f) => ({ ...f, title: "", description: "", type: "full", category: "all" }));
+        setForm((f) => ({ ...f, title: "", description: "" }));
         router.push(`/stock/stock-take/${data.id}`);
       } else {
         setError(data.message || "Failed to create stock take");
@@ -204,18 +165,6 @@ export default function StockTakeList() {
       approved: all.filter((s) => s.status === "approved").length,
     };
   }, [stockTakes]);
-
-  const applyQuickPreset = (preset) => {
-    setError("");
-    setForm((current) => ({
-      ...current,
-      type: preset.type,
-      category: preset.categoryMode === "first-category" ? (categories[0]?._id || "all") : "all",
-      description: preset.description,
-      title: "",
-    }));
-    setShowCreateModal(true);
-  };
 
   if (loading) {
     return (
@@ -244,20 +193,6 @@ export default function StockTakeList() {
               <FontAwesomeIcon icon={faPlus} className="w-4 h-4" />
               New Stock Take
             </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-            {QUICK_CREATE_PRESETS.map((preset) => (
-              <button
-                key={preset.key}
-                type="button"
-                onClick={() => applyQuickPreset(preset)}
-                className="text-left p-4 rounded-xl border border-gray-200 bg-white hover:border-blue-300 hover:shadow-sm transition"
-              >
-                <div className="text-sm font-semibold text-gray-900">{preset.label}</div>
-                <div className="text-xs text-gray-500 mt-1">{preset.helper}</div>
-              </button>
-            ))}
           </div>
 
           {/* Summary Cards */}
@@ -409,22 +344,6 @@ export default function StockTakeList() {
               {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">{error}</div>
               )}
-              <div>
-                <label className="form-label">Quick Setup</label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  {QUICK_CREATE_PRESETS.map((preset) => (
-                    <button
-                      key={preset.key}
-                      type="button"
-                      onClick={() => applyQuickPreset(preset)}
-                      className={`rounded-lg border px-3 py-2 text-left text-sm transition ${form.type === preset.type ? "theme-toggle-active" : "theme-toggle-neutral"}`}
-                    >
-                      <div className="font-medium">{preset.label}</div>
-                      <div className="text-xs opacity-80 mt-1">{preset.helper}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
               <div className="form-group">
                 <label className="form-label">Title</label>
                 <input
@@ -446,55 +365,24 @@ export default function StockTakeList() {
                   placeholder="Optional notes about this stock take"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="form-group">
-                  <label className="form-label">Location *</label>
-                  <select
-                    value={form.locationName}
-                    onChange={(e) => {
-                      const loc = locations.find((l) => l.name === e.target.value);
-                      setForm({ ...form, locationName: e.target.value, locationId: loc?._id || "" });
-                    }}
-                    className="form-select"
-                  >
-                    {locations.map((l) => (
-                      <option key={l._id || l.name} value={l.name}>{l.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Count Mode</label>
-                  <select
-                    value={form.type}
-                    onChange={(e) => setForm({ ...form, type: e.target.value })}
-                    className="form-select"
-                  >
-                    <option value="full">Full Count</option>
-                    <option value="partial">Partial Count</option>
-                    <option value="cycle">Cycle Count</option>
-                    <option value="spot-check">Spot Check</option>
-                  </select>
-                </div>
+              <div className="form-group">
+                <label className="form-label">Location *</label>
+                <select
+                  value={form.locationName}
+                  onChange={(e) => {
+                    const loc = locations.find((l) => l.name === e.target.value);
+                    setForm({ ...form, locationName: e.target.value, locationId: loc?._id || "" });
+                  }}
+                  className="form-select"
+                >
+                  {locations.map((l) => (
+                    <option key={l._id || l.name} value={l.name}>{l.name}</option>
+                  ))}
+                </select>
               </div>
-              {form.type === "full" ? (
-                <div className="theme-note-primary rounded-lg px-3 py-2 text-sm">
-                  Full count will include every stock-managed product in this location.
-                </div>
-              ) : (
-                <div className="form-group">
-                  <label className="form-label">Category Filter</label>
-                  <select
-                    value={form.category}
-                    onChange={(e) => setForm({ ...form, category: e.target.value })}
-                    className="form-select"
-                  >
-                    <option value="all">All Categories</option>
-                    {categories.map((c) => (
-                      <option key={c._id} value={c._id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              <div className="theme-note-primary rounded-lg px-3 py-2 text-sm">
+                This stock take will include every stock-managed product for the selected location.
+              </div>
             </div>
             <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
               <button onClick={() => setShowCreateModal(false)} className="btn-action btn-action-danger">

@@ -11,6 +11,16 @@ function generateRef() {
   return `ST-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${rand}`;
 }
 
+function buildStockTakeTitle(locationName) {
+  const dateLabel = new Date().toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+
+  return [dateLabel, locationName].filter(Boolean).join(" - ");
+}
+
 export default async function handler(req, res) {
   const authError = authMiddleware(req, res);
   if (authError) return authError;
@@ -49,11 +59,13 @@ export default async function handler(req, res) {
   /* ========== POST — Create new stock take ========== */
   if (req.method === "POST") {
     try {
-      const { title, description, locationId, locationName, createdBy } = req.body;
+      const { locationId, locationName, createdBy } = req.body;
 
-      if (!title || !locationName) {
-        return res.status(400).json({ success: false, message: "title and locationName are required" });
+      if (!locationName || !createdBy) {
+        return res.status(400).json({ success: false, message: "locationName and createdBy are required" });
       }
+
+      const title = buildStockTakeTitle(locationName);
 
       // Build product filter — exclude derived child products (unit products auto-created from packs)
       // A derived child has isChildProduct=true AND packType != "pack"
@@ -105,7 +117,7 @@ export default async function handler(req, res) {
       const stockTake = await StockTake.create({
         reference: generateRef(),
         title,
-        description: description || "",
+        description: "",
         locationId: locationId || null,
         locationName,
         type: "full",

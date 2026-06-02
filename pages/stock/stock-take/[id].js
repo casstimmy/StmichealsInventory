@@ -8,6 +8,7 @@ import useProgress from "@/lib/useProgress";
 import { formatCurrency } from "@/lib/format";
 import { showConfirmDialog } from "@/lib/dialogs";
 import { showToastMessage } from "@/lib/toast-state";
+import { useAuth } from "@/lib/useAuth";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faArrowLeft,
@@ -17,12 +18,14 @@ import {
   faSyncAlt,
   faTimes,
   faSearch,
-  faFileExport,
   faDownload,
   faSave,
   faExclamationTriangle,
   faCheckCircle,
   faBalanceScale,
+  faPlus,
+  faPrint,
+  faClipboardList,
 } from "@fortawesome/free-solid-svg-icons";
 
 const STATUS_COLORS = {
@@ -33,12 +36,20 @@ const STATUS_COLORS = {
   cancelled: "bg-red-100 text-red-700",
 };
 
+const EMPTY_LIST_FILTERS = {
+  vendorId: "",
+  categoryId: "",
+  shelfLine: "",
+};
+
 export default function StockTakeDetail() {
   const router = useRouter();
   const { id } = router.query;
   const { progress, start, onFetch, onProcess, complete } = useProgress();
+  const { isAdmin } = useAuth();
 
   const [stockTake, setStockTake] = useState(null);
+  const [builderOptions, setBuilderOptions] = useState({ vendors: [], categories: [], shelfLines: [] });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [actionLoading, setActionLoading] = useState("");
@@ -47,10 +58,19 @@ export default function StockTakeDetail() {
   const [filterVariance, setFilterVariance] = useState("all");
   const [message, setMessage] = useState({ type: "", text: "" });
   const [pendingChanges, setPendingChanges] = useState({});
+  const [showCreateListModal, setShowCreateListModal] = useState(false);
+  const [listFilters, setListFilters] = useState(EMPTY_LIST_FILTERS);
+  const [productSearchTerm, setProductSearchTerm] = useState("");
+  const [productSearchResults, setProductSearchResults] = useState([]);
+  const [searchingProducts, setSearchingProducts] = useState(false);
   const countInputRefs = useRef({});
+
+  const isEditable = Boolean(stockTake && ["draft", "in-progress"].includes(stockTake.status));
+  const hasItems = Boolean(stockTake?.items?.length);
 
   const fetchStockTake = useCallback(async () => {
     if (!id) return;
+
     try {
       setLoading(true);
       start();
@@ -58,8 +78,10 @@ export default function StockTakeDetail() {
       const res = await fetch(`/api/stock-take/${id}`);
       const data = await res.json();
       onProcess();
+
       if (data.success) {
         setStockTake(data.stockTake);
+        setBuilderOptions(data.builderOptions || { vendors: [], categories: [], shelfLines: [] });
       } else {
         setMessage({ type: "error", text: data.message || "Failed to load stock take" });
       }
@@ -69,7 +91,7 @@ export default function StockTakeDetail() {
       complete();
       setLoading(false);
     }
-  }, [id]);
+  }, [id, start, onFetch, onProcess, complete]);
 
   useEffect(() => {
     fetchStockTake();
@@ -85,8 +107,54 @@ export default function StockTakeDetail() {
     setMessage({ type: "", text: "" });
   }, [message]);
 
+  useEffect(() => {
+    const query = productSearchTerm.trim();
+    if (!isEditable || query.length < 2) {
+      setProductSearchResults([]);
+      setSearchingProducts(false);
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      try {
+        setSearchingProducts(true);
+        const params = new URLSearchParams({
+          search: query,
+          names: "true",
+          stockManaged: "true",
+          excludeChild: "true",
+        });
+        const res = await fetch(`/api/products?${params.toString()}`, { signal: controller.signal });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.message || "Failed to search products");
+        }
+
+        const existingProductIds = new Set((stockTake?.items || []).map((item) => String(item.productId)));
+        const results = (Array.isArray(data.data) ? data.data : [])
+          .filter((product) => !existingProductIds.has(String(product._id)))
+          .slice(0, 8);
+        setProductSearchResults(results);
+      } catch (err) {
+        if (err.name !== "AbortError") {
+          console.error("Product search failed:", err);
+          setProductSearchResults([]);
+        }
+      } finally {
+        setSearchingProducts(false);
+      }
+    }, 250);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [productSearchTerm, isEditable, stockTake?.items]);
+
   const filteredItems = useMemo(() => {
     if (!stockTake?.items) return [];
+
     return stockTake.items.filter((item) => {
       if (filterItemStatus !== "all" && item.status !== filterItemStatus) return false;
       if (filterVariance === "positive" && !(item.countedQty !== null && item.variance > 0)) return false;
@@ -94,15 +162,18 @@ export default function StockTakeDetail() {
       if (filterVariance === "match" && !(item.countedQty !== null && item.variance === 0)) return false;
       if (filterVariance === "uncounted" && item.countedQty !== null) return false;
       if (searchTerm) {
-        const t = searchTerm.toLowerCase();
-        return (
-          item.productName?.toLowerCase().includes(t) ||
-          item.barcode?.toLowerCase().includes(t)
-        );
+        const normalizedSearch = searchTerm.toLowerCase();
+        return item.productName?.toLowerCase().includes(normalizedSearch) || item.barcode?.toLowerCase().includes(normalizedSearch);
       }
+
       return true;
     });
   }, [stockTake, filterItemStatus, filterVariance, searchTerm]);
+
+  const showMsg = (type, text) => {
+    setMessage({ type, text });
+    setTimeout(() => setMessage({ type: "", text: "" }), 4000);
+  };
 
   const handleCountChange = (itemId, value) => {
     const numVal = value === "" ? null : Number(value);
@@ -147,45 +218,100 @@ export default function StockTakeDetail() {
       const data = await res.json();
       if (data.success) {
         showMsg("success", data.message);
-        fetchStockTake();
-      } else {
-        showMsg("error", data.message);
+        if (data.stockTake) {
+          setStockTake(data.stockTake);
+        } else {
+          await fetchStockTake();
+        }
+        return true;
       }
+
+      showMsg("error", data.message);
     } catch (err) {
       showMsg("error", "Action failed");
     } finally {
       setActionLoading("");
     }
+
+    return false;
   };
 
-  const showMsg = (type, text) => {
-    setMessage({ type, text });
-    setTimeout(() => setMessage({ type: "", text: "" }), 4000);
+  const handleAddProduct = async (productId) => {
+    const added = await performAction("add-items", { productIds: [productId] });
+    if (!added) return;
+
+    setProductSearchTerm("");
+    setProductSearchResults([]);
+  };
+
+  const handleCreateList = async () => {
+    if (hasItems) {
+      const shouldReplace = await showConfirmDialog({
+        title: "Replace the current list?",
+        message: "Creating a new list will replace the products already on this stock take.",
+        tone: "warning",
+        confirmLabel: "Replace list",
+        cancelLabel: "Keep current list",
+      });
+      if (!shouldReplace) return;
+    }
+
+    const created = await performAction("create-list", {
+      vendorIds: listFilters.vendorId ? [listFilters.vendorId] : [],
+      categoryIds: listFilters.categoryId ? [listFilters.categoryId] : [],
+      shelfLines: listFilters.shelfLine ? [listFilters.shelfLine] : [],
+    });
+    if (!created) return;
+
+    setShowCreateListModal(false);
+    setListFilters(EMPTY_LIST_FILTERS);
+  };
+
+  const handleClearList = async () => {
+    const shouldClear = await showConfirmDialog({
+      title: "Clear this list?",
+      message: "All current stock take items and unsaved count entries will be removed.",
+      tone: "danger",
+      confirmLabel: "Clear list",
+      cancelLabel: "Keep list",
+    });
+    if (!shouldClear) return;
+
+    const cleared = await performAction("clear-list");
+    if (!cleared) return;
+
+    setPendingChanges({});
+    setSearchTerm("");
+    setFilterItemStatus("all");
+    setFilterVariance("all");
   };
 
   const exportCSV = () => {
     if (!stockTake?.items) return;
     const header = "Product,Barcode,System Qty,Counted Qty,Variance,Variance Value,Status,Notes\n";
-    const rows = stockTake.items.map((i) =>
-      [
-        `"${i.productName}"`,
-        i.barcode,
-        i.systemQty,
-        i.countedQty ?? "",
-        i.variance,
-        i.varianceValue?.toFixed(2),
-        i.status,
-        `"${i.notes || ""}"`,
-      ].join(",")
-    );
+    const rows = stockTake.items.map((item) => [
+      `"${item.productName}"`,
+      item.barcode,
+      item.systemQty,
+      item.countedQty ?? "",
+      item.variance,
+      item.varianceValue?.toFixed(2),
+      item.status,
+      `"${item.notes || ""}"`,
+    ].join(","));
+
     const csv = header + rows.join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `stock-take-${stockTake.reference}.csv`;
-    a.click();
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `stock-take-${stockTake.reference}.csv`;
+    link.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   if (loading) {
@@ -213,7 +339,6 @@ export default function StockTakeDetail() {
     );
   }
 
-  const isEditable = ["draft", "in-progress"].includes(stockTake.status);
   const hasPending = Object.keys(pendingChanges).length > 0;
   const progressPct = stockTake.totalItems > 0
     ? Math.round((stockTake.countedItems / stockTake.totalItems) * 100)
@@ -223,7 +348,6 @@ export default function StockTakeDetail() {
     <Layout>
       <div className="page-container">
         <div className="page-content">
-          {/* Header */}
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
             <div>
               <button
@@ -245,12 +369,9 @@ export default function StockTakeDetail() {
                   Created {new Date(stockTake.createdAt).toLocaleDateString()} by {stockTake.createdBy}
                 </span>
               </div>
-              {stockTake.description && (
-                <p className="text-sm text-gray-500 mt-1">{stockTake.description}</p>
-              )}
+              {stockTake.description && <p className="text-sm text-gray-500 mt-1">{stockTake.description}</p>}
             </div>
 
-            {/* Action Buttons */}
             <div className="flex flex-wrap gap-2">
               {isEditable && hasPending && (
                 <button
@@ -262,7 +383,7 @@ export default function StockTakeDetail() {
                   {saving ? "Saving..." : `Save (${Object.keys(pendingChanges).length})`}
                 </button>
               )}
-              {stockTake.status === "draft" && (
+              {stockTake.status === "draft" && hasItems && (
                 <button
                   onClick={() => performAction("start")}
                   disabled={!!actionLoading}
@@ -272,7 +393,7 @@ export default function StockTakeDetail() {
                   Start Counting
                 </button>
               )}
-              {(stockTake.status === "draft" || stockTake.status === "in-progress") && (
+              {isAdmin && (stockTake.status === "draft" || stockTake.status === "in-progress") && (
                 <button
                   onClick={async () => {
                     const shouldZero = await showConfirmDialog({
@@ -292,7 +413,7 @@ export default function StockTakeDetail() {
                   {actionLoading === "zero-all" ? "Zeroing..." : "Zero All Stock"}
                 </button>
               )}
-              {stockTake.status === "in-progress" && (
+              {stockTake.status === "in-progress" && hasItems && (
                 <button
                   onClick={async () => {
                     const shouldComplete = await showConfirmDialog({
@@ -348,10 +469,12 @@ export default function StockTakeDetail() {
                   Adjustments Applied
                 </span>
               )}
-              <button onClick={exportCSV} className="btn-action flex items-center gap-2 text-sm">
-                <FontAwesomeIcon icon={faDownload} className="w-3.5 h-3.5" />
-                Export CSV
-              </button>
+              {hasItems && (
+                <button onClick={exportCSV} className="btn-action flex items-center gap-2 text-sm">
+                  <FontAwesomeIcon icon={faDownload} className="w-3.5 h-3.5" />
+                  Export CSV
+                </button>
+              )}
               {!stockTake.adjustmentApplied && !["approved", "cancelled"].includes(stockTake.status) && (
                 <button
                   onClick={async () => {
@@ -375,199 +498,389 @@ export default function StockTakeDetail() {
             </div>
           </div>
 
-          {/* Summary Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
-            {[
-              { label: "Total Items", value: stockTake.totalItems },
-              { label: "Counted", value: stockTake.countedItems },
-              { label: "Progress", value: `${progressPct}%` },
-              { label: "Accuracy", value: `${stockTake.accuracyRate || 0}%` },
-              { label: "System Qty", value: stockTake.totalSystemQty },
-              { label: "Counted Qty", value: stockTake.totalCountedQty },
-              { label: "Net Variance", value: stockTake.totalVariance, isVariance: true },
-              { label: "Variance Value", value: formatCurrency(Math.abs(stockTake.totalVarianceValue || 0)), isVariance: true, raw: stockTake.totalVarianceValue },
-            ].map((stat, i) => (
-              <div key={i} className="bg-white border border-gray-200 rounded-lg p-3 text-center">
-                <div className={`text-lg font-bold ${
-                  stat.isVariance
-                    ? (stat.raw || stat.value) > 0
-                      ? "text-green-600"
-                      : (stat.raw || stat.value) < 0
-                      ? "text-red-600"
-                      : "text-gray-900"
-                    : "text-gray-900"
-                }`}>
-                  {stat.isVariance && typeof stat.value === "number" && stat.value > 0 ? "+" : ""}
-                  {stat.value}
+          {isEditable && (
+            <div className="content-card mb-6">
+              <div className="flex flex-col xl:flex-row gap-4 xl:items-start xl:justify-between">
+                <div className="flex-1">
+                  <div className="relative">
+                    <FontAwesomeIcon icon={faSearch} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <input
+                      type="text"
+                      value={productSearchTerm}
+                      onChange={(e) => setProductSearchTerm(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && productSearchResults[0]) {
+                          e.preventDefault();
+                          handleAddProduct(productSearchResults[0]._id);
+                        }
+                      }}
+                      placeholder="Search for products to add by name or barcode..."
+                      className="form-input pl-10"
+                    />
+
+                    {(searchingProducts || productSearchResults.length > 0 || productSearchTerm.trim().length >= 2) && (
+                      <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+                        {searchingProducts ? (
+                          <div className="px-4 py-3 text-sm text-gray-500">Searching products...</div>
+                        ) : productSearchResults.length > 0 ? (
+                          productSearchResults.map((product) => (
+                            <button
+                              key={product._id}
+                              type="button"
+                              onClick={() => handleAddProduct(product._id)}
+                              className="flex w-full items-center justify-between gap-3 border-b border-gray-100 px-4 py-3 text-left transition-colors hover:bg-gray-50 last:border-b-0"
+                            >
+                              <div>
+                                <div className="font-medium text-gray-900">{product.name}</div>
+                                <div className="text-xs text-gray-500">{product.barcode || "No barcode"}</div>
+                              </div>
+                              <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">
+                                <FontAwesomeIcon icon={faPlus} className="w-3 h-3" />
+                                Add
+                              </span>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-4 py-3 text-sm text-gray-500">No matching products found.</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <p className="mt-2 text-xs text-gray-500">
+                    Add a single product from search, or use Create List to build a stock take by vendor, category, shelf line, or all products.
+                  </p>
                 </div>
-                <div className="text-xs text-gray-500 mt-0.5">{stat.label}</div>
+
+                <div className="flex flex-wrap gap-2 xl:justify-end">
+                  <button onClick={handlePrint} className="btn-action flex items-center gap-2 text-sm">
+                    <FontAwesomeIcon icon={faPrint} className="w-3.5 h-3.5" />
+                    Print
+                  </button>
+                  <button
+                    onClick={handleClearList}
+                    disabled={!hasItems || !!actionLoading}
+                    className="btn-action flex items-center gap-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <FontAwesomeIcon icon={faTimes} className="w-3.5 h-3.5" />
+                    Clear List
+                  </button>
+                  <button
+                    onClick={() => setShowCreateListModal(true)}
+                    disabled={!!actionLoading}
+                    className="btn-action-primary flex items-center gap-2 text-sm"
+                  >
+                    <FontAwesomeIcon icon={faClipboardList} className="w-3.5 h-3.5" />
+                    Create List
+                  </button>
+                </div>
               </div>
-            ))}
-          </div>
-
-          {/* Progress Bar */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-gray-500">Counting Progress</span>
-              <span className="text-xs font-medium text-gray-700">{stockTake.countedItems} / {stockTake.totalItems}</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2.5">
-              <div
-                className={`h-2.5 rounded-full transition-all duration-500 ${
-                  progressPct === 100 ? "bg-green-500" : progressPct > 50 ? "bg-blue-500" : "bg-orange-400"
-                }`}
-                style={{ width: `${progressPct}%` }}
-              />
-            </div>
-          </div>
+          )}
 
-          {/* Filters */}
-          <div className="content-card mb-4">
-            <div className="flex flex-col md:flex-row gap-3">
-              <div className="relative flex-1">
-                <FontAwesomeIcon icon={faSearch} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input
-                  type="text"
-                  placeholder="Search products by name or barcode..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="form-input pl-10"
-                />
+          {isEditable && !hasItems ? (
+            <div className="content-card py-16">
+              <div className="grid gap-10 text-center md:grid-cols-2 md:items-start">
+                <div>
+                  <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full border-4 border-gray-200 text-gray-300">
+                    <FontAwesomeIcon icon={faSearch} className="w-9 h-9" />
+                  </div>
+                  <h2 className="text-2xl font-semibold text-gray-700">Search products</h2>
+                  <p className="mt-2 text-sm text-gray-400">
+                    Search by product name or barcode to add only the products you want to count.
+                  </p>
+                </div>
+                <div>
+                  <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full border-4 border-gray-200 text-gray-300">
+                    <FontAwesomeIcon icon={faClipboardList} className="w-9 h-9" />
+                  </div>
+                  <h2 className="text-2xl font-semibold text-gray-700">Create a list</h2>
+                  <p className="mt-2 text-sm text-gray-400">
+                    Build the stock take from all products, or narrow it by vendor, category, or shelf line before counting starts.
+                  </p>
+                </div>
               </div>
-              <select
-                value={filterItemStatus}
-                onChange={(e) => setFilterItemStatus(e.target.value)}
-                className="form-select w-full md:w-36"
-              >
-                <option value="all">All Items</option>
-                <option value="pending">Pending</option>
-                <option value="counted">Counted</option>
-              </select>
-              <select
-                value={filterVariance}
-                onChange={(e) => setFilterVariance(e.target.value)}
-                className="form-select w-full md:w-44"
-              >
-                <option value="all">All Variances</option>
-                <option value="positive">Surplus (+)</option>
-                <option value="negative">Shortage (-)</option>
-                <option value="match">Exact Match</option>
-                <option value="uncounted">Not Counted</option>
-              </select>
             </div>
-          </div>
-
-          {/* Items Table */}
-          <div className="content-card overflow-x-auto">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm text-gray-500">{filteredItems.length} item(s) shown</p>
-            </div>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b-2 border-gray-200 text-left">
-                  <th className="py-2 px-2 font-semibold text-gray-600 w-8">#</th>
-                  <th className="py-2 px-2 font-semibold text-gray-600">Product</th>
-                  <th className="py-2 px-2 font-semibold text-gray-600 hidden md:table-cell">Barcode</th>
-                  <th className="py-2 px-2 font-semibold text-gray-600 text-center">System Qty</th>
-                  <th className="py-2 px-2 font-semibold text-gray-600 text-center w-28">Counted</th>
-                  <th className="py-2 px-2 font-semibold text-gray-600 text-center">Variance</th>
-                  <th className="py-2 px-2 font-semibold text-gray-600 text-right hidden lg:table-cell">Variance Value</th>
-                  <th className="py-2 px-2 font-semibold text-gray-600 text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredItems.map((item, idx) => {
-                  const pendingVal = pendingChanges[item._id];
-                  const displayCounted = pendingVal !== undefined
-                    ? pendingVal.countedQty
-                    : item.countedQty;
-                  const displayVariance = displayCounted !== null && displayCounted !== undefined
-                    ? displayCounted - item.systemQty
-                    : null;
-
-                  return (
-                    <tr key={item._id} className={`border-b border-gray-100 transition-colors ${
-                      displayVariance !== null && displayVariance !== 0
-                        ? displayVariance > 0
-                          ? "bg-green-50/40"
-                          : "bg-red-50/40"
-                        : "hover:bg-gray-50"
+          ) : (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
+                {[
+                  { label: "Total Items", value: stockTake.totalItems },
+                  { label: "Counted", value: stockTake.countedItems },
+                  { label: "Progress", value: `${progressPct}%` },
+                  { label: "Accuracy", value: `${stockTake.accuracyRate || 0}%` },
+                  { label: "System Qty", value: stockTake.totalSystemQty },
+                  { label: "Counted Qty", value: stockTake.totalCountedQty },
+                  { label: "Net Variance", value: stockTake.totalVariance, isVariance: true },
+                  { label: "Variance Value", value: formatCurrency(Math.abs(stockTake.totalVarianceValue || 0)), isVariance: true, raw: stockTake.totalVarianceValue },
+                ].map((stat, index) => (
+                  <div key={index} className="bg-white border border-gray-200 rounded-lg p-3 text-center">
+                    <div className={`text-lg font-bold ${
+                      stat.isVariance
+                        ? (stat.raw || stat.value) > 0
+                          ? "text-green-600"
+                          : (stat.raw || stat.value) < 0
+                          ? "text-red-600"
+                          : "text-gray-900"
+                        : "text-gray-900"
                     }`}>
-                      <td className="py-2 px-2 text-gray-400 text-xs">{idx + 1}</td>
-                      <td className="py-2 px-2">
-                        <div className="font-medium text-gray-900 text-sm">
-                          {item.productName}
-                          {item.countType === "loose-units" && (
-                            <span className="ml-1 text-xs text-orange-600 font-normal">({item.qtyPerPack} per pack)</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-2 px-2 font-mono text-xs text-gray-500 hidden md:table-cell">{item.barcode || "—"}</td>
-                      <td className="py-2 px-2 text-center font-medium text-gray-700">{item.systemQty}</td>
-                      <td className="py-2 px-2 text-center">
-                        {isEditable ? (
-                          <input
-                            ref={(el) => { if (el) countInputRefs.current[item._id] = el; }}
-                            type="number"
-                            min="0"
-                            value={pendingVal !== undefined ? (pendingVal.countedQty ?? "") : (item.countedQty ?? "")}
-                            onChange={(e) => handleCountChange(item._id, e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                // Move to next row
-                                const nextItem = filteredItems[idx + 1];
-                                if (nextItem && countInputRefs.current[nextItem._id]) {
-                                  countInputRefs.current[nextItem._id].focus();
-                                  countInputRefs.current[nextItem._id].select();
-                                }
-                              }
-                            }}
-                            className="w-20 text-center border border-gray-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-                            placeholder="—"
-                          />
-                        ) : (
-                          <span className="font-medium">{item.countedQty ?? "—"}</span>
-                        )}
-                      </td>
-                      <td className="py-2 px-2 text-center">
-                        {displayVariance !== null ? (
-                          <span className={`font-bold ${
-                            displayVariance > 0 ? "text-green-600" : displayVariance < 0 ? "text-red-600" : "text-gray-500"
-                          }`}>
-                            {displayVariance > 0 ? "+" : ""}{displayVariance}
-                          </span>
-                        ) : (
-                          <span className="text-gray-300">—</span>
-                        )}
-                      </td>
-                      <td className="py-2 px-2 text-right hidden lg:table-cell">
-                        {displayVariance !== null && displayVariance !== 0 ? (
-                          <span className={displayVariance > 0 ? "text-green-600" : "text-red-600"}>
-                            {formatCurrency(Math.abs(displayVariance * item.costPrice))}
-                          </span>
-                        ) : (
-                          <span className="text-gray-300">—</span>
-                        )}
-                      </td>
-                      <td className="py-2 px-2 text-center">
-                        {(pendingVal || item.status === "counted") ? (
-                          <span className="inline-flex w-2 h-2 rounded-full bg-green-500" title="Counted" />
-                        ) : (
-                          <span className="inline-flex w-2 h-2 rounded-full bg-gray-300" title="Pending" />
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            {filteredItems.length === 0 && (
-              <div className="text-center py-12 text-gray-400">
-                <FontAwesomeIcon icon={faBalanceScale} className="w-10 h-10 mb-3" />
-                <p>No items match your filters</p>
+                      {stat.isVariance && typeof stat.value === "number" && stat.value > 0 ? "+" : ""}
+                      {stat.value}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-0.5">{stat.label}</div>
+                  </div>
+                ))}
               </div>
-            )}
-          </div>
+
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-gray-500">Counting Progress</span>
+                  <span className="text-xs font-medium text-gray-700">{stockTake.countedItems} / {stockTake.totalItems}</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                  <div
+                    className={`h-2.5 rounded-full transition-all duration-500 ${
+                      progressPct === 100 ? "bg-green-500" : progressPct > 50 ? "bg-blue-500" : "bg-orange-400"
+                    }`}
+                    style={{ width: `${progressPct}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="content-card mb-4">
+                <div className="flex flex-col md:flex-row gap-3">
+                  <div className="relative flex-1">
+                    <FontAwesomeIcon icon={faSearch} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <input
+                      type="text"
+                      placeholder="Search products by name or barcode..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="form-input pl-10"
+                    />
+                  </div>
+                  <select
+                    value={filterItemStatus}
+                    onChange={(e) => setFilterItemStatus(e.target.value)}
+                    className="form-select w-full md:w-36"
+                  >
+                    <option value="all">All Items</option>
+                    <option value="pending">Pending</option>
+                    <option value="counted">Counted</option>
+                  </select>
+                  <select
+                    value={filterVariance}
+                    onChange={(e) => setFilterVariance(e.target.value)}
+                    className="form-select w-full md:w-44"
+                  >
+                    <option value="all">All Variances</option>
+                    <option value="positive">Surplus (+)</option>
+                    <option value="negative">Shortage (-)</option>
+                    <option value="match">Exact Match</option>
+                    <option value="uncounted">Not Counted</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="content-card overflow-x-auto">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm text-gray-500">{filteredItems.length} item(s) shown</p>
+                </div>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b-2 border-gray-200 text-left">
+                      <th className="py-2 px-2 font-semibold text-gray-600 w-8">#</th>
+                      <th className="py-2 px-2 font-semibold text-gray-600">Product</th>
+                      <th className="py-2 px-2 font-semibold text-gray-600 hidden md:table-cell">Barcode</th>
+                      <th className="py-2 px-2 font-semibold text-gray-600 text-center">System Qty</th>
+                      <th className="py-2 px-2 font-semibold text-gray-600 text-center w-28">Counted</th>
+                      <th className="py-2 px-2 font-semibold text-gray-600 text-center">Variance</th>
+                      <th className="py-2 px-2 font-semibold text-gray-600 text-right hidden lg:table-cell">Variance Value</th>
+                      <th className="py-2 px-2 font-semibold text-gray-600 text-center">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredItems.map((item, index) => {
+                      const pendingVal = pendingChanges[item._id];
+                      const displayCounted = pendingVal !== undefined ? pendingVal.countedQty : item.countedQty;
+                      const displayVariance = displayCounted !== null && displayCounted !== undefined
+                        ? displayCounted - item.systemQty
+                        : null;
+
+                      return (
+                        <tr key={item._id} className={`border-b border-gray-100 transition-colors ${
+                          displayVariance !== null && displayVariance !== 0
+                            ? displayVariance > 0
+                              ? "bg-green-50/40"
+                              : "bg-red-50/40"
+                            : "hover:bg-gray-50"
+                        }`}>
+                          <td className="py-2 px-2 text-gray-400 text-xs">{index + 1}</td>
+                          <td className="py-2 px-2">
+                            <div className="font-medium text-gray-900 text-sm">
+                              {item.productName}
+                              {item.countType === "loose-units" && (
+                                <span className="ml-1 text-xs text-orange-600 font-normal">({item.qtyPerPack} per pack)</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-2 px-2 font-mono text-xs text-gray-500 hidden md:table-cell">{item.barcode || "—"}</td>
+                          <td className="py-2 px-2 text-center font-medium text-gray-700">{item.systemQty}</td>
+                          <td className="py-2 px-2 text-center">
+                            {isEditable ? (
+                              <input
+                                ref={(element) => {
+                                  if (element) countInputRefs.current[item._id] = element;
+                                }}
+                                type="number"
+                                min="0"
+                                value={pendingVal !== undefined ? (pendingVal.countedQty ?? "") : (item.countedQty ?? "")}
+                                onChange={(e) => handleCountChange(item._id, e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    const nextItem = filteredItems[index + 1];
+                                    if (nextItem && countInputRefs.current[nextItem._id]) {
+                                      countInputRefs.current[nextItem._id].focus();
+                                      countInputRefs.current[nextItem._id].select();
+                                    }
+                                  }
+                                }}
+                                className="w-20 text-center border border-gray-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                                placeholder="—"
+                              />
+                            ) : (
+                              <span className="font-medium">{item.countedQty ?? "—"}</span>
+                            )}
+                          </td>
+                          <td className="py-2 px-2 text-center">
+                            {displayVariance !== null ? (
+                              <span className={`font-bold ${
+                                displayVariance > 0 ? "text-green-600" : displayVariance < 0 ? "text-red-600" : "text-gray-500"
+                              }`}>
+                                {displayVariance > 0 ? "+" : ""}
+                                {displayVariance}
+                              </span>
+                            ) : (
+                              <span className="text-gray-300">—</span>
+                            )}
+                          </td>
+                          <td className="py-2 px-2 text-right hidden lg:table-cell">
+                            {displayVariance !== null && displayVariance !== 0 ? (
+                              <span className={displayVariance > 0 ? "text-green-600" : "text-red-600"}>
+                                {formatCurrency(Math.abs(displayVariance * item.costPrice))}
+                              </span>
+                            ) : (
+                              <span className="text-gray-300">—</span>
+                            )}
+                          </td>
+                          <td className="py-2 px-2 text-center">
+                            {(pendingVal || item.status === "counted") ? (
+                              <span className="inline-flex w-2 h-2 rounded-full bg-green-500" title="Counted" />
+                            ) : (
+                              <span className="inline-flex w-2 h-2 rounded-full bg-gray-300" title="Pending" />
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {filteredItems.length === 0 && (
+                  <div className="text-center py-12 text-gray-400">
+                    <FontAwesomeIcon icon={faBalanceScale} className="w-10 h-10 mb-3" />
+                    <p>No items match your filters</p>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {showCreateListModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+              <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+                <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-900">Create Stocktake List</h2>
+                    <p className="mt-1 text-sm text-gray-500">Choose how you want to build this stock take list.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateListModal(false)}
+                    className="rounded-md p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
+                  >
+                    <FontAwesomeIcon icon={faTimes} className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="space-y-4 px-5 py-5">
+                  <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+                    Leave every filter on All Products to create a full stock take list.
+                  </div>
+
+                  <div className="grid gap-4">
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold text-gray-700">Vendors</label>
+                      <select
+                        value={listFilters.vendorId}
+                        onChange={(e) => setListFilters((current) => ({ ...current, vendorId: e.target.value }))}
+                        className="form-select"
+                      >
+                        <option value="">All Products</option>
+                        {builderOptions.vendors.map((vendor) => (
+                          <option key={vendor.value} value={vendor.value}>{vendor.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold text-gray-700">Categories</label>
+                      <select
+                        value={listFilters.categoryId}
+                        onChange={(e) => setListFilters((current) => ({ ...current, categoryId: e.target.value }))}
+                        className="form-select"
+                      >
+                        <option value="">All Categories</option>
+                        {builderOptions.categories.map((category) => (
+                          <option key={category.value} value={category.value}>{category.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold text-gray-700">Shelf Line</label>
+                      <select
+                        value={listFilters.shelfLine}
+                        onChange={(e) => setListFilters((current) => ({ ...current, shelfLine: e.target.value }))}
+                        className="form-select"
+                      >
+                        <option value="">All Shelf Lines</option>
+                        {builderOptions.shelfLines.map((shelfLine) => (
+                          <option key={shelfLine.value} value={shelfLine.value}>{shelfLine.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col-reverse gap-3 border-t border-gray-200 px-5 py-4 sm:flex-row sm:justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setListFilters(EMPTY_LIST_FILTERS)}
+                    className="btn-action w-full sm:w-auto"
+                  >
+                    Reset
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCreateList}
+                    disabled={actionLoading === "create-list"}
+                    className="btn-action-primary w-full sm:w-auto"
+                  >
+                    {actionLoading === "create-list" ? "Creating..." : "Create List"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </Layout>

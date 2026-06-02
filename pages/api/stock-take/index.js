@@ -1,7 +1,6 @@
 // pages/api/stock-take/index.js
 import { mongooseConnect } from "@/lib/mongodb";
 import StockTake from "@/models/StockTake";
-import Product from "@/models/Product";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 
 function generateRef() {
@@ -67,53 +66,6 @@ export default async function handler(req, res) {
 
       const title = buildStockTakeTitle(locationName);
 
-      // Build product filter — exclude derived child products (unit products auto-created from packs)
-      // A derived child has isChildProduct=true AND packType != "pack"
-      const productFilter = { isArchived: { $ne: true }, isStockManaged: true };
-
-      const products = await Product.find(productFilter)
-        .select("name barcode category quantity costPrice packType qtyPerPack isChildProduct parentProduct")
-        .lean();
-
-      const items = [];
-      for (const p of products) {
-        const isDerivedChild = p.isChildProduct && p.packType !== "pack";
-        if (isDerivedChild) continue; // Skip unit products derived from packs
-
-        // Regular entry (packs for pack products, units for unit products)
-        items.push({
-          productId: p._id,
-          productName: p.name,
-          barcode: p.barcode || "",
-          category: p.category || "",
-          systemQty: p.quantity || 0,
-          countedQty: null,
-          variance: 0,
-          varianceValue: 0,
-          costPrice: p.costPrice || 0,
-          status: "pending",
-          countType: "standard",
-        });
-
-        // For pack products, add a second entry for loose units
-        if (p.packType === "pack" && (p.qtyPerPack || 1) > 1) {
-          items.push({
-            productId: p._id,
-            productName: `${p.name} (Loose Units)`,
-            barcode: p.barcode ? `${p.barcode}-LU` : "",
-            category: p.category || "",
-            systemQty: 0, // No separate system qty — loose units are part of the pack count
-            countedQty: null,
-            variance: 0,
-            varianceValue: 0,
-            costPrice: Math.round(((p.costPrice || 0) / (p.qtyPerPack || 1)) * 100) / 100,
-            status: "pending",
-            countType: "loose-units",
-            qtyPerPack: p.qtyPerPack || 1,
-          });
-        }
-      }
-
       const stockTake = await StockTake.create({
         reference: generateRef(),
         title,
@@ -122,11 +74,12 @@ export default async function handler(req, res) {
         locationName,
         type: "full",
         category: "",
-        items,
-        totalItems: items.length,
-        totalSystemQty: items.reduce((s, i) => s + i.systemQty, 0),
+        items: [],
+        totalItems: 0,
+        totalSystemQty: 0,
         createdBy: createdBy || req.user?.name || "",
-        status: "draft",
+        status: "in-progress",
+        startedAt: new Date(),
       });
 
       return res.status(201).json({ success: true, stockTake: { ...stockTake.toObject(), items: undefined }, id: stockTake._id });

@@ -366,6 +366,7 @@ export default function StockTakeList() {
                     <tbody>
                       {filtered.map((st) => {
                         const progressPct = st.totalItems > 0 ? Math.round((st.countedItems / st.totalItems) * 100) : 0;
+                        const canResume = !["completed", "cancelled", "approved"].includes(st.status);
                         return (
                           <tr key={st._id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                             <td className="py-3 px-3 font-mono text-xs theme-accent-text">{st.reference}</td>
@@ -404,10 +405,13 @@ export default function StockTakeList() {
                             <td className="py-3 px-3 text-right">
                               <button
                                 onClick={() => router.push(`/stock/stock-take/${st._id}`)}
-                                className="theme-accent-text transition-opacity hover:opacity-75 p-1"
-                                title="View Details"
+                                className="inline-flex items-center gap-2 theme-accent-text transition-opacity hover:opacity-75 px-2 py-1 rounded"
+                                title={canResume ? "Resume Stock Take" : "View Details"}
                               >
-                                <FontAwesomeIcon icon={faEye} className="w-4 h-4" />
+                                <FontAwesomeIcon icon={canResume ? faPlay : faEye} className="w-4 h-4" />
+                                <span className="hidden md:inline text-xs font-semibold uppercase tracking-wide">
+                                  {canResume ? "Resume" : "View"}
+                                </span>
                               </button>
                             </td>
                           </tr>

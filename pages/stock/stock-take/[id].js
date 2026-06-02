@@ -1,6 +1,6 @@
 // pages/stock/stock-take/[id].js
 "use client";
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { Fragment, useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/router";
 import Layout from "@/components/Layout";
 import { Loader } from "@/components/ui";
@@ -42,6 +42,22 @@ const EMPTY_LIST_FILTERS = {
   shelfLine: "",
 };
 
+const VIEW_MODES = {
+  COUNT: "count",
+  REVIEW: "review",
+};
+
+const REASON_OPTIONS = [
+  "Stock Take",
+  "Damaged",
+  "Expired",
+  "Transfer",
+  "Supplier Shortage",
+  "Theft",
+  "Counting Error",
+  "Other",
+];
+
 export default function StockTakeDetail() {
   const router = useRouter();
   const { id } = router.query;
@@ -63,6 +79,8 @@ export default function StockTakeDetail() {
   const [productSearchTerm, setProductSearchTerm] = useState("");
   const [productSearchResults, setProductSearchResults] = useState([]);
   const [searchingProducts, setSearchingProducts] = useState(false);
+  const [viewMode, setViewMode] = useState(VIEW_MODES.COUNT);
+  const [bulkReason, setBulkReason] = useState(REASON_OPTIONS[0]);
   const countInputRefs = useRef({});
 
   const isEditable = Boolean(stockTake && ["draft", "in-progress"].includes(stockTake.status));
@@ -152,23 +170,74 @@ export default function StockTakeDetail() {
     };
   }, [productSearchTerm, isEditable, stockTake?.items]);
 
+  useEffect(() => {
+    if (!stockTake) return;
+
+    if (!isEditable) {
+      setViewMode(VIEW_MODES.REVIEW);
+      return;
+    }
+
+    if (!hasItems) {
+      setViewMode(VIEW_MODES.COUNT);
+    }
+  }, [stockTake, isEditable, hasItems]);
+
+  const getEffectiveItem = useCallback((item) => {
+    const pending = pendingChanges[item._id] || {};
+    const countedQty = Object.prototype.hasOwnProperty.call(pending, "countedQty")
+      ? pending.countedQty
+      : item.countedQty;
+    const reason = Object.prototype.hasOwnProperty.call(pending, "reason")
+      ? pending.reason
+      : (item.reason || "");
+    const variance = countedQty !== null && countedQty !== undefined
+      ? Number(countedQty) - Number(item.systemQty || 0)
+      : null;
+
+    return {
+      ...item,
+      countedQty,
+      reason,
+      variance,
+      varianceValue: variance !== null ? variance * Number(item.costPrice || 0) : null,
+      derivedStatus: countedQty !== null && countedQty !== undefined ? "counted" : "pending",
+    };
+  }, [pendingChanges]);
+
   const filteredItems = useMemo(() => {
     if (!stockTake?.items) return [];
 
     return stockTake.items.filter((item) => {
-      if (filterItemStatus !== "all" && item.status !== filterItemStatus) return false;
-      if (filterVariance === "positive" && !(item.countedQty !== null && item.variance > 0)) return false;
-      if (filterVariance === "negative" && !(item.countedQty !== null && item.variance < 0)) return false;
-      if (filterVariance === "match" && !(item.countedQty !== null && item.variance === 0)) return false;
-      if (filterVariance === "uncounted" && item.countedQty !== null) return false;
+      const effectiveItem = getEffectiveItem(item);
+
+      if (filterItemStatus !== "all" && effectiveItem.derivedStatus !== filterItemStatus) return false;
+      if (filterVariance === "positive" && !(effectiveItem.countedQty !== null && effectiveItem.variance > 0)) return false;
+      if (filterVariance === "negative" && !(effectiveItem.countedQty !== null && effectiveItem.variance < 0)) return false;
+      if (filterVariance === "match" && !(effectiveItem.countedQty !== null && effectiveItem.variance === 0)) return false;
+      if (filterVariance === "uncounted" && effectiveItem.countedQty !== null) return false;
       if (searchTerm) {
         const normalizedSearch = searchTerm.toLowerCase();
         return item.productName?.toLowerCase().includes(normalizedSearch) || item.barcode?.toLowerCase().includes(normalizedSearch);
       }
 
       return true;
-    });
-  }, [stockTake, filterItemStatus, filterVariance, searchTerm]);
+    }).map((item) => getEffectiveItem(item));
+  }, [stockTake, filterItemStatus, filterVariance, searchTerm, getEffectiveItem]);
+
+  const reviewItems = useMemo(() => {
+    if (!stockTake?.items) return [];
+    return stockTake.items.map((item) => getEffectiveItem(item));
+  }, [stockTake, getEffectiveItem]);
+
+  const reviewStats = useMemo(() => {
+    const total = reviewItems.length;
+    const discrepancies = reviewItems.filter((item) => item.countedQty !== null && item.variance !== 0).length;
+    const correct = reviewItems.filter((item) => item.countedQty !== null && item.variance === 0).length;
+    const uncounted = reviewItems.filter((item) => item.countedQty === null).length;
+
+    return { total, discrepancies, correct, uncounted };
+  }, [reviewItems]);
 
   const showMsg = (type, text) => {
     setMessage({ type, text });
@@ -177,7 +246,23 @@ export default function StockTakeDetail() {
 
   const handleCountChange = (itemId, value) => {
     const numVal = value === "" ? null : Number(value);
-    setPendingChanges((prev) => ({ ...prev, [itemId]: { countedQty: numVal } }));
+    setPendingChanges((prev) => ({
+      ...prev,
+      [itemId]: {
+        ...(prev[itemId] || {}),
+        countedQty: numVal,
+      },
+    }));
+  };
+
+  const handleReasonChange = (itemId, value) => {
+    setPendingChanges((prev) => ({
+      ...prev,
+      [itemId]: {
+        ...(prev[itemId] || {}),
+        reason: value,
+      },
+    }));
   };
 
   const saveChanges = async () => {
@@ -196,7 +281,7 @@ export default function StockTakeDetail() {
       if (data.success) {
         setStockTake(data.stockTake);
         setPendingChanges({});
-        showMsg("success", `${items.length} count(s) saved successfully`);
+        showMsg("success", `${items.length} update(s) saved successfully`);
       } else {
         showMsg("error", data.message);
       }
@@ -263,6 +348,8 @@ export default function StockTakeDetail() {
     });
     if (!created) return;
 
+    setPendingChanges({});
+    setViewMode(VIEW_MODES.COUNT);
     setShowCreateListModal(false);
     setListFilters(EMPTY_LIST_FILTERS);
   };
@@ -286,9 +373,62 @@ export default function StockTakeDetail() {
     setFilterVariance("all");
   };
 
+  const handleApplyReasonToAll = () => {
+    const discrepancyItems = reviewItems.filter((item) => item.countedQty !== null && item.variance !== 0);
+
+    if (discrepancyItems.length === 0) {
+      showMsg("error", "There are no discrepancy items to update");
+      return;
+    }
+
+    setPendingChanges((prev) => {
+      const next = { ...prev };
+      discrepancyItems.forEach((item) => {
+        next[item._id] = {
+          ...(next[item._id] || {}),
+          reason: bulkReason,
+        };
+      });
+      return next;
+    });
+
+    showMsg("success", `Reason applied to ${discrepancyItems.length} discrepancy item(s)`);
+  };
+
+  const handleZeroUncounted = async () => {
+    const shouldZero = await showConfirmDialog({
+      title: "Zero all uncounted items?",
+      message: "Every uncounted item will be saved with an actual quantity of 0.",
+      tone: "warning",
+      confirmLabel: "Zero uncounted",
+      cancelLabel: "Keep uncounted",
+    });
+    if (!shouldZero) return;
+
+    const updated = await performAction("zero-uncounted");
+    if (!updated) return;
+    setPendingChanges({});
+    setViewMode(VIEW_MODES.REVIEW);
+  };
+
+  const handleRemoveUncounted = async () => {
+    const shouldRemove = await showConfirmDialog({
+      title: "Remove all uncounted items?",
+      message: "Every item without an actual count will be removed from this stock take.",
+      tone: "danger",
+      confirmLabel: "Remove uncounted",
+      cancelLabel: "Keep items",
+    });
+    if (!shouldRemove) return;
+
+    const updated = await performAction("remove-uncounted");
+    if (!updated) return;
+    setPendingChanges({});
+  };
+
   const exportCSV = () => {
     if (!stockTake?.items) return;
-    const header = "Product,Barcode,System Qty,Counted Qty,Variance,Variance Value,Status,Notes\n";
+    const header = "Product,Barcode,System Qty,Counted Qty,Variance,Variance Value,Status,Reason,Notes\n";
     const rows = stockTake.items.map((item) => [
       `"${item.productName}"`,
       item.barcode,
@@ -297,6 +437,7 @@ export default function StockTakeDetail() {
       item.variance,
       item.varianceValue?.toFixed(2),
       item.status,
+      `"${item.reason || ""}"`,
       `"${item.notes || ""}"`,
     ].join(","));
 
@@ -343,6 +484,8 @@ export default function StockTakeDetail() {
   const progressPct = stockTake.totalItems > 0
     ? Math.round((stockTake.countedItems / stockTake.totalItems) * 100)
     : 0;
+  const isReviewMode = viewMode === VIEW_MODES.REVIEW;
+  const canCompleteInReview = isAdmin && stockTake.status === "in-progress" && hasItems;
 
   return (
     <Layout>
@@ -383,7 +526,30 @@ export default function StockTakeDetail() {
                   {saving ? "Saving..." : `Save (${Object.keys(pendingChanges).length})`}
                 </button>
               )}
-              {stockTake.status === "draft" && hasItems && (
+              {isEditable && hasItems && !isReviewMode && (
+                <button
+                  onClick={() => {
+                    setSearchTerm("");
+                    setFilterItemStatus("all");
+                    setFilterVariance("all");
+                    setViewMode(VIEW_MODES.REVIEW);
+                  }}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
+                >
+                  <FontAwesomeIcon icon={faCheck} className="w-3.5 h-3.5" />
+                  Review Stocktake
+                </button>
+              )}
+              {isEditable && hasItems && isReviewMode && (
+                <button
+                  onClick={() => setViewMode(VIEW_MODES.COUNT)}
+                  className="btn-action flex items-center gap-2 text-sm"
+                >
+                  <FontAwesomeIcon icon={faPlay} className="w-3.5 h-3.5" />
+                  Resume
+                </button>
+              )}
+              {stockTake.status === "draft" && hasItems && !isReviewMode && (
                 <button
                   onClick={() => performAction("start")}
                   disabled={!!actionLoading}
@@ -393,7 +559,7 @@ export default function StockTakeDetail() {
                   Start Counting
                 </button>
               )}
-              {isAdmin && (stockTake.status === "draft" || stockTake.status === "in-progress") && (
+              {isAdmin && !isReviewMode && (stockTake.status === "draft" || stockTake.status === "in-progress") && (
                 <button
                   onClick={async () => {
                     const shouldZero = await showConfirmDialog({
@@ -413,24 +579,24 @@ export default function StockTakeDetail() {
                   {actionLoading === "zero-all" ? "Zeroing..." : "Zero All Stock"}
                 </button>
               )}
-              {stockTake.status === "in-progress" && hasItems && (
+              {canCompleteInReview && isReviewMode && (
                 <button
                   onClick={async () => {
                     const shouldComplete = await showConfirmDialog({
                       title: "Complete stock take?",
-                      message: "Ensure all items are counted before finalizing.",
+                      message: "Ensure all discrepancies are reviewed before finalizing.",
                       tone: "warning",
                       confirmLabel: "Complete stock take",
-                      cancelLabel: "Keep counting",
+                      cancelLabel: "Keep reviewing",
                     });
                     if (!shouldComplete) return;
                     performAction("complete");
                   }}
-                  disabled={!!actionLoading}
-                  className="btn-action-primary flex items-center gap-2 text-sm"
+                  disabled={!!actionLoading || hasPending || reviewStats.uncounted > 0}
+                  className="btn-action-primary flex items-center gap-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <FontAwesomeIcon icon={faCheck} className="w-3.5 h-3.5" />
-                  Complete
+                  Complete Stocktake
                 </button>
               )}
               {stockTake.status === "completed" && (
@@ -475,7 +641,7 @@ export default function StockTakeDetail() {
                   Export CSV
                 </button>
               )}
-              {!stockTake.adjustmentApplied && !["approved", "cancelled"].includes(stockTake.status) && (
+              {!isReviewMode && !stockTake.adjustmentApplied && !["approved", "cancelled"].includes(stockTake.status) && (
                 <button
                   onClick={async () => {
                     const shouldCancel = await showConfirmDialog({
@@ -498,12 +664,12 @@ export default function StockTakeDetail() {
             </div>
           </div>
 
-          {isEditable && (
+          {isEditable && !isReviewMode && (
             <div className="content-card mb-6">
               <div className="flex flex-col xl:flex-row gap-4 xl:items-start xl:justify-between">
                 <div className="flex-1">
                   <div className="relative">
-                    <FontAwesomeIcon icon={faSearch} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <FontAwesomeIcon icon={faSearch} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                     <input
                       type="text"
                       value={productSearchTerm}
@@ -515,7 +681,7 @@ export default function StockTakeDetail() {
                         }
                       }}
                       placeholder="Search for products to add by name or barcode..."
-                      className="form-input pl-10"
+                      className="form-input pl-12 placeholder:text-gray-400"
                     />
 
                     {(searchingProducts || productSearchResults.length > 0 || productSearchTerm.trim().length >= 2) && (
@@ -577,7 +743,7 @@ export default function StockTakeDetail() {
             </div>
           )}
 
-          {isEditable && !hasItems ? (
+          {!isReviewMode && isEditable && !hasItems ? (
             <div className="content-card py-16">
               <div className="grid gap-10 text-center md:grid-cols-2 md:items-start">
                 <div>
@@ -600,6 +766,162 @@ export default function StockTakeDetail() {
                 </div>
               </div>
             </div>
+          ) : isReviewMode ? (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+                {[
+                  { label: "All Items", value: reviewStats.total, accent: "border-sky-500 text-sky-600" },
+                  { label: "Discrepancies", value: reviewStats.discrepancies, accent: "border-red-400 text-red-500" },
+                  { label: "Correct", value: reviewStats.correct, accent: "border-green-400 text-green-500" },
+                  { label: "Uncounted", value: reviewStats.uncounted, accent: "border-gray-700 text-gray-800" },
+                ].map((card) => (
+                  <div key={card.label} className={`rounded-xl border-2 bg-white px-6 py-5 text-center ${card.accent}`}>
+                    <div className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-400">Showing</div>
+                    <div className={`mt-3 text-4xl font-light ${card.accent.split(" ").at(-1) || "text-gray-900"}`}>{card.value}</div>
+                    <div className="mt-3 text-lg font-medium uppercase tracking-wide text-gray-700">{card.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="content-card mb-4">
+                <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                  {isEditable ? (
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                      <select
+                        value={bulkReason}
+                        onChange={(e) => setBulkReason(e.target.value)}
+                        className="form-select w-full md:w-52"
+                      >
+                        {REASON_OPTIONS.map((reason) => (
+                          <option key={reason} value={reason}>{reason}</option>
+                        ))}
+                      </select>
+                      <button onClick={handleApplyReasonToAll} className="btn-action-primary text-sm px-5 py-2.5">
+                        Apply To All
+                      </button>
+                    </div>
+                  ) : <div />}
+
+                  <div className="flex flex-wrap gap-2 xl:justify-end">
+                    {isEditable && (
+                      <>
+                        <button
+                          onClick={handleZeroUncounted}
+                          disabled={reviewStats.uncounted === 0 || !!actionLoading}
+                          className="btn-action text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Zero Uncounted
+                        </button>
+                        <button
+                          onClick={handleRemoveUncounted}
+                          disabled={reviewStats.uncounted === 0 || !!actionLoading}
+                          className="btn-action text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Remove Uncounted
+                        </button>
+                      </>
+                    )}
+                    <button onClick={handlePrint} className="btn-action text-sm">
+                      Print
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="content-card overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b-2 border-gray-200 text-left">
+                      <th className="py-2 px-2 font-semibold text-gray-600 w-8">#</th>
+                      <th className="py-2 px-2 font-semibold text-gray-600">Product</th>
+                      <th className="py-2 px-2 font-semibold text-gray-600 hidden md:table-cell">Barcode</th>
+                      <th className="py-2 px-2 font-semibold text-gray-600 text-center">Expected Stock</th>
+                      <th className="py-2 px-2 font-semibold text-gray-600 text-center">Actual Stock</th>
+                      <th className="py-2 px-2 font-semibold text-gray-600 text-center">Variance</th>
+                      <th className="py-2 px-2 font-semibold text-gray-600 text-right hidden lg:table-cell">Variance Value</th>
+                      <th className="py-2 px-2 font-semibold text-gray-600 text-center">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reviewItems.map((item, index) => (
+                      <Fragment key={item._id}>
+                        <tr className={`border-b border-gray-100 transition-colors ${
+                          item.countedQty !== null && item.variance !== 0
+                            ? item.variance > 0
+                              ? "bg-green-50/40"
+                              : "bg-red-50/40"
+                            : "hover:bg-gray-50"
+                        }`}>
+                          <td className="py-2 px-2 text-gray-400 text-xs">{index + 1}</td>
+                          <td className="py-2 px-2">
+                            <div className="font-medium text-gray-900 text-sm">
+                              {item.productName}
+                              {item.countType === "loose-units" && (
+                                <span className="ml-1 text-xs text-orange-600 font-normal">({item.qtyPerPack} per pack)</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-2 px-2 font-mono text-xs text-gray-500 hidden md:table-cell">{item.barcode || "—"}</td>
+                          <td className="py-2 px-2 text-center font-medium text-gray-700">{item.systemQty}</td>
+                          <td className="py-2 px-2 text-center font-medium text-gray-900">{item.countedQty ?? "—"}</td>
+                          <td className="py-2 px-2 text-center">
+                            {item.countedQty !== null ? (
+                              <span className={`font-bold ${
+                                item.variance > 0 ? "text-green-600" : item.variance < 0 ? "text-red-600" : "text-gray-500"
+                              }`}>
+                                {item.variance > 0 ? "+" : ""}
+                                {item.variance}
+                              </span>
+                            ) : (
+                              <span className="text-gray-300">—</span>
+                            )}
+                          </td>
+                          <td className="py-2 px-2 text-right hidden lg:table-cell">
+                            {item.countedQty !== null && item.variance !== 0 ? (
+                              <span className={item.variance > 0 ? "text-green-600" : "text-red-600"}>
+                                {formatCurrency(Math.abs(item.varianceValue || 0))}
+                              </span>
+                            ) : (
+                              <span className="text-gray-300">—</span>
+                            )}
+                          </td>
+                          <td className="py-2 px-2 text-center">
+                            <span className={`inline-flex w-2 h-2 rounded-full ${item.derivedStatus === "counted" ? "bg-green-500" : "bg-gray-300"}`} />
+                          </td>
+                        </tr>
+                        {item.countedQty !== null && item.variance !== 0 && (
+                          <tr className="bg-gray-50/80 border-b border-gray-100">
+                            <td colSpan={3} className="px-2 py-3 text-sm text-gray-500 text-right">
+                              The reason for the difference is
+                            </td>
+                            <td colSpan={5} className="px-2 py-3">
+                              <div className="flex justify-end">
+                                <select
+                                  value={item.reason || REASON_OPTIONS[0]}
+                                  onChange={(e) => handleReasonChange(item._id, e.target.value)}
+                                  disabled={!isEditable}
+                                  className="form-select w-full max-w-xs"
+                                >
+                                  {REASON_OPTIONS.map((reason) => (
+                                    <option key={reason} value={reason}>{reason}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    ))}
+                  </tbody>
+                </table>
+                {reviewItems.length === 0 && (
+                  <div className="text-center py-12 text-gray-400">
+                    <FontAwesomeIcon icon={faBalanceScale} className="w-10 h-10 mb-3" />
+                    <p>No items available for review</p>
+                  </div>
+                )}
+              </div>
+            </>
           ) : (
             <>
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
@@ -649,13 +971,13 @@ export default function StockTakeDetail() {
               <div className="content-card mb-4">
                 <div className="flex flex-col md:flex-row gap-3">
                   <div className="relative flex-1">
-                    <FontAwesomeIcon icon={faSearch} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <FontAwesomeIcon icon={faSearch} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                     <input
                       type="text"
                       placeholder="Search products by name or barcode..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="form-input pl-10"
+                      className="form-input pl-12 placeholder:text-gray-400"
                     />
                   </div>
                   <select
@@ -700,16 +1022,10 @@ export default function StockTakeDetail() {
                   </thead>
                   <tbody>
                     {filteredItems.map((item, index) => {
-                      const pendingVal = pendingChanges[item._id];
-                      const displayCounted = pendingVal !== undefined ? pendingVal.countedQty : item.countedQty;
-                      const displayVariance = displayCounted !== null && displayCounted !== undefined
-                        ? displayCounted - item.systemQty
-                        : null;
-
                       return (
                         <tr key={item._id} className={`border-b border-gray-100 transition-colors ${
-                          displayVariance !== null && displayVariance !== 0
-                            ? displayVariance > 0
+                          item.countedQty !== null && item.variance !== 0
+                            ? item.variance > 0
                               ? "bg-green-50/40"
                               : "bg-red-50/40"
                             : "hover:bg-gray-50"
@@ -733,7 +1049,7 @@ export default function StockTakeDetail() {
                                 }}
                                 type="number"
                                 min="0"
-                                value={pendingVal !== undefined ? (pendingVal.countedQty ?? "") : (item.countedQty ?? "")}
+                                value={item.countedQty ?? ""}
                                 onChange={(e) => handleCountChange(item._id, e.target.value)}
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter") {
@@ -752,28 +1068,28 @@ export default function StockTakeDetail() {
                             )}
                           </td>
                           <td className="py-2 px-2 text-center">
-                            {displayVariance !== null ? (
+                            {item.countedQty !== null ? (
                               <span className={`font-bold ${
-                                displayVariance > 0 ? "text-green-600" : displayVariance < 0 ? "text-red-600" : "text-gray-500"
+                                item.variance > 0 ? "text-green-600" : item.variance < 0 ? "text-red-600" : "text-gray-500"
                               }`}>
-                                {displayVariance > 0 ? "+" : ""}
-                                {displayVariance}
+                                {item.variance > 0 ? "+" : ""}
+                                {item.variance}
                               </span>
                             ) : (
                               <span className="text-gray-300">—</span>
                             )}
                           </td>
                           <td className="py-2 px-2 text-right hidden lg:table-cell">
-                            {displayVariance !== null && displayVariance !== 0 ? (
-                              <span className={displayVariance > 0 ? "text-green-600" : "text-red-600"}>
-                                {formatCurrency(Math.abs(displayVariance * item.costPrice))}
+                            {item.countedQty !== null && item.variance !== 0 ? (
+                              <span className={item.variance > 0 ? "text-green-600" : "text-red-600"}>
+                                {formatCurrency(Math.abs(item.varianceValue || 0))}
                               </span>
                             ) : (
                               <span className="text-gray-300">—</span>
                             )}
                           </td>
                           <td className="py-2 px-2 text-center">
-                            {(pendingVal || item.status === "counted") ? (
+                            {item.derivedStatus === "counted" ? (
                               <span className="inline-flex w-2 h-2 rounded-full bg-green-500" title="Counted" />
                             ) : (
                               <span className="inline-flex w-2 h-2 rounded-full bg-gray-300" title="Pending" />

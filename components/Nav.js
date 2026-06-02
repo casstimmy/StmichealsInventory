@@ -179,6 +179,9 @@ export default function Sidebar() {
 
   const isLinkActive = (href) => {
     if (pathname === href) return true;
+    if (href === "/stock/stock-take" && pathname.startsWith("/stock/stock-take") && !pathname.startsWith("/stock/stock-take-report")) {
+      return true;
+    }
     // Product form/edit pages should highlight "Product List"
     if (href === "/manage/products" && pathname.startsWith("/products")) return true;
     return false;

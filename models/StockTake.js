@@ -16,6 +16,7 @@ const StockTakeItemSchema = new Schema({
     enum: ["pending", "counted", "verified"],
     default: "pending",
   },
+  reason: { type: String, default: "" },
   notes: { type: String, default: "" },
   countedAt: { type: Date, default: null },
   countedBy: { type: String, default: "" },

@@ -152,6 +152,87 @@ async function getStockTakeBuilderOptions() {
   };
 }
 
+async function refreshOpenStockTakeSystemQuantities(stockTake) {
+  if (!stockTake || !["draft", "in-progress"].includes(stockTake.status)) {
+    return false;
+  }
+
+  const itemList = Array.isArray(stockTake.items) ? stockTake.items : [];
+  if (itemList.length === 0) {
+    return false;
+  }
+
+  const productIds = Array.from(
+    new Set(
+      itemList
+        .map((item) => String(item?.productId || "").trim())
+        .filter((value) => isValidObjectId(value))
+    )
+  );
+
+  if (productIds.length === 0) {
+    return false;
+  }
+
+  const products = await Product.find({ _id: { $in: productIds } })
+    .select("_id quantity costPrice qtyPerPack")
+    .lean();
+  const productMap = new Map(products.map((product) => [String(product._id), product]));
+
+  let changed = false;
+
+  for (const item of itemList) {
+    const product = productMap.get(String(item.productId || ""));
+    if (!product) continue;
+
+    const nextSystemQty = item.countType === "loose-units" ? 0 : Number(product.quantity || 0);
+    const nextCostPrice = item.countType === "loose-units"
+      ? Math.round((((product.costPrice || 0) / (item.qtyPerPack || product.qtyPerPack || 1)) || 0) * 100) / 100
+      : Number(product.costPrice || 0);
+
+    if ((item.systemQty || 0) !== nextSystemQty) {
+      item.systemQty = nextSystemQty;
+      changed = true;
+    }
+
+    if ((item.costPrice || 0) !== nextCostPrice) {
+      item.costPrice = nextCostPrice;
+      changed = true;
+    }
+
+    if (item.countedQty !== null) {
+      const nextVariance = Number(item.countedQty) - nextSystemQty;
+      const nextVarianceValue = nextVariance * nextCostPrice;
+
+      if ((item.variance || 0) !== nextVariance) {
+        item.variance = nextVariance;
+        changed = true;
+      }
+
+      if ((item.varianceValue || 0) !== nextVarianceValue) {
+        item.varianceValue = nextVarianceValue;
+        changed = true;
+      }
+
+      if (item.status !== "counted") {
+        item.status = "counted";
+        changed = true;
+      }
+
+      if (nextVariance === 0 && item.reason) {
+        item.reason = "";
+        changed = true;
+      }
+    }
+  }
+
+  if (changed) {
+    recalcSummary(stockTake);
+  }
+
+  return changed;
+}
+
 export default async function handler(req, res) {
   const authError = authMiddleware(req, res);
   if (authError) return authError;
@@ -169,7 +250,7 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     try {
       const [stockTake, builderOptions] = await Promise.all([
-        StockTake.findById(id).lean(),
+        StockTake.findById(id),
         getStockTakeBuilderOptions(),
       ]);
 
@@ -177,7 +258,12 @@ export default async function handler(req, res) {
         return res.status(404).json({ success: false, message: "Stock take not found" });
       }
 
-      return res.status(200).json({ success: true, stockTake, builderOptions });
+      const didRefreshSystemQty = await refreshOpenStockTakeSystemQuantities(stockTake);
+      if (didRefreshSystemQty) {
+        await stockTake.save();
+      }
+
+      return res.status(200).json({ success: true, stockTake: stockTake.toObject(), builderOptions });
     } catch (err) {
       return res.status(500).json({ success: false, message: err.message });
     }
@@ -303,6 +389,8 @@ export default async function handler(req, res) {
           stockTake.startedAt = stockTake.startedAt || new Date();
         }
 
+        await refreshOpenStockTakeSystemQuantities(stockTake);
+
         if (Array.isArray(items)) {
           for (const update of items) {
             const item = stockTake.items.id(update._id);
@@ -315,8 +403,10 @@ export default async function handler(req, res) {
               item.status = "counted";
               item.countedAt = new Date();
               item.countedBy = update.countedBy || req.user?.name || "";
+              item.reason = item.variance !== 0 ? (item.reason || "Stock Take") : "";
             }
 
+            if (update.reason !== undefined) item.reason = String(update.reason || "").trim();
             if (update.notes !== undefined) item.notes = update.notes;
           }
         }
@@ -326,12 +416,77 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, message: "Counts updated", stockTake: stockTake.toObject() });
       }
 
+      if (action === "zero-uncounted") {
+        if (!["draft", "in-progress"].includes(stockTake.status)) {
+          return res.status(400).json({ success: false, message: "Cannot zero uncounted items in the current status" });
+        }
+
+        await refreshOpenStockTakeSystemQuantities(stockTake);
+
+        let updatedCount = 0;
+        for (const item of stockTake.items) {
+          if (item.countedQty !== null) continue;
+
+          item.countedQty = 0;
+          item.variance = 0 - item.systemQty;
+          item.varianceValue = item.variance * item.costPrice;
+          item.status = "counted";
+          item.countedAt = new Date();
+          item.countedBy = req.user?.name || "System";
+          item.reason = item.variance !== 0 ? (item.reason || "Stock Take") : "";
+          updatedCount += 1;
+        }
+
+        if (updatedCount === 0) {
+          return res.status(400).json({ success: false, message: "There are no uncounted items to zero" });
+        }
+
+        recalcSummary(stockTake);
+        await stockTake.save();
+        return res.status(200).json({
+          success: true,
+          message: `${updatedCount} uncounted item(s) set to zero`,
+          stockTake: stockTake.toObject(),
+        });
+      }
+
+      if (action === "remove-uncounted") {
+        if (!["draft", "in-progress"].includes(stockTake.status)) {
+          return res.status(400).json({ success: false, message: "Cannot remove uncounted items in the current status" });
+        }
+
+        const originalLength = Array.isArray(stockTake.items) ? stockTake.items.length : 0;
+        stockTake.items = (stockTake.items || []).filter((item) => item.countedQty !== null);
+        const removedCount = originalLength - stockTake.items.length;
+
+        if (removedCount === 0) {
+          return res.status(400).json({ success: false, message: "There are no uncounted items to remove" });
+        }
+
+        recalcSummary(stockTake);
+        await stockTake.save();
+        return res.status(200).json({
+          success: true,
+          message: `${removedCount} uncounted item(s) removed from the stock take`,
+          stockTake: stockTake.toObject(),
+        });
+      }
+
       if (action === "complete") {
+        if (!isAdmin(req)) {
+          return res.status(403).json({ success: false, message: "Only admins can complete a stock take" });
+        }
         if (stockTake.status !== "in-progress") {
           return res.status(400).json({ success: false, message: "Can only complete an in-progress stock take" });
         }
         if (!Array.isArray(stockTake.items) || stockTake.items.length === 0) {
           return res.status(400).json({ success: false, message: "Create a list before completing this stock take" });
+        }
+
+        await refreshOpenStockTakeSystemQuantities(stockTake);
+
+        if (stockTake.items.some((item) => item.countedQty === null)) {
+          return res.status(400).json({ success: false, message: "Zero or remove uncounted items before completing this stock take" });
         }
 
         recalcSummary(stockTake);
@@ -440,6 +595,8 @@ export default async function handler(req, res) {
         if (!Array.isArray(stockTake.items) || stockTake.items.length === 0) {
           const products = await fetchProductsForStockTake();
           stockTake.items = buildStockTakeItems(products);
+        } else {
+          await refreshOpenStockTakeSystemQuantities(stockTake);
         }
 
         if (!Array.isArray(stockTake.items) || stockTake.items.length === 0) {

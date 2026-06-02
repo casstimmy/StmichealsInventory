@@ -305,13 +305,13 @@ export default function StockTakeList() {
               <div className="content-card mb-6">
                 <div className="flex flex-col md:flex-row gap-3">
                   <div className="relative flex-1">
-                    <FontAwesomeIcon icon={faSearch} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <FontAwesomeIcon icon={faSearch} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                     <input
                       type="text"
                       placeholder="Search by reference, title, or creator..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="form-input pl-10"
+                      className="form-input pl-12 placeholder:text-gray-400"
                     />
                   </div>
                   <select

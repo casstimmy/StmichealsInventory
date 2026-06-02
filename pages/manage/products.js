@@ -542,7 +542,7 @@ export default function Products() {
         {/* Search */}
         <div className="mb-6">
           <div className="flex flex-col sm:flex-row gap-3">
-            <div className="search-input-wrapper max-w-md">
+            <div className="search-input-wrapper max-w-lg flex-1">
               <Search className="search-input-icon" />
               <input
                 ref={searchRef}

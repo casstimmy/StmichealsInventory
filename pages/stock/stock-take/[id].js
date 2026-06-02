@@ -668,7 +668,7 @@ export default function StockTakeDetail() {
             <div className="content-card mb-6">
               <div className="flex flex-col xl:flex-row gap-4 xl:items-start xl:justify-between">
                 <div className="flex-1">
-                  <div className="relative">
+                  <div className="relative flex gap-2">
                     <FontAwesomeIcon icon={faSearch} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                     <input
                       type="text"

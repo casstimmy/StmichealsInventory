@@ -17,6 +17,35 @@ import { showAlertDialog, showConfirmDialog } from "@/lib/dialogs";
 import { Loader } from "@/components/ui";
 
 const entriesPerPageDefault = 20;
+const entriesPerPageOptions = [10, 20, 50, 100];
+
+function getStoredPositiveInteger(key, fallback) {
+  if (typeof window === "undefined") return fallback;
+  const parsedValue = Number.parseInt(window.sessionStorage.getItem(key) || "", 10);
+  return Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : fallback;
+}
+
+function clampPage(page, totalPages) {
+  const normalizedPage = Number.parseInt(page, 10);
+  const safePage = Number.isFinite(normalizedPage) ? normalizedPage : 1;
+  return Math.min(Math.max(1, safePage), Math.max(1, totalPages));
+}
+
+function getPaginationPages(currentPage, totalPages) {
+  const pageWindowSize = 5;
+  const pages = [];
+  const safeTotalPages = Math.max(1, totalPages);
+  let startPage = Math.max(1, currentPage - Math.floor(pageWindowSize / 2));
+  let endPage = Math.min(safeTotalPages, startPage + pageWindowSize - 1);
+
+  startPage = Math.max(1, endPage - pageWindowSize + 1);
+
+  for (let page = startPage; page <= endPage; page += 1) {
+    pages.push(page);
+  }
+
+  return pages;
+}
 
 // --- fetcher for SWR (uses axios so your existing endpoints stay the same)
 const fetcher = (url) => axios.get(url).then((r) => r.data);
@@ -104,9 +133,12 @@ export default function Products() {
   );
   const [availableLocations, setAvailableLocations] = useState([]);
 
-  // pagination / lazy load
-  const [entriesPerPage] = useState(entriesPerPageDefault);
-  const [visibleCount, setVisibleCount] = useState(entriesPerPageDefault);
+  // pagination
+  const [entriesPerPage, setEntriesPerPage] = useState(() => {
+    const storedPageSize = getStoredPositiveInteger("products:entriesPerPage", entriesPerPageDefault);
+    return entriesPerPageOptions.includes(storedPageSize) ? storedPageSize : entriesPerPageDefault;
+  });
+  const [currentPage, setCurrentPage] = useState(() => getStoredPositiveInteger("products:currentPage", 1));
 
   // highlighted product id (persisted so when you go to edit page and back it stays)
   const [highlightedId, setHighlightedId] = useState(
@@ -175,8 +207,7 @@ export default function Products() {
         .some((field) => String(field).toLowerCase().includes(t));
     });
     setFilteredProducts(filtered);
-    setVisibleCount(entriesPerPage);
-  }, [allProducts, categoryMap, entriesPerPage]);
+  }, [allProducts, categoryMap]);
 
   // Initialize from cache when data arrives
   useEffect(() => {
@@ -292,8 +323,19 @@ export default function Products() {
   }, [selectedLocation]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    sessionStorage.setItem("products:currentPage", String(currentPage));
+  }, [currentPage]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    sessionStorage.setItem("products:entriesPerPage", String(entriesPerPage));
+  }, [entriesPerPage]);
+
+  useEffect(() => {
     if (!queryLocation) return;
     setSelectedLocation(queryLocation);
+    setCurrentPage(1);
     applyFilters(searchTerm, selectedCategory, queryLocation);
   }, [queryLocation, applyFilters, searchTerm, selectedCategory]);
 
@@ -332,18 +374,21 @@ export default function Products() {
   const handleSearchChange = (e) => {
     const v = e.target.value;
     setSearchTerm(v);
+    setCurrentPage(1);
     debouncedFilter(v);
   };
 
   const handleCategoryFilterChange = (e) => {
     const value = e.target.value;
     setSelectedCategory(value);
+    setCurrentPage(1);
     applyFilters(searchTerm, value, selectedLocation);
   };
 
   const handleLocationFilterChange = (e) => {
     const value = e.target.value;
     setSelectedLocation(value);
+    setCurrentPage(1);
     applyFilters(searchTerm, selectedCategory, value);
   };
 
@@ -406,12 +451,9 @@ export default function Products() {
       // close edit mode & highlight the updated product
       setEditIndex(null);
       setHighlightedId(_id);
-      // ensure the updated item is visible (if not in current page, expand visible area)
       const indexInFiltered = (filteredProducts || []).findIndex((p) => p._id === _id);
       if (indexInFiltered >= 0) {
-        const pageNeeded = Math.floor(indexInFiltered / entriesPerPage) + 1;
-        const neededVisible = pageNeeded * entriesPerPage;
-        if (visibleCount < neededVisible) setVisibleCount(neededVisible);
+        setCurrentPage(Math.floor(indexInFiltered / entriesPerPage) + 1);
       }
     } catch (err) {
       console.error("Failed to update product", err);
@@ -463,14 +505,71 @@ export default function Products() {
 
   const formatCurrency = (num) => formatCurrencyValue(num || 0);
 
-  // Lazy loading (Load more)  visible slice
+  const totalFilteredProducts = Array.isArray(filteredProducts) ? filteredProducts.length : 0;
+  const totalPages = Math.max(1, Math.ceil(totalFilteredProducts / entriesPerPage));
+  const safeCurrentPage = clampPage(currentPage, totalPages);
+  const pageStartIndex = totalFilteredProducts === 0 ? 0 : (safeCurrentPage - 1) * entriesPerPage;
+  const pageEndIndex = Math.min(totalFilteredProducts, pageStartIndex + entriesPerPage);
   const visibleProducts = Array.isArray(filteredProducts)
-    ? filteredProducts.slice(0, visibleCount)
+    ? filteredProducts.slice(pageStartIndex, pageEndIndex)
     : [];
+  const paginationPages = getPaginationPages(safeCurrentPage, totalPages);
 
-  // load more helper
-  const loadMore = () => {
-    setVisibleCount((v) => Math.min((filteredProducts?.length || 0), v + entriesPerPage));
+  const goToPage = useCallback((pageNumber) => {
+    setCurrentPage(clampPage(pageNumber, totalPages));
+    setExpandedRow(null);
+  }, [totalPages]);
+
+  const handleEntriesPerPageChange = (e) => {
+    const nextEntriesPerPage = Number.parseInt(e.target.value, 10) || entriesPerPageDefault;
+    const firstVisibleItem = pageStartIndex + 1;
+    const nextPage = Math.max(1, Math.ceil(firstVisibleItem / nextEntriesPerPage));
+
+    setEntriesPerPage(nextEntriesPerPage);
+    setCurrentPage(nextPage);
+    setExpandedRow(null);
+  };
+
+  const rememberListPosition = useCallback(() => {
+    if (typeof window === "undefined") return;
+    sessionStorage.setItem("products:currentPage", String(safeCurrentPage));
+    sessionStorage.setItem("products:scrollY", String(window.scrollY || 0));
+  }, [safeCurrentPage]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || isInitializing || isApplyingChanges) return;
+
+    const storedScrollY = sessionStorage.getItem("products:scrollY");
+    if (!storedScrollY) return;
+
+    sessionStorage.removeItem("products:scrollY");
+    const scrollY = Number.parseInt(storedScrollY, 10);
+    if (!Number.isFinite(scrollY) || scrollY < 0) return;
+
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: scrollY, behavior: "auto" });
+    });
+  }, [isApplyingChanges, isInitializing, visibleProducts.length]);
+
+  const paginationButtonClass =
+    "min-w-[2.5rem] rounded-md border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50";
+  const activePaginationButtonClass =
+    "min-w-[2.5rem] rounded-md border border-blue-600 bg-blue-600 px-3 py-2 text-sm font-semibold text-white";
+
+  const renderPageButton = (pageNumber) => {
+    const isActive = pageNumber === safeCurrentPage;
+
+    return (
+      <button
+        key={pageNumber}
+        type="button"
+        onClick={() => goToPage(pageNumber)}
+        aria-current={isActive ? "page" : undefined}
+        className={isActive ? activePaginationButtonClass : paginationButtonClass}
+      >
+        {pageNumber}
+      </button>
+    );
   };
 
   if (productsError) {
@@ -620,7 +719,7 @@ export default function Products() {
               ) : (
                 visibleProducts.map((p, idx) => {
                   // calculate the real index inside filteredProducts (useful for editIndex)
-                  const realIndex = idx;
+                  const realIndex = pageStartIndex + idx;
                   const isHighlighted = highlightedId && highlightedId === p._id;
                   return (
                     <tr
@@ -672,6 +771,7 @@ export default function Products() {
                         <Link
                           href={`/products/edit/${p._id}`}
                           onClick={() => {
+                            rememberListPosition();
                             // persist highlight so when returning the row is still highlighted
                             sessionStorage.setItem("products:highlight", p._id);
                           }}
@@ -893,18 +993,71 @@ export default function Products() {
           </table>
         </div>
 
-        {/* Load more / Pagination controls */}
-        <div className="flex justify-center items-center mt-6 flex-wrap gap-2">
-          {visibleCount < (filteredProducts?.length || 0) ? (
-            <button
-              onClick={loadMore}
-              className="btn-action-secondary"
-            >
-              Load more ({(filteredProducts?.length || 0) - visibleCount} remaining)
-            </button>
-          ) : (
-            <div className="text-sm text-gray-500 py-2"> End of list </div>
-          )}
+        {/* Pagination controls */}
+        <div className="mt-6 rounded-lg border border-gray-200 bg-white px-4 py-3">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-col gap-2 text-sm text-gray-600 sm:flex-row sm:items-center sm:gap-3">
+              <span>
+                {totalFilteredProducts > 0
+                  ? `Showing ${pageStartIndex + 1}-${pageEndIndex} of ${totalFilteredProducts}`
+                  : "No products to show"}
+              </span>
+              <label className="flex items-center gap-2">
+                <span className="text-gray-500">Rows</span>
+                <select
+                  className="form-select !w-auto !py-1.5 text-sm"
+                  value={entriesPerPage}
+                  onChange={handleEntriesPerPageChange}
+                >
+                  {entriesPerPageOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            {totalFilteredProducts > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => goToPage(1)}
+                  disabled={safeCurrentPage <= 1}
+                  className={paginationButtonClass}
+                >
+                  First
+                </button>
+                <button
+                  type="button"
+                  onClick={() => goToPage(safeCurrentPage - 1)}
+                  disabled={safeCurrentPage <= 1}
+                  className={paginationButtonClass}
+                >
+                  Previous
+                </button>
+
+                {paginationPages.map(renderPageButton)}
+
+                <button
+                  type="button"
+                  onClick={() => goToPage(safeCurrentPage + 1)}
+                  disabled={safeCurrentPage >= totalPages}
+                  className={paginationButtonClass}
+                >
+                  Next
+                </button>
+                <button
+                  type="button"
+                  onClick={() => goToPage(totalPages)}
+                  disabled={safeCurrentPage >= totalPages}
+                  className={paginationButtonClass}
+                >
+                  Last
+                </button>
+              </div>
+            )}
+          </div>
         </div>
         </div>
       </div>

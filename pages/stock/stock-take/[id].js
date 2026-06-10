@@ -895,7 +895,7 @@ export default function StockTakeDetail() {
               </div>
 
               <div className="content-card overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full min-w-[980px] text-sm">
                   <thead>
                     <tr className="border-b-2 border-gray-200 text-left">
                       <th className="py-2 px-2 font-semibold text-gray-600 w-8">#</th>
@@ -1109,14 +1109,14 @@ export default function StockTakeDetail() {
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-sm text-gray-500">{filteredItemGroups.length} count entr{filteredItemGroups.length === 1 ? "y" : "ies"} shown</p>
                 </div>
-                <table className="w-full text-sm">
+                <table className="w-full min-w-[980px] text-sm">
                   <thead>
                     <tr className="border-b-2 border-gray-200 text-left">
                       <th className="py-2 px-2 font-semibold text-gray-600 w-8">#</th>
                       <th className="py-2 px-2 font-semibold text-gray-600">Product</th>
                       <th className="py-2 px-2 font-semibold text-gray-600 hidden md:table-cell">Barcode</th>
                       <th className="py-2 px-2 font-semibold text-gray-600 text-center">System Qty</th>
-                      <th className="py-2 px-2 font-semibold text-gray-600 text-center w-28">Counted</th>
+                      <th className="py-2 px-2 font-semibold text-gray-600 text-center w-44 min-w-[11rem]">Counted</th>
                       <th className="py-2 px-2 font-semibold text-gray-600 text-center">Variance</th>
                       <th className="py-2 px-2 font-semibold text-gray-600 text-right hidden lg:table-cell">Variance Value</th>
                       <th className="py-2 px-2 font-semibold text-gray-600 text-center">Status</th>
@@ -1139,11 +1139,11 @@ export default function StockTakeDetail() {
                             : "hover:bg-gray-50"
                         }`}>
                           <td className="py-2 px-2 text-gray-400 text-xs">{index + 1}</td>
-                          <td className="py-2 px-2">
-                            <div className="font-medium text-gray-900 text-sm">
-                              {group.productName}
+                          <td className="py-2 px-2 align-top">
+                            <div className="flex flex-wrap items-center gap-2 font-medium text-gray-900 text-sm leading-snug">
+                              <span>{group.productName}</span>
                               {hasPackAndLoose && (
-                                <span className="ml-2 rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-semibold text-orange-700">
+                                <span className="inline-flex shrink-0 whitespace-nowrap rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-semibold text-orange-700">
                                   Pack + each
                                 </span>
                               )}
@@ -1157,9 +1157,11 @@ export default function StockTakeDetail() {
                           <td className="py-2 px-2 font-mono text-xs text-gray-500 hidden md:table-cell">{group.barcode || "—"}</td>
                           <td className="py-2 px-2 text-center font-medium text-gray-700">
                             {hasPackAndLoose ? (
-                              <div className="space-y-1 text-xs">
-                                <div>{formatStockTakeQuantity(standardItem.systemQty)} pack</div>
-                                <div className="text-orange-700">{formatStockTakeQuantity(looseItem.systemQty)} each</div>
+                              <div className="mx-auto grid w-28 grid-cols-[3.25rem_1fr] gap-x-2 gap-y-1 text-xs leading-tight">
+                                <span className="text-right text-gray-500">Pack</span>
+                                <span className="text-left font-semibold text-gray-800">{formatStockTakeQuantity(standardItem.systemQty)}</span>
+                                <span className="text-right text-gray-500">Each</span>
+                                <span className="text-left font-semibold text-orange-700">{formatStockTakeQuantity(looseItem.systemQty)}</span>
                               </div>
                             ) : (
                               formatStockTakeQuantity(standardItem.systemQty)
@@ -1167,9 +1169,9 @@ export default function StockTakeDetail() {
                           </td>
                           <td className="py-2 px-2 text-center">
                             {isEditable ? (
-                              <div className={hasPackAndLoose ? "flex min-w-44 flex-col gap-2" : "flex justify-center"}>
-                                <label className={hasPackAndLoose ? "flex items-center justify-between gap-2 text-xs text-gray-500" : ""}>
-                                  {hasPackAndLoose && <span>Pack</span>}
+                              <div className={hasPackAndLoose ? "mx-auto grid w-36 grid-cols-[3.25rem_5rem] items-center gap-x-2 gap-y-2" : "flex justify-center"}>
+                                <label className={hasPackAndLoose ? "contents text-xs text-gray-500" : ""}>
+                                  {hasPackAndLoose && <span className="text-right text-xs text-gray-500">Pack</span>}
                                   <input
                                     ref={(element) => {
                                       if (element) countInputRefs.current[standardItem._id] = element;
@@ -1192,8 +1194,8 @@ export default function StockTakeDetail() {
                                   />
                                 </label>
                                 {hasPackAndLoose && (
-                                  <label className="flex items-center justify-between gap-2 text-xs text-gray-500">
-                                    <span>Each</span>
+                                  <label className="contents text-xs text-gray-500">
+                                    <span className="text-right text-xs text-gray-500">Each</span>
                                     <input
                                       ref={(element) => {
                                         if (element) countInputRefs.current[looseItem._id] = element;
@@ -1215,9 +1217,17 @@ export default function StockTakeDetail() {
                                 )}
                               </div>
                             ) : (
-                              <div className="space-y-1 font-medium">
-                                <div>{standardItem.countedQty ?? "—"}</div>
-                                {hasPackAndLoose && <div className="text-orange-700">{looseItem.countedQty ?? "—"} each</div>}
+                              <div className={hasPackAndLoose ? "mx-auto grid w-28 grid-cols-[3.25rem_1fr] gap-x-2 gap-y-1 text-xs font-medium" : "font-medium"}>
+                                {hasPackAndLoose ? (
+                                  <>
+                                    <span className="text-right text-gray-500">Pack</span>
+                                    <span className="text-left text-gray-900">{standardItem.countedQty ?? "—"}</span>
+                                    <span className="text-right text-gray-500">Each</span>
+                                    <span className="text-left text-orange-700">{looseItem.countedQty ?? "—"}</span>
+                                  </>
+                                ) : (
+                                  standardItem.countedQty ?? "—"
+                                )}
                               </div>
                             )}
                           </td>

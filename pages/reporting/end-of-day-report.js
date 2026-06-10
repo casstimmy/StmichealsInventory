@@ -4,7 +4,7 @@ import Layout from "@/components/Layout";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { Loader } from "@/components/ui";
 import useProgress from "@/lib/useProgress";
-import { useState, useEffect } from "react";
+import { Fragment, useState, useEffect } from "react";
 import Link from "next/link";
 import { Line, Bar, Pie } from "react-chartjs-2";
 import {
@@ -77,8 +77,6 @@ export default function EndOfDayReporting() {
       const data = await res.json();
 
       onProcess();
-      console.log(" EOD Report Data:", data); // Debug log
-
       if (data.success) {
         setSummary(data.summary);
         const reportsList = data.reports || [];
@@ -348,13 +346,12 @@ export default function EndOfDayReporting() {
           <div className="content-card">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Reports</h2>
             <div className="data-table-container">
-              <table className="data-table">
+              <table className="data-table min-w-[900px]">
                 <thead>
                   <tr>
-                    <th></th>
-                    <th>Date</th>
-                    <th>Location</th>
-                    <th>Staff</th>
+                    <th className="whitespace-nowrap">Date</th>
+                    <th className="whitespace-nowrap">Location</th>
+                    <th className="whitespace-nowrap">Staff</th>
                     <th className="text-right">Sales</th>
                     <th className="text-right">Transactions</th>
                     <th className="text-right">Variance</th>
@@ -364,32 +361,31 @@ export default function EndOfDayReporting() {
                 <tbody>
                   {reports.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-4 py-12 text-center text-gray-500">
+                      <td colSpan={7} className="px-4 py-12 text-center text-gray-500">
                         <p className="text-lg font-medium">No reports found</p>
                         <p className="text-sm mt-1">Try adjusting your period or location filter</p>
                       </td>
                     </tr>
-                  ) : reports.slice(0, 20).map((report, idx) => (
-                    <>
+                  ) : reports.slice(0, 20).map((report, idx) => {
+                    const reportKey = report._id || idx;
+                    const reportVariance = Number(report.variance || 0);
+                    const reportStatus = Math.abs(reportVariance) < 1 ? "RECONCILED" : "VARIANCE_NOTED";
+
+                    return (
+                    <Fragment key={reportKey}>
                       <tr
-                        key={report._id || idx}
-                        onClick={() => setExpandedReportId(expandedReportId === (report._id || idx) ? null : (report._id || idx))}
+                        onClick={() => setExpandedReportId(expandedReportId === reportKey ? null : reportKey)}
                         className={`cursor-pointer hover:bg-gray-50 transition ${
-                          report.status === "VARIANCE_NOTED" ? "bg-yellow-50" : ""
+                          reportStatus === "VARIANCE_NOTED" ? "bg-yellow-50" : ""
                         }`}
                       >
-                        <td className="text-center w-8">
-                          <span className={`inline-block transition-transform ${expandedReportId === (report._id || idx) ? "rotate-90" : ""}`}>
-                            
-                          </span>
-                        </td>
-                        <td>
+                        <td className="whitespace-nowrap">
                           {new Date(report.closedAt).toLocaleDateString()}
                         </td>
-                        <td>
+                        <td className="whitespace-nowrap">
                           {report.locationName || "Unknown"}
                         </td>
-                        <td>{report.staffName || "N/A"}</td>
+                        <td className="whitespace-nowrap">{report.staffName || "N/A"}</td>
                         <td className="text-right font-medium">
                           {(report.totalSales || 0).toLocaleString("en-NG", {
                             maximumFractionDigits: 0,
@@ -400,26 +396,30 @@ export default function EndOfDayReporting() {
                         </td>
                         <td
                           className={`text-right font-medium ${
-                            (report.variance || 0) >= 0 ? "text-emerald-600" : "text-red-600"
+                            Math.abs(reportVariance) < 1
+                              ? "text-gray-700"
+                              : reportVariance > 0
+                                ? "text-amber-700"
+                                : "text-red-600"
                           }`}
                         >
-                          {(report.variance || 0).toLocaleString()}
+                          {reportVariance.toLocaleString()}
                         </td>
                         <td className="text-center">
                           <span
                             className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              report.status === "RECONCILED"
+                              reportStatus === "RECONCILED"
                                 ? "bg-emerald-100 text-emerald-800"
                                 : "bg-yellow-100 text-yellow-800"
                             }`}
                           >
-                            {report.status === "RECONCILED" ? " Reconciled" : " Variance"}
+                            {reportStatus === "RECONCILED" ? "Reconciled" : "Variance"}
                           </span>
                         </td>
                       </tr>
-                      {expandedReportId === (report._id || idx) && (
-                        <tr key={`details-${report._id || idx}`} className="bg-gray-50">
-                          <td colSpan={8} className="px-6 py-4">
+                      {expandedReportId === reportKey && (
+                        <tr className="bg-gray-50">
+                          <td colSpan={7} className="px-6 py-4">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
                               {/* Opening Info */}
                               <div>
@@ -467,8 +467,9 @@ export default function EndOfDayReporting() {
                           </td>
                         </tr>
                       )}
-                    </>
-                  ))}
+                    </Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

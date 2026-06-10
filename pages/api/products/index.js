@@ -247,7 +247,7 @@ export default async function handler(req, res) {
         excludeChild,
       } = req.query;
 
-      if (minimal !== "true" && !id && !search) {
+      if (!id && !search) {
         await syncRoomCategoryProductFlags();
       }
 
@@ -300,8 +300,9 @@ export default async function handler(req, res) {
       // Minimal mode for stock management - only essential fields
       if (minimal === "true") {
         filter.isStockManaged = true;
+        filter.productType = { $ne: ROOM_PRODUCT_TYPE };
         const products = await Product.find(filter)
-          .select("name quantity minStock category barcode costPrice salePriceIncTax isStockManaged isChildProduct parentProduct packType qtyPerPack productType roomStatus currentBooking")
+          .select("name quantity minStock maxStock category barcode costPrice salePriceIncTax isStockManaged isChildProduct parentProduct packType qtyPerPack childSalePrice productType roomStatus currentBooking locations")
           .sort({ name: 1 })
           .lean();
         await deriveChildQuantities(products);

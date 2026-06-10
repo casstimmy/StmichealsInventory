@@ -12,24 +12,131 @@ const LOCATION_FILTER_KEY = "stockManagement:locationFilter";
 const CARD_FILTER_KEY = "stockManagement:cardFilter";
 
 function normalizeLocationValue(value) {
+  if (value && typeof value === "object") {
+    return String(value.name || value.label || value.code || value._id || value.id || "").trim().toLowerCase();
+  }
   return String(value || "").trim().toLowerCase();
+}
+
+function getLocationLabels(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value.flatMap((entry) => getLocationLabels(entry));
+  }
+  if (value && typeof value === "object") {
+    return [value.name, value.label, value.code, value._id, value.id]
+      .map((entry) => String(entry || "").trim())
+      .filter(Boolean);
+  }
+  const label = String(value || "").trim();
+  return label ? [label] : [];
+}
+
+function getLocationDisplayLabel(value) {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return String(value.name || value.label || value.code || value._id || value.id || "").trim();
+  }
+  return String(value || "").trim();
+}
+
+function getLocationTokens(value) {
+  return getLocationLabels(value).map((entry) => normalizeLocationValue(entry)).filter(Boolean);
+}
+
+function getProductLocationTokens(product) {
+  return getLocationTokens(product?.locations || []);
+}
+
+function getProductLocationLabel(product) {
+  const labels = getLocationLabels(product?.locations || []);
+  return labels.length > 0 ? [...new Set(labels)].join(", ") : "Unassigned";
 }
 
 function isDerivedChild(product) {
   return product?.isChildProduct && product?.packType !== "pack";
 }
 
+function isRoomProduct(product) {
+  return String(product?.productType || "").trim().toLowerCase() === "room";
+}
+
+function getProductId(product) {
+  return String(product?._id || product?.id || "");
+}
+
+function getParentProductId(product) {
+  const parentProduct = product?.parentProduct;
+  if (parentProduct && typeof parentProduct === "object") {
+    return String(parentProduct._id || parentProduct.id || "");
+  }
+  return String(parentProduct || "");
+}
+
+function formatQuantity(value) {
+  const numberValue = Number(value || 0);
+  if (!Number.isFinite(numberValue)) return "0";
+  return String(parseFloat(numberValue.toFixed(2)));
+}
+
+function getInnerUnitLabel(childProducts = []) {
+  if (childProducts.length === 0) return "-";
+  const innerQuantity = childProducts.reduce((sum, childProduct) => sum + Number(childProduct.quantity || 0), 0);
+  return `${formatQuantity(innerQuantity)} inner units`;
+}
+
+function quoteCsvValue(value) {
+  const text = String(value ?? "");
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function downloadCsv(filename, rows) {
+  const headers = [
+    "Name",
+    "Category",
+    "Location",
+    "Current Stock",
+    "Inner Unit Stock",
+    "Min Stock",
+    "Max Stock",
+    "Unit Cost",
+    "Status",
+  ];
+
+  const csv = [
+    headers.map(quoteCsvValue).join(","),
+    ...rows.map((row) => headers.map((header) => quoteCsvValue(row[header])).join(",")),
+  ].join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 function matchesStockState(product, stockFilter) {
+  if (isRoomProduct(product) || isDerivedChild(product)) {
+    return false;
+  }
+
   if (stockFilter === "all") {
     return true;
   }
 
-  if (isDerivedChild(product)) {
-    return false;
-  }
-
   const quantity = Number(product?.quantity) || 0;
   const minStock = Number(product?.minStock) || 0;
+
+  if (stockFilter === "positiveStock") {
+    return quantity > 0;
+  }
+
+  if (stockFilter === "negativeStock") {
+    return quantity < 0;
+  }
 
   if (stockFilter === "wellStocked") {
     return quantity > minStock;
@@ -111,9 +218,6 @@ export default function StockManagement() {
 
         const storeLocations = Array.isArray(data?.store?.locations)
           ? data.store.locations
-              .map((locationValue) => locationValue?.name || locationValue)
-              .map((locationValue) => String(locationValue || "").trim())
-              .filter(Boolean)
           : [];
 
         setAvailableLocations(storeLocations);
@@ -163,18 +267,44 @@ export default function StockManagement() {
   const locationOptions = useMemo(() => {
     const seenLocations = new Map();
 
-    [...availableLocations, ...products.flatMap((product) => product.locations || [])]
-      .map((locationValue) => String(locationValue || "").trim())
-      .filter(Boolean)
-      .forEach((locationValue) => {
-        const normalizedValue = normalizeLocationValue(locationValue);
-        if (!seenLocations.has(normalizedValue)) {
-          seenLocations.set(normalizedValue, locationValue);
-        }
-      });
+    const registerLocation = (locationValue) => {
+      const label = getLocationDisplayLabel(locationValue);
+      const tokens = getLocationTokens(locationValue);
+      if (!label || tokens.length === 0) return;
 
-    return Array.from(seenLocations.values()).sort((leftValue, rightValue) => leftValue.localeCompare(rightValue));
+      const value = normalizeLocationValue(label);
+      if (!seenLocations.has(value)) {
+        seenLocations.set(value, { value, label, tokens: new Set(tokens) });
+        return;
+      }
+
+      const existing = seenLocations.get(value);
+      tokens.forEach((token) => existing.tokens.add(token));
+    };
+
+    availableLocations.forEach(registerLocation);
+    products.forEach((product) => {
+      const locations = Array.isArray(product.locations) ? product.locations : [];
+      locations.forEach(registerLocation);
+    });
+
+    return Array.from(seenLocations.values())
+      .map((option) => ({ ...option, tokens: Array.from(option.tokens) }))
+      .sort((leftValue, rightValue) => leftValue.label.localeCompare(rightValue.label));
   }, [availableLocations, products]);
+
+  useEffect(() => {
+    const normalizedLocationFilter = normalizeLocationValue(selectedLocation);
+    if (["all", "unassigned"].includes(normalizedLocationFilter) || locationOptions.length === 0) return;
+
+    const matchingOption = locationOptions.find((option) =>
+      option.value === normalizedLocationFilter || option.tokens.includes(normalizedLocationFilter)
+    );
+
+    if (matchingOption && selectedLocation !== matchingOption.value) {
+      setSelectedLocation(matchingOption.value);
+    }
+  }, [locationOptions, selectedLocation]);
 
   const locationScopedItems = useMemo(() => {
     return products.filter((item) => {
@@ -183,47 +313,110 @@ export default function StockManagement() {
         return true;
       }
 
-      const productLocations = Array.isArray(item.locations)
-        ? item.locations.map((locationValue) => normalizeLocationValue(locationValue)).filter(Boolean)
-        : [];
+      if (isRoomProduct(item)) {
+        return false;
+      }
+
+      const productLocations = getProductLocationTokens(item);
 
       if (normalizedLocationFilter === "unassigned") {
         return productLocations.length === 0;
       }
 
-      return productLocations.includes(normalizedLocationFilter);
+      const selectedLocationOption = locationOptions.find((option) =>
+        option.value === normalizedLocationFilter ||
+        option.tokens.includes(normalizedLocationFilter)
+      );
+      const selectedTokens = selectedLocationOption?.tokens || [normalizedLocationFilter];
+
+      return productLocations.some((token) => selectedTokens.includes(token));
     });
-  }, [products, selectedLocation]);
+  }, [products, selectedLocation, locationOptions]);
+
+  const childProductsByParent = useMemo(() => {
+    const map = new Map();
+    locationScopedItems.filter(isDerivedChild).forEach((childProduct) => {
+      const parentId = getParentProductId(childProduct);
+      if (!parentId) return;
+      const children = map.get(parentId) || [];
+      children.push(childProduct);
+      map.set(parentId, children);
+    });
+    return map;
+  }, [locationScopedItems]);
+
+  const parentProducts = useMemo(
+    () => locationScopedItems.filter((product) => !isDerivedChild(product) && !isRoomProduct(product)),
+    [locationScopedItems]
+  );
 
   const filteredItems = useMemo(() => {
     const term = searchTerm.toLowerCase().trim();
-    return locationScopedItems.filter((item) => {
+    return parentProducts.filter((item) => {
       if (!matchesStockState(item, selectedStockFilter)) {
         return false;
       }
 
       const categoryLabel = categoryMap[item.category] || item.category || "";
+      const childProducts = childProductsByParent.get(getProductId(item)) || [];
+      const childText = childProducts.map((childProduct) => `${childProduct.name || ""} ${childProduct.barcode || ""}`).join(" ").toLowerCase();
       if (!term) {
         return true;
       }
 
       return (
         item.name?.toLowerCase().includes(term) ||
-        categoryLabel.toLowerCase().includes(term)
+        categoryLabel.toLowerCase().includes(term) ||
+        childText.includes(term)
       );
     });
-  }, [locationScopedItems, selectedStockFilter, searchTerm, categoryMap]);
+  }, [parentProducts, selectedStockFilter, searchTerm, categoryMap, childProductsByParent]);
+
+  const getProductStatus = useCallback((product) => {
+    const quantity = Number(product?.quantity || 0);
+    const minStock = Number(product?.minStock || 0);
+
+    if (quantity < 0) return "Negative Stock";
+    if (quantity === 0) return "Out of Stock";
+    if (quantity < minStock) return "Low Stock";
+    return "In Stock";
+  }, []);
+
+  const buildReportRows = useCallback((sourceProducts) => {
+    return sourceProducts.map((product) => {
+      const childProducts = childProductsByParent.get(getProductId(product)) || [];
+      const innerQuantity = childProducts.reduce((sum, childProduct) => sum + Number(childProduct.quantity || 0), 0);
+      return {
+        "Name": product.name || "N/A",
+        "Category": categoryMap[product.category] || product.category || "Uncategorized",
+        "Location": getProductLocationLabel(product),
+        "Current Stock": formatQuantity(product.quantity),
+        "Inner Unit Stock": childProducts.length > 0 ? formatQuantity(innerQuantity) : "",
+        "Min Stock": formatQuantity(product.minStock),
+        "Max Stock": formatQuantity(product.maxStock),
+        "Unit Cost": Number(product.costPrice || 0),
+        "Status": getProductStatus(product),
+      };
+    });
+  }, [categoryMap, childProductsByParent, getProductStatus]);
+
+  const handleDownloadStockReport = useCallback((mode = "all") => {
+    const sourceProducts = mode === "positive"
+      ? filteredItems.filter((product) => Number(product.quantity || 0) > 0)
+      : mode === "negative"
+        ? filteredItems.filter((product) => Number(product.quantity || 0) < 0)
+        : filteredItems;
+
+    const normalizedLocation = normalizeLocationValue(selectedLocation || "all").replace(/[^a-z0-9]+/g, "-") || "all";
+    const filename = `stock-${mode}-${normalizedLocation}-${new Date().toISOString().slice(0, 10)}.csv`;
+    downloadCsv(filename, buildReportRows(sourceProducts));
+  }, [buildReportRows, filteredItems, selectedLocation]);
 
   const totalStock = useMemo(
     () =>
-      locationScopedItems
-        .filter((item) => !isDerivedChild(item))
+      parentProducts
         .reduce((sum, item) => sum + (item.quantity || 0), 0),
-    [locationScopedItems]
-  );
-  const parentProducts = useMemo(
-    () => locationScopedItems.filter((p) => !isDerivedChild(p)),
-    [locationScopedItems]
+    [parentProducts]
   );
   const totalWellStocked = useMemo(
     () => parentProducts.filter((p) => (p.quantity || 0) > (p.minStock || 0)).length,
@@ -235,6 +428,10 @@ export default function StockManagement() {
   );
   const lowStockCount = useMemo(
     () => parentProducts.filter((p) => p.quantity < (p.minStock || 0)).length,
+    [parentProducts]
+  );
+  const negativeStockCount = useMemo(
+    () => parentProducts.filter((p) => Number(p.quantity || 0) < 0).length,
     [parentProducts]
   );
 
@@ -267,6 +464,15 @@ export default function StockManagement() {
             >
               {refreshing ? "Refreshing..." : "Refresh Data"}
             </button>
+            <button type="button" onClick={() => handleDownloadStockReport("all")} className="btn-action-secondary">
+              Download Stock Report
+            </button>
+            <button type="button" onClick={() => handleDownloadStockReport("positive")} className="btn-action-secondary">
+              Download Value Stock
+            </button>
+            <button type="button" onClick={() => handleDownloadStockReport("negative")} className="btn-action-danger">
+              Download Negative Stock
+            </button>
           </div>
         </header>
 
@@ -282,7 +488,7 @@ export default function StockManagement() {
           </div>
         ) : (
           <>
-            <section className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+            <section className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
               <StatCard
                 label="Total Stock"
                 value={`${parseFloat(totalStock.toFixed(2))} units`}
@@ -308,6 +514,13 @@ export default function StockManagement() {
                 active={selectedStockFilter === "lowStock"}
                 onClick={() => setSelectedStockFilter("lowStock")}
               />
+              <StatCard
+                label="Negative Stock"
+                value={negativeStockCount}
+                highlight
+                active={selectedStockFilter === "negativeStock"}
+                onClick={() => setSelectedStockFilter("negativeStock")}
+              />
             </section>
 
             <div className="mb-6">
@@ -328,9 +541,9 @@ export default function StockManagement() {
                 >
                   <option value="all">All Locations</option>
                   <option value="unassigned">Unassigned</option>
-                  {locationOptions.map((locationValue) => (
-                    <option key={locationValue} value={locationValue}>
-                      {locationValue}
+                  {locationOptions.map((locationOption) => (
+                    <option key={locationOption.value} value={locationOption.value}>
+                      {locationOption.label}
                     </option>
                   ))}
                 </select>
@@ -347,7 +560,7 @@ export default function StockManagement() {
                 </button>
               </div>
               <p className="mt-3 text-sm text-gray-500">
-                Showing {filteredItems.length} of {locationScopedItems.length} products
+                Showing {filteredItems.length} of {parentProducts.length} stock products
               </p>
             </div>
 
@@ -355,7 +568,7 @@ export default function StockManagement() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    {["Name", "Category", "Stock Qty", "Min Stock", "Unit Cost", "Status"].map((header) => (
+                    {["Name", "Category", "Current Stock", "Inner Unit", "Min Stock", "Unit Cost", "Status"].map((header) => (
                       <th key={header}>
                         {header}
                       </th>
@@ -365,33 +578,28 @@ export default function StockManagement() {
                 <tbody className="divide-y divide-gray-200">
                   {filteredItems.length === 0 ? (
                     <tr>
-                      <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
+                      <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
                         No products match the current filters.
                       </td>
                     </tr>
                   ) : (
                     filteredItems.map((product) => {
                       const qty = product.quantity ?? 0;
-                      const isChild = isDerivedChild(product);
-                      const status = isChild
-                        ? "Linked"
-                        : qty < 0
-                          ? "Negative Stock"
-                          : qty === 0
-                          ? "Out of Stock"
-                          : qty < (product.minStock || 0)
-                          ? "Low Stock"
-                          : "In Stock";
+                      const childProducts = childProductsByParent.get(getProductId(product)) || [];
+                      const status = getProductStatus(product);
 
                       return (
-                        <tr key={product._id} className={`hover:bg-gray-50 ${isChild ? "bg-blue-50/40" : qty < 0 ? "bg-red-50" : ""}`}>
+                        <tr key={product._id} className={`hover:bg-gray-50 ${qty < 0 ? "bg-red-50" : ""}`}>
                           <td className="px-6 py-4 font-medium text-gray-900">
                             {product.name || "N/A"}
-                            {isChild && <span className="ml-2 text-xs text-blue-600 font-normal">(unit from pack)</span>}
+                            {childProducts.length > 0 && <span className="ml-2 text-xs text-blue-600 font-normal">mother product</span>}
                           </td>
                           <td className="px-6 py-4 text-gray-700">{categoryMap[product.category] || product.category || "Uncategorized"}</td>
                           <td className={`px-6 py-4 font-semibold ${qty < 0 ? "text-red-600" : "text-gray-900"}`}>
-                            {parseFloat(qty.toFixed(2))}
+                            {formatQuantity(qty)}
+                          </td>
+                          <td className="px-6 py-4 text-blue-700 font-semibold">
+                            {getInnerUnitLabel(childProducts)}
                           </td>
                           <td className="px-6 py-4 text-gray-700">{product.minStock ?? 0}</td>
                           <td className="px-6 py-4">{formatCurrency(product.costPrice || 0, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>

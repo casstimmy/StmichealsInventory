@@ -3,6 +3,18 @@ import Loader from "@/components/Loader";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { isInTimeRange } from "@/lib/dateFilter";
 import useProgress from "@/lib/useProgress";
+import {
+  getReportDevice,
+  getReportLocation,
+  getReportStaffName,
+  getTransactionDiscount,
+  getTransactionItemQuantity,
+  getTransactionNetSales,
+  getTransactionRefundValue,
+  getTransactionTax,
+  isCompletedSale,
+  isRefundedSale,
+} from "@/lib/sales-report-utils";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
@@ -27,8 +39,10 @@ export default function EmployeesSales() {
       if (txRes.success && txRes.transactions) {
         const locSet = new Set(); const staffSet = new Set();
         txRes.transactions.forEach((tx) => {
-          if (tx.location && tx.location !== "online") locSet.add(tx.location);
-          if (tx.staff?.name) staffSet.add(tx.staff.name);
+          const txLocation = getReportLocation(tx);
+          const txStaff = getReportStaffName(tx);
+          if (txLocation && txLocation !== "online") locSet.add(txLocation);
+          if (txStaff) staffSet.add(txStaff);
         });
         locSet.add("online");
         setAllLocations(Array.from(locSet).sort((a, b) => a === "online" ? -1 : b === "online" ? 1 : a.localeCompare(b)));
@@ -49,39 +63,40 @@ export default function EmployeesSales() {
       onProcess();
       const filteredTx = txRes.transactions.filter((tx) => {
         return isInTimeRange(tx.createdAt, timeRange)
-          && (location === "All" || (tx.location || "online") === location)
-          && (device === "All" || (tx.device || "POS") === device)
-          && (staff === "All" || (tx.staff?.name || "Unknown") === staff);
+          && (location === "All" || getReportLocation(tx) === location)
+          && (device === "All" || getReportDevice(tx) === device)
+          && (staff === "All" || getReportStaffName(tx) === staff);
       });
 
       const staffMap = {};
       filteredTx.forEach((tx) => {
-        const staffName = tx.staff?.name || "Unknown";
+        const staffName = getReportStaffName(tx);
         if (!staffMap[staffName]) {
           staffMap[staffName] = {
-            name: staffName, mainLocation: tx.location || "online",
+            name: staffName, mainLocation: getReportLocation(tx),
             transactionQty: 0, refundQty: 0, refundValue: 0,
             noSaleQty: 0, voidedQty: 0, voidedValue: 0,
-            itemQty: 0, salesIncTax: 0, discounts: 0,
+            itemQty: 0, salesIncTax: 0, discounts: 0, taxAmount: 0,
           };
         }
-        if (tx.status === "completed") {
+        if (isCompletedSale(tx)) {
           staffMap[staffName].transactionQty += 1;
-          staffMap[staffName].itemQty += tx.items?.reduce((s, i) => s + (i.qty || 0), 0) || 0;
-          staffMap[staffName].salesIncTax += tx.total || 0;
-          staffMap[staffName].discounts += (tx.promotionValueType === 'INCREMENT' ? 0 : (tx.discount || 0));
-        } else if (tx.status === "refunded") {
+          staffMap[staffName].itemQty += getTransactionItemQuantity(tx);
+          staffMap[staffName].salesIncTax += getTransactionNetSales(tx);
+          staffMap[staffName].discounts += getTransactionDiscount(tx);
+          staffMap[staffName].taxAmount += getTransactionTax(tx);
+        } else if (isRefundedSale(tx)) {
           staffMap[staffName].refundQty += 1;
-          staffMap[staffName].refundValue += tx.total || 0;
+          staffMap[staffName].refundValue += getTransactionRefundValue(tx);
         }
       });
 
       const staffData = Object.values(staffMap).map((s) => {
-        const netSales = s.salesIncTax - s.discounts;
+        const netSales = s.salesIncTax;
         return {
           ...s,
           netSalesIncVat: netSales,
-          netSalesExcTax: Math.max(0, netSales * 0.8),
+          netSalesExcTax: Math.max(0, netSales - s.taxAmount),
           avgTransaction: s.transactionQty > 0 ? netSales / s.transactionQty : 0,
           avgMargin: 0, grossMargin: 0, marginPercent: 0,
         };
@@ -105,7 +120,9 @@ export default function EmployeesSales() {
     itemQty: tableData.reduce((s, r) => s + r.itemQty, 0),
     salesIncTax: tableData.reduce((s, r) => s + r.salesIncTax, 0),
     discounts: tableData.reduce((s, r) => s + r.discounts, 0),
-    avgTransaction: tableData.length > 0 ? tableData.reduce((s, r) => s + r.avgTransaction, 0) / tableData.length : 0,
+    avgTransaction: tableData.reduce((s, r) => s + r.transactionQty, 0) > 0
+      ? tableData.reduce((s, r) => s + r.netSalesIncVat, 0) / tableData.reduce((s, r) => s + r.transactionQty, 0)
+      : 0,
     netSalesIncVat: tableData.reduce((s, r) => s + r.netSalesIncVat, 0),
     netSalesExcTax: tableData.reduce((s, r) => s + r.netSalesExcTax, 0),
   };

@@ -3,6 +3,14 @@ import Loader from "@/components/Loader";
 import useProgress from "@/lib/useProgress";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { addDaysToDateKey, getDateKey, getDateTimeParts, getTodayDateKey, getWeekStartDateKey, parseDateKey } from "@/lib/dateFilter";
+import {
+  getTransactionDiscount,
+  getTransactionItemQuantity,
+  getTransactionNetSales,
+  getTransactionRefundValue,
+  isCompletedSale,
+  isRefundedSale,
+} from "@/lib/sales-report-utils";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Line } from "react-chartjs-2";
@@ -70,7 +78,7 @@ export default function TimeComparisons() {
 
     const filteredTx = transactions.filter((tx) => {
       const txDateKey = getDateKey(tx.createdAt);
-      return tx.status === "completed" && txDateKey && txDateKey >= rangeStart && txDateKey <= rangeEnd;
+      return (isCompletedSale(tx) || isRefundedSale(tx)) && txDateKey && txDateKey >= rangeStart && txDateKey <= rangeEnd;
     });
 
     filteredTx.forEach((tx) => {
@@ -89,11 +97,15 @@ export default function TimeComparisons() {
       if (!buckets[key]) {
         buckets[key] = { totalSales: 0, transactionCount: 0, itemsSold: 0, discounts: 0, refunds: 0, refundValue: 0 };
       }
-      const actualDiscount = tx.promotionValueType === "INCREMENT" ? 0 : (tx.discount || 0);
-      buckets[key].totalSales += tx.total || 0;
-      buckets[key].transactionCount += 1;
-      buckets[key].itemsSold += tx.items?.reduce((s, i) => s + (i.qty || 0), 0) || 0;
-      buckets[key].discounts += actualDiscount;
+      if (isCompletedSale(tx)) {
+        buckets[key].totalSales += getTransactionNetSales(tx);
+        buckets[key].transactionCount += 1;
+        buckets[key].itemsSold += getTransactionItemQuantity(tx);
+        buckets[key].discounts += getTransactionDiscount(tx);
+      } else if (isRefundedSale(tx)) {
+        buckets[key].refunds += 1;
+        buckets[key].refundValue += getTransactionRefundValue(tx);
+      }
     });
 
     return Object.entries(buckets)
@@ -102,7 +114,7 @@ export default function TimeComparisons() {
         label: key,
         ...vals,
         avgTransaction: vals.transactionCount > 0 ? vals.totalSales / vals.transactionCount : 0,
-        netSales: vals.totalSales - vals.discounts,
+        netSales: vals.totalSales,
       }));
   }
 

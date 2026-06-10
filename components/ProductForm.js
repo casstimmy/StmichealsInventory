@@ -381,6 +381,14 @@ export default function ProductForm(props) {
     router.push("/manage/products");
   }, [goToProducts, router, returnTo, returnRow, name, packType, qtyPerPack, costPrice]);
 
+  const handleCancel = () => {
+    if (typeof window !== "undefined" && props._id) {
+      sessionStorage.setItem("products:highlight", String(props._id));
+    }
+
+    router.push("/manage/products");
+  };
+
   function generateBarcode() {
     const base = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
     const newCode = base.slice(-13);
@@ -969,7 +977,7 @@ export default function ProductForm(props) {
       <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
         <button
           type="button"
-          onClick={() => router.push("/manage/products")}
+          onClick={handleCancel}
           className="btn-action-secondary w-full sm:w-auto"
         >
           Cancel

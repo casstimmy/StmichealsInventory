@@ -4,6 +4,12 @@ import useProgress from "@/lib/useProgress";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { isInTimeRange, REPORT_TIME_ZONE } from "@/lib/dateFilter";
 import { aggregateProductSales } from "@/lib/product-sales-report";
+import {
+  getAllocatedLineItems,
+  getReportStaffName,
+  getTransactionNetSales,
+  isCompletedSale,
+} from "@/lib/sales-report-utils";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Bar } from "react-chartjs-2";
@@ -40,14 +46,9 @@ function buildProductTransactionDrilldown(transactions = []) {
   (Array.isArray(transactions) ? transactions : []).forEach((transaction) => {
     const itemMap = new Map();
 
-    (Array.isArray(transaction?.items) ? transaction.items : []).forEach((item) => {
+    getAllocatedLineItems(transaction).forEach(({ item, quantity, netLineTotal }) => {
       const key = getProductKey(item);
       if (!key) return;
-
-      const quantity = Number(item?.qty ?? item?.quantity ?? 0) || 0;
-      if (quantity <= 0) return;
-
-      const lineTotal = quantity * (Number(item?.salePriceIncTax ?? item?.price ?? 0) || 0);
       const existing = itemMap.get(key) || {
         productId: normalizeProductId(item?.productId),
         productName: String(item?.name || "").trim() || "Unknown",
@@ -56,7 +57,7 @@ function buildProductTransactionDrilldown(transactions = []) {
       };
 
       existing.quantity += quantity;
-      existing.lineTotal += lineTotal;
+  existing.lineTotal += netLineTotal;
 
       if (!existing.productId) {
         existing.productId = normalizeProductId(item?.productId);
@@ -74,9 +75,9 @@ function buildProductTransactionDrilldown(transactions = []) {
         transactionId: transaction._id,
         createdAt: transaction.createdAt,
         location: transaction.location || "Online",
-        staffName: transaction.staff?.name || transaction.staffName || transaction.staff || "Unknown",
+        staffName: getReportStaffName(transaction),
         customerName: transaction.customerName || "Walk-in",
-        transactionTotal: Number(transaction.total || 0),
+        transactionTotal: getTransactionNetSales(transaction),
         quantity: match.quantity,
         lineTotal: match.lineTotal,
       });
@@ -140,7 +141,7 @@ export default function ProductsSales() {
 
       const filteredTx = txRes.transactions.filter((tx) => {
         onProcess();
-        return tx.status === "completed" && isInTimeRange(tx.createdAt, timeRange);
+        return isCompletedSale(tx) && isInTimeRange(tx.createdAt, timeRange);
       });
 
       const products = aggregateProductSales(filteredTx);

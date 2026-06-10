@@ -81,6 +81,42 @@ function getItemKey(item) {
   return `${String(item?.productId || "")}:${item?.countType || "standard"}`;
 }
 
+function markItemCounted(item, countedQty, countedBy = "System") {
+  item.countedQty = Number(countedQty || 0);
+  item.variance = item.countedQty - item.systemQty;
+  item.varianceValue = item.variance * item.costPrice;
+  item.status = "counted";
+  item.countedAt = new Date();
+  item.countedBy = countedBy;
+  item.reason = item.variance !== 0 ? (item.reason || "Stock Take") : "";
+}
+
+function completePartiallyCountedPackGroups(stockTake, countedBy = "System") {
+  const groups = new Map();
+
+  for (const item of stockTake.items || []) {
+    const productId = String(item.productId || "");
+    if (!productId) continue;
+    const group = groups.get(productId) || [];
+    group.push(item);
+    groups.set(productId, group);
+  }
+
+  for (const groupItems of groups.values()) {
+    const hasLooseUnits = groupItems.some((item) => item.countType === "loose-units");
+    if (!hasLooseUnits) continue;
+
+    const hasAnyCount = groupItems.some((item) => item.countedQty !== null && item.countedQty !== undefined);
+    if (!hasAnyCount) continue;
+
+    groupItems.forEach((item) => {
+      if (item.countedQty === null || item.countedQty === undefined) {
+        markItemCounted(item, 0, countedBy);
+      }
+    });
+  }
+}
+
 function mergeUniqueItems(existingItems = [], nextItems = []) {
   const merged = [...existingItems];
   const seenKeys = new Set(existingItems.map((item) => getItemKey(item)));
@@ -397,19 +433,15 @@ export default async function handler(req, res) {
             if (!item) continue;
 
             if (update.countedQty !== undefined && update.countedQty !== null) {
-              item.countedQty = Number(update.countedQty);
-              item.variance = item.countedQty - item.systemQty;
-              item.varianceValue = item.variance * item.costPrice;
-              item.status = "counted";
-              item.countedAt = new Date();
-              item.countedBy = update.countedBy || req.user?.name || "";
-              item.reason = item.variance !== 0 ? (item.reason || "Stock Take") : "";
+              markItemCounted(item, update.countedQty, update.countedBy || req.user?.name || "");
             }
 
             if (update.reason !== undefined) item.reason = String(update.reason || "").trim();
             if (update.notes !== undefined) item.notes = update.notes;
           }
         }
+
+        completePartiallyCountedPackGroups(stockTake, req.user?.name || "System");
 
         recalcSummary(stockTake);
         await stockTake.save();
@@ -522,12 +554,13 @@ export default async function handler(req, res) {
 
           const productId = String(item.productId);
           if (!productQtyMap.has(productId)) {
-            productQtyMap.set(productId, { packs: null, looseUnits: 0, qtyPerPack: 1 });
+            productQtyMap.set(productId, { packs: null, looseUnits: 0, looseUnitsCounted: false, qtyPerPack: 1 });
           }
           const entry = productQtyMap.get(productId);
 
           if (item.countType === "loose-units") {
             entry.looseUnits = item.countedQty || 0;
+            entry.looseUnitsCounted = true;
             entry.qtyPerPack = item.qtyPerPack || 1;
           } else {
             entry.packs = item.countedQty;
@@ -535,10 +568,10 @@ export default async function handler(req, res) {
         }
 
         const bulkOps = [];
-        for (const [productId, { packs, looseUnits, qtyPerPack }] of productQtyMap.entries()) {
-          if (packs === null) continue;
+        for (const [productId, { packs, looseUnits, looseUnitsCounted, qtyPerPack }] of productQtyMap.entries()) {
+          if (packs === null && !looseUnitsCounted) continue;
 
-          const finalQty = packs + (looseUnits / qtyPerPack);
+          const finalQty = (packs ?? 0) + (looseUnits / qtyPerPack);
           const current = await Product.findById(productId).select("quantity").lean();
           if (!current || current.quantity === finalQty) continue;
 

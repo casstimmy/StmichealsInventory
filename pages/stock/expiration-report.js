@@ -21,7 +21,7 @@ export default function ExpirationReport() {
   const [loading, setLoading] = useState(true);
   const { progress, start, onFetch, onProcess, complete } = useProgress();
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'critical', 'warning', 'ok'
+  const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'soldOut', 'critical', 'warning', 'ok'
   const [sortBy, setSortBy] = useState('daysRemaining'); // 'daysRemaining', 'expiryDate', 'name'
 
   // Fetch stock movements with batch details on mount
@@ -99,7 +99,8 @@ export default function ExpirationReport() {
       const daysRemaining = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24));
       
       let status = 'ok';
-      if (daysRemaining <= 0) status = 'expired';
+      if (batch.soldOut || Number(batch.remainingQuantity ?? batch.quantity ?? 0) <= 0) status = 'soldOut';
+      else if (daysRemaining <= 0) status = 'expired';
       else if (daysRemaining <= 7) status = 'critical';
       else if (daysRemaining <= 30) status = 'warning';
       
@@ -107,7 +108,10 @@ export default function ExpirationReport() {
         ...batch,
         daysRemaining,
         status,
+        soldOut: status === 'soldOut',
         expiryDate: expiryDate.toISOString().split('T')[0],
+        originalQuantity: Number(batch.originalQuantity ?? batch.quantity ?? 0) || 0,
+        remainingQuantity: Number(batch.remainingQuantity ?? batch.quantity ?? 0) || 0,
       };
     });
   }, [batches]);
@@ -158,6 +162,7 @@ export default function ExpirationReport() {
   const stats = useMemo(() => {
     return {
       total: processedBatches.length,
+      soldOut: processedBatches.filter(b => b.status === 'soldOut').length,
       expired: processedBatches.filter(b => b.status === 'expired').length,
       critical: processedBatches.filter(b => b.status === 'critical').length,
       warning: processedBatches.filter(b => b.status === 'warning').length,
@@ -168,6 +173,8 @@ export default function ExpirationReport() {
   // Get status badge styling
   const getStatusStyles = (status) => {
     switch (status) {
+      case 'soldOut':
+        return 'bg-gray-100 text-gray-700 border-gray-300';
       case 'expired':
         return 'bg-red-100 text-red-800 border-red-300';
       case 'critical':
@@ -183,6 +190,8 @@ export default function ExpirationReport() {
 
   const getStatusLabel = (status) => {
     switch (status) {
+      case 'soldOut':
+        return 'Sold out';
       case 'expired':
         return 'Expired';
       case 'critical':
@@ -198,7 +207,7 @@ export default function ExpirationReport() {
 
   // Export to CSV
   const handleExport = () => {
-    const headers = ['Batch ID', 'Product Name', 'Category', 'Location', 'Expiry Date', 'Days Remaining', 'Batch Quantity', 'Status'];
+    const headers = ['Batch ID', 'Product Name', 'Category', 'Location', 'Expiry Date', 'Days Remaining', 'Remaining Qty', 'Original Qty', 'Status'];
     const rows = filteredBatches.map(b => [
       b.batchId || b.transRef || 'N/A',
       b.productName || 'N/A',
@@ -206,7 +215,8 @@ export default function ExpirationReport() {
       b.locationName || 'N/A',
       b.expiryDate,
       b.daysRemaining,
-      b.quantity,
+      b.remainingQuantity,
+      b.originalQuantity,
       getStatusLabel(b.status),
     ]);
 
@@ -249,7 +259,7 @@ export default function ExpirationReport() {
           </div>
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
             {/* Total Card */}
             <div className="stat-card border-t-4 border-sky-600">
               <div className="flex items-center justify-between">
@@ -258,6 +268,17 @@ export default function ExpirationReport() {
                   <p className="stat-card-value text-gray-900">{stats.total}</p>
                 </div>
                 <FontAwesomeIcon icon={faBox} className="text-3xl text-sky-200" />
+              </div>
+            </div>
+
+            {/* Sold Out Card */}
+            <div className="stat-card border-t-4 border-gray-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="stat-card-label">Sold Out</p>
+                  <p className="stat-card-value text-gray-700">{stats.soldOut}</p>
+                </div>
+                <FontAwesomeIcon icon={faCheckCircle} className="text-3xl text-gray-300" />
               </div>
             </div>
 
@@ -336,6 +357,7 @@ export default function ExpirationReport() {
                   className="form-select"
                 >
                   <option value="all">All Products</option>
+                  <option value="soldOut">Sold Out</option>
                   <option value="expired">Expired</option>
                   <option value="critical">Critical (≤7 days)</option>
                   <option value="warning">Warning (8-30 days)</option>
@@ -394,6 +416,7 @@ export default function ExpirationReport() {
                         key={idx} 
                         className={`
                           ${batch.status === 'expired' ? 'bg-red-50' :
+                            batch.status === 'soldOut' ? 'bg-gray-50' :
                           batch.status === 'critical' ? 'bg-orange-50' :
                           batch.status === 'warning' ? 'bg-yellow-50' : ''}
                         `}
@@ -416,7 +439,7 @@ export default function ExpirationReport() {
                           </span>
                         </td>
                         <td className="text-center font-medium text-gray-900">
-                          {batch.quantity || 0}
+                          {batch.remainingQuantity} / {batch.originalQuantity}
                         </td>
                         <td className="text-center">
                           <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusStyles(batch.status)}`}>
@@ -425,12 +448,20 @@ export default function ExpirationReport() {
                         </td>
                         <td className="text-center">
                           <button
-                            onClick={() => router.push(`/stock/add?adjustProductId=${batch.productId}&adjustQty=${batch.quantity}&reason=Adjustment`)}
-                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded transition"
-                            title="Create stock adjustment for this expiring batch"
+                            onClick={() => {
+                              if (batch.soldOut) return;
+                              router.push(`/stock/add?adjustProductId=${batch.productId}&adjustQty=${batch.remainingQuantity}&reason=Adjustment`);
+                            }}
+                            disabled={batch.soldOut}
+                            className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium border rounded transition ${
+                              batch.soldOut
+                                ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-500'
+                                : 'text-amber-700 bg-amber-50 hover:bg-amber-100 border-amber-200'
+                            }`}
+                            title={batch.soldOut ? "This FIFO batch is sold out" : "Create stock adjustment for this expiring batch"}
                           >
                             <FontAwesomeIcon icon={faExchangeAlt} className="w-3 h-3" />
-                            Adjust
+                            {batch.soldOut ? 'Sold out' : 'Adjust'}
                           </button>
                         </td>
                       </tr>

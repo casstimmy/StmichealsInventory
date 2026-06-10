@@ -3,6 +3,17 @@ import Loader from "@/components/Loader";
 import useProgress from "@/lib/useProgress";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { getDateTimeParts, getTodayDateKey, getWeekStartDateKey, isInTimeRange } from "@/lib/dateFilter";
+import {
+  getReportDevice,
+  getReportLocation,
+  getReportStaffName,
+  getTransactionDiscount,
+  getTransactionItemQuantity,
+  getTransactionNetSales,
+  getTransactionRefundValue,
+  isCompletedSale,
+  isRefundedSale,
+} from "@/lib/sales-report-utils";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { saveAs } from "file-saver";
@@ -50,9 +61,9 @@ export default function TimeIntervals() {
 
       const filteredTx = txRes.transactions.filter((tx) => {
         return isInTimeRange(tx.createdAt, timeRange)
-          && (location === "All" || (tx.location || "online") === location)
-          && (device === "All" || (tx.device || "POS") === device)
-          && (staff === "All" || (tx.staff?.name || "Unknown") === staff);
+          && (location === "All" || getReportLocation(tx) === location)
+          && (device === "All" || getReportDevice(tx) === device)
+          && (staff === "All" || getReportStaffName(tx) === staff);
       });
 
       const buckets = {};
@@ -85,14 +96,14 @@ export default function TimeIntervals() {
             salesIncTax: 0, discounts: 0, netSales: 0,
           };
         }
-        if (tx.status === "completed") {
+        if (isCompletedSale(tx)) {
           buckets[key].transactionQty += 1;
-          buckets[key].itemQty += tx.items?.reduce((s, i) => s + (i.qty || 0), 0) || 0;
-          buckets[key].salesIncTax += tx.total || 0;
-          buckets[key].discounts += (tx.promotionValueType === 'INCREMENT' ? 0 : (tx.discount || 0));
-        } else if (tx.status === "refunded") {
+          buckets[key].itemQty += getTransactionItemQuantity(tx);
+          buckets[key].salesIncTax += getTransactionNetSales(tx);
+          buckets[key].discounts += getTransactionDiscount(tx);
+        } else if (isRefundedSale(tx)) {
           buckets[key].refundQty += 1;
-          buckets[key].refundValue += tx.total || 0;
+          buckets[key].refundValue += getTransactionRefundValue(tx);
         }
       });
 
@@ -100,8 +111,8 @@ export default function TimeIntervals() {
         .sort((a, b) => a.date.localeCompare(b.date))
         .map((r) => ({
           ...r,
-          avgTransaction: r.transactionQty > 0 ? (r.salesIncTax - r.discounts) / r.transactionQty : 0,
-          netSales: r.salesIncTax - r.discounts,
+          avgTransaction: r.transactionQty > 0 ? r.salesIncTax / r.transactionQty : 0,
+          netSales: r.salesIncTax,
         }));
 
       setData(rows);
@@ -122,7 +133,7 @@ export default function TimeIntervals() {
     discounts: tableData.reduce((s, r) => s + r.discounts, 0),
     avgTransaction: 0, netSales: 0,
   };
-  totals.netSales = totals.salesIncTax - totals.discounts;
+  totals.netSales = totals.salesIncTax;
   totals.avgTransaction = totals.transactionQty > 0 ? totals.netSales / totals.transactionQty : 0;
 
   function exportCSV() {

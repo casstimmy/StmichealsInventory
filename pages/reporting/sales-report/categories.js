@@ -3,6 +3,13 @@ import Loader from "@/components/Loader";
 import { isInTimeRange, REPORT_TIME_ZONE } from "@/lib/dateFilter";
 import useProgress from "@/lib/useProgress";
 import { formatCurrency, formatNumber } from "@/lib/format";
+import {
+  getAllocatedLineItems,
+  getReportDevice,
+  getReportLocation,
+  getReportStaffName,
+  isCompletedSale,
+} from "@/lib/sales-report-utils";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Bar, Doughnut } from "react-chartjs-2";
@@ -57,8 +64,10 @@ export default function CategoriesSales() {
       const locSet = new Set();
       const staffSet = new Set();
       txs.forEach((tx) => {
-        if (tx.location) locSet.add(tx.location);
-        if (tx.staff?.name) staffSet.add(tx.staff.name);
+        const txLocation = getReportLocation(tx);
+        const txStaff = getReportStaffName(tx);
+        if (txLocation) locSet.add(txLocation);
+        if (txStaff) staffSet.add(txStaff);
       });
       setAllLocations(Array.from(locSet).sort());
       setAllStaff(Array.from(staffSet).sort());
@@ -101,32 +110,31 @@ export default function CategoriesSales() {
       });
 
       allTx = allTx.filter((tx) => {
-        if (!["completed", "refunded"].includes(tx.status)) return false;
-        if (location !== "All" && tx.location !== location) return false;
-        if (device !== "All" && tx.device !== device) return false;
-        if (staff !== "All" && tx.staff?.name !== staff) return false;
+        if (!isCompletedSale(tx)) return false;
+        if (location !== "All" && getReportLocation(tx) !== location) return false;
+        if (device !== "All" && getReportDevice(tx) !== device) return false;
+        if (staff !== "All" && getReportStaffName(tx) !== staff) return false;
         return isInTimeRange(tx.createdAt, timeRange);
       });
 
       const txWithCats = allTx.map((tx) => {
         const breakdown = {};
         let total = 0;
-        tx.items?.forEach((item) => {
+        getAllocatedLineItems(tx).forEach(({ item, quantity, netLineTotal }) => {
           const cat = getProductCategory(item.productId, productMap);
-          const itemTotal = (item.salePriceIncTax || 0) * (item.qty || 0);
           if (!breakdown[cat]) breakdown[cat] = { category: cat, units: 0, sales: 0 };
-          breakdown[cat].units += item.qty || 0;
-          breakdown[cat].sales += itemTotal;
-          total += itemTotal;
+          breakdown[cat].units += quantity;
+          breakdown[cat].sales += netLineTotal;
+          total += netLineTotal;
         });
         return {
           id: tx._id,
           createdAt: tx.createdAt,
           date: new Date(tx.createdAt).toLocaleDateString("en-NG", { timeZone: REPORT_TIME_ZONE }),
           time: new Date(tx.createdAt).toLocaleTimeString("en-NG", { timeZone: REPORT_TIME_ZONE }),
-          staff: tx.staff?.name || "Unknown",
-          location: tx.location || "Online",
-          device: tx.device || "-",
+          staff: getReportStaffName(tx),
+          location: getReportLocation(tx),
+          device: getReportDevice(tx),
           total,
           categories: Object.values(breakdown),
         };
@@ -136,11 +144,11 @@ export default function CategoriesSales() {
 
       const catMap = {};
       allTx.forEach((tx) => {
-        tx.items?.forEach((item) => {
+        getAllocatedLineItems(tx).forEach(({ item, quantity, netLineTotal }) => {
           const cat = getProductCategory(item.productId, productMap);
           if (!catMap[cat]) catMap[cat] = { name: cat, sales: 0, units: 0 };
-          catMap[cat].sales += (item.salePriceIncTax || 0) * (item.qty || 0);
-          catMap[cat].units += item.qty || 0;
+          catMap[cat].sales += netLineTotal;
+          catMap[cat].units += quantity;
         });
       });
       setCategories(Object.values(catMap).sort((a, b) => b.sales - a.sales));

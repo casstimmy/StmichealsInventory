@@ -43,13 +43,30 @@ function getLocationTokens(value) {
   return getLocationLabels(value).map((entry) => normalizeLocationValue(entry)).filter(Boolean);
 }
 
+function getProductLocationEntries(product) {
+  return (Array.isArray(product?.locationStocks) ? product.locationStocks : [])
+    .map((entry) => ({
+      locationName: String(entry?.locationName || "").trim(),
+      quantity: Number(entry?.quantity || 0),
+    }))
+    .filter((entry) => entry.locationName && Math.abs(entry.quantity) > 0.0001);
+}
+
 function getProductLocationTokens(product) {
-  return getLocationTokens(product?.locations || []);
+  return getProductLocationEntries(product).flatMap((entry) => getLocationTokens(entry.locationName));
 }
 
 function getProductLocationLabel(product) {
-  const labels = getLocationLabels(product?.locations || []);
+  const labels = getProductLocationEntries(product).flatMap((entry) => getLocationLabels(entry.locationName));
   return labels.length > 0 ? [...new Set(labels)].join(", ") : "Unassigned";
+}
+
+function getProductLocationQuantity(product, selectedTokens = []) {
+  const tokenSet = new Set(selectedTokens.map((token) => normalizeLocationValue(token)).filter(Boolean));
+  return getProductLocationEntries(product).reduce((sum, entry) => {
+    const entryTokens = getLocationTokens(entry.locationName);
+    return entryTokens.some((token) => tokenSet.has(token)) ? sum + entry.quantity : sum;
+  }, 0);
 }
 
 function isDerivedChild(product) {
@@ -158,7 +175,7 @@ export default function StockManagement() {
   const queryLocation = typeof router.query.location === "string" ? router.query.location : "";
 
   const fetchStockProducts = useCallback(async () => {
-    const res = await fetch("/api/products?minimal=true");
+    const res = await fetch("/api/stock-management/location-stock");
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
       throw new Error(errorData.message || "Failed to fetch products");
@@ -284,8 +301,7 @@ export default function StockManagement() {
 
     availableLocations.forEach(registerLocation);
     products.forEach((product) => {
-      const locations = Array.isArray(product.locations) ? product.locations : [];
-      locations.forEach(registerLocation);
+      getProductLocationEntries(product).forEach((entry) => registerLocation(entry.locationName));
     });
 
     return Array.from(seenLocations.values())
@@ -307,20 +323,20 @@ export default function StockManagement() {
   }, [locationOptions, selectedLocation]);
 
   const locationScopedItems = useMemo(() => {
-    return products.filter((item) => {
+    return products.flatMap((item) => {
       const normalizedLocationFilter = normalizeLocationValue(selectedLocation);
       if (normalizedLocationFilter === "all") {
-        return true;
+        return [item];
       }
 
       if (isRoomProduct(item)) {
-        return false;
+        return [];
       }
 
       const productLocations = getProductLocationTokens(item);
 
       if (normalizedLocationFilter === "unassigned") {
-        return productLocations.length === 0;
+        return productLocations.length === 0 ? [item] : [];
       }
 
       const selectedLocationOption = locationOptions.find((option) =>
@@ -328,8 +344,17 @@ export default function StockManagement() {
         option.tokens.includes(normalizedLocationFilter)
       );
       const selectedTokens = selectedLocationOption?.tokens || [normalizedLocationFilter];
+      const locationQuantity = getProductLocationQuantity(item, selectedTokens);
 
-      return productLocations.some((token) => selectedTokens.includes(token));
+      if (Math.abs(locationQuantity) <= 0.0001) {
+        return [];
+      }
+
+      return [{
+        ...item,
+        quantity: locationQuantity,
+        stockLocationLabel: selectedLocationOption?.label || selectedLocation,
+      }];
     });
   }, [products, selectedLocation, locationOptions]);
 
@@ -389,7 +414,7 @@ export default function StockManagement() {
       return {
         "Name": product.name || "N/A",
         "Category": categoryMap[product.category] || product.category || "Uncategorized",
-        "Location": getProductLocationLabel(product),
+        "Location": product.stockLocationLabel || getProductLocationLabel(product),
         "Current Stock": formatQuantity(product.quantity),
         "Inner Unit Stock": childProducts.length > 0 ? formatQuantity(innerQuantity) : "",
         "Min Stock": formatQuantity(product.minStock),
@@ -568,7 +593,7 @@ export default function StockManagement() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    {["Name", "Category", "Current Stock", "Inner Unit", "Min Stock", "Unit Cost", "Status"].map((header) => (
+                    {["Name", "Category", "Stock Location", "Current Stock", "Inner Unit", "Min Stock", "Unit Cost", "Status"].map((header) => (
                       <th key={header}>
                         {header}
                       </th>
@@ -578,7 +603,7 @@ export default function StockManagement() {
                 <tbody className="divide-y divide-gray-200">
                   {filteredItems.length === 0 ? (
                     <tr>
-                      <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
+                      <td colSpan="8" className="px-6 py-4 text-center text-gray-500">
                         No products match the current filters.
                       </td>
                     </tr>
@@ -595,6 +620,7 @@ export default function StockManagement() {
                             {childProducts.length > 0 && <span className="ml-2 text-xs text-blue-600 font-normal">mother product</span>}
                           </td>
                           <td className="px-6 py-4 text-gray-700">{categoryMap[product.category] || product.category || "Uncategorized"}</td>
+                          <td className="px-6 py-4 text-gray-700">{product.stockLocationLabel || getProductLocationLabel(product)}</td>
                           <td className={`px-6 py-4 font-semibold ${qty < 0 ? "text-red-600" : "text-gray-900"}`}>
                             {formatQuantity(qty)}
                           </td>

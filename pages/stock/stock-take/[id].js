@@ -58,6 +58,59 @@ const REASON_OPTIONS = [
   "Other",
 ];
 
+function getStockTakeGroupKey(item) {
+  return String(item?.productId || item?._id || "");
+}
+
+function groupStockTakeItems(items = []) {
+  const groupMap = new Map();
+
+  (Array.isArray(items) ? items : []).forEach((item) => {
+    const key = getStockTakeGroupKey(item);
+    if (!key) return;
+
+    const existing = groupMap.get(key) || {
+      key,
+      productName: item.productName || "Unknown product",
+      barcode: item.barcode || "",
+      items: [],
+      standard: null,
+      loose: null,
+    };
+
+    existing.items.push(item);
+    if (item.countType === "loose-units") {
+      existing.loose = item;
+    } else {
+      existing.standard = item;
+      existing.productName = item.productName || existing.productName;
+      existing.barcode = item.barcode || existing.barcode;
+    }
+
+    groupMap.set(key, existing);
+  });
+
+  return Array.from(groupMap.values()).map((group) => ({
+    ...group,
+    primary: group.standard || group.loose || group.items[0],
+    variance: group.items.reduce((sum, item) => (
+      item.countedQty !== null && item.countedQty !== undefined ? sum + Number(item.variance || 0) : sum
+    ), 0),
+    varianceValue: group.items.reduce((sum, item) => (
+      item.countedQty !== null && item.countedQty !== undefined ? sum + Number(item.varianceValue || 0) : sum
+    ), 0),
+    isCounted: group.items.every((item) => item.countedQty !== null && item.countedQty !== undefined),
+    isPartiallyCounted: group.items.some((item) => item.countedQty !== null && item.countedQty !== undefined),
+    hasVariance: group.items.some((item) => item.countedQty !== null && item.countedQty !== undefined && Number(item.variance || 0) !== 0),
+  }));
+}
+
+function formatStockTakeQuantity(value) {
+  const numberValue = Number(value || 0);
+  if (!Number.isFinite(numberValue)) return "0";
+  return String(parseFloat(numberValue.toFixed(2)));
+}
+
 export default function StockTakeDetail() {
   const router = useRouter();
   const { id } = router.query;
@@ -230,14 +283,29 @@ export default function StockTakeDetail() {
     return stockTake.items.map((item) => getEffectiveItem(item));
   }, [stockTake, getEffectiveItem]);
 
+  const filteredItemGroups = useMemo(() => groupStockTakeItems(filteredItems), [filteredItems]);
+  const reviewItemGroups = useMemo(() => groupStockTakeItems(reviewItems), [reviewItems]);
+
   const reviewStats = useMemo(() => {
-    const total = reviewItems.length;
-    const discrepancies = reviewItems.filter((item) => item.countedQty !== null && item.variance !== 0).length;
-    const correct = reviewItems.filter((item) => item.countedQty !== null && item.variance === 0).length;
-    const uncounted = reviewItems.filter((item) => item.countedQty === null).length;
+    const total = reviewItemGroups.length;
+    const discrepancies = reviewItemGroups.filter((group) => group.hasVariance).length;
+    const correct = reviewItemGroups.filter((group) => group.isCounted && !group.hasVariance).length;
+    const uncounted = reviewItemGroups.filter((group) => !group.isPartiallyCounted).length;
 
     return { total, discrepancies, correct, uncounted };
-  }, [reviewItems]);
+  }, [reviewItemGroups]);
+
+  const countStats = useMemo(() => {
+    const total = reviewItemGroups.length;
+    const counted = reviewItemGroups.filter((group) => group.isCounted).length;
+    const partial = reviewItemGroups.filter((group) => group.isPartiallyCounted && !group.isCounted).length;
+    const progress = total > 0 ? Math.round((counted / total) * 100) : 0;
+    const netVariance = reviewItems
+      .filter((item) => item.countedQty !== null && item.countedQty !== undefined)
+      .reduce((sum, item) => sum + Number(item.variance || 0), 0);
+
+    return { total, counted, partial, progress, netVariance };
+  }, [reviewItemGroups, reviewItems]);
 
   const showMsg = (type, text) => {
     setMessage({ type, text });
@@ -481,9 +549,7 @@ export default function StockTakeDetail() {
   }
 
   const hasPending = Object.keys(pendingChanges).length > 0;
-  const progressPct = stockTake.totalItems > 0
-    ? Math.round((stockTake.countedItems / stockTake.totalItems) * 100)
-    : 0;
+  const progressPct = countStats.progress;
   const isReviewMode = viewMode === VIEW_MODES.REVIEW;
   const canCompleteInReview = isAdmin && stockTake.status === "in-progress" && hasItems;
 
@@ -843,78 +909,117 @@ export default function StockTakeDetail() {
                     </tr>
                   </thead>
                   <tbody>
-                    {reviewItems.map((item, index) => (
-                      <Fragment key={item._id}>
-                        <tr className={`border-b border-gray-100 transition-colors ${
-                          item.countedQty !== null && item.variance !== 0
-                            ? item.variance > 0
-                              ? "bg-green-50/40"
-                              : "bg-red-50/40"
-                            : "hover:bg-gray-50"
-                        }`}>
-                          <td className="py-2 px-2 text-gray-400 text-xs">{index + 1}</td>
-                          <td className="py-2 px-2">
-                            <div className="font-medium text-gray-900 text-sm">
-                              {item.productName}
-                              {item.countType === "loose-units" && (
-                                <span className="ml-1 text-xs text-orange-600 font-normal">({item.qtyPerPack} per pack)</span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="py-2 px-2 font-mono text-xs text-gray-500 hidden md:table-cell">{item.barcode || "—"}</td>
-                          <td className="py-2 px-2 text-center font-medium text-gray-700">{item.systemQty}</td>
-                          <td className="py-2 px-2 text-center font-medium text-gray-900">{item.countedQty ?? "—"}</td>
-                          <td className="py-2 px-2 text-center">
-                            {item.countedQty !== null ? (
-                              <span className={`font-bold ${
-                                item.variance > 0 ? "text-green-600" : item.variance < 0 ? "text-red-600" : "text-gray-500"
-                              }`}>
-                                {item.variance > 0 ? "+" : ""}
-                                {item.variance}
-                              </span>
-                            ) : (
-                              <span className="text-gray-300">—</span>
-                            )}
-                          </td>
-                          <td className="py-2 px-2 text-right hidden lg:table-cell">
-                            {item.countedQty !== null && item.variance !== 0 ? (
-                              <span className={item.variance > 0 ? "text-green-600" : "text-red-600"}>
-                                {formatCurrency(Math.abs(item.varianceValue || 0))}
-                              </span>
-                            ) : (
-                              <span className="text-gray-300">—</span>
-                            )}
-                          </td>
-                          <td className="py-2 px-2 text-center">
-                            <span className={`inline-flex w-2 h-2 rounded-full ${item.derivedStatus === "counted" ? "bg-green-500" : "bg-gray-300"}`} />
-                          </td>
-                        </tr>
-                        {item.countedQty !== null && item.variance !== 0 && (
-                          <tr className="bg-gray-50/80 border-b border-gray-100">
-                            <td colSpan={3} className="px-2 py-3 text-sm text-gray-500 text-right">
-                              The reason for the difference is
-                            </td>
-                            <td colSpan={5} className="px-2 py-3">
-                              <div className="flex justify-end">
-                                <select
-                                  value={item.reason || REASON_OPTIONS[0]}
-                                  onChange={(e) => handleReasonChange(item._id, e.target.value)}
-                                  disabled={!isEditable}
-                                  className="form-select w-full max-w-xs"
-                                >
-                                  {REASON_OPTIONS.map((reason) => (
-                                    <option key={reason} value={reason}>{reason}</option>
-                                  ))}
-                                </select>
+                    {reviewItemGroups.map((group, index) => {
+                      const standardItem = group.standard || group.primary;
+                      const looseItem = group.loose;
+                      const hasPackAndLoose = Boolean(group.standard && group.loose);
+                      const discrepantItems = group.items.filter((item) => (
+                        item.countedQty !== null && item.countedQty !== undefined && Number(item.variance || 0) !== 0
+                      ));
+
+                      return (
+                        <Fragment key={group.key}>
+                          <tr className={`border-b border-gray-100 transition-colors ${
+                            group.hasVariance
+                              ? group.variance > 0
+                                ? "bg-green-50/40"
+                                : "bg-red-50/40"
+                              : "hover:bg-gray-50"
+                          }`}>
+                            <td className="py-2 px-2 text-gray-400 text-xs">{index + 1}</td>
+                            <td className="py-2 px-2">
+                              <div className="font-medium text-gray-900 text-sm">
+                                {group.productName}
+                                {hasPackAndLoose && (
+                                  <span className="ml-2 rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-semibold text-orange-700">
+                                    Pack + each
+                                  </span>
+                                )}
                               </div>
+                              {hasPackAndLoose && (
+                                <div className="mt-1 text-xs text-gray-500">
+                                  {looseItem.qtyPerPack || standardItem.qtyPerPack || 1} each per pack
+                                </div>
+                              )}
+                            </td>
+                            <td className="py-2 px-2 font-mono text-xs text-gray-500 hidden md:table-cell">{group.barcode || "—"}</td>
+                            <td className="py-2 px-2 text-center font-medium text-gray-700">
+                              {hasPackAndLoose ? (
+                                <div className="space-y-1 text-xs">
+                                  <div>Pack: {formatStockTakeQuantity(standardItem.systemQty)}</div>
+                                  <div>Each: {formatStockTakeQuantity(looseItem.systemQty)}</div>
+                                </div>
+                              ) : formatStockTakeQuantity(group.primary.systemQty)}
+                            </td>
+                            <td className="py-2 px-2 text-center font-medium text-gray-900">
+                              {hasPackAndLoose ? (
+                                <div className="space-y-1 text-xs">
+                                  <div>Pack: {standardItem.countedQty ?? "—"}</div>
+                                  <div>Each: {looseItem.countedQty ?? "—"}</div>
+                                </div>
+                              ) : group.primary.countedQty ?? "—"}
+                            </td>
+                            <td className="py-2 px-2 text-center">
+                              {group.isPartiallyCounted ? (
+                                <span className={`font-bold ${
+                                  group.variance > 0 ? "text-green-600" : group.variance < 0 ? "text-red-600" : "text-gray-500"
+                                }`}>
+                                  {group.variance > 0 ? "+" : ""}
+                                  {formatStockTakeQuantity(group.variance)}
+                                </span>
+                              ) : (
+                                <span className="text-gray-300">—</span>
+                              )}
+                            </td>
+                            <td className="py-2 px-2 text-right hidden lg:table-cell">
+                              {group.hasVariance ? (
+                                <span className={group.variance > 0 ? "text-green-600" : "text-red-600"}>
+                                  {formatCurrency(Math.abs(group.varianceValue || 0))}
+                                </span>
+                              ) : (
+                                <span className="text-gray-300">—</span>
+                              )}
+                            </td>
+                            <td className="py-2 px-2 text-center">
+                              <span className={`inline-flex w-2 h-2 rounded-full ${group.isCounted ? "bg-green-500" : group.isPartiallyCounted ? "bg-yellow-500" : "bg-gray-300"}`} />
                             </td>
                           </tr>
-                        )}
-                      </Fragment>
-                    ))}
+                          {discrepantItems.length > 0 && (
+                            <tr className="bg-gray-50/80 border-b border-gray-100">
+                              <td colSpan={3} className="px-2 py-3 text-sm text-gray-500 text-right">
+                                The reason for the difference is
+                              </td>
+                              <td colSpan={5} className="px-2 py-3">
+                                <div className="flex flex-col items-end gap-2">
+                                  {discrepantItems.map((item) => (
+                                    <div key={item._id} className="flex w-full max-w-md items-center gap-2">
+                                      {hasPackAndLoose && (
+                                        <span className="w-14 text-right text-xs font-semibold text-gray-500">
+                                          {item.countType === "loose-units" ? "Each" : "Pack"}
+                                        </span>
+                                      )}
+                                      <select
+                                        value={item.reason || REASON_OPTIONS[0]}
+                                        onChange={(e) => handleReasonChange(item._id, e.target.value)}
+                                        disabled={!isEditable}
+                                        className="form-select flex-1"
+                                      >
+                                        {REASON_OPTIONS.map((reason) => (
+                                          <option key={reason} value={reason}>{reason}</option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                  ))}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
+                      );
+                    })}
                   </tbody>
                 </table>
-                {reviewItems.length === 0 && (
+                {reviewItemGroups.length === 0 && (
                   <div className="text-center py-12 text-gray-400">
                     <FontAwesomeIcon icon={faBalanceScale} className="w-10 h-10 mb-3" />
                     <p>No items available for review</p>
@@ -926,14 +1031,11 @@ export default function StockTakeDetail() {
             <>
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
                 {[
-                  { label: "Total Items", value: stockTake.totalItems },
-                  { label: "Counted", value: stockTake.countedItems },
+                  { label: "Count Entries", value: countStats.total },
+                  { label: "Fully Counted", value: countStats.counted },
+                  { label: "Partial", value: countStats.partial },
                   { label: "Progress", value: `${progressPct}%` },
-                  { label: "Accuracy", value: `${stockTake.accuracyRate || 0}%` },
-                  { label: "System Qty", value: stockTake.totalSystemQty },
-                  { label: "Counted Qty", value: stockTake.totalCountedQty },
-                  { label: "Net Variance", value: stockTake.totalVariance, isVariance: true },
-                  { label: "Variance Value", value: formatCurrency(Math.abs(stockTake.totalVarianceValue || 0)), isVariance: true, raw: stockTake.totalVarianceValue },
+                  { label: "Net Variance", value: countStats.netVariance, isVariance: true },
                 ].map((stat, index) => (
                   <div key={index} className="bg-white border border-gray-200 rounded-lg p-3 text-center">
                     <div className={`text-lg font-bold ${
@@ -956,7 +1058,7 @@ export default function StockTakeDetail() {
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs text-gray-500">Counting Progress</span>
-                  <span className="text-xs font-medium text-gray-700">{stockTake.countedItems} / {stockTake.totalItems}</span>
+                  <span className="text-xs font-medium text-gray-700">{countStats.counted} / {countStats.total}</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2.5">
                   <div
@@ -1005,7 +1107,7 @@ export default function StockTakeDetail() {
 
               <div className="content-card overflow-x-auto">
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm text-gray-500">{filteredItems.length} item(s) shown</p>
+                  <p className="text-sm text-gray-500">{filteredItemGroups.length} count entr{filteredItemGroups.length === 1 ? "y" : "ies"} shown</p>
                 </div>
                 <table className="w-full text-sm">
                   <thead>
@@ -1021,11 +1123,17 @@ export default function StockTakeDetail() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredItems.map((item, index) => {
+                    {filteredItemGroups.map((group, index) => {
+                      const standardItem = group.standard || group.primary;
+                      const looseItem = group.loose;
+                      const hasPackAndLoose = Boolean(group.standard && group.loose);
+                      const nextGroup = filteredItemGroups[index + 1];
+                      const nextFocusId = nextGroup?.standard?._id || nextGroup?.primary?._id;
+
                       return (
-                        <tr key={item._id} className={`border-b border-gray-100 transition-colors ${
-                          item.countedQty !== null && item.variance !== 0
-                            ? item.variance > 0
+                        <tr key={group.key} className={`border-b border-gray-100 transition-colors ${
+                          group.isPartiallyCounted && group.variance !== 0
+                            ? group.variance > 0
                               ? "bg-green-50/40"
                               : "bg-red-50/40"
                             : "hover:bg-gray-50"
@@ -1033,64 +1141,112 @@ export default function StockTakeDetail() {
                           <td className="py-2 px-2 text-gray-400 text-xs">{index + 1}</td>
                           <td className="py-2 px-2">
                             <div className="font-medium text-gray-900 text-sm">
-                              {item.productName}
-                              {item.countType === "loose-units" && (
-                                <span className="ml-1 text-xs text-orange-600 font-normal">({item.qtyPerPack} per pack)</span>
+                              {group.productName}
+                              {hasPackAndLoose && (
+                                <span className="ml-2 rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-semibold text-orange-700">
+                                  Pack + each
+                                </span>
                               )}
                             </div>
+                            {hasPackAndLoose && (
+                              <div className="mt-1 text-xs text-gray-500">
+                                {looseItem.qtyPerPack || standardItem.qtyPerPack || 1} each per pack
+                              </div>
+                            )}
                           </td>
-                          <td className="py-2 px-2 font-mono text-xs text-gray-500 hidden md:table-cell">{item.barcode || "—"}</td>
-                          <td className="py-2 px-2 text-center font-medium text-gray-700">{item.systemQty}</td>
-                          <td className="py-2 px-2 text-center">
-                            {isEditable ? (
-                              <input
-                                ref={(element) => {
-                                  if (element) countInputRefs.current[item._id] = element;
-                                }}
-                                type="number"
-                                min="0"
-                                value={item.countedQty ?? ""}
-                                onChange={(e) => handleCountChange(item._id, e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    const nextItem = filteredItems[index + 1];
-                                    if (nextItem && countInputRefs.current[nextItem._id]) {
-                                      countInputRefs.current[nextItem._id].focus();
-                                      countInputRefs.current[nextItem._id].select();
-                                    }
-                                  }
-                                }}
-                                className="w-20 text-center border border-gray-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-                                placeholder="—"
-                              />
+                          <td className="py-2 px-2 font-mono text-xs text-gray-500 hidden md:table-cell">{group.barcode || "—"}</td>
+                          <td className="py-2 px-2 text-center font-medium text-gray-700">
+                            {hasPackAndLoose ? (
+                              <div className="space-y-1 text-xs">
+                                <div>{formatStockTakeQuantity(standardItem.systemQty)} pack</div>
+                                <div className="text-orange-700">{formatStockTakeQuantity(looseItem.systemQty)} each</div>
+                              </div>
                             ) : (
-                              <span className="font-medium">{item.countedQty ?? "—"}</span>
+                              formatStockTakeQuantity(standardItem.systemQty)
                             )}
                           </td>
                           <td className="py-2 px-2 text-center">
-                            {item.countedQty !== null ? (
+                            {isEditable ? (
+                              <div className={hasPackAndLoose ? "flex min-w-44 flex-col gap-2" : "flex justify-center"}>
+                                <label className={hasPackAndLoose ? "flex items-center justify-between gap-2 text-xs text-gray-500" : ""}>
+                                  {hasPackAndLoose && <span>Pack</span>}
+                                  <input
+                                    ref={(element) => {
+                                      if (element) countInputRefs.current[standardItem._id] = element;
+                                    }}
+                                    type="number"
+                                    min="0"
+                                    value={standardItem.countedQty ?? ""}
+                                    onChange={(e) => handleCountChange(standardItem._id, e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") {
+                                        const focusId = hasPackAndLoose ? looseItem._id : nextFocusId;
+                                        if (focusId && countInputRefs.current[focusId]) {
+                                          countInputRefs.current[focusId].focus();
+                                          countInputRefs.current[focusId].select();
+                                        }
+                                      }
+                                    }}
+                                    className="w-20 text-center border border-gray-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                                    placeholder="0"
+                                  />
+                                </label>
+                                {hasPackAndLoose && (
+                                  <label className="flex items-center justify-between gap-2 text-xs text-gray-500">
+                                    <span>Each</span>
+                                    <input
+                                      ref={(element) => {
+                                        if (element) countInputRefs.current[looseItem._id] = element;
+                                      }}
+                                      type="number"
+                                      min="0"
+                                      value={looseItem.countedQty ?? ""}
+                                      onChange={(e) => handleCountChange(looseItem._id, e.target.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter" && nextFocusId && countInputRefs.current[nextFocusId]) {
+                                          countInputRefs.current[nextFocusId].focus();
+                                          countInputRefs.current[nextFocusId].select();
+                                        }
+                                      }}
+                                      className="w-20 text-center border border-orange-200 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-orange-300 focus:border-transparent"
+                                      placeholder="0"
+                                    />
+                                  </label>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="space-y-1 font-medium">
+                                <div>{standardItem.countedQty ?? "—"}</div>
+                                {hasPackAndLoose && <div className="text-orange-700">{looseItem.countedQty ?? "—"} each</div>}
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-2 px-2 text-center">
+                            {group.isPartiallyCounted ? (
                               <span className={`font-bold ${
-                                item.variance > 0 ? "text-green-600" : item.variance < 0 ? "text-red-600" : "text-gray-500"
+                                group.variance > 0 ? "text-green-600" : group.variance < 0 ? "text-red-600" : "text-gray-500"
                               }`}>
-                                {item.variance > 0 ? "+" : ""}
-                                {item.variance}
+                                {group.variance > 0 ? "+" : ""}
+                                {formatStockTakeQuantity(group.variance)}
                               </span>
                             ) : (
                               <span className="text-gray-300">—</span>
                             )}
                           </td>
                           <td className="py-2 px-2 text-right hidden lg:table-cell">
-                            {item.countedQty !== null && item.variance !== 0 ? (
-                              <span className={item.variance > 0 ? "text-green-600" : "text-red-600"}>
-                                {formatCurrency(Math.abs(item.varianceValue || 0))}
+                            {group.isPartiallyCounted && group.variance !== 0 ? (
+                              <span className={group.variance > 0 ? "text-green-600" : "text-red-600"}>
+                                {formatCurrency(Math.abs(group.varianceValue || 0))}
                               </span>
                             ) : (
                               <span className="text-gray-300">—</span>
                             )}
                           </td>
                           <td className="py-2 px-2 text-center">
-                            {item.derivedStatus === "counted" ? (
+                            {group.isCounted ? (
                               <span className="inline-flex w-2 h-2 rounded-full bg-green-500" title="Counted" />
+                            ) : group.isPartiallyCounted ? (
+                              <span className="inline-flex w-2 h-2 rounded-full bg-yellow-400" title="Partially counted" />
                             ) : (
                               <span className="inline-flex w-2 h-2 rounded-full bg-gray-300" title="Pending" />
                             )}
@@ -1100,7 +1256,7 @@ export default function StockTakeDetail() {
                     })}
                   </tbody>
                 </table>
-                {filteredItems.length === 0 && (
+                {filteredItemGroups.length === 0 && (
                   <div className="text-center py-12 text-gray-400">
                     <FontAwesomeIcon icon={faBalanceScale} className="w-10 h-10 mb-3" />
                     <p>No items match your filters</p>

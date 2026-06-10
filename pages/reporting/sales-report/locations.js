@@ -3,6 +3,12 @@ import Loader from "@/components/Loader";
 import useProgress from "@/lib/useProgress";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { isInTimeRange } from "@/lib/dateFilter";
+import {
+  getReportLocation,
+  getTransactionItemQuantity,
+  getTransactionNetSales,
+  isCompletedSale,
+} from "@/lib/sales-report-utils";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Pie, Bar } from "react-chartjs-2";
@@ -49,7 +55,8 @@ export default function LocationsSales() {
       if (txRes.success && txRes.transactions) {
         const locSet = new Set();
         txRes.transactions.forEach((tx) => {
-          if (tx.location && tx.location !== "online") locSet.add(tx.location);
+          const txLocation = getReportLocation(tx);
+          if (txLocation && txLocation !== "online") locSet.add(txLocation);
         });
         locSet.add("online");
         setAllLocations(Array.from(locSet).sort((a, b) => a === "online" ? -1 : b === "online" ? 1 : a.localeCompare(b)));
@@ -67,20 +74,19 @@ export default function LocationsSales() {
       if (!txRes.success || !txRes.transactions) { setData(null); setLoading(false); return; }
 
       const filteredTx = txRes.transactions.filter((tx) => {
-        const txDate = new Date(tx.createdAt);
         onProcess();
-        return tx.status === "completed"
+        return isCompletedSale(tx)
           && isInTimeRange(tx.createdAt, timeRange)
-          && (location === "All" || (tx.location || "online") === location);
+          && (location === "All" || getReportLocation(tx) === location);
       });
 
       const locMap = {};
       filteredTx.forEach((tx) => {
-        const loc = tx.location || "online";
+        const loc = getReportLocation(tx);
         if (!locMap[loc]) locMap[loc] = { name: loc, totalSales: 0, transactionCount: 0, itemCount: 0 };
-        locMap[loc].totalSales += tx.total || 0;
+        locMap[loc].totalSales += getTransactionNetSales(tx);
         locMap[loc].transactionCount += 1;
-        locMap[loc].itemCount += tx.items?.reduce((s, i) => s + (i.qty || 0), 0) || 0;
+        locMap[loc].itemCount += getTransactionItemQuantity(tx);
       });
 
       const locationData = Object.values(locMap).sort((a, b) => b.totalSales - a.totalSales);

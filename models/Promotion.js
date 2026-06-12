@@ -10,7 +10,7 @@ const PromotionSchema = new mongoose.Schema({
   // Target customer types
   targetCustomerTypes: [{
     type: String,
-    enum: ["REGULAR", "VIP", "NEW", "INACTIVE", "BULK_BUYER", "ONLINE"],
+    enum: ["REGULAR", "VIP", "NEW", "INACTIVE", "BULK_BUYER", "ONLINE", "CREDIT"],
   }],
   
   // Value details (can be discount or increment)

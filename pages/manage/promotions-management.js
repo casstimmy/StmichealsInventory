@@ -501,7 +501,7 @@ export default function PromotionsManagementPage() {
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 mb-3">Target Customer Types *</h3>
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                    {["REGULAR", "VIP", "NEW", "INACTIVE", "BULK_BUYER", "ONLINE"].map((type) => (
+                    {["REGULAR", "VIP", "NEW", "INACTIVE", "BULK_BUYER", "ONLINE", "CREDIT"].map((type) => (
                       <label key={type} className="flex items-center p-2 border-2 rounded-lg cursor-pointer hover:bg-gray-50" style={{
                         borderColor: formData.targetCustomerTypes.includes(type) ? "#06b6d4" : "#e5e7eb",
                         backgroundColor: formData.targetCustomerTypes.includes(type) ? "#ecf9fb" : "white",

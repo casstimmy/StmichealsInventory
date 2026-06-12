@@ -25,30 +25,48 @@ export default async function handler(req, res) {
     try {
       await mongooseConnect();
 
-      const { name, email, phone, address, type } = req.body;
+      const {
+        name,
+        email,
+        phone,
+        address,
+        type,
+        isCreditCustomer,
+        creditLimit,
+        creditBalance,
+        creditNotes,
+      } = req.body;
 
-      if (!name || !email || !phone) {
+      if (!name || !phone) {
         return res.status(400).json({
           success: false,
-          message: "Name, email, and phone are required",
+          message: "Name and phone are required",
         });
       }
 
       // Check if customer with this email already exists
-      const existing = await Customer.findOne({ email });
-      if (existing) {
-        return res.status(409).json({
-          success: false,
-          message: "Customer with this email already exists",
-        });
+      if (email) {
+        const existing = await Customer.findOne({ email });
+        if (existing) {
+          return res.status(409).json({
+            success: false,
+            message: "Customer with this email already exists",
+          });
+        }
       }
+
+      const creditEnabled = Boolean(isCreditCustomer || type === "CREDIT");
 
       const customer = await Customer.create({
         name,
-        email,
+        email: email || undefined,
         phone,
         address: address || "",
-        type: type || "REGULAR",
+        type: creditEnabled ? "CREDIT" : (type || "REGULAR"),
+        isCreditCustomer: creditEnabled,
+        creditLimit: Number(creditLimit || 0),
+        creditBalance: Number(creditBalance || 0),
+        creditNotes: creditNotes || "",
       });
 
       return res.status(201).json({

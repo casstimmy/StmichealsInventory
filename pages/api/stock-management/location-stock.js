@@ -109,7 +109,7 @@ export default async function handler(req, res) {
       StockMovement.find({ status: "Received" })
         .select("fromLocationId toLocationId reason products dateReceived dateSent")
         .lean(),
-      Transaction.find({ status: { $in: ["completed", "refunded"] } })
+      Transaction.find({ status: { $in: ["completed", "refunded", "credit"] } })
         .select("location status subStatus items createdAt")
         .lean(),
     ]));

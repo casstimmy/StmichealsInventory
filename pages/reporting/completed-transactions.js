@@ -343,7 +343,7 @@ function applyFilters() {
   // Compute sales total excluding refunded/voided
   function getSalesTotalExcludingRefunded(txList) {
     return txList
-      .filter((tx) => tx.status !== "voided" && tx.status !== "refunded" && tx.status !== "held")
+      .filter((tx) => !["voided", "refunded", "held", "credit"].includes(tx.status))
       .reduce((sum, tx) => sum + (tx.total || 0), 0);
   }
 

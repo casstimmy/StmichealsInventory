@@ -17,17 +17,37 @@ export default async function handler(req, res) {
     try {
       await mongooseConnect();
 
-      const { name, email, phone, address, type } = req.body;
+      const {
+        name,
+        email,
+        phone,
+        address,
+        type,
+        isCreditCustomer,
+        creditLimit,
+        creditBalance,
+        creditNotes,
+      } = req.body;
 
-      if (!name || !email || !phone) {
+      if (!name || !phone) {
         return res.status(400).json({
           success: false,
-          message: "Name, email, and phone are required",
+          message: "Name and phone are required",
         });
       }
 
-      const updateData = { name, email, phone, address: address || "" };
-      if (type) updateData.type = type;
+      const creditEnabled = Boolean(isCreditCustomer || type === "CREDIT");
+      const updateData = {
+        name,
+        email: email || undefined,
+        phone,
+        address: address || "",
+        isCreditCustomer: creditEnabled,
+        creditLimit: Number(creditLimit || 0),
+        creditBalance: Number(creditBalance || 0),
+        creditNotes: creditNotes || "",
+      };
+      if (type || creditEnabled) updateData.type = creditEnabled ? "CREDIT" : type;
 
       const customer = await Customer.findByIdAndUpdate(
         id,

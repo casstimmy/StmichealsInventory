@@ -6,8 +6,10 @@ import { faStore, faRightFromBracket, faBell } from '@fortawesome/free-solid-svg
 const TopBar = ({ user, logout }) => {
   const [lowStockCount, setLowStockCount] = useState(0);
   const [expiringCount, setExpiringCount] = useState(0);
+  const [creditCount, setCreditCount] = useState(0);
+  const [creditBalance, setCreditBalance] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [activeTab, setActiveTab] = useState('all'); // 'all', 'stock', 'expiring'
+  const [activeTab, setActiveTab] = useState('all');
   const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
@@ -66,10 +68,20 @@ const TopBar = ({ user, logout }) => {
 
           setExpiringCount(expiringBatches.length);
         }
+
+        const creditsRes = await fetch("/api/credits");
+        if (creditsRes.ok) {
+          const creditsData = await creditsRes.json();
+          const summary = creditsData.summary || {};
+          setCreditCount(Number(summary.activeCredits || 0));
+          setCreditBalance(Number(summary.outstandingBalance || 0));
+        }
       } catch (err) {
         console.error("Error fetching notifications:", err);
         setLowStockCount(0);
         setExpiringCount(0);
+        setCreditCount(0);
+        setCreditBalance(0);
       }
     };
 
@@ -110,6 +122,8 @@ const TopBar = ({ user, logout }) => {
   const avatarStyle = {
     background: 'var(--color-secondary-600, #0891b2)',
   };
+
+  const totalNotifications = lowStockCount + expiringCount + creditCount;
 
   return (
     <div
@@ -156,152 +170,140 @@ const TopBar = ({ user, logout }) => {
         </div>
 
         {/* Unified Notification Icon */}
-        {(lowStockCount > 0 || expiringCount > 0) && (
-          <div className="relative">
-            <button 
-              className="relative p-1 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors duration-300"
-              onClick={() => setShowNotifications(!showNotifications)}
-              title="View notifications"
-            >
-              <FontAwesomeIcon icon={faBell} className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-gray-600 hover:text-blue-600 transition-colors" />
-              {(lowStockCount + expiringCount) > 0 && (
-                <span className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 bg-red-500 rounded-full absolute -top-1 -right-1 shadow-sm flex items-center justify-center text-white text-xs font-bold">
-                  {(lowStockCount + expiringCount) > 9 ? '9+' : (lowStockCount + expiringCount)}
-                </span>
-              )}
-            </button>
+        <div className="relative">
+          <button
+            className="relative p-1 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors duration-300"
+            onClick={() => setShowNotifications(!showNotifications)}
+            title="View notifications"
+          >
+            <FontAwesomeIcon icon={faBell} className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-gray-600 hover:text-blue-600 transition-colors" />
+            {totalNotifications > 0 && (
+              <span className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 bg-red-500 rounded-full absolute -top-1 -right-1 shadow-sm flex items-center justify-center text-white text-xs font-bold">
+                {totalNotifications > 9 ? '9+' : totalNotifications}
+              </span>
+            )}
+          </button>
 
-            {/* Unified Notification Center Dropdown */}
-            {showNotifications && (
-              <div className="absolute right-0 mt-2 w-80 md:w-96 rounded-xl border z-50 overflow-hidden" style={dropdownSurfaceStyle}>
-                {/* Header */}
-                <div className="text-white px-4 py-3" style={dropdownHeaderStyle}>
-                  <p className="font-semibold text-sm flex items-center gap-2">
-                    🔔 Notifications
-                    <span className="ml-auto bg-white/30 px-2 py-0.5 rounded-full text-xs">
-                      {lowStockCount + expiringCount}
-                    </span>
-                  </p>
-                </div>
+          {showNotifications && (
+            <div className="absolute right-0 mt-2 w-80 md:w-96 rounded-xl border z-50 overflow-hidden" style={dropdownSurfaceStyle}>
+              <div className="text-white px-4 py-3" style={dropdownHeaderStyle}>
+                <p className="font-semibold text-sm flex items-center gap-2">
+                  Notifications
+                  <span className="ml-auto bg-white/30 px-2 py-0.5 rounded-full text-xs">
+                    {totalNotifications}
+                  </span>
+                </p>
+              </div>
 
-                {/* Tabs */}
-                <div className="flex border-b border-gray-200 bg-gray-50">
+              <div className="grid grid-cols-4 border-b border-gray-200 bg-gray-50">
+                {[
+                  ['all', `All (${totalNotifications})`, 'bg-white text-blue-600 border-b-2 border-blue-600'],
+                  ['stock', `Stock (${lowStockCount})`, 'bg-white text-yellow-600 border-b-2 border-yellow-600'],
+                  ['expiring', `Expiring (${expiringCount})`, 'bg-white text-orange-600 border-b-2 border-orange-600'],
+                  ['credit', `Credit (${creditCount})`, 'bg-white text-amber-600 border-b-2 border-amber-600'],
+                ].map(([key, label, activeClass]) => (
                   <button
-                    onClick={() => setActiveTab('all')}
-                    className={`flex-1 px-4 py-2 text-sm font-semibold transition-colors ${
-                      activeTab === 'all'
-                        ? 'bg-white text-blue-600 border-b-2 border-blue-600'
-                        : 'text-gray-600 hover:text-gray-900'
+                    key={key}
+                    onClick={() => setActiveTab(key)}
+                    className={`px-2 py-2 text-xs sm:text-sm font-semibold transition-colors ${
+                      activeTab === key ? activeClass : 'text-gray-600 hover:text-gray-900'
                     }`}
                   >
-                    All ({lowStockCount + expiringCount})
+                    {label}
                   </button>
-                  {lowStockCount > 0 && (
-                    <button
-                      onClick={() => setActiveTab('stock')}
-                      className={`flex-1 px-4 py-2 text-sm font-semibold transition-colors ${
-                        activeTab === 'stock'
-                          ? 'bg-white text-yellow-600 border-b-2 border-yellow-600'
-                          : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                    >
-                      Stock ({lowStockCount})
-                    </button>
-                  )}
-                  {expiringCount > 0 && (
-                    <button
-                      onClick={() => setActiveTab('expiring')}
-                      className={`flex-1 px-4 py-2 text-sm font-semibold transition-colors ${
-                        activeTab === 'expiring'
-                          ? 'bg-white text-orange-600 border-b-2 border-orange-600'
-                          : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                    >
-                      Expiring ({expiringCount})
-                    </button>
-                  )}
-                </div>
-
-                {/* Content */}
-                <div className="p-4 space-y-3 max-h-96 overflow-y-auto">
-                  {/* All Notifications */}
-                  {(activeTab === 'all' || activeTab === 'stock') && lowStockCount > 0 && (
-                    <div className="bg-yellow-50 border-l-4 border-yellow-500 p-3 rounded-lg">
-                      <div className="flex items-start gap-3">
-                        <div className="text-xl">⚠️</div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-gray-900 text-sm">Low Stock Alert</p>
-                          <p className="text-xs text-gray-600 mt-1">
-                            {lowStockCount} product{lowStockCount > 1 ? 's' : ''} below minimum stock level
-                          </p>
-                          <Link
-                            href="/stock/management"
-                            onClick={() => setShowNotifications(false)}
-                            className="inline-block mt-2 text-xs font-semibold text-yellow-700 underline hover:text-yellow-900"
-                          >
-                            View Details →
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Expiring Notifications */}
-                  {(activeTab === 'all' || activeTab === 'expiring') && expiringCount > 0 && (
-                    <div className="bg-orange-50 border-l-4 border-orange-500 p-3 rounded-lg">
-                      <div className="flex items-start gap-3">
-                        <div className="text-xl">⏰</div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-gray-900 text-sm">Expiration Alert</p>
-                          <p className="text-xs text-gray-600 mt-1">
-                            {expiringCount} batch{expiringCount > 1 ? 'es' : ''} expiring within 30 days
-                          </p>
-                          <Link
-                            href="/stock/expiration-report"
-                            onClick={() => setShowNotifications(false)}
-                            className="inline-block mt-2 text-xs font-semibold text-orange-700 underline hover:text-orange-900"
-                          >
-                            View Details →
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* No Notifications Message */}
-                  {activeTab !== 'all' && lowStockCount === 0 && expiringCount === 0 && (
-                    <div className="text-center py-6">
-                      <p className="text-sm text-gray-600">✓ No notifications for this category</p>
-                    </div>
-                  )}
-
-                  {activeTab === 'stock' && lowStockCount === 0 && (
-                    <div className="text-center py-6">
-                      <p className="text-sm text-gray-600">✓ All stock levels are healthy</p>
-                    </div>
-                  )}
-
-                  {activeTab === 'expiring' && expiringCount === 0 && (
-                    <div className="text-center py-6">
-                      <p className="text-sm text-gray-600">✓ No expiring products</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Footer */}
-                <div className="bg-gray-50 border-t border-gray-200 px-4 py-2">
-                  <Link
-                    href="/stock/expiration-report"
-                    onClick={() => setShowNotifications(false)}
-                    className="block text-center text-sm font-semibold text-blue-600 transition hover:text-blue-700"
-                  >
-                    View Expiration Report →
-                  </Link>
-                </div>
+                ))}
               </div>
-            )}
-          </div>
-        )}
+
+              <div className="p-4 space-y-3 max-h-96 overflow-y-auto">
+                {activeTab === 'all' && totalNotifications === 0 && (
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-center">
+                    <p className="text-sm font-semibold text-emerald-800">Everything is clear</p>
+                    <p className="mt-1 text-xs text-emerald-700">No low stock, expiring batches, or open credit alerts.</p>
+                  </div>
+                )}
+
+                {(activeTab === 'all' || activeTab === 'stock') && lowStockCount > 0 && (
+                  <div className="bg-yellow-50 border-l-4 border-yellow-500 p-3 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-yellow-100 text-yellow-700 flex items-center justify-center font-bold">!</div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-900 text-sm">Low Stock Alert</p>
+                        <p className="text-xs text-gray-600 mt-1">
+                          {lowStockCount} product{lowStockCount > 1 ? 's' : ''} below minimum stock level
+                        </p>
+                        <Link href="/stock/management" onClick={() => setShowNotifications(false)} className="inline-block mt-2 text-xs font-semibold text-yellow-700 underline hover:text-yellow-900">
+                          View Details →
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {(activeTab === 'all' || activeTab === 'expiring') && expiringCount > 0 && (
+                  <div className="bg-orange-50 border-l-4 border-orange-500 p-3 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-orange-100 text-orange-700 flex items-center justify-center font-bold">30</div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-900 text-sm">Expiration Alert</p>
+                        <p className="text-xs text-gray-600 mt-1">
+                          {expiringCount} batch{expiringCount > 1 ? 'es' : ''} expiring within 30 days
+                        </p>
+                        <Link href="/stock/expiration-report" onClick={() => setShowNotifications(false)} className="inline-block mt-2 text-xs font-semibold text-orange-700 underline hover:text-orange-900">
+                          View Details →
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {(activeTab === 'all' || activeTab === 'credit') && creditCount > 0 && (
+                  <div className="bg-amber-50 border-l-4 border-amber-500 p-3 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold">₦</div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-900 text-sm">Credit Recovery</p>
+                        <p className="text-xs text-gray-600 mt-1">
+                          {creditCount} open credit account{creditCount > 1 ? 's' : ''} with ₦{Number(creditBalance || 0).toLocaleString('en-NG')} outstanding
+                        </p>
+                        <Link href="/expenses/credit-management" onClick={() => setShowNotifications(false)} className="inline-block mt-2 text-xs font-semibold text-amber-700 underline hover:text-amber-900">
+                          View Credit Management →
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'stock' && lowStockCount === 0 && (
+                  <div className="text-center py-6">
+                    <p className="text-sm text-gray-600">All stock levels are healthy</p>
+                  </div>
+                )}
+
+                {activeTab === 'expiring' && expiringCount === 0 && (
+                  <div className="text-center py-6">
+                    <p className="text-sm text-gray-600">No expiring products</p>
+                  </div>
+                )}
+
+                {activeTab === 'credit' && creditCount === 0 && (
+                  <div className="text-center py-6">
+                    <p className="text-sm text-gray-600">No open credit accounts</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-gray-50 border-t border-gray-200 px-4 py-2">
+                <Link
+                  href={creditCount > 0 ? "/expenses/credit-management" : "/stock/expiration-report"}
+                  onClick={() => setShowNotifications(false)}
+                  className="block text-center text-sm font-semibold text-blue-600 transition hover:text-blue-700"
+                >
+                  {creditCount > 0 ? "Open Credit Management →" : "View Expiration Report →"}
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Profile Section - Compact on mobile */}
         <div className="flex items-center gap-1 sm:gap-2 md:gap-4 pl-1 sm:pl-2 md:pl-6 border-l border-gray-200">

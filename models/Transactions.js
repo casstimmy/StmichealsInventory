@@ -24,6 +24,21 @@ const tenderPaymentSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const creditPaymentSchema = new mongoose.Schema(
+  {
+    amount: { type: Number, default: 0 },
+    tenderType: { type: String, default: "CASH" },
+    tenderName: { type: String, default: "CASH" },
+    reference: { type: String, default: "" },
+    notes: { type: String, default: "" },
+    paidAt: { type: Date, default: Date.now },
+    recordedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Staff", default: null },
+    recordedByName: { type: String, default: "" },
+    sequence: { type: Number, default: 1 },
+  },
+  { _id: true }
+);
+
 const TransactionSchema = new mongoose.Schema({
   tenderType: String,
   tenderPayments: {
@@ -48,7 +63,23 @@ const TransactionSchema = new mongoose.Schema({
   incrementAmount: { type: Number }, // Amount added by INCREMENT promotions
   promotionValueType: { type: String }, // "DISCOUNT" or "INCREMENT"
   customerType: { type: String }, // Customer type / promotion name
+  customerId: { type: mongoose.Schema.Types.ObjectId, ref: "Customer", default: null },
   customerName: String,
+
+  creditStatus: {
+    type: String,
+    enum: ["none", "open", "partly_paid", "paid", "written_off"],
+    default: "none",
+  },
+  creditCustomerId: { type: mongoose.Schema.Types.ObjectId, ref: "Customer", default: null },
+  creditCustomerName: { type: String, default: "" },
+  creditOriginalTotal: { type: Number, default: 0 },
+  creditPaidAmount: { type: Number, default: 0 },
+  creditBalance: { type: Number, default: 0 },
+  creditDueDate: { type: Date, default: null },
+  creditPaidAt: { type: Date, default: null },
+  creditNotes: { type: String, default: "" },
+  creditPayments: { type: [creditPaymentSchema], default: [] },
 
   // Attribution for sales influenced by external channels such as the online store
   salesChannel: { type: String, trim: true, default: "POS" },
@@ -59,7 +90,7 @@ const TransactionSchema = new mongoose.Schema({
   transactionType: { type: String, enum: ["pos"], default: "pos" }, // Only POS transactions
   status: { 
     type: String, 
-    enum: ["held", "completed", "refunded"], 
+    enum: ["held", "completed", "refunded", "credit"],
     default: "completed" 
   },
   subStatus: {
@@ -86,6 +117,8 @@ TransactionSchema.index({ externalId: 1 }, { unique: true, sparse: true });
 TransactionSchema.index({ dedupeKey: 1 }, { unique: true, sparse: true });
 TransactionSchema.index({ salesChannel: 1, createdAt: -1 });
 TransactionSchema.index({ sourceOrderId: 1 }, { sparse: true });
+TransactionSchema.index({ status: 1, creditStatus: 1, createdAt: -1 });
+TransactionSchema.index({ creditCustomerId: 1, creditStatus: 1 });
 
 // Avoid re-registering the model in development
 const Transaction =

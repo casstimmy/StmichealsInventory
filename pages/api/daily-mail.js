@@ -1,6 +1,5 @@
 import path from "path";
 import { mongooseConnect } from "@/lib/mongoose";
-import EndOfDayReport from "@/models/EndOfDayReport";
 import Product from "@/models/Product";
 import Store from "@/models/Store";
 import Transaction from "@/models/Transactions";
@@ -12,6 +11,40 @@ import { buildLocationCache, resolveLocationName } from "@/lib/serverLocationHel
 
 function isDerivedChildProduct(product) {
   return product?.isChildProduct && product?.packType !== "pack";
+}
+
+function getMonthRange(referenceDate = new Date()) {
+  const start = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), 1);
+  const nextMonthStart = new Date(referenceDate.getFullYear(), referenceDate.getMonth() + 1, 1);
+  const end = new Date(nextMonthStart.getTime() - 1);
+  return { start, end, nextMonthStart };
+}
+
+function isLastDayOfMonth(date = new Date()) {
+  const tomorrow = new Date(date);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return tomorrow.getDate() === 1;
+}
+
+function getCreditPaymentTotalForRange(transaction, start, endExclusive) {
+  return (Array.isArray(transaction.creditPayments) ? transaction.creditPayments : []).reduce((sum, payment) => {
+    const paidAt = payment?.paidAt ? new Date(payment.paidAt) : null;
+    if (!paidAt || Number.isNaN(paidAt.getTime()) || paidAt < start || paidAt >= endExclusive) return sum;
+    return sum + Number(payment.amount || 0);
+  }, 0);
+}
+
+function getCreditPaidTotal(transaction) {
+  const payments = Array.isArray(transaction.creditPayments) ? transaction.creditPayments : [];
+  if (payments.length > 0) {
+    return payments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+  }
+  return Number(transaction.creditPaidAmount || 0);
+}
+
+function getCreditBalance(transaction) {
+  const total = Number(transaction.creditOriginalTotal || transaction.total || 0);
+  return Math.max(0, total - getCreditPaidTotal(transaction));
 }
 
 export default async function handler(req, res) {
@@ -26,7 +59,7 @@ export default async function handler(req, res) {
         key === process.env.CRON_SECRET ||
         auth === `Bearer ${process.env.CRON_SECRET}`
       ) {
-        console.log("[Daily Mail] ✅ Authorized via CRON_SECRET");
+        console.log("[Monthly Mail] ✅ Authorized via CRON_SECRET");
       } else if (auth && auth.startsWith("Bearer ")) {
         // Verify JWT token for admin users
         try {
@@ -35,13 +68,13 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: "JWT_SECRET not configured" });
           }
           jwt.verify(token, process.env.JWT_SECRET);
-          console.log("[Daily Mail] ✅ Authorized via JWT token");
+          console.log("[Monthly Mail] ✅ Authorized via JWT token");
         } catch (tokenErr) {
-          console.log("[Daily Mail] ❌ Invalid JWT token:", tokenErr.message);
+          console.log("[Monthly Mail] ❌ Invalid JWT token:", tokenErr.message);
           return res.status(401).json({ error: "Unauthorized" });
         }
       } else {
-        console.log("[Daily Mail] ❌ No valid authorization");
+        console.log("[Monthly Mail] ❌ No valid authorization");
         return res.status(401).json({ error: "Unauthorized" });
       }
     }
@@ -50,13 +83,26 @@ export default async function handler(req, res) {
       return res.status(405).json({ error: "Method not allowed" });
     }
 
-    console.log("[Daily Mail] Generating comprehensive daily report...");
+    console.log("[Monthly Mail] Generating comprehensive monthly report...");
 
     const { FROM_EMAIL, EMAIL_USER, EMAIL_PASS } = process.env;
-    console.log("[Daily Mail] ENV:", { FROM_EMAIL, EMAIL_USER });
+    console.log("[Monthly Mail] ENV:", { FROM_EMAIL, EMAIL_USER });
+
+    const isCronAuthorized =
+      req.query.key === process.env.CRON_SECRET ||
+      req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`;
+    const forceSend = req.query.force === "1" || req.query.force === "true";
+
+    if (isCronAuthorized && !forceSend && !isLastDayOfMonth(new Date())) {
+      return res.status(200).json({
+        message: "Monthly report skipped because today is not the last day of the month.",
+        skipped: true,
+        timestamp: new Date().toISOString(),
+      });
+    }
 
     if (!EMAIL_USER || !EMAIL_PASS) {
-      console.log("[Daily Mail] Missing email credentials");
+      console.log("[Monthly Mail] Missing email credentials");
       return res.status(500).json({
         error: "Missing EMAIL_USER or EMAIL_PASS in .env",
         hint: "Check your Gmail credentials and app password",
@@ -65,13 +111,14 @@ export default async function handler(req, res) {
 
     // Connect to database
     await mongooseConnect();
-    console.log("[Daily Mail] Connected to MongoDB");
+    console.log("[Monthly Mail] Connected to MongoDB");
 
-    // Get today's date range
-    const today = new Date();
+    const now = new Date();
+    const today = new Date(now);
     today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const { start: monthStart, end: monthEnd, nextMonthStart } = getMonthRange(now);
+    const reportMonthLabel = monthStart.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    const reportRangeLabel = `${monthStart.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} - ${monthEnd.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
 
     // =====================
     // FETCH ALL DATA
@@ -98,34 +145,41 @@ export default async function handler(req, res) {
       }
     });
 
-    // 2. Get EOD reports for today
-    const eodReports = await EndOfDayReport.find({
-      closedAt: { $gte: today, $lt: tomorrow },
-    }).lean();
-    console.log(`[Daily Mail] Found ${eodReports.length} EOD reports`);
-
-    // 3. Get transactions for today
+    // 2. Get completed transactions for the month
     const transactions = await Transaction.find({
-      createdAt: { $gte: today, $lt: tomorrow },
+      createdAt: { $gte: monthStart, $lt: nextMonthStart },
       status: "completed",
     }).lean();
-    console.log(`[Daily Mail] Found ${transactions.length} transactions`);
+    console.log(`[Monthly Mail] Found ${transactions.length} completed transactions`);
 
-    // 4. Get expenses for today
+    // 3. Get expenses for the month
     const expenses = await Expense.find({
       $or: [
-        { createdAt: { $gte: today, $lt: tomorrow } },
-        { expenseDate: { $gte: today, $lt: tomorrow } },
+        { createdAt: { $gte: monthStart, $lt: nextMonthStart } },
+        { expenseDate: { $gte: monthStart, $lt: nextMonthStart } },
       ],
     }).lean();
-    console.log(`[Daily Mail] Found ${expenses.length} expenses`);
+    console.log(`[Monthly Mail] Found ${expenses.length} expenses`);
+
+    const [creditIssuedThisMonth, creditAccounts] = await Promise.all([
+      Transaction.find({
+        createdAt: { $gte: monthStart, $lt: nextMonthStart },
+        status: "credit",
+      }).lean(),
+      Transaction.find({
+        $or: [
+          { status: "credit" },
+          { creditPayments: { $elemMatch: { paidAt: { $gte: monthStart, $lt: nextMonthStart } } } },
+        ],
+      }).lean(),
+    ]);
 
     // 5. Get all products for stock report
     const allProducts = await Product.find({
       isArchived: { $ne: true },
       isStockManaged: { $ne: false },
     }).lean();
-    console.log(`[Daily Mail] Found ${allProducts.length} products`);
+    console.log(`[Monthly Mail] Found ${allProducts.length} products`);
 
     const productCostById = {};
     allProducts.forEach((product) => {
@@ -134,60 +188,7 @@ export default async function handler(req, res) {
       }
     });
 
-    // =====================
-    // PROCESS EOD DATA
-    // =====================
-    const eodByLocation = {};
     const tenderBreakdownByLocation = {};
-
-    // Resolve all location names first
-    const eodReportsWithLocations = await Promise.all(
-      eodReports.map(async (report) => ({
-        ...report,
-        locationName: await resolveLocationName(report.locationId, locationsMap, report.storeId),
-      }))
-    );
-
-    eodReportsWithLocations.forEach((report) => {
-      const locationName = report.locationName;
-
-      // Aggregate EOD by location
-      if (!eodByLocation[locationName]) {
-        eodByLocation[locationName] = {
-          location: locationName,
-          totalSales: 0,
-          transactionCount: 0,
-          variance: 0,
-          openingBalance: 0,
-          closingBalance: 0,
-        };
-      }
-      eodByLocation[locationName].totalSales += report.totalSales || 0;
-      eodByLocation[locationName].transactionCount +=
-        report.transactionCount || 0;
-      eodByLocation[locationName].variance += report.variance || 0;
-      eodByLocation[locationName].openingBalance += report.openingBalance || 0;
-      eodByLocation[locationName].closingBalance +=
-        report.expectedClosingBalance || 0;
-
-      // Process tender breakdown
-      if (!tenderBreakdownByLocation[locationName]) {
-        tenderBreakdownByLocation[locationName] = {};
-      }
-      if (report.tenderBreakdown) {
-        // Handle both Map and Object formats
-        const tenders =
-          report.tenderBreakdown instanceof Map
-            ? Object.fromEntries(report.tenderBreakdown)
-            : report.tenderBreakdown;
-
-        Object.entries(tenders).forEach(([tender, amount]) => {
-          tenderBreakdownByLocation[locationName][tender] =
-            (tenderBreakdownByLocation[locationName][tender] || 0) +
-            Number(amount || 0);
-        });
-      }
-    });
 
     // =====================
     // PROCESS TRANSACTIONS FOR SALES BY LOCATION
@@ -195,11 +196,10 @@ export default async function handler(req, res) {
     const salesByLocation = {};
     const tenderTotals = {};
     const transactionTenderBreakdownByLocation = {};
-    let totalCogsToday = 0;
+    let totalCogsMonth = 0;
     let missingProductIdCount = 0;
     let missingCostCount = 0;
     const productSalesSummary = aggregateProductSales(transactions);
-    const topSellingProducts = productSalesSummary.slice(0, 8);
     const totalItemsSold = productSalesSummary.reduce(
       (sum, product) => sum + (product.unitsSold || 0),
       0,
@@ -237,7 +237,7 @@ export default async function handler(req, res) {
           if (!itemProductId) {
             missingProductIdCount += 1;
             console.warn(
-              "[Daily Mail] Missing productId for transaction item:",
+              "[Monthly Mail] Missing productId for transaction item:",
               {
                 transactionId: tx?._id?.toString?.() || tx?._id,
                 location: tx?.location || "Unknown",
@@ -257,7 +257,7 @@ export default async function handler(req, res) {
             (hasCostFromCatalog ? productCostById[itemProductId] : null);
           if (itemProductId && resolvedCost === null) {
             missingCostCount += 1;
-            console.warn("[Daily Mail] Missing cost price for product:", {
+            console.warn("[Monthly Mail] Missing cost price for product:", {
               transactionId: tx?._id?.toString?.() || tx?._id,
               location: tx?.location || "Unknown",
               productId: itemProductId,
@@ -265,7 +265,7 @@ export default async function handler(req, res) {
             });
           }
           const itemCost = Number(resolvedCost ?? 0);
-          totalCogsToday += itemQty * itemCost;
+          totalCogsMonth += itemQty * itemCost;
         });
       }
 
@@ -457,10 +457,6 @@ export default async function handler(req, res) {
       (sum, l) => sum + l.transactionCount,
       0,
     );
-    const totalVariance = Object.values(eodByLocation).reduce(
-      (sum, l) => sum + l.variance,
-      0,
-    );
     const totalStockValue = Object.values(stockByLocation).reduce(
       (sum, l) => sum + l.totalSaleValue,
       0,
@@ -469,8 +465,37 @@ export default async function handler(req, res) {
       (sum, l) => sum + l.totalCostValue,
       0,
     );
-    const grossProfitToday = totalSales - totalCogsToday;
-    const netProfitToday = grossProfitToday - totalExpenses;
+    const creditIssuedTotal = creditIssuedThisMonth.reduce(
+      (sum, transaction) => sum + Number(transaction.creditOriginalTotal || transaction.total || 0),
+      0,
+    );
+    const creditRecoveredThisMonth = creditAccounts.reduce(
+      (sum, transaction) => sum + getCreditPaymentTotalForRange(transaction, monthStart, nextMonthStart),
+      0,
+    );
+    const outstandingCredit = creditAccounts
+      .filter((transaction) => !["paid", "written_off"].includes(transaction.creditStatus))
+      .reduce((sum, transaction) => sum + getCreditBalance(transaction), 0);
+    const creditByCustomer = new Map();
+    creditAccounts.forEach((transaction) => {
+      const customerName = transaction.creditCustomerName || transaction.customerName || "Credit Customer";
+      const current = creditByCustomer.get(customerName) || { customerName, issued: 0, recovered: 0, outstanding: 0 };
+      const transactionDate = transaction.createdAt ? new Date(transaction.createdAt) : null;
+      if (transactionDate && !Number.isNaN(transactionDate.getTime()) && transactionDate >= monthStart && transactionDate < nextMonthStart) {
+        current.issued += Number(transaction.creditOriginalTotal || transaction.total || 0);
+      }
+      current.recovered += getCreditPaymentTotalForRange(transaction, monthStart, nextMonthStart);
+      if (!["paid", "written_off"].includes(transaction.creditStatus)) {
+        current.outstanding += getCreditBalance(transaction);
+      }
+      creditByCustomer.set(customerName, current);
+    });
+    const creditCustomerRows = Array.from(creditByCustomer.values())
+      .filter((row) => row.issued || row.recovered || row.outstanding)
+      .sort((a, b) => b.outstanding - a.outstanding)
+      .slice(0, 15);
+    const grossProfitMonth = totalSales - totalCogsMonth;
+    const netProfitMonth = grossProfitMonth - totalExpenses;
 
     expiringSoonProducts.sort(
       (a, b) => a.expiryDate - b.expiryDate || a.quantity - b.quantity,
@@ -500,12 +525,13 @@ export default async function handler(req, res) {
                 <img src="cid:businessLogo" alt="St. Micheals" style="width: 60px; height: 60px; border-radius: 8px; background: white; padding: 5px;" onerror="this.style.display='none'" />
               </td>
               <td style="vertical-align: middle; padding-left: 15px;">
-                <h1 style="margin: 0; font-size: 24px;">Daily Business Report</h1>
+                <h1 style="margin: 0; font-size: 24px;">Monthly Business Report</h1>
                 <p style="margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;">St. Micheals Inventory System</p>
               </td>
             </tr>
           </table>
-          <p style="margin: 15px 0 0 0; opacity: 0.9;">${today.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
+          <p style="margin: 15px 0 0 0; opacity: 0.9;">${reportMonthLabel}</p>
+          <p style="margin: 5px 0 0 0; opacity: 0.8; font-size: 13px;">${reportRangeLabel}</p>
           <p style="margin: 5px 0 0 0; opacity: 0.7; font-size: 12px;">Generated: ${new Date().toLocaleString()}</p>
         </div>
 
@@ -527,39 +553,10 @@ export default async function handler(req, res) {
             <p style="margin: 0; color: #666; font-size: 12px;">STOCK VALUE</p>
             <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: #f59e0b;">${formatMoney(totalStockValue)}</p>
           </div>
-        </div>
-
-        <!-- EOD SUMMARY BY LOCATION -->
-        <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #3b82f6;">
-          <h2 style="color: #3b82f6; margin-top: 0; font-size: 18px;">💰 End-of-Day Summary by Location</h2>
-          ${
-            Object.keys(eodByLocation).length === 0
-              ? '<p style="color: #999; font-style: italic;">No EOD reports available for today</p>'
-              : `<table style="width: 100%; border-collapse: collapse;">
-              <thead>
-                <tr style="background: #f0f9ff;">
-                  <th style="padding: 12px; text-align: left; border-bottom: 2px solid #3b82f6; font-size: 13px;">Location</th>
-                  <th style="padding: 12px; text-align: right; border-bottom: 2px solid #3b82f6; font-size: 13px;">Sales</th>
-                  <th style="padding: 12px; text-align: right; border-bottom: 2px solid #3b82f6; font-size: 13px;">Transactions</th>
-                  <th style="padding: 12px; text-align: right; border-bottom: 2px solid #3b82f6; font-size: 13px;">Variance</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${Object.values(eodByLocation)
-                  .map(
-                    (loc) => `
-                  <tr style="border-bottom: 1px solid #e5e7eb;">
-                    <td style="padding: 12px; font-weight: 600;">${loc.location}</td>
-                    <td style="padding: 12px; text-align: right; color: #059669; font-weight: 600;">${formatMoney(loc.totalSales)}</td>
-                    <td style="padding: 12px; text-align: right;">${loc.transactionCount}</td>
-                    <td style="padding: 12px; text-align: right; color: ${loc.variance > 0 ? "#dc2626" : loc.variance < 0 ? "#f59e0b" : "#059669"}; font-weight: 600;">${formatMoney(loc.variance)}</td>
-                  </tr>
-                `,
-                  )
-                  .join("")}
-              </tbody>
-            </table>`
-          }
+          <div style="flex: 1; min-width: 150px; background: white; padding: 20px; border-radius: 10px; border-left: 4px solid #d97706;">
+            <p style="margin: 0; color: #666; font-size: 12px;">CREDIT OUTSTANDING</p>
+            <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: #b45309;">${formatMoney(outstandingCredit)}</p>
+          </div>
         </div>
 
         <!-- TENDER BREAKDOWN BY LOCATION -->
@@ -567,7 +564,7 @@ export default async function handler(req, res) {
           <h2 style="color: #8b5cf6; margin-top: 0; font-size: 18px;">💳 Tender Breakdown by Location</h2>
           ${
             Object.keys(displayedTenderBreakdownByLocation).length === 0
-              ? '<p style="color: #999; font-style: italic;">No tender data available for today</p>'
+              ? '<p style="color: #999; font-style: italic;">No tender data available for this month</p>'
               : Object.entries(displayedTenderBreakdownByLocation)
                   .map(
                     ([location, tenders]) => `
@@ -612,37 +609,6 @@ export default async function handler(req, res) {
             </div>
           `
               : ""
-          }
-        </div>
-
-        <!-- TOP PRODUCTS -->
-        <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #0ea5e9;">
-          <h2 style="color: #0ea5e9; margin-top: 0; font-size: 18px;">🏷️ Top Products (Today)</h2>
-          ${
-            topSellingProducts.length === 0
-              ? '<p style="color: #999; font-style: italic;">No product sales recorded for today</p>'
-              : `<table style="width: 100%; border-collapse: collapse;">
-              <thead>
-                <tr style="background: #f0f9ff;">
-                  <th style="padding: 12px; text-align: left; border-bottom: 2px solid #0ea5e9; font-size: 13px;">Product</th>
-                  <th style="padding: 12px; text-align: right; border-bottom: 2px solid #0ea5e9; font-size: 13px;">Units Sold</th>
-                  <th style="padding: 12px; text-align: right; border-bottom: 2px solid #0ea5e9; font-size: 13px;">Sales</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${topSellingProducts
-                  .map(
-                    (product) => `
-                  <tr style="border-bottom: 1px solid #e0f2fe;">
-                    <td style="padding: 12px; font-weight: 600;">${product.name}</td>
-                    <td style="padding: 12px; text-align: right;">${product.unitsSold}</td>
-                    <td style="padding: 12px; text-align: right; color: #0369a1; font-weight: 600;">${formatMoney(product.totalSales)}</td>
-                  </tr>
-                `,
-                  )
-                  .join("")}
-              </tbody>
-            </table>`
           }
         </div>
 
@@ -780,12 +746,59 @@ export default async function handler(req, res) {
           </div>
         </div>
 
+        <!-- CREDIT MANAGEMENT -->
+        <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #d97706;">
+          <h2 style="color: #b45309; margin-top: 0; font-size: 18px;">Credit Management (${reportMonthLabel})</h2>
+          <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
+            <div style="flex: 1; min-width: 160px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 12px;">
+              <p style="margin: 0; color: #92400e; font-size: 12px;">Credit Issued</p>
+              <p style="margin: 6px 0 0 0; color: #78350f; font-size: 20px; font-weight: bold;">${formatMoney(creditIssuedTotal)}</p>
+            </div>
+            <div style="flex: 1; min-width: 160px; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 12px;">
+              <p style="margin: 0; color: #047857; font-size: 12px;">Recovered</p>
+              <p style="margin: 6px 0 0 0; color: #065f46; font-size: 20px; font-weight: bold;">${formatMoney(creditRecoveredThisMonth)}</p>
+            </div>
+            <div style="flex: 1; min-width: 160px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px;">
+              <p style="margin: 0; color: #991b1b; font-size: 12px;">Outstanding</p>
+              <p style="margin: 6px 0 0 0; color: #7f1d1d; font-size: 20px; font-weight: bold;">${formatMoney(outstandingCredit)}</p>
+            </div>
+          </div>
+          ${
+            creditCustomerRows.length === 0
+              ? '<p style="color: #999; font-style: italic;">No credit activity recorded for this month</p>'
+              : `<table style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="background: #fffbeb;">
+                  <th style="padding: 12px; text-align: left; border-bottom: 2px solid #d97706; font-size: 13px;">Customer</th>
+                  <th style="padding: 12px; text-align: right; border-bottom: 2px solid #d97706; font-size: 13px;">Issued</th>
+                  <th style="padding: 12px; text-align: right; border-bottom: 2px solid #d97706; font-size: 13px;">Recovered</th>
+                  <th style="padding: 12px; text-align: right; border-bottom: 2px solid #d97706; font-size: 13px;">Outstanding</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${creditCustomerRows
+                  .map(
+                    (row) => `
+                  <tr style="border-bottom: 1px solid #fef3c7;">
+                    <td style="padding: 12px; font-weight: 600;">${row.customerName}</td>
+                    <td style="padding: 12px; text-align: right; color: #92400e; font-weight: 600;">${formatMoney(row.issued)}</td>
+                    <td style="padding: 12px; text-align: right; color: #047857; font-weight: 600;">${formatMoney(row.recovered)}</td>
+                    <td style="padding: 12px; text-align: right; color: #b91c1c; font-weight: 600;">${formatMoney(row.outstanding)}</td>
+                  </tr>
+                `,
+                  )
+                  .join("")}
+              </tbody>
+            </table>`
+          }
+        </div>
+
         <!-- SALES BY LOCATION -->
         <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #059669;">
-          <h2 style="color: #059669; margin-top: 0; font-size: 18px;">🛒 Sales by Location (Today)</h2>
+          <h2 style="color: #059669; margin-top: 0; font-size: 18px;">🛒 Sales by Location (${reportMonthLabel})</h2>
           ${
             Object.keys(salesByLocation).length === 0
-              ? '<p style="color: #999; font-style: italic;">No sales recorded for today</p>'
+              ? '<p style="color: #999; font-style: italic;">No sales recorded for this month</p>'
               : `<table style="width: 100%; border-collapse: collapse;">
               <thead>
                 <tr style="background: #ecfdf5;">
@@ -815,10 +828,10 @@ export default async function handler(req, res) {
 
         <!-- EXPENSES BY LOCATION -->
         <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #dc2626;">
-          <h2 style="color: #dc2626; margin-top: 0; font-size: 18px;">💸 Expenses by Location (Today)</h2>
+          <h2 style="color: #dc2626; margin-top: 0; font-size: 18px;">💸 Expenses by Location (${reportMonthLabel})</h2>
           ${
             Object.keys(expensesByLocation).length === 0
-              ? '<p style="color: #999; font-style: italic;">No expenses recorded for today</p>'
+              ? '<p style="color: #999; font-style: italic;">No expenses recorded for this month</p>'
               : `<table style="width: 100%; border-collapse: collapse;">
               <thead>
                 <tr style="background: #fef2f2;">
@@ -858,9 +871,9 @@ export default async function handler(req, res) {
           }
         </div>
 
-        <!-- DAY SUMMARY -->
+        <!-- MONTH SUMMARY -->
         <div style="background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 20px;">
-          <h2 style="margin-top: 0; margin-bottom: 25px; font-size: 22px; text-align: center; letter-spacing: 0.5px;">📈 Day Summary</h2>
+          <h2 style="margin-top: 0; margin-bottom: 25px; font-size: 22px; text-align: center; letter-spacing: 0.5px;">📈 Month Summary</h2>
           
           <!-- Main Metrics Grid -->
           <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 25px;">
@@ -881,15 +894,15 @@ export default async function handler(req, res) {
             <!-- Net Profit -->
             <div style="background: rgba(255, 255, 255, 0.15); padding: 18px; border-radius: 8px; border-left: 4px solid rgba(255, 255, 255, 0.4); backdrop-filter: blur(10px);">
               <p style="margin: 0; opacity: 0.85; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">📊 Net Profit</p>
-              <p style="margin: 12px 0 0 0; font-size: 28px; font-weight: bold; line-height: 1;">${formatMoney(netProfitToday)}</p>
+              <p style="margin: 12px 0 0 0; font-size: 28px; font-weight: bold; line-height: 1;">${formatMoney(netProfitMonth)}</p>
               <p style="margin: 8px 0 0 0; opacity: 0.7; font-size: 11px;">Sales minus COGS and expenses</p>
             </div>
 
-            <!-- Cash Variance -->
+            <!-- Credit Recovery -->
             <div style="background: rgba(255, 255, 255, 0.15); padding: 18px; border-radius: 8px; border-left: 4px solid rgba(255, 255, 255, 0.4); backdrop-filter: blur(10px);">
-              <p style="margin: 0; opacity: 0.85; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">⚖️ Cash Variance</p>
-              <p style="margin: 12px 0 0 0; font-size: 28px; font-weight: bold; line-height: 1; color: ${totalVariance > 0 ? "#fbbf24" : totalVariance < 0 ? "#ef4444" : "#ffffff"};">${formatMoney(totalVariance)}</p>
-              <p style="margin: 8px 0 0 0; opacity: 0.7; font-size: 11px;">${totalVariance > 0 ? "↑ Surplus" : totalVariance < 0 ? "↓ Deficit" : "Balanced"}</p>
+              <p style="margin: 0; opacity: 0.85; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Credit Recovered</p>
+              <p style="margin: 12px 0 0 0; font-size: 28px; font-weight: bold; line-height: 1;">${formatMoney(creditRecoveredThisMonth)}</p>
+              <p style="margin: 8px 0 0 0; opacity: 0.7; font-size: 11px;">Outstanding: ${formatMoney(outstandingCredit)}</p>
             </div>
           </div>
 
@@ -914,7 +927,7 @@ export default async function handler(req, res) {
             <!-- Profit Margin -->
             <div style="text-align: center; padding: 12px;">
               <p style="margin: 0; opacity: 0.8; font-size: 28px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">Profit Margin</p>
-              <p style="margin: 8px 0 0 0; font-size: 18px; font-weight: bold;">${totalSales > 0 ? ((netProfitToday / totalSales) * 100).toFixed(1) : "0"}%</p>
+              <p style="margin: 8px 0 0 0; font-size: 18px; font-weight: bold;">${totalSales > 0 ? ((netProfitMonth / totalSales) * 100).toFixed(1) : "0"}%</p>
             </div>
           </div>
         </div>
@@ -930,7 +943,7 @@ export default async function handler(req, res) {
 
         <!-- FOOTER -->
         <div style="background: #f9fafb; padding: 15px; border-radius: 8px; text-align: center;">
-          <p style="color: #999; font-size: 12px; margin: 0;">This is an automated daily report from St. Micheals Inventory System</p>
+          <p style="color: #999; font-size: 12px; margin: 0;">This is an automated monthly report from St. Micheals Inventory System</p>
           <p style="color: #059669; font-size: 12px; margin: 5px 0;">✅ Report generated successfully</p>
         </div>
       </div>
@@ -946,7 +959,7 @@ export default async function handler(req, res) {
 
     const testEmailTo = process.env.TEST_EMAIL || FROM_EMAIL || EMAIL_USER;
 
-    console.log("📧 Sending daily report email to:", testEmailTo);
+    console.log("📧 Sending monthly report email to:", testEmailTo);
 
     // Logo path for embedding
     const logoPath = path.join(
@@ -965,13 +978,13 @@ export default async function handler(req, res) {
         });
       }
     } catch (logoErr) {
-      console.log("[Daily Mail] Logo not found, sending without embedded image");
+      console.log("[Monthly Mail] Logo not found, sending without embedded image");
     }
 
     const emailResponse = await transporter.sendMail({
       from: getMailFromAddress("St's Micheal's Place"),
       to: testEmailTo,
-      subject: `Daily Business Report - ${today.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} | St. Micheals`,
+      subject: `Monthly Business Report - ${reportMonthLabel} | St. Micheals`,
       html: mailHtml,
       attachments,
     });
@@ -979,7 +992,7 @@ export default async function handler(req, res) {
     console.log("✅ Email sent successfully:", emailResponse.messageId);
 
     return res.status(200).json({
-      message: "Daily report sent successfully!",
+      message: "Monthly report sent successfully!",
       sentTo: testEmailTo,
       messageId: emailResponse.messageId,
       timestamp: new Date().toISOString(),
@@ -988,18 +1001,19 @@ export default async function handler(req, res) {
         totalTransactions: totalTransactionCount,
         totalItemsSold,
         totalExpenses,
-        totalCogs: totalCogsToday,
-        netPosition: netProfitToday,
+        totalCogs: totalCogsMonth,
+        netPosition: netProfitMonth,
         stockValue: totalStockValue,
-        variance: totalVariance,
+        creditIssued: creditIssuedTotal,
+        creditRecovered: creditRecoveredThisMonth,
+        outstandingCredit,
         locationsCount: allLocations.length,
-        eodReportsCount: eodReports.length,
       },
     });
   } catch (err) {
-    console.error("❌ Error generating daily report:", err);
+    console.error("❌ Error generating monthly report:", err);
     return res.status(500).json({
-      error: "Failed to generate daily report",
+      error: "Failed to generate monthly report",
       message: err.message,
       hint: "Check EMAIL_USER/EMAIL_PASS configuration and database connection",
     });

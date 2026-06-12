@@ -78,6 +78,11 @@ async function handlePOST(req, res) {
       status: requestStatus,
       externalId: requestExternalId,
       dedupeKey: requestDedupeKey,
+      customerId,
+      customerName,
+      customerType,
+      creditDueDate,
+      creditNotes,
       createdAt,
     } = req.body || {};
 
@@ -101,22 +106,23 @@ async function handlePOST(req, res) {
     const safeSubtotal = toSafeNumber(subtotal, safeTotal);
     const safeTax = toSafeNumber(tax, 0);
     const safeDiscount = toSafeNumber(discount, 0);
-    const safeAmountPaid = toSafeNumber(
-      amountPaid,
-      tenderPaymentsTotal > 0 ? tenderPaymentsTotal : safeTotal
-    );
-    const safeChange = toSafeNumber(change, Math.max(safeAmountPaid - safeTotal, 0));
-
-    const status =
-      requestStatus && ["held", "completed", "refunded"].includes(requestStatus)
-        ? requestStatus
-        : "completed";
+    const requestedStatus = String(requestStatus || "").trim().toLowerCase();
+    const status = ["held", "completed", "refunded", "credit"].includes(requestedStatus)
+      ? requestedStatus
+      : "completed";
+    const isCreditTransaction = status === "credit";
+    const safeAmountPaid = isCreditTransaction
+      ? toSafeNumber(amountPaid, 0)
+      : toSafeNumber(amountPaid, tenderPaymentsTotal > 0 ? tenderPaymentsTotal : safeTotal);
+    const safeChange = isCreditTransaction
+      ? 0
+      : toSafeNumber(change, Math.max(safeAmountPaid - safeTotal, 0));
 
     const primaryTender =
       tenderType ||
       normalizedTenderPayments[0]?.tenderName ||
       normalizedTenderPayments[0]?.tenderType ||
-      "CASH";
+      (isCreditTransaction ? "CREDIT" : "CASH");
 
     const parsedCreatedAt = createdAt ? new Date(createdAt) : new Date();
     const safeCreatedAt = Number.isNaN(parsedCreatedAt.getTime())
@@ -163,7 +169,17 @@ async function handlePOST(req, res) {
       transactionType: "pos",
       status,
       discountReason: "",
-      customerName: null,
+      customerId: customerId || null,
+      customerName: customerName || null,
+      customerType: customerType || null,
+      creditStatus: isCreditTransaction ? "open" : "none",
+      creditCustomerId: customerId || null,
+      creditCustomerName: customerName || "",
+      creditOriginalTotal: isCreditTransaction ? safeTotal : 0,
+      creditPaidAmount: isCreditTransaction ? safeAmountPaid : 0,
+      creditBalance: isCreditTransaction ? Math.max(0, safeTotal - safeAmountPaid) : 0,
+      creditDueDate: creditDueDate ? new Date(creditDueDate) : null,
+      creditNotes: creditNotes || "",
       createdAt: safeCreatedAt,
       externalId: externalId || undefined,
       dedupeKey: dedupeKey || undefined,
@@ -194,10 +210,40 @@ async function handlePOST(req, res) {
       });
     }
 
-    if (status === "completed") {
+    if (status === "completed" || status === "credit") {
       await applyInventoryDelta(normalizedItems, "decrement");
       transaction.inventoryUpdated = true;
       await transaction.save();
+
+      if (status === "credit" && transaction.creditCustomerId) {
+        const openCredits = await Transaction.find({
+          status: "credit",
+          creditCustomerId: transaction.creditCustomerId,
+          creditStatus: { $nin: ["paid", "written_off"] },
+        }).select("creditBalance total creditOriginalTotal creditPaidAmount creditPayments");
+        const creditBalance = openCredits.reduce((sum, credit) => {
+          const totalCredit = Number(credit.creditOriginalTotal || credit.total || 0);
+          const paid = Array.isArray(credit.creditPayments) && credit.creditPayments.length > 0
+            ? credit.creditPayments.reduce((paymentSum, payment) => paymentSum + Number(payment.amount || 0), 0)
+            : Number(credit.creditPaidAmount || 0);
+          return sum + Math.max(0, totalCredit - paid);
+        }, 0);
+        const Customer = (await import("@/models/Customer")).default;
+        await Customer.findByIdAndUpdate(transaction.creditCustomerId, {
+          isCreditCustomer: true,
+          type: "CREDIT",
+          creditBalance,
+          updatedAt: new Date(),
+        });
+      }
+
+      if (status === "credit") {
+        return res.status(201).json({
+          success: true,
+          message: "Credit transaction saved",
+          transaction,
+        });
+      }
 
       // Auto-post accounting journal entry
       try {
@@ -242,12 +288,14 @@ async function handleGET(req, res) {
           : tx.staff,
     }));
 
-    const totalSales = enrichedTransactions.reduce(
+    const paidTransactions = enrichedTransactions.filter((tx) => tx.status === "completed");
+
+    const totalSales = paidTransactions.reduce(
       (sum, tx) => sum + (tx.total || 0),
       0
     );
 
-    const totalTransactions = enrichedTransactions.length;
+    const totalTransactions = paidTransactions.length;
 
     const summary = {
       totalSales,
@@ -256,7 +304,7 @@ async function handleGET(req, res) {
         totalTransactions > 0 ? totalSales / totalTransactions : 0,
     };
 
-    const topProducts = aggregateProductSales(enrichedTransactions)
+    const topProducts = aggregateProductSales(paidTransactions)
       .map((product) => ({
         productId: product.productId,
         name: product.name,
@@ -267,13 +315,13 @@ async function handleGET(req, res) {
       .slice(0, 10);
 
     const byStaff = {};
-    enrichedTransactions.forEach((tx) => {
+    paidTransactions.forEach((tx) => {
       const staff = getNormalizedStaffName(tx);
       byStaff[staff] = (byStaff[staff] || 0) + (tx.total || 0);
     });
 
     const byLocation = {};
-    enrichedTransactions.forEach((tx) => {
+    paidTransactions.forEach((tx) => {
       const loc = tx.location || "Unknown";
       byLocation[loc] = (byLocation[loc] || 0) + (tx.total || 0);
     });

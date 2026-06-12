@@ -106,7 +106,7 @@ export default async function handler(req, res) {
           })
           .lean(),
         Product.find({}).select("_id isChildProduct parentProduct packType qtyPerPack").lean(),
-        Transaction.find({ status: { $in: ["completed", "refunded"] } })
+        Transaction.find({ status: { $in: ["completed", "refunded", "credit"] } })
           .select("items location status subStatus createdAt")
           .lean(),
       ]);

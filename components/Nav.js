@@ -552,6 +552,7 @@ export default function Sidebar() {
                 {/* Transaction Report */}
                 {renderSubMenu([
                   { href: "/reporting/transaction-report/completed-transactions", label: "Completed Transactions", indent: true },
+                  { href: "/reporting/transaction-report/stock-history-levels", label: "Stock History / Levels", indent: true },
                 ].filter(() => canAccessTransactionReport))}
               </ul>
             </li>
@@ -590,6 +591,7 @@ export default function Sidebar() {
                 {renderSubMenu([
                   { href: "/expenses/expenses", label: "Expenses Entry" },
                   { href: "/expenses/analysis", label: "Expenses Analysis" },
+                  { href: "/expenses/credit-management", label: "Credit Management" },
                   { href: "/expenses/tax-analysis", label: "Tax Analysis" },
                   {
                     href: "/expenses/tax-personal",
@@ -599,6 +601,7 @@ export default function Sidebar() {
                   const permMap = {
                     "/expenses/expenses": "expenses.entry",
                     "/expenses/analysis": "expenses.analysis",
+                    "/expenses/credit-management": "expenses.analysis",
                     "/expenses/tax-analysis": "expenses.tax-analysis",
                     "/expenses/tax-personal": "expenses.tax-personal",
                   };
@@ -1022,6 +1025,13 @@ export default function Sidebar() {
                     </Link>
                   </li>
                   )}
+                  {canAccessTransactionReport && (
+                  <li onClick={closeMenu}>
+                    <Link href="/reporting/transaction-report/stock-history-levels" className={`block px-10 py-3 text-sm transition-all ${pathname === "/reporting/transaction-report/stock-history-levels" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                      Stock History / Levels
+                    </Link>
+                  </li>
+                  )}
                   {canAccess("reporting.time-intervals") && (
                   <li onClick={closeMenu}>
                     <Link href="/reporting/sales-report/time-intervals" className={`block px-10 py-3 text-sm transition-all ${pathname === "/reporting/sales-report/time-intervals" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
@@ -1098,6 +1108,13 @@ export default function Sidebar() {
                   <li onClick={closeMenu}>
                     <Link href="/expenses/analysis" className={`block px-8 py-3 text-sm transition-all ${pathname === "/expenses/analysis" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Expenses Analysis
+                    </Link>
+                  </li>
+                  )}
+                  {canAccess("expenses.analysis") && (
+                  <li onClick={closeMenu}>
+                    <Link href="/expenses/credit-management" className={`block px-8 py-3 text-sm transition-all ${pathname === "/expenses/credit-management" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                      Credit Management
                     </Link>
                   </li>
                   )}

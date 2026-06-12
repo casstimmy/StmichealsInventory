@@ -389,7 +389,7 @@ export default async function handler(req, res) {
       };
 
       const addLowStockEntry = (locName, quantity) => {
-        if (quantity <= minStock) {
+        if (minStock > 0 && quantity <= minStock) {
           lowStockProducts.push({
             name: productName,
             location: locName,
@@ -412,7 +412,7 @@ export default async function handler(req, res) {
 
             if (quantity === 0) {
               stockByLocation[locName].outOfStockItems += 1;
-            } else if (quantity <= minStock) {
+            } else if (minStock > 0 && quantity <= minStock) {
               stockByLocation[locName].lowStockItems += 1;
             }
 
@@ -446,7 +446,7 @@ export default async function handler(req, res) {
 
           if (qty === 0) {
             stockByLocation[fallbackLocation].outOfStockItems += 1;
-          } else if (qty <= minStock) {
+          } else if (minStock > 0 && qty <= minStock) {
             stockByLocation[fallbackLocation].lowStockItems += 1;
           }
 

@@ -34,6 +34,7 @@ const ROUTE_PERMISSIONS = {
   "/manage": "manage",
   "/stock/management": "stock.management",
   "/stock/movement": "stock.movement",
+  "/stock/stock-history-levels": "stock.management",
   "/stock/stock-take-report": "stock.stock-take-report",
   "/stock/stock-take": "stock.stock-take",
   "/stock/expiration-report": "stock.expiration-report",

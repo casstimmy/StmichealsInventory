@@ -1,9 +1,10 @@
 import Product from "@/models/Product";
+import Category from "@/models/Category";
 import StockMovement from "@/models/StockMovement";
 import Transaction from "@/models/Transactions";
 import { mongooseConnect, withRetry } from "@/lib/mongodb";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
-import { buildLocationCache } from "@/lib/serverLocationHelper";
+import { buildLocationCache, getAllLocations } from "@/lib/serverLocationHelper";
 import { getDateTimeParts, parseDateKey } from "@/lib/dateFilter";
 
 const VALID_PERIODS = new Set(["monthly", "daily", "hourly", "half-hourly"]);
@@ -135,6 +136,52 @@ function addMapQuantity(map, key, quantity) {
   map.set(key, roundQty((map.get(key) || 0) + Number(quantity || 0)));
 }
 
+function normalizeCategoryValue(value) {
+  const text = String(value || "").trim();
+  return text || "Uncategorized";
+}
+
+function buildCategoryMaps(categories = []) {
+  const byId = new Map();
+  const byName = new Map();
+
+  categories.forEach((category) => {
+    const id = String(category?._id || "").trim();
+    const name = String(category?.name || "").trim();
+    if (!name) return;
+    if (id) byId.set(id, name);
+    byName.set(normalizeValue(name), name);
+  });
+
+  return { byId, byName };
+}
+
+function getCategoryLabel(value, categoryMaps) {
+  const categoryValue = normalizeCategoryValue(value);
+  const byId = categoryMaps.byId.get(categoryValue);
+  if (byId) return byId;
+  const byName = categoryMaps.byName.get(normalizeValue(categoryValue));
+  return byName || categoryValue;
+}
+
+function buildCategoryOptions(products, categoryMaps) {
+  const options = new Map();
+
+  products
+    .filter((product) => !isDerivedChild(product))
+    .forEach((product) => {
+      const value = normalizeCategoryValue(product.category);
+      if (!options.has(value)) {
+        options.set(value, {
+          value,
+          label: getCategoryLabel(value, categoryMaps),
+        });
+      }
+    });
+
+  return Array.from(options.values()).sort((left, right) => left.label.localeCompare(right.label));
+}
+
 export default async function handler(req, res) {
   const authError = authMiddleware(req, res);
   if (authError) return authError;
@@ -166,8 +213,10 @@ export default async function handler(req, res) {
     const productIdFilter = String(req.query.productId || "").trim();
     const searchFilter = normalizeValue(req.query.search);
 
-    const [locationCache, products, movements, transactions] = await withRetry(async () => Promise.all([
+    const [locationCache, storeLocations, categories, products, movements, transactions] = await withRetry(async () => Promise.all([
       buildLocationCache(),
+      getAllLocations(),
+      Category.find({}).select("_id name").lean(),
       Product.find({
         isArchived: { $ne: true },
         isStockManaged: true,
@@ -195,6 +244,7 @@ export default async function handler(req, res) {
         .lean(),
     ]));
 
+    const categoryMaps = buildCategoryMaps(categories);
     const productMap = new Map(products.map((product) => [getProductId(product), product]));
     const filteredProductIds = new Set(
       products
@@ -202,7 +252,11 @@ export default async function handler(req, res) {
           if (isDerivedChild(product)) return false;
           const id = getProductId(product);
           if (productIdFilter && id !== productIdFilter) return false;
-          if (categoryFilter && normalizeValue(product.category) !== categoryFilter) return false;
+          if (categoryFilter) {
+            const productCategoryValue = normalizeValue(product.category);
+            const productCategoryLabel = normalizeValue(getCategoryLabel(product.category, categoryMaps));
+            if (productCategoryValue !== categoryFilter && productCategoryLabel !== categoryFilter) return false;
+          }
           if (searchFilter) {
             const haystack = `${product.name || ""} ${product.barcode || ""}`.toLowerCase();
             if (!haystack.includes(searchFilter)) return false;
@@ -213,7 +267,11 @@ export default async function handler(req, res) {
     );
 
     const events = [];
-    const locationNames = new Set(Object.values(locationCache).map((name) => String(name || "").trim()).filter(Boolean));
+    const locationNames = new Set(
+      (Array.isArray(storeLocations) ? storeLocations : [])
+        .map((location) => String(location?.name || "").trim())
+        .filter(Boolean)
+    );
 
     const pushEvent = ({ productId, quantity, date, locationName, sourceType, movementType }) => {
       if (!productId || !filteredProductIds.has(productId)) return;
@@ -221,7 +279,6 @@ export default async function handler(req, res) {
       if (locationFilter && normalizedLocation !== locationFilter) return;
       const eventDate = date instanceof Date ? date : new Date(date);
       if (Number.isNaN(eventDate.getTime()) || eventDate > endDate) return;
-      if (locationName) locationNames.add(locationName);
       events.push({
         productId,
         quantity: Number(quantity || 0),
@@ -307,7 +364,7 @@ export default async function handler(req, res) {
           productId: event.productId,
           productName: product.name || "Unknown product",
           barcode: product.barcode || "",
-          category: product.category || "Uncategorized",
+          category: getCategoryLabel(product.category, categoryMaps),
           location: locationFilter ? event.locationName : "All locations",
           openingStock: roundQty(current),
           stockIn: 0,
@@ -416,10 +473,11 @@ export default async function handler(req, res) {
         .map((product) => ({
           _id: getProductId(product),
           name: product.name,
-          category: product.category || "Uncategorized",
+          category: getCategoryLabel(product.category, categoryMaps),
+          categoryValue: normalizeCategoryValue(product.category),
           barcode: product.barcode || "",
         })),
-      categories: Array.from(new Set(products.map((product) => product.category || "Uncategorized"))).sort(),
+      categories: buildCategoryOptions(products, categoryMaps),
       locations: Array.from(locationNames).sort((left, right) => left.localeCompare(right)),
     });
   } catch (error) {

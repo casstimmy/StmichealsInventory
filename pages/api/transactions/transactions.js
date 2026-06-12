@@ -9,7 +9,7 @@ import {
   toSafeNumber,
 } from "@/lib/transaction-utils";
 import { aggregateProductSales } from "@/lib/product-sales-report";
-import { postSaleEntry } from "@/lib/accounting";
+import { postCreditRecoveryEntry, postCreditSaleEntry, postSaleEntry } from "@/lib/accounting";
 
 async function connectDB() {
   await mongooseConnect();
@@ -117,6 +117,14 @@ async function handlePOST(req, res) {
     const safeChange = isCreditTransaction
       ? 0
       : toSafeNumber(change, Math.max(safeAmountPaid - safeTotal, 0));
+    const creditBalance = isCreditTransaction ? Math.max(0, safeTotal - safeAmountPaid) : 0;
+    const creditStatus = !isCreditTransaction
+      ? "none"
+      : creditBalance <= 0
+        ? "paid"
+        : safeAmountPaid > 0
+          ? "partly_paid"
+          : "open";
 
     const primaryTender =
       tenderType ||
@@ -172,13 +180,14 @@ async function handlePOST(req, res) {
       customerId: customerId || null,
       customerName: customerName || null,
       customerType: customerType || null,
-      creditStatus: isCreditTransaction ? "open" : "none",
+      creditStatus,
       creditCustomerId: customerId || null,
       creditCustomerName: customerName || "",
       creditOriginalTotal: isCreditTransaction ? safeTotal : 0,
       creditPaidAmount: isCreditTransaction ? safeAmountPaid : 0,
-      creditBalance: isCreditTransaction ? Math.max(0, safeTotal - safeAmountPaid) : 0,
+      creditBalance,
       creditDueDate: creditDueDate ? new Date(creditDueDate) : null,
+      creditPaidAt: isCreditTransaction && creditBalance <= 0 ? safeCreatedAt : null,
       creditNotes: creditNotes || "",
       createdAt: safeCreatedAt,
       externalId: externalId || undefined,
@@ -238,6 +247,15 @@ async function handlePOST(req, res) {
       }
 
       if (status === "credit") {
+        try {
+          await postCreditSaleEntry(transaction);
+          if (Number(transaction.creditPaidAmount || 0) > 0) {
+            await postCreditRecoveryEntry(transaction);
+          }
+        } catch (acctErr) {
+          console.error("Accounting auto-post failed for credit transaction:", transaction._id, acctErr.message);
+        }
+
         return res.status(201).json({
           success: true,
           message: "Credit transaction saved",

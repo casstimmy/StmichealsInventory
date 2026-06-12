@@ -151,7 +151,7 @@ export default function StockHistoryLevelsReport() {
   return (
     <Layout>
       <div className="page-container">
-        <div className="page-content">
+        <div className="page-content space-y-6">
           <div className="page-header">
             <h1 className="page-title">Stock History / Levels</h1>
             <p className="page-subtitle">Review opening and closing stock movements by month, day, hour, or half-hour.</p>
@@ -199,9 +199,9 @@ export default function StockHistoryLevelsReport() {
                 <button
                   onClick={exportCsv}
                   disabled={!report.rows?.length}
-                  className="btn-action-secondary flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="btn-action-secondary min-w-[180px] flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-50"
                 >
-                  <Download className="w-4 h-4" /> CSV
+                  <Download className="w-4 h-4" /> Download Stock Levels
                 </button>
               </div>
             </div>
@@ -246,9 +246,11 @@ export default function StockHistoryLevelsReport() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
                 >
                   <option value="">All categories</option>
-                  {(report.categories || []).map((category) => (
-                    <option key={category} value={category}>{category}</option>
-                  ))}
+                  {(report.categories || []).map((category) => {
+                    const value = typeof category === "string" ? category : category.value;
+                    const label = typeof category === "string" ? category : category.label;
+                    return <option key={value} value={value}>{label}</option>;
+                  })}
                 </select>
               </div>
               <div>

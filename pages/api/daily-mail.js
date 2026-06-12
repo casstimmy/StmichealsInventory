@@ -5,7 +5,7 @@ import Store from "@/models/Store";
 import Transaction from "@/models/Transactions";
 import Expense from "@/models/Expense";
 import jwt from "jsonwebtoken";
-import { createMailTransport, getMailFromAddress } from "@/lib/mail";
+import { createMailTransport, getMailEnvValue, getMailFromAddress } from "@/lib/mail";
 import { aggregateProductSales } from "@/lib/product-sales-report";
 import { buildLocationCache, resolveLocationName } from "@/lib/serverLocationHelper";
 
@@ -85,8 +85,18 @@ export default async function handler(req, res) {
 
     console.log("[Monthly Mail] Generating comprehensive monthly report...");
 
-    const { FROM_EMAIL, EMAIL_USER, EMAIL_PASS } = process.env;
-    console.log("[Monthly Mail] ENV:", { FROM_EMAIL, EMAIL_USER });
+    const monthlyReportTo = getMailEnvValue(
+      "MONTHLY_REPORT_MAIL_TO",
+      "MONTHLY_REPORT_EMAIL_TO",
+      "REPORT_MAIL_TO",
+      "TEST_EMAIL",
+      "FROM_EMAIL",
+      "EMAIL_USER"
+    );
+    console.log("[Monthly Mail] Mail config:", {
+      hasRecipient: Boolean(monthlyReportTo),
+      hasSender: Boolean(getMailEnvValue("MAIL_FROM", "SMTP_FROM", "EMAIL_FROM", "FROM_EMAIL", "SMTP_USER", "EMAIL_USER")),
+    });
 
     const isCronAuthorized =
       req.query.key === process.env.CRON_SECRET ||
@@ -101,11 +111,11 @@ export default async function handler(req, res) {
       });
     }
 
-    if (!EMAIL_USER || !EMAIL_PASS) {
-      console.log("[Monthly Mail] Missing email credentials");
+    if (!monthlyReportTo) {
+      console.log("[Monthly Mail] Missing monthly report recipient");
       return res.status(500).json({
-        error: "Missing EMAIL_USER or EMAIL_PASS in .env",
-        hint: "Check your Gmail credentials and app password",
+        error: "Missing MONTHLY_REPORT_MAIL_TO in .env",
+        hint: "Set MONTHLY_REPORT_MAIL_TO or MONTHLY_REPORT_EMAIL_TO for monthly reports",
       });
     }
 
@@ -533,29 +543,30 @@ export default async function handler(req, res) {
           <p style="margin: 15px 0 0 0; opacity: 0.9;">${reportMonthLabel}</p>
           <p style="margin: 5px 0 0 0; opacity: 0.8; font-size: 13px;">${reportRangeLabel}</p>
           <p style="margin: 5px 0 0 0; opacity: 0.7; font-size: 12px;">Generated: ${new Date().toLocaleString()}</p>
-        </div>
-
-        <!-- QUICK SUMMARY CARDS -->
-        <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
-          <div style="flex: 1; min-width: 150px; background: white; padding: 20px; border-radius: 10px; border-left: 4px solid #059669;">
-            <p style="margin: 0; color: #666; font-size: 12px;">TOTAL SALES</p>
-            <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: #059669;">${formatMoney(totalSales)}</p>
-          </div>
-          <div style="flex: 1; min-width: 150px; background: white; padding: 20px; border-radius: 10px; border-left: 4px solid #3b82f6;">
-            <p style="margin: 0; color: #666; font-size: 12px;">TRANSACTIONS</p>
-            <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: #3b82f6;">${totalTransactionCount}</p>
-          </div>
-          <div style="flex: 1; min-width: 150px; background: white; padding: 20px; border-radius: 10px; border-left: 4px solid #dc2626;">
-            <p style="margin: 0; color: #666; font-size: 12px;">TOTAL EXPENSES</p>
-            <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: #dc2626;">${formatMoney(totalExpenses)}</p>
-          </div>
-          <div style="flex: 1; min-width: 150px; background: white; padding: 20px; border-radius: 10px; border-left: 4px solid #f59e0b;">
-            <p style="margin: 0; color: #666; font-size: 12px;">STOCK VALUE</p>
-            <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: #f59e0b;">${formatMoney(totalStockValue)}</p>
-          </div>
-          <div style="flex: 1; min-width: 150px; background: white; padding: 20px; border-radius: 10px; border-left: 4px solid #d97706;">
-            <p style="margin: 0; color: #666; font-size: 12px;">CREDIT OUTSTANDING</p>
-            <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: #b45309;">${formatMoney(outstandingCredit)}</p>
+          <div style="margin-top: 18px; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18); border-radius: 10px; padding: 14px;">
+            <p style="margin: 0 0 10px 0; color: rgba(255,255,255,0.72); font-size: 11px; text-transform: uppercase; letter-spacing: 0.7px; font-weight: bold;">Monthly Snapshot</p>
+            <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+              <div style="flex: 1; min-width: 130px;">
+                <p style="margin: 0; color: rgba(255,255,255,0.72); font-size: 11px;">Total Sales</p>
+                <p style="margin: 4px 0 0 0; font-size: 21px; font-weight: bold; color: #ffffff;">${formatMoney(totalSales)}</p>
+              </div>
+              <div style="flex: 1; min-width: 110px;">
+                <p style="margin: 0; color: rgba(255,255,255,0.72); font-size: 11px;">Transactions</p>
+                <p style="margin: 4px 0 0 0; font-size: 20px; font-weight: bold; color: #bfdbfe;">${totalTransactionCount}</p>
+              </div>
+              <div style="flex: 1; min-width: 130px;">
+                <p style="margin: 0; color: rgba(255,255,255,0.72); font-size: 11px;">Expenses</p>
+                <p style="margin: 4px 0 0 0; font-size: 20px; font-weight: bold; color: #fecaca;">${formatMoney(totalExpenses)}</p>
+              </div>
+              <div style="flex: 1; min-width: 130px;">
+                <p style="margin: 0; color: rgba(255,255,255,0.72); font-size: 11px;">Stock Value</p>
+                <p style="margin: 4px 0 0 0; font-size: 20px; font-weight: bold; color: #fde68a;">${formatMoney(totalStockValue)}</p>
+              </div>
+              <div style="flex: 1; min-width: 130px;">
+                <p style="margin: 0; color: rgba(255,255,255,0.72); font-size: 11px;">Credit Outstanding</p>
+                <p style="margin: 4px 0 0 0; font-size: 20px; font-weight: bold; color: #fed7aa;">${formatMoney(outstandingCredit)}</p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -957,9 +968,7 @@ export default async function handler(req, res) {
       });
     }
 
-    const testEmailTo = process.env.TEST_EMAIL || FROM_EMAIL || EMAIL_USER;
-
-    console.log("📧 Sending monthly report email to:", testEmailTo);
+    console.log("📧 Sending monthly report email to:", monthlyReportTo);
 
     // Logo path for embedding
     const logoPath = path.join(
@@ -983,7 +992,7 @@ export default async function handler(req, res) {
 
     const emailResponse = await transporter.sendMail({
       from: getMailFromAddress("St's Micheal's Place"),
-      to: testEmailTo,
+      to: monthlyReportTo,
       subject: `Monthly Business Report - ${reportMonthLabel} | St. Micheals`,
       html: mailHtml,
       attachments,
@@ -993,7 +1002,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       message: "Monthly report sent successfully!",
-      sentTo: testEmailTo,
+      sentTo: monthlyReportTo,
       messageId: emailResponse.messageId,
       timestamp: new Date().toISOString(),
       summary: {

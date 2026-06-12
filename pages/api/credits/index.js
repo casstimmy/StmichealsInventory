@@ -3,6 +3,7 @@ import Transaction from "@/models/Transactions";
 import Customer from "@/models/Customer";
 import { mongooseConnect } from "@/lib/mongodb";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
+import { postCreditRecoveryEntry, postCreditSaleEntry } from "@/lib/accounting";
 
 function toMoney(value) {
   const number = Number(value || 0);
@@ -197,6 +198,12 @@ export default async function handler(req, res) {
 
       await recalculateCustomerBalance(customer._id);
 
+      try {
+        await postCreditSaleEntry(transaction);
+      } catch (accountingError) {
+        console.error("Accounting auto-post failed for created credit debt:", transaction._id, accountingError.message);
+      }
+
       return res.status(201).json({ success: true, transaction });
     }
 
@@ -244,6 +251,12 @@ export default async function handler(req, res) {
           lastCreditPaymentAt: new Date(),
           creditBalance: customerBalance,
         });
+      }
+
+      try {
+        await postCreditRecoveryEntry(transaction);
+      } catch (accountingError) {
+        console.error("Accounting auto-post failed for credit recovery:", transaction._id, accountingError.message);
       }
 
       return res.status(200).json({ success: true, transaction });

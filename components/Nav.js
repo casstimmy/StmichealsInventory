@@ -453,6 +453,7 @@ export default function Sidebar() {
                 {renderSubMenu([
                   { href: "/stock/management", label: "Stock Management" },
                   { href: "/stock/movement", label: "Stock Movement" },
+                  { href: "/stock/stock-history-levels", label: "Stock History / Levels" },
                   { href: "/stock/stock-take", label: "Stock Take" },
                   { href: "/stock/stock-take-report", label: "Stock Take Report" },
                   { href: "/stock/expiration-report", label: "Expiration Report" },
@@ -460,6 +461,7 @@ export default function Sidebar() {
                   const permMap = {
                     "/stock/management": "stock.management",
                     "/stock/movement": "stock.movement",
+                    "/stock/stock-history-levels": "stock.management",
                     "/stock/stock-take": "stock.stock-take",
                     "/stock/stock-take-report": "stock.stock-take-report",
                     "/stock/expiration-report": "stock.expiration-report",
@@ -552,7 +554,6 @@ export default function Sidebar() {
                 {/* Transaction Report */}
                 {renderSubMenu([
                   { href: "/reporting/transaction-report/completed-transactions", label: "Completed Transactions", indent: true },
-                  { href: "/reporting/transaction-report/stock-history-levels", label: "Stock History / Levels", indent: true },
                 ].filter(() => canAccessTransactionReport))}
               </ul>
             </li>
@@ -953,6 +954,13 @@ export default function Sidebar() {
                     </Link>
                   </li>
                   )}
+                  {canAccess("stock.management") && (
+                  <li onClick={closeMenu}>
+                    <Link href="/stock/stock-history-levels" className={`block px-8 py-3 text-sm transition-all ${pathname === "/stock/stock-history-levels" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
+                      Stock History / Levels
+                    </Link>
+                  </li>
+                  )}
                   {canAccess("stock.stock-take") && (
                   <li onClick={closeMenu}>
                     <Link href="/stock/stock-take" className={`block px-8 py-3 text-sm transition-all ${pathname.startsWith("/stock/stock-take") && !pathname.startsWith("/stock/stock-take-report") ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
@@ -1022,13 +1030,6 @@ export default function Sidebar() {
                   <li onClick={closeMenu}>
                     <Link href="/reporting/transaction-report/completed-transactions" className={`block px-10 py-3 text-sm transition-all ${pathname === "/reporting/transaction-report/completed-transactions" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
                       Completed Transactions
-                    </Link>
-                  </li>
-                  )}
-                  {canAccessTransactionReport && (
-                  <li onClick={closeMenu}>
-                    <Link href="/reporting/transaction-report/stock-history-levels" className={`block px-10 py-3 text-sm transition-all ${pathname === "/reporting/transaction-report/stock-history-levels" ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-l-4 border-transparent"}`}>
-                      Stock History / Levels
                     </Link>
                   </li>
                   )}

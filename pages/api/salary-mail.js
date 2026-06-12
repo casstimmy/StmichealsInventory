@@ -1,9 +1,9 @@
 import { mongooseConnect } from "@/lib/mongodb";
-import nodemailer from "nodemailer";
 import path from "path";
 import fs from "fs";
 import { Staff } from "@/models/Staff";
 import { authMiddleware, isAdmin } from "@/lib/auth-middleware";
+import { createMailTransport, getMailEnvValue, getMailFromAddress } from "@/lib/mail";
 
 export default async function handler(req, res) {
   const cronSecret = process.env.CRON_SECRET;
@@ -43,35 +43,23 @@ export default async function handler(req, res) {
     await mongooseConnect();
 
     // 3. Validate required env vars
-    const { EMAIL_USER, EMAIL_PASS, SALARY_MAIL_TO, SALARY_MAIL_CC } =
-      process.env;
+    const salaryMailTo = getMailEnvValue("SALARY_MAIL_TO");
+    const salaryMailCc = getMailEnvValue("SALARY_MAIL_CC");
 
-    if (!EMAIL_USER || !EMAIL_PASS) {
-      return res.status(500).json({
-        error: "Missing email credentials in .env",
-        required: ["EMAIL_USER", "EMAIL_PASS"],
-        hint: "Use Gmail App Password if 2FA is enabled",
-      });
-    }
-
-    if (!SALARY_MAIL_TO) {
+    if (!salaryMailTo) {
       return res.status(500).json({
         error: "Missing SALARY_MAIL_TO in .env",
       });
     }
 
-    // 4. Create transporter with port 587 (TLS)
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 587,
-      secure: false,
-      auth: {
-        user: EMAIL_USER,
-        pass: EMAIL_PASS,
-      },
-      connectionTimeout: 10000,
-      socketTimeout: 10000,
-    });
+    const transporter = createMailTransport();
+    if (!transporter) {
+      return res.status(500).json({
+        error: "Mail transport is not configured",
+        required: ["SMTP_HOST/SMTP_PORT", "or EMAIL_USER/EMAIL_PASS"],
+        hint: "Use SMTP_* variables or Gmail EMAIL_USER with an app password",
+      });
+    }
 
     // 5. Test connection
     console.log("🔗 Testing SMTP connection...");
@@ -202,16 +190,16 @@ export default async function handler(req, res) {
 
     // 10. Build mail options
     const mailOptions = {
-      from: `"St's Micheals" <${EMAIL_USER}>`,
-      to: SALARY_MAIL_TO,
-      cc: SALARY_MAIL_CC || undefined,
+      from: getMailFromAddress("St's Micheals"),
+      to: salaryMailTo,
+      cc: salaryMailCc || undefined,
       subject: `${currentMonth} ${currentYear} Salary Schedule`,
       html: mailHtml,
       attachments,
     };
 
     // 11. Send email
-    console.log("📧 Sending salary email to:", SALARY_MAIL_TO);
+  console.log("📧 Sending salary email to:", salaryMailTo);
     const info = await transporter.sendMail(mailOptions);
     console.log("✅ Email sent:", info.messageId);
 
@@ -219,7 +207,7 @@ export default async function handler(req, res) {
       message: "Salary email sent successfully.",
       staffCount: staffList.length,
       totalSalary: formattedTotal,
-      sentTo: SALARY_MAIL_TO,
+      sentTo: salaryMailTo,
       messageId: info.messageId,
       timestamp: new Date().toISOString(),
     });

@@ -28,15 +28,16 @@ const creditPaymentSchema = new mongoose.Schema(
   {
     amount: { type: Number, default: 0 },
     tenderType: { type: String, default: "CASH" },
-    tenderName: { type: String, default: "CASH" },
+    tenderName: { type: String, default: "Cash" },
     reference: { type: String, default: "" },
+    note: { type: String, default: "" },
     notes: { type: String, default: "" },
     paidAt: { type: Date, default: Date.now },
     recordedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Staff", default: null },
     recordedByName: { type: String, default: "" },
     sequence: { type: Number, default: 1 },
   },
-  { _id: true }
+  { _id: false }
 );
 
 const TransactionSchema = new mongoose.Schema({
@@ -65,10 +66,9 @@ const TransactionSchema = new mongoose.Schema({
   customerType: { type: String }, // Customer type / promotion name
   customerId: { type: mongoose.Schema.Types.ObjectId, ref: "Customer", default: null },
   customerName: String,
-
   creditStatus: {
     type: String,
-    enum: ["none", "open", "partly_paid", "paid", "written_off"],
+    enum: ["none", "open", "partly_paid", "paid", "overdue", "written_off"],
     default: "none",
   },
   creditCustomerId: { type: mongoose.Schema.Types.ObjectId, ref: "Customer", default: null },
@@ -79,7 +79,10 @@ const TransactionSchema = new mongoose.Schema({
   creditDueDate: { type: Date, default: null },
   creditPaidAt: { type: Date, default: null },
   creditNotes: { type: String, default: "" },
-  creditPayments: { type: [creditPaymentSchema], default: [] },
+  creditPayments: {
+    type: [creditPaymentSchema],
+    default: [],
+  },
 
   // Attribution for sales influenced by external channels such as the online store
   salesChannel: { type: String, trim: true, default: "POS" },
@@ -118,7 +121,7 @@ TransactionSchema.index({ dedupeKey: 1 }, { unique: true, sparse: true });
 TransactionSchema.index({ salesChannel: 1, createdAt: -1 });
 TransactionSchema.index({ sourceOrderId: 1 }, { sparse: true });
 TransactionSchema.index({ status: 1, creditStatus: 1, createdAt: -1 });
-TransactionSchema.index({ creditCustomerId: 1, creditStatus: 1 });
+TransactionSchema.index({ creditCustomerId: 1, creditStatus: 1, createdAt: -1 });
 
 // Avoid re-registering the model in development
 const Transaction =

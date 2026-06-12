@@ -6,15 +6,27 @@ import useProgress from "@/lib/useProgress";
 import Link from "next/link";
 import { showConfirmDialog } from "@/lib/dialogs";
 import { showToastMessage } from "@/lib/toast-state";
+import { formatCurrency } from "@/lib/format";
 import { useState, useEffect } from "react";
 import { Search, Users, Megaphone } from "lucide-react";
+
+const EMPTY_CUSTOMER_FORM = {
+  name: "",
+  email: "",
+  phone: "",
+  address: "",
+  type: "REGULAR",
+  isCreditCustomer: false,
+  creditLimit: "",
+  creditNotes: "",
+};
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const { progress, start, onFetch, onProcess, complete } = useProgress();
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ name: "", email: "", phone: "", address: "", type: "REGULAR" });
+  const [formData, setFormData] = useState(EMPTY_CUSTOMER_FORM);
   const [editing, setEditing] = useState(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -59,19 +71,28 @@ export default function CustomersPage() {
     setError("");
     setSuccess("");
 
-    if (!formData.name || !formData.email || !formData.phone) {
-      setError("Name, email, and phone are required");
+    if (!formData.name || !formData.phone) {
+      setError("Name and phone are required");
       return;
     }
 
     try {
       const url = editing ? `/api/customers/${editing}` : "/api/customers";
       const method = editing ? "PUT" : "POST";
+      const creditEnabled = Boolean(formData.isCreditCustomer || formData.type === "CREDIT");
+      const payload = {
+        ...formData,
+        email: formData.email?.trim() || undefined,
+        type: creditEnabled ? "CREDIT" : formData.type || "REGULAR",
+        isCreditCustomer: creditEnabled,
+        creditLimit: Number(formData.creditLimit || 0),
+        creditNotes: formData.creditNotes || "",
+      };
 
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -81,7 +102,7 @@ export default function CustomersPage() {
       }
 
       setSuccess(`Customer ${editing ? "updated" : "created"} successfully!`);
-      setFormData({ name: "", email: "", phone: "", address: "" });
+  setFormData(EMPTY_CUSTOMER_FORM);
       setEditing(null);
       setShowForm(false);
       fetchCustomers();
@@ -91,9 +112,34 @@ export default function CustomersPage() {
   }
 
   function handleEdit(customer) {
-    setFormData(customer);
+    setFormData({
+      ...EMPTY_CUSTOMER_FORM,
+      ...customer,
+      email: customer.email || "",
+      address: customer.address || "",
+      type: customer.isCreditCustomer || customer.type === "CREDIT" ? "CREDIT" : customer.type || "REGULAR",
+      isCreditCustomer: Boolean(customer.isCreditCustomer || customer.type === "CREDIT"),
+      creditLimit: customer.creditLimit ?? "",
+      creditNotes: customer.creditNotes || "",
+    });
     setEditing(customer._id);
     setShowForm(true);
+  }
+
+  function handleCreditToggle(checked) {
+    setFormData((prev) => ({
+      ...prev,
+      isCreditCustomer: checked,
+      type: checked ? "CREDIT" : prev.type === "CREDIT" ? "REGULAR" : prev.type,
+    }));
+  }
+
+  function handleTypeChange(type) {
+    setFormData((prev) => ({
+      ...prev,
+      type,
+      isCreditCustomer: type === "CREDIT",
+    }));
   }
 
   async function handleDelete(id) {
@@ -142,7 +188,7 @@ export default function CustomersPage() {
               onClick={() => {
                 setShowForm(!showForm);
                 setEditing(null);
-                setFormData({ name: "", email: "", phone: "", address: "", type: "REGULAR" });
+                setFormData(EMPTY_CUSTOMER_FORM);
               }}
               className="btn-action-primary w-full sm:w-auto"
             >
@@ -212,11 +258,10 @@ export default function CustomersPage() {
                 />
                 <input
                   type="email"
-                  placeholder="Email Address *"
-                  value={formData.email}
+                  placeholder="Email Address"
+                  value={formData.email || ""}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="form-input"
-                  required
                 />
                 <input
                   type="tel"
@@ -229,13 +274,13 @@ export default function CustomersPage() {
                 <input
                   type="text"
                   placeholder="Address"
-                  value={formData.address}
+                  value={formData.address || ""}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   className="form-input"
                 />
                 <select
                   value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                  onChange={(e) => handleTypeChange(e.target.value)}
                   className="form-select"
                 >
                   <option value="REGULAR">Regular Customer</option>
@@ -243,7 +288,39 @@ export default function CustomersPage() {
                   <option value="NEW">New Customer</option>
                   <option value="INACTIVE">Inactive</option>
                   <option value="BULK_BUYER">Bulk Buyer</option>
+                  <option value="CREDIT">Credit Customer</option>
                 </select>
+                <label className="flex items-center justify-between gap-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                  <span>
+                    <span className="block text-sm font-semibold text-gray-900">Credit customer</span>
+                    <span className="block text-xs text-gray-500">Allow this customer to use credit checkout on POS.</span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(formData.isCreditCustomer || formData.type === "CREDIT")}
+                    onChange={(event) => handleCreditToggle(event.target.checked)}
+                    className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                </label>
+                {Boolean(formData.isCreditCustomer || formData.type === "CREDIT") && (
+                  <>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="Credit Limit"
+                      value={formData.creditLimit ?? ""}
+                      onChange={(e) => setFormData({ ...formData, creditLimit: e.target.value })}
+                      className="form-input"
+                    />
+                    <textarea
+                      placeholder="Credit Notes"
+                      value={formData.creditNotes || ""}
+                      onChange={(e) => setFormData({ ...formData, creditNotes: e.target.value })}
+                      className="form-input md:col-span-2 min-h-[96px]"
+                    />
+                  </>
+                )}
                 <div className="md:col-span-2 flex flex-col sm:flex-row gap-3">
                   <button
                     type="submit"
@@ -256,7 +333,7 @@ export default function CustomersPage() {
                     onClick={() => {
                       setShowForm(false);
                       setEditing(null);
-                      setFormData({ name: "", email: "", phone: "", address: "", type: "REGULAR" });
+                      setFormData(EMPTY_CUSTOMER_FORM);
                     }}
                     className="btn-action-secondary flex-1"
                   >
@@ -295,6 +372,7 @@ export default function CustomersPage() {
                     <th className="hidden lg:table-cell">Phone</th>
                     <th className="hidden xl:table-cell">Address</th>
                     <th>Type</th>
+                    <th className="hidden md:table-cell text-right">Credit Balance</th>
                     <th className="text-center">Actions</th>
                   </tr>
                 </thead>
@@ -307,6 +385,7 @@ export default function CustomersPage() {
                       <td className="hidden xl:table-cell">{customer.address || "N/A"}</td>
                       <td className="text-center">
                         <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold ${
+                          customer.isCreditCustomer || customer.type === "CREDIT" ? "bg-amber-100 text-amber-800" :
                           customer.type === "VIP" ? "bg-purple-100 text-purple-800" :
                           customer.type === "NEW" ? "bg-blue-100 text-blue-800" :
                           customer.type === "BULK_BUYER" ? "bg-orange-100 text-orange-800" :
@@ -315,6 +394,11 @@ export default function CustomersPage() {
                         }`}>
                           {customer.type || "REGULAR"}
                         </span>
+                      </td>
+                      <td className="hidden md:table-cell text-right font-semibold text-gray-800">
+                        {customer.isCreditCustomer || customer.type === "CREDIT"
+                          ? formatCurrency(customer.creditBalance || 0)
+                          : "-"}
                       </td>
                       <td className="px-2 md:px-6 py-2 md:py-4 text-center">
                         <div className="flex justify-center gap-2">

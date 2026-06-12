@@ -549,15 +549,15 @@ export default function Home() {
 
   const handleDailyMail = async () => {
     try {
-      const response = await apiClient.post("/api/monthly-mail");
+      const response = await apiClient.post("/api/daily-mail");
       await showAlertDialog({
-        title: "Monthly email sent",
+        title: "Daily email sent",
         message: `Sent to: ${response.data.sentTo}`,
         tone: "success",
       });
     } catch (error) {
       await showAlertDialog({
-        title: "Monthly email failed",
+        title: "Daily email failed",
         message: error.response?.data?.error || error.message,
         tone: "danger",
       });
@@ -661,8 +661,8 @@ export default function Home() {
             type="button"
             className="inline-flex items-center gap-2 border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-white hover:border-gray-300 hover:shadow"
             style={{ borderRadius: 'var(--radius-lg)' }}
-            onClick={handleMonthlyMail}
-            title="Send monthly mail report"
+            onClick={handleDailyMail}
+            title="Send daily mail report"
           >
             <Mail className="h-3.5 w-3.5" />
             Send Monthly Mail report

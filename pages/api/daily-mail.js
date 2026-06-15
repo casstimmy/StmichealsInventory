@@ -4,6 +4,7 @@ import Product from "@/models/Product";
 import Store from "@/models/Store";
 import Transaction from "@/models/Transactions";
 import Expense from "@/models/Expense";
+import StockMovement from "@/models/StockMovement";
 import jwt from "jsonwebtoken";
 import { createMailTransport, getMailEnvValue, getMailFromAddress } from "@/lib/mail";
 import { aggregateProductSales } from "@/lib/product-sales-report";
@@ -11,6 +12,107 @@ import { buildLocationCache, resolveLocationName } from "@/lib/serverLocationHel
 
 function isDerivedChildProduct(product) {
   return product?.isChildProduct && product?.packType !== "pack";
+}
+
+function normalizeLocationValue(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function getProductId(product) {
+  return String(product?._id || product?.id || "");
+}
+
+function getMovementLocationLabel(locationId, locationCache) {
+  const key = String(locationId || "").trim();
+  if (!key) return "";
+  return String(locationCache[key] || locationCache[key.toLowerCase()] || key).trim();
+}
+
+function getItemQuantity(item) {
+  const quantity = Number(item?.qty ?? item?.quantity ?? 0);
+  return Number.isFinite(quantity) ? quantity : 0;
+}
+
+function ensureProductLocationMap(stockByProduct, productId) {
+  if (!stockByProduct.has(productId)) {
+    stockByProduct.set(productId, new Map());
+  }
+
+  return stockByProduct.get(productId);
+}
+
+function addLocationQuantity(stockByProduct, productId, locationLabel, quantity) {
+  const normalizedLocation = normalizeLocationValue(locationLabel);
+  if (!productId || !normalizedLocation || !Number.isFinite(quantity) || quantity === 0) return;
+
+  const locationMap = ensureProductLocationMap(stockByProduct, productId);
+  const existing = locationMap.get(normalizedLocation) || {
+    locationName: String(locationLabel || "").trim(),
+    quantity: 0,
+  };
+
+  existing.quantity += quantity;
+  locationMap.set(normalizedLocation, existing);
+}
+
+function resolveStockProductDelta(productMap, productId, quantity) {
+  const product = productMap.get(String(productId || ""));
+  if (!product) return null;
+
+  if (isDerivedChildProduct(product)) {
+    const parentId = String(product.parentProduct || "");
+    const parent = productMap.get(parentId);
+    const unitsPerPack = Number(parent?.qtyPerPack || product.qtyPerPack || 1) || 1;
+    return { productId: parentId, quantity: quantity / unitsPerPack };
+  }
+
+  return { productId: String(product._id), quantity };
+}
+
+function getAssignedLocationNames(product, locationCache, activeLocationNameByKey) {
+  const assignedLocations = Array.isArray(product?.locations) ? product.locations : [];
+  const namesByKey = new Map();
+
+  assignedLocations.forEach((locationValue) => {
+    const reportName = getReportLocationName(locationValue, locationCache, activeLocationNameByKey);
+    if (reportName) {
+      namesByKey.set(normalizeLocationValue(reportName), reportName);
+    }
+  });
+
+  return Array.from(namesByKey.values());
+}
+
+function getReportLocationName(value, locationCache, activeLocationNameByKey) {
+  const resolvedName = getMovementLocationLabel(value, locationCache);
+  const normalizedName = normalizeLocationValue(resolvedName);
+  if (!normalizedName || normalizedName === "unknown" || normalizedName === "vendor") return "";
+  return activeLocationNameByKey.get(normalizedName) || activeLocationNameByKey.get(normalizeLocationValue(value)) || resolvedName;
+}
+
+function roundStockQuantity(value) {
+  return Math.round(Number(value || 0) * 10000) / 10000;
+}
+
+function createStockLocationSummary(locationName) {
+  return {
+    location: locationName,
+    totalUnits: 0,
+    totalCostValue: 0,
+    totalSaleValue: 0,
+    productCount: 0,
+    lowStockItems: 0,
+    outOfStockItems: 0,
+  };
+}
+
+function ensureStockLocation(stockByLocation, locationName) {
+  const name = String(locationName || "").trim();
+  if (!name) return null;
+  if (!stockByLocation[name]) {
+    stockByLocation[name] = createStockLocationSummary(name);
+  }
+  return stockByLocation[name];
 }
 
 function getMonthRange(referenceDate = new Date()) {
@@ -191,6 +293,17 @@ export default async function handler(req, res) {
     }).lean();
     console.log(`[Monthly Mail] Found ${allProducts.length} products`);
 
+    const productMap = new Map(allProducts.map((product) => [getProductId(product), product]));
+    const [stockMovements, stockTransactions] = await Promise.all([
+      StockMovement.find({ status: "Received" })
+        .select("fromLocationId toLocationId reason products dateReceived dateSent")
+        .lean(),
+      Transaction.find({ status: { $in: ["completed", "refunded", "credit"] } })
+        .select("location status subStatus items createdAt")
+        .lean(),
+    ]);
+    console.log(`[Monthly Mail] Found ${stockMovements.length} stock movements and ${stockTransactions.length} stock transactions for location stock`);
+
     const productCostById = {};
     allProducts.forEach((product) => {
       if (product?._id) {
@@ -342,21 +455,57 @@ export default async function handler(req, res) {
     const expiringSoonCutoff = new Date(today);
     expiringSoonCutoff.setDate(expiringSoonCutoff.getDate() + expiringSoonDays);
     const msPerDay = 1000 * 60 * 60 * 24;
+    const activeLocationNameByKey = new Map();
 
     // Initialize all locations
     allLocations.forEach((loc) => {
-      stockByLocation[loc.name] = {
-        location: loc.name,
-        totalUnits: 0,
-        totalCostValue: 0,
-        totalSaleValue: 0,
-        productCount: 0,
-        lowStockItems: 0,
-        outOfStockItems: 0,
-      };
+      activeLocationNameByKey.set(normalizeLocationValue(loc.id), loc.name);
+      activeLocationNameByKey.set(normalizeLocationValue(loc.name), loc.name);
+      ensureStockLocation(stockByLocation, loc.name);
     });
 
-    // Process products - check for inventory by location
+    const stockByProduct = new Map();
+
+    stockMovements.forEach((movement) => {
+      const fromLocationName = getMovementLocationLabel(movement.fromLocationId, locationsMap);
+      const toLocationName = getMovementLocationLabel(movement.toLocationId, locationsMap);
+
+      (Array.isArray(movement.products) ? movement.products : []).forEach((item) => {
+        const quantity = Number(item?.quantity || 0);
+        if (!Number.isFinite(quantity) || quantity <= 0) return;
+
+        const resolved = resolveStockProductDelta(productMap, item.productId, quantity);
+        if (!resolved?.productId) return;
+
+        if (movement.reason === "Restock") {
+          addLocationQuantity(stockByProduct, resolved.productId, toLocationName, resolved.quantity);
+        } else if (movement.reason === "Transfer") {
+          addLocationQuantity(stockByProduct, resolved.productId, fromLocationName, -resolved.quantity);
+          addLocationQuantity(stockByProduct, resolved.productId, toLocationName, resolved.quantity);
+        } else if (["Return", "Adjustment", "Operational Loss"].includes(movement.reason)) {
+          addLocationQuantity(stockByProduct, resolved.productId, fromLocationName, -resolved.quantity);
+        }
+      });
+    });
+
+    stockTransactions.forEach((transaction) => {
+      if (transaction.subStatus === "void") return;
+
+      const locationName = getMovementLocationLabel(transaction.location, locationsMap) || "online";
+      const sign = transaction.status === "refunded" ? 1 : -1;
+
+      (Array.isArray(transaction.items) ? transaction.items : []).forEach((item) => {
+        const quantity = getItemQuantity(item);
+        if (quantity <= 0) return;
+
+        const resolved = resolveStockProductDelta(productMap, item.productId, quantity);
+        if (!resolved?.productId) return;
+
+        addLocationQuantity(stockByProduct, resolved.productId, locationName, sign * resolved.quantity);
+      });
+    });
+
+    // Process products by assigned locations plus physical stock movement locations.
     for (const product of allProducts) {
       if (isDerivedChildProduct(product)) {
         continue;
@@ -366,9 +515,23 @@ export default async function handler(req, res) {
       const salePrice = product.salePriceIncTax || 0;
       const minStock = product.minStock || 0;
       const productName = product.name || product.title || "Unnamed product";
+      const productId = getProductId(product);
+      const productLocationStock = stockByProduct.get(productId) || new Map();
+      const targetLocations = new Map();
       const expiryDateValue = product.expiryDate
         ? new Date(product.expiryDate)
         : null;
+
+      getAssignedLocationNames(product, locationsMap, activeLocationNameByKey).forEach((locationName) => {
+        targetLocations.set(normalizeLocationValue(locationName), locationName);
+      });
+
+      productLocationStock.forEach((entry) => {
+        const locationName = getReportLocationName(entry.locationName, locationsMap, activeLocationNameByKey);
+        if (locationName) {
+          targetLocations.set(normalizeLocationValue(locationName), locationName);
+        }
+      });
 
       const addExpiringEntry = (locName, quantity) => {
         if (!expiryDateValue || quantity <= 0) {
@@ -399,61 +562,35 @@ export default async function handler(req, res) {
         }
       };
 
-      // Check if product has location-based inventory
-      if (product.inventory && typeof product.inventory === "object") {
-        for (const [locId, qty] of Object.entries(product.inventory)) {
-          const locName = await resolveLocationName(locId, locationsMap);
-          if (locName && locName !== "Unknown" && stockByLocation[locName]) {
-            const quantity = Number(qty) || 0;
-            stockByLocation[locName].totalUnits += quantity;
-            stockByLocation[locName].totalCostValue += quantity * costPrice;
-            stockByLocation[locName].totalSaleValue += quantity * salePrice;
-            stockByLocation[locName].productCount += 1;
-
-            if (quantity === 0) {
-              stockByLocation[locName].outOfStockItems += 1;
-            } else if (minStock > 0 && quantity <= minStock) {
-              stockByLocation[locName].lowStockItems += 1;
-            }
-
-            addExpiringEntry(locName, quantity);
-            addLowStockEntry(locName, quantity);
-          }
-        }
-      } else {
-        // Single location or no location tracking - add to first location
-        const qty = product.quantity || 0;
-        const fallbackLocation =
-          allLocations.length > 0 ? allLocations[0].name : "Unassigned";
-        if (!stockByLocation[fallbackLocation]) {
-          stockByLocation[fallbackLocation] = {
-            location: fallbackLocation,
-            totalUnits: 0,
-            totalCostValue: 0,
-            totalSaleValue: 0,
-            productCount: 0,
-            lowStockItems: 0,
-            outOfStockItems: 0,
-          };
-        }
-        if (stockByLocation[fallbackLocation]) {
-          stockByLocation[fallbackLocation].totalUnits += qty;
-          stockByLocation[fallbackLocation].totalCostValue +=
-            qty * costPrice;
-          stockByLocation[fallbackLocation].totalSaleValue +=
-            qty * salePrice;
-          stockByLocation[fallbackLocation].productCount += 1;
-
-          if (qty === 0) {
-            stockByLocation[fallbackLocation].outOfStockItems += 1;
-          } else if (minStock > 0 && qty <= minStock) {
-            stockByLocation[fallbackLocation].lowStockItems += 1;
-          }
-
-          addExpiringEntry(fallbackLocation, qty);
-          addLowStockEntry(fallbackLocation, qty);
-        }
+      if (targetLocations.size === 0) {
+        const qty = Number(product.quantity || 0);
+        if (qty <= 0) continue;
+        const fallbackLocation = allLocations.length > 0 ? allLocations[0].name : "Unassigned";
+        targetLocations.set(normalizeLocationValue(fallbackLocation), fallbackLocation);
       }
+
+      targetLocations.forEach((locName, locationKey) => {
+        const stockSummary = ensureStockLocation(stockByLocation, locName);
+        if (!stockSummary) return;
+
+        const locationStock = productLocationStock.get(locationKey);
+        const fallbackQuantity = targetLocations.size === 1 ? Number(product.quantity || 0) : 0;
+        const quantity = roundStockQuantity(locationStock ? locationStock.quantity : fallbackQuantity);
+
+        stockSummary.totalUnits += quantity;
+        stockSummary.totalCostValue += quantity * costPrice;
+        stockSummary.totalSaleValue += quantity * salePrice;
+        stockSummary.productCount += 1;
+
+        if (quantity === 0) {
+          stockSummary.outOfStockItems += 1;
+        } else if (minStock > 0 && quantity <= minStock) {
+          stockSummary.lowStockItems += 1;
+        }
+
+        addExpiringEntry(locName, quantity);
+        addLowStockEntry(locName, quantity);
+      });
     }
 
     // =====================
@@ -954,7 +1091,7 @@ export default async function handler(req, res) {
 
         <!-- FOOTER -->
         <div style="background: #f9fafb; padding: 15px; border-radius: 8px; text-align: center;">
-          <p style="color: #999; font-size: 12px; margin: 0;">This is an automated monthly report from St. Micheals Inventory System</p>
+          <p style="color: #999; font-size: 12px; margin: 0;">This is an automated monthly report from St. Micheals Inventory System. Powered by BizSuits.</p>
           <p style="color: #059669; font-size: 12px; margin: 5px 0;">✅ Report generated successfully</p>
         </div>
       </div>

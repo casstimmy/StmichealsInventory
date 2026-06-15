@@ -421,6 +421,25 @@ export default async function handler(req, res) {
     const targetProductIds = Array.from(filteredProductIds);
     const totalOpeningStock = targetProductIds.reduce((sum, id) => sum + Number(openingState.get(id) || 0), 0);
     const totalClosingStock = targetProductIds.reduce((sum, id) => sum + Number(runningState.get(id) || openingState.get(id) || 0), 0);
+
+    // Compute closing values from final runningState per product (not by summing per-bucket rows,
+    // which would double-count when a product appears in multiple daily/hourly buckets).
+    let totalClosingCostValue = 0;
+    let totalClosingSaleValue = 0;
+    let totalOpeningCostValue = 0;
+    let totalOpeningSaleValue = 0;
+    targetProductIds.forEach((id) => {
+      const product = productMap.get(id) || {};
+      const costPrice = Number(product.costPrice || 0);
+      const salePrice = Number(product.salePriceIncTax || 0);
+      const closingQty = Number(runningState.get(id) || openingState.get(id) || 0);
+      const openingQty = Number(openingState.get(id) || 0);
+      totalClosingCostValue += closingQty * costPrice;
+      totalClosingSaleValue += closingQty * salePrice;
+      totalOpeningCostValue += openingQty * costPrice;
+      totalOpeningSaleValue += openingQty * salePrice;
+    });
+
     const summary = rows.reduce(
       (acc, row) => {
         acc.stockIn += Number(row.stockIn || 0);
@@ -429,8 +448,6 @@ export default async function handler(req, res) {
         acc.creditUnitsSold += Number(row.creditUnitsSold || 0);
         acc.refundedUnits += Number(row.refundedUnits || 0);
         acc.adjustments += Number(row.adjustments || 0);
-        acc.closingCostValue += Number(row.closingCostValue || 0);
-        acc.closingSaleValue += Number(row.closingSaleValue || 0);
         return acc;
       },
       {
@@ -444,8 +461,10 @@ export default async function handler(req, res) {
         creditUnitsSold: 0,
         refundedUnits: 0,
         adjustments: 0,
-        closingCostValue: 0,
-        closingSaleValue: 0,
+        openingCostValue: roundMoney(totalOpeningCostValue),
+        openingSaleValue: roundMoney(totalOpeningSaleValue),
+        closingCostValue: roundMoney(totalClosingCostValue),
+        closingSaleValue: roundMoney(totalClosingSaleValue),
       }
     );
 

@@ -3,6 +3,7 @@ import Product from "@/models/Product";
 import { Category } from "@/models/Category";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 import { syncVendorAssignmentsForProduct } from "@/lib/vendorProductSync";
+import { deleteProductImages } from "@/lib/s3";
 import {
   sanitizeMultilineText,
   sanitizePlainText,
@@ -447,7 +448,7 @@ export default async function handler(req, res) {
       }
 
       const existingProduct = await Product.findById(_id)
-        .select("vendors packType qtyPerPack category productType isStockManaged")
+        .select("vendors packType qtyPerPack category productType isStockManaged images")
         .lean();
 
       if (!existingProduct) {
@@ -546,6 +547,23 @@ export default async function handler(req, res) {
         });
       }
 
+      // Delete S3 images that were removed during this edit (best-effort)
+      if (Array.isArray(existingProduct.images) && existingProduct.images.length > 0) {
+        const updatedUrls = new Set(
+          (Array.isArray(updated.images) ? updated.images : [])
+            .flatMap((img) => [img?.full, img?.thumb])
+            .filter(Boolean)
+        );
+        const removedImages = existingProduct.images.filter(
+          (img) => !updatedUrls.has(img?.full) && !updatedUrls.has(img?.thumb)
+        );
+        if (removedImages.length > 0) {
+          deleteProductImages(removedImages).catch((err) =>
+            console.error("[Products] S3 image cleanup failed during edit:", err.message)
+          );
+        }
+      }
+
       await syncVendorAssignmentsForProduct({
         product: updated,
         previousVendorIds: existingProduct.vendors || [],
@@ -642,6 +660,14 @@ export default async function handler(req, res) {
             message: "Product not found",
           });
         }
+
+        // Delete associated S3 images (best-effort, non-blocking)
+        if (Array.isArray(removed.images) && removed.images.length > 0) {
+          deleteProductImages(removed.images).catch((err) =>
+            console.error("[Products] S3 image cleanup failed for deleted product:", err.message)
+          );
+        }
+
         return res.json({
           success: true,
           message: "Product permanently deleted",

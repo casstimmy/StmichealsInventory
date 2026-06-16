@@ -1,41 +1,15 @@
 import multiparty from "multiparty";
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
 import sharp from "sharp";
 import { mongooseConnect } from "@/lib/mongodb";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
+import { getS3Config, getS3PublicUrl, createS3Client } from "@/lib/s3";
 
 const FULL_IMAGE_WIDTH = 1000;
 const THUMB_IMAGE_WIDTH = 320;
 const FULL_IMAGE_QUALITY = 76;
 const THUMB_IMAGE_QUALITY = 64;
 const IMAGE_CACHE_CONTROL = "public, max-age=31536000, immutable";
-
-function getS3Config() {
-  const config = {
-    bucketName: String(process.env.S3_BUCKET_NAME || "").trim(),
-    region: String(process.env.S3_REGION || "").trim(),
-    accessKeyId: String(process.env.S3_ACCESS_KEY || "").trim(),
-    secretAccessKey: String(process.env.S3_SECRET_ACCESS_KEY || "").trim(),
-    publicBaseUrl: String(process.env.S3_PUBLIC_BASE_URL || "").trim().replace(/\/$/, ""),
-  };
-
-  const missing = [
-    ["S3_BUCKET_NAME", config.bucketName],
-    ["S3_REGION", config.region],
-    ["S3_ACCESS_KEY", config.accessKeyId],
-    ["S3_SECRET_ACCESS_KEY", config.secretAccessKey],
-  ]
-    .filter(([, value]) => !value)
-    .map(([name]) => name);
-
-  return { config, missing };
-}
-
-function getS3PublicUrl({ bucketName, region, publicBaseUrl }, key) {
-  const encodedKey = encodeURIComponent(key);
-  if (publicBaseUrl) return `${publicBaseUrl}/${encodedKey}`;
-  return `https://${bucketName}.s3.${region}.amazonaws.com/${encodedKey}`;
-}
 
 function createOptimizedImageBuffer(filePath, width, quality) {
   return sharp(filePath, { animated: false })
@@ -68,13 +42,7 @@ export default async function ImageHandler(req, res) {
       form.parse(req, (error, fields, files) => (error ? reject(error) : resolve({ fields, files })));
     });
 
-    const client = new S3Client({
-      region: s3Config.region,
-      credentials: {
-        accessKeyId: s3Config.accessKeyId,
-        secretAccessKey: s3Config.secretAccessKey,
-      },
-    });
+    const client = createS3Client(s3Config);
 
     const links = [];
     const failedUploads = [];

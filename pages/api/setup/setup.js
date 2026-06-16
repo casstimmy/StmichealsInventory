@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { authMiddleware, isAdmin, isStaff } from "@/lib/auth-middleware";
 import { createMailTransport, getMailFromAddress } from "@/lib/mail";
+import { deleteS3Url } from "@/lib/s3";
 
 function sanitizeUser(user) {
   if (!user) return null;
@@ -358,7 +359,15 @@ async function handlePost(req, res) {
         store.locations = preparedLocations;
       }
       if (typeof email === "string") store.email = email;
-      if (typeof logo === "string") store.logo = logo;
+      if (typeof logo === "string") {
+        // Delete old logo from S3 if it's being replaced
+        if (store.logo && store.logo !== logo) {
+          deleteS3Url(store.logo).catch((err) =>
+            console.error("[Setup] S3 logo cleanup failed:", err.message)
+          );
+        }
+        store.logo = logo;
+      }
       if (normalizedReceiptSettings) {
         Object.assign(store, normalizedReceiptSettings);
       }

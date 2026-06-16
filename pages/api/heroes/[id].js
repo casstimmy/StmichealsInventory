@@ -1,6 +1,7 @@
 // pages/api/heroes/[id].js
 import { mongooseConnect } from "@/lib/mongodb";
 import Hero from "@/models/Hero";
+import { deleteProductImages } from "@/lib/s3";
 
 export default async function handler(req, res) {
   await mongooseConnect(); // ✅ ensure DB connection
@@ -30,6 +31,9 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "Background image must include full + thumb" });
       }
 
+      // Fetch existing hero to detect removed images
+      const existingHero = await Hero.findById(id).select("image bgImage").lean();
+
       const updated = await Hero.findByIdAndUpdate(
         id,
         { title, subtitle, image, bgImage, ctaText, ctaLink, order, status },
@@ -37,12 +41,46 @@ export default async function handler(req, res) {
       );
 
       if (!updated) return res.status(404).json({ error: "Hero not found" });
+
+      // Delete S3 images that were removed during this edit
+      if (existingHero) {
+        const updatedUrls = new Set(
+          [...(Array.isArray(image) ? image : []), ...(Array.isArray(bgImage) ? bgImage : [])]
+            .flatMap((img) => [img?.full, img?.thumb])
+            .filter(Boolean)
+        );
+        const previousImages = [
+          ...(Array.isArray(existingHero.image) ? existingHero.image : []),
+          ...(Array.isArray(existingHero.bgImage) ? existingHero.bgImage : []),
+        ];
+        const removedImages = previousImages.filter(
+          (img) => !updatedUrls.has(img?.full) && !updatedUrls.has(img?.thumb)
+        );
+        if (removedImages.length > 0) {
+          deleteProductImages(removedImages).catch((err) =>
+            console.error("[Heroes] S3 image cleanup failed during edit:", err.message)
+          );
+        }
+      }
+
       return res.json(updated);
     }
 
     if (req.method === "DELETE") {
       const deleted = await Hero.findByIdAndDelete(id);
       if (!deleted) return res.status(404).json({ error: "Hero not found" });
+
+      // Delete all S3 images for this hero
+      const allImages = [
+        ...(Array.isArray(deleted.image) ? deleted.image : []),
+        ...(Array.isArray(deleted.bgImage) ? deleted.bgImage : []),
+      ];
+      if (allImages.length > 0) {
+        deleteProductImages(allImages).catch((err) =>
+          console.error("[Heroes] S3 image cleanup failed for deleted hero:", err.message)
+        );
+      }
+
       return res.json({ message: "Hero deleted successfully" });
     }
 

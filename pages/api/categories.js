@@ -2,6 +2,7 @@ import { mongooseConnect } from "@/lib/mongodb";
 import { Category } from "@/models/Category";
 import Store from "@/models/Store";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
+import { deleteProductImages } from "@/lib/s3";
 
 // Simple in-memory cache for categories (cleared on mutations)
 let categoriesCache = null;
@@ -105,6 +106,9 @@ export default async function handler(req, res) {
       let { _id, name, parentCategory, properties, images, icon, isStockManaged, locations } = req.body;
       if (!_id) return res.status(400).json({ success: false, message: "Category ID is required" });
 
+      // Fetch existing category to detect removed images
+      const existingCategory = await Category.findById(_id).select("images").lean();
+
       // --- FIX: Normalize images ---
       images = (images || []).map(img => ({
         full: typeof img.full === "string" ? img.full : img.full?.webp || img.full?.jpeg || "",
@@ -125,6 +129,21 @@ export default async function handler(req, res) {
         { new: true }
       ).populate("parent");
 
+      // Delete S3 images that were removed during this edit
+      if (Array.isArray(existingCategory?.images) && existingCategory.images.length > 0) {
+        const updatedUrls = new Set(
+          images.flatMap((img) => [img?.full, img?.thumb]).filter(Boolean)
+        );
+        const removedImages = existingCategory.images.filter(
+          (img) => !updatedUrls.has(img?.full) && !updatedUrls.has(img?.thumb)
+        );
+        if (removedImages.length > 0) {
+          deleteProductImages(removedImages).catch((err) =>
+            console.error("[Categories] S3 image cleanup failed during edit:", err.message)
+          );
+        }
+      }
+
       invalidateCache();
       await syncStoreLocationCategories(_id, Array.isArray(locations) ? locations : []);
       return res.json(updatedCategory);
@@ -134,7 +153,15 @@ export default async function handler(req, res) {
       const { id } = req.query;
       if (!id) return res.status(400).json({ success: false, message: "Category ID required" });
 
-      await Category.deleteOne({ _id: id });
+      const removedCategory = await Category.findByIdAndDelete(id);
+
+      // Delete associated S3 images
+      if (Array.isArray(removedCategory?.images) && removedCategory.images.length > 0) {
+        deleteProductImages(removedCategory.images).catch((err) =>
+          console.error("[Categories] S3 image cleanup failed for deleted category:", err.message)
+        );
+      }
+
       invalidateCache();
       return res.json({ success: true });
     }

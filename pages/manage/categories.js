@@ -107,9 +107,10 @@ export default function Categories() {
       isTemp: true,
     }));
 
+    // Show previews immediately (append to existing for edit mode)
     if (isEdit)
-      setEditedCategory((prev) => ({ ...prev, images: previews }));
-    else setImages(previews);
+      setEditedCategory((prev) => ({ ...prev, images: [...prev.images, ...previews] }));
+    else setImages((prev) => [...prev, ...previews]);
 
     const formData = new FormData();
     Array.from(files).forEach((f) => formData.append("file", f));
@@ -123,11 +124,26 @@ export default function Categories() {
         thumb: link.thumb || link,
       }));
 
-      if (isEdit)
-        setEditedCategory((prev) => ({ ...prev, images: formatted }));
-      else setImages(formatted);
+      if (isEdit) {
+        // Replace temp previews with actual uploaded URLs (keep existing images intact)
+        setEditedCategory((prev) => ({
+          ...prev,
+          images: [...prev.images.filter((img) => !img.isTemp), ...formatted],
+        }));
+      } else {
+        setImages((prev) => [...prev.filter((img) => !img.isTemp), ...formatted]);
+      }
     } catch (err) {
       console.error(err);
+      // Remove temp previews on failure
+      if (isEdit) {
+        setEditedCategory((prev) => ({
+          ...prev,
+          images: prev.images.filter((img) => !img.isTemp),
+        }));
+      } else {
+        setImages((prev) => prev.filter((img) => !img.isTemp));
+      }
       await showAlertDialog({
         title: "Upload failed",
         message: "Image upload failed.",
@@ -254,10 +270,13 @@ export default function Categories() {
       return;
     }
 
-    const formattedImages = editedCategory.images.map((img) => ({
-      full: img.full,
-      thumb: img.thumb,
-    }));
+    // Only send fully uploaded images (exclude temp previews still uploading)
+    const formattedImages = editedCategory.images
+      .filter((img) => !img.isTemp)
+      .map((img) => ({
+        full: img.full,
+        thumb: img.thumb,
+      }));
 
     try {
       const res = await axios.put("/api/categories", {
@@ -715,37 +734,47 @@ export default function Categories() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Images
                       </label>
-                      <div className="flex flex-wrap gap-3 mb-3">
-                        <label className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg cursor-pointer hover:bg-cyan-700 transition">
-                          <FontAwesomeIcon icon={faImages} />
-                          Upload
+                      <div className="flex flex-wrap items-center gap-3 p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                        {editedCategory.images?.map((img, i) => (
+                          <div key={i} className="relative group w-20 h-20">
+                            <img
+                              src={img.thumb || img.full}
+                              alt={`Category ${i + 1}`}
+                              className={`w-20 h-20 object-cover rounded-lg border-2 ${img.isTemp ? "border-amber-300 opacity-70" : "border-gray-200"} shadow-sm`}
+                            />
+                            {img.isTemp && (
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                              </div>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => removeImage(i, true)}
+                              className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center shadow-md transition-all opacity-0 group-hover:opacity-100"
+                              title="Remove image"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                        <label className="flex flex-col items-center justify-center w-20 h-20 border-2 border-dashed border-cyan-300 rounded-lg cursor-pointer hover:border-cyan-500 hover:bg-cyan-50 transition-colors">
+                          <FontAwesomeIcon icon={faImages} className="text-cyan-500 text-lg mb-1" />
+                          <span className="text-[10px] text-cyan-600 font-medium">Add</span>
                           <input
                             type="file"
                             multiple
+                            accept="image/*"
                             className="hidden"
                             onChange={(e) => uploadImage(e, true)}
                           />
                         </label>
                         {loading && <Loader />}
                       </div>
-                      <div className="flex flex-wrap gap-3">
-                        {editedCategory.images?.map((img, i) => (
-                          <div key={i} className="relative group">
-                            <img
-                              src={img.thumb || img.full}
-                              alt={`Category ${i}`}
-                              className="w-16 h-16 object-cover rounded-md border border-gray-200"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => removeImage(i, true)}
-                              className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ))}
-                      </div>
+                      {editedCategory.images?.length > 0 && (
+                        <p className="text-xs text-gray-400 mt-2">
+                          {editedCategory.images.filter((img) => !img.isTemp).length} image{editedCategory.images.filter((img) => !img.isTemp).length !== 1 ? "s" : ""} • Hover to remove
+                        </p>
+                      )}
                     </div>
 
                     {/* Properties */}

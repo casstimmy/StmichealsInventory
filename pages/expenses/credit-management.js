@@ -36,7 +36,22 @@ export default function CreditManagement() {
   const [filters, setFilters] = useState({ search: "", status: "active" });
   const [customerForm, setCustomerForm] = useState({ name: "", phone: "", email: "", address: "", creditLimit: "", creditNotes: "" });
   const [debtForm, setDebtForm] = useState({ customerId: "", amount: "", dueDate: "", reference: "", notes: "" });
-  const [paymentForm, setPaymentForm] = useState({ transactionId: "", amount: "", tenderType: "CASH", reference: "", notes: "", paidAt: todayKey() });
+  const [paymentForm, setPaymentForm] = useState({ transactionId: "", amount: "", tenderType: "", reference: "", notes: "", paidAt: todayKey() });
+  const [tenders, setTenders] = useState([]);
+
+  const fetchTenders = async () => {
+    try {
+      const res = await fetch("/api/setup/tenders");
+      if (res.ok) {
+        const result = await res.json();
+        const list = result.tenders || [];
+        setTenders(list);
+        if (list.length > 0 && !paymentForm.tenderType) {
+          setPaymentForm((prev) => ({ ...prev, tenderType: list[0].name }));
+        }
+      }
+    } catch {}
+  };
 
   const fetchCredits = async () => {
     setLoading(true);
@@ -55,6 +70,7 @@ export default function CreditManagement() {
 
   useEffect(() => {
     fetchCredits();
+    fetchTenders();
   }, []);
 
   const filteredCredits = useMemo(() => {
@@ -105,7 +121,7 @@ export default function CreditManagement() {
   const recordPayment = async (event) => {
     event.preventDefault();
     const ok = await postAction({ action: "record-payment", ...paymentForm }, "Credit payment recorded.");
-    if (ok) setPaymentForm({ transactionId: "", amount: "", tenderType: "CASH", reference: "", notes: "", paidAt: todayKey() });
+    if (ok) setPaymentForm({ transactionId: "", amount: "", tenderType: tenders[0]?.name || "", reference: "", notes: "", paidAt: todayKey() });
   };
 
   const selectedCredit = (data.credits || []).find((credit) => credit._id === paymentForm.transactionId);
@@ -186,11 +202,11 @@ export default function CreditManagement() {
                 </div>
               )}
               <input required type="number" min="1" placeholder="Payment amount" value={paymentForm.amount} onChange={(event) => setPaymentForm((prev) => ({ ...prev, amount: event.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
-              <select value={paymentForm.tenderType} onChange={(event) => setPaymentForm((prev) => ({ ...prev, tenderType: event.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                <option value="CASH">Cash</option>
-                <option value="TRANSFER">Transfer</option>
-                <option value="CARD">Card</option>
-                <option value="CHEQUE">Cheque</option>
+              <select required value={paymentForm.tenderType} onChange={(event) => setPaymentForm((prev) => ({ ...prev, tenderType: event.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                <option value="">Select payment type</option>
+                {tenders.map((tender) => (
+                  <option key={tender._id} value={tender.name}>{tender.name}</option>
+                ))}
               </select>
               <input type="date" value={paymentForm.paidAt} onChange={(event) => setPaymentForm((prev) => ({ ...prev, paidAt: event.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
               <input placeholder="Reference" value={paymentForm.reference} onChange={(event) => setPaymentForm((prev) => ({ ...prev, reference: event.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />

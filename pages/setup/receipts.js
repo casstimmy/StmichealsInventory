@@ -24,12 +24,16 @@ export default function Receipts() {
   const [refundDays, setRefundDays] = useState(0);
   const [receiptMessage, setReceiptMessage] = useState("");
   const [fontSize, setFontSize] = useState("8.0");
+  const [fontFamily, setFontFamily] = useState("Arial");
   const [barcodeType, setBarcodeType] = useState("Default - Code 39");
   const [companyLogo, setCompanyLogo] = useState("/images/logo.png");
   const [qrUrl, setQrUrl] = useState("");
   const [qrDescription, setQrDescription] = useState("");
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [qrGenerating, setQrGenerating] = useState(false);
+  const [locationQrData, setLocationQrData] = useState({}); // { locationId: { qrUrl, qrDataUrl } }
+  const [qrMode, setQrMode] = useState("global"); // "global" or "per-location"
+  const [qrLocationId, setQrLocationId] = useState("");
   const [paymentStatus, setPaymentStatus] = useState("paid");
   const [shippingBaseCost, setShippingBaseCost] = useState(2000);
   const [shippingRatePerKm, setShippingRatePerKm] = useState(100);
@@ -76,6 +80,7 @@ export default function Receipts() {
         setRefundDays(data.store.refundDays || 0);
         setReceiptMessage(data.store.receiptMessage || "");
         setFontSize(data.store.fontSize || "8.0");
+        setFontFamily(data.store.fontFamily || "Arial");
         setBarcodeType(data.store.barcodeType || "Default - Code 39");
         setQrUrl(data.store.qrUrl || "");
         setQrDescription(data.store.qrDescription || "");
@@ -94,6 +99,19 @@ export default function Receipts() {
         if (data.store.locations && data.store.locations.length > 0) {
           setLocations(data.store.locations);
           setSelectedLocation(data.store.locations[0].name);
+          // Load per-location QR data
+          const locQrMap = {};
+          data.store.locations.forEach((loc) => {
+            if (loc.qrUrl || loc.qrDataUrl) {
+              locQrMap[loc._id] = { qrUrl: loc.qrUrl || "", qrDataUrl: loc.qrDataUrl || "" };
+            }
+          });
+          setLocationQrData(locQrMap);
+          // If any location has QR data, default to per-location mode
+          if (Object.keys(locQrMap).length > 0) {
+            setQrMode("per-location");
+            setQrLocationId(data.store.locations[0]._id);
+          }
         }
         
         // Use logo from /public/images/logo.png or fall back to images folder
@@ -111,6 +129,7 @@ export default function Receipts() {
           setRefundDays(settings.refundDays || data.store.refundDays || 0);
           setReceiptMessage(settings.receiptMessage || data.store.receiptMessage || "");
           setFontSize(settings.fontSize || data.store.fontSize || "8.0");
+          setFontFamily(settings.fontFamily || data.store.fontFamily || "Arial");
           setBarcodeType(settings.barcodeType || data.store.barcodeType || "Default - Code 39");
           setQrUrl(settings.qrUrl || data.store.qrUrl || "");
           setQrDescription(settings.qrDescription || data.store.qrDescription || "");
@@ -150,16 +169,26 @@ export default function Receipts() {
   const removeLogo = () => setCompanyLogo("/images/logo.png");
 
   const generateQRCode = async () => {
-    if (!qrUrl.trim()) return;
+    const urlToEncode = qrMode === "per-location" && qrLocationId
+      ? (locationQrData[qrLocationId]?.qrUrl || "").trim()
+      : qrUrl.trim();
+    if (!urlToEncode) return;
     setQrGenerating(true);
     try {
-      const dataUrl = await QRCode.toDataURL(qrUrl.trim(), {
+      const dataUrl = await QRCode.toDataURL(urlToEncode, {
         width: 150,
         margin: 1,
         color: { dark: "#000000", light: "#ffffff" },
         errorCorrectionLevel: "M",
       });
-      setQrDataUrl(dataUrl);
+      if (qrMode === "per-location" && qrLocationId) {
+        setLocationQrData((prev) => ({
+          ...prev,
+          [qrLocationId]: { qrUrl: urlToEncode, qrDataUrl: dataUrl },
+        }));
+      } else {
+        setQrDataUrl(dataUrl);
+      }
     } catch (err) {
       console.error("QR generation failed:", err);
     } finally {
@@ -167,8 +196,9 @@ export default function Receipts() {
     }
   };
 
-  // Auto-regenerate QR when URL changes (if a QR was already generated)
+  // Auto-regenerate QR when URL changes (global mode only)
   useEffect(() => {
+    if (qrMode !== "global") return;
     if (qrDataUrl && qrUrl.trim()) {
       const timer = setTimeout(() => generateQRCode(), 500);
       return () => clearTimeout(timer);
@@ -197,6 +227,7 @@ export default function Receipts() {
         refundDays,
         receiptMessage,
         fontSize,
+        fontFamily,
         barcodeType,
         qrUrl,
         qrDescription,
@@ -207,6 +238,7 @@ export default function Receipts() {
         shippingFallbackCost: Number(shippingFallbackCost) || Number(shippingBaseCost) || 0,
         companyLogo,
         staffName,
+        locationQrData,
       };
       
       // Send to API to save in database
@@ -443,19 +475,51 @@ export default function Receipts() {
                   </div>
                 </div>
 
-                {/* Font Size */}
-                <div className="form-group">
-                  <label className="form-label">Set Custom Font Size</label>
-                  <select
-                    value={fontSize}
-                    onChange={(e) => setFontSize(e.target.value)}
-                    className="form-select"
-                  >
-                    <option value="7.5">Eco Compact - 7.5pt</option>
-                    <option value="8.0">Compact - 8.0pt</option>
-                    <option value="8.5">Standard - 8.5pt</option>
-                    <option value="9.0">Large - 9.0pt</option>
-                  </select>
+                {/* Receipt Typography */}
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="mb-3">
+                    <h3 className="text-sm font-semibold text-slate-900">Receipt Typography</h3>
+                    <p className="text-xs text-slate-600 mt-1">
+                      Controls how text appears on printed receipts in the Point of Sale.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="form-group mb-0">
+                      <label className="form-label">Font Size</label>
+                      <select
+                        value={fontSize}
+                        onChange={(e) => setFontSize(e.target.value)}
+                        className="form-select"
+                      >
+                        <option value="5.5">Micro - 5.5pt</option>
+                        <option value="6.0">Tiny - 6.0pt</option>
+                        <option value="6.5">Eco Compact - 6.5pt</option>
+                        <option value="7.0">Compact - 7.0pt</option>
+                        <option value="7.5">Small - 7.5pt</option>
+                        <option value="8.0">Standard - 8.0pt</option>
+                        <option value="8.5">Medium - 8.5pt</option>
+                        <option value="9.0">Large - 9.0pt</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group mb-0">
+                      <label className="form-label">Font Family</label>
+                      <select
+                        value={fontFamily}
+                        onChange={(e) => setFontFamily(e.target.value)}
+                        className="form-select"
+                      >
+                        <option value="Arial">Arial (Default)</option>
+                        <option value="Courier New">Courier New (Monospace)</option>
+                        <option value="Times New Roman">Times New Roman (Serif)</option>
+                        <option value="Verdana">Verdana (Clean)</option>
+                        <option value="Georgia">Georgia (Elegant)</option>
+                        <option value="Tahoma">Tahoma (Compact)</option>
+                        <option value="Roboto">Roboto (Modern)</option>
+                        <option value="Mono">Mono (Fixed-width)</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Barcode Type */}
@@ -521,35 +585,117 @@ export default function Receipts() {
 
                 {/* QR Code */}
                 <div className="form-group space-y-3">
+                  {/* QR Mode Toggle */}
+                  {locations.length > 0 && (
+                    <div className="flex items-center gap-4 mb-2">
+                      <label className="form-label mb-0">QR Code Mode:</label>
+                      <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+                        <input
+                          type="radio"
+                          value="global"
+                          checked={qrMode === "global"}
+                          onChange={() => setQrMode("global")}
+                        />
+                        Global (all locations)
+                      </label>
+                      <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+                        <input
+                          type="radio"
+                          value="per-location"
+                          checked={qrMode === "per-location"}
+                          onChange={() => {
+                            setQrMode("per-location");
+                            if (!qrLocationId && locations.length > 0) {
+                              setQrLocationId(locations[0]._id);
+                            }
+                          }}
+                        />
+                        Per Location
+                      </label>
+                    </div>
+                  )}
+
+                  {/* Per-location selector */}
+                  {qrMode === "per-location" && locations.length > 0 && (
+                    <div className="form-group">
+                      <label className="form-label">Select Location for QR</label>
+                      <select
+                        value={qrLocationId}
+                        onChange={(e) => setQrLocationId(e.target.value)}
+                        className="form-select"
+                      >
+                        {locations.map((loc) => (
+                          <option key={loc._id} value={loc._id}>
+                            {loc.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
                   <div>
-                    <label className="form-label">QR Code URL or Link</label>
+                    <label className="form-label">
+                      QR Code URL or Link
+                      {qrMode === "per-location" && qrLocationId && (
+                        <span className="text-xs text-blue-600 ml-2">
+                          ({locations.find(l => l._id === qrLocationId)?.name})
+                        </span>
+                      )}
+                    </label>
                     <div className="flex gap-2">
                       <input
                         type="text"
                         placeholder="Example: https://google.com"
-                        value={qrUrl}
-                        onChange={(e) => setQrUrl(e.target.value)}
+                        value={qrMode === "per-location" && qrLocationId
+                          ? (locationQrData[qrLocationId]?.qrUrl || "")
+                          : qrUrl}
+                        onChange={(e) => {
+                          if (qrMode === "per-location" && qrLocationId) {
+                            setLocationQrData((prev) => ({
+                              ...prev,
+                              [qrLocationId]: { ...prev[qrLocationId], qrUrl: e.target.value },
+                            }));
+                          } else {
+                            setQrUrl(e.target.value);
+                          }
+                        }}
                         className="form-input flex-1"
                       />
                       <button
                         type="button"
                         onClick={generateQRCode}
-                        disabled={!qrUrl.trim() || qrGenerating}
+                        disabled={
+                          qrGenerating ||
+                          (qrMode === "per-location" && qrLocationId
+                            ? !(locationQrData[qrLocationId]?.qrUrl || "").trim()
+                            : !qrUrl.trim())
+                        }
                         className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
                       >
                         {qrGenerating ? "Generating..." : "Generate QR Code"}
                       </button>
                     </div>
                   </div>
-                  {qrDataUrl && (
-                    <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                      <img src={qrDataUrl} alt="QR Code Preview" className="w-20 h-20 rounded" />
-                      <div className="text-sm text-green-700">
-                        <p className="font-medium">QR Code Generated</p>
-                        <p className="text-xs text-green-600 mt-0.5 break-all">{qrUrl}</p>
+
+                  {/* QR Preview */}
+                  {(() => {
+                    const previewDataUrl = qrMode === "per-location" && qrLocationId
+                      ? (locationQrData[qrLocationId]?.qrDataUrl || "")
+                      : qrDataUrl;
+                    const previewUrl = qrMode === "per-location" && qrLocationId
+                      ? (locationQrData[qrLocationId]?.qrUrl || "")
+                      : qrUrl;
+                    return previewDataUrl ? (
+                      <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <img src={previewDataUrl} alt="QR Code Preview" className="w-20 h-20 rounded" />
+                        <div className="text-sm text-green-700">
+                          <p className="font-medium">QR Code Generated</p>
+                          <p className="text-xs text-green-600 mt-0.5 break-all">{previewUrl}</p>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    ) : null;
+                  })()}
+
                   <div>
                     <label className="form-label">QR Code Description</label>
                     <input
@@ -593,8 +739,8 @@ export default function Receipts() {
               <div className="content-card sticky top-6">
                 <h2 className="text-lg font-bold mb-4 text-gray-800">Receipt Preview</h2>
               <div 
-                className="bg-white p-4 rounded border border-gray-300 overflow-y-auto max-h-[700px] font-mono leading-[1.2] text-[11px]"
-                style={{ fontSize: `${fontSize}pt` }}
+                className="bg-white p-4 rounded border border-gray-300 overflow-y-auto max-h-[700px] leading-[1.2] text-[11px]"
+                style={{ fontSize: `${fontSize}pt`, fontFamily: fontFamily === 'Mono' || fontFamily === 'Courier New' ? '"Courier New", monospace' : fontFamily === 'Times New Roman' ? '"Times New Roman", serif' : `"${fontFamily}", sans-serif` }}
               >
                 <div className="mx-auto w-full max-w-[280px] text-gray-900">
                   {companyLogo && (
@@ -635,19 +781,22 @@ export default function Receipts() {
                   </div>
 
                   <div className="mt-3 border-t border-dashed border-black pt-3">
-                    <div className="grid grid-cols-[1fr_42px_68px] gap-2 font-bold uppercase">
+                    <div className="grid grid-cols-[1fr_54px_32px_58px] gap-1 font-bold uppercase">
                       <span>Item</span>
+                      <span className="text-right">Rate</span>
                       <span className="text-center">Qty</span>
-                      <span className="text-right">Amt</span>
+                      <span className="text-right">Total</span>
                     </div>
                     <div className="mt-2 space-y-1">
-                      <div className="grid grid-cols-[1fr_42px_68px] gap-2">
+                      <div className="grid grid-cols-[1fr_54px_32px_58px] gap-1">
                         <span>SAMPLE ITEM 1</span>
+                        <span className="text-right">₦1,500</span>
                         <span className="text-center">1</span>
                         <span className="text-right">₦1,500</span>
                       </div>
-                      <div className="grid grid-cols-[1fr_42px_68px] gap-2">
+                      <div className="grid grid-cols-[1fr_54px_32px_58px] gap-1">
                         <span>SAMPLE ITEM 2</span>
+                        <span className="text-right">₦2,000</span>
                         <span className="text-center">1</span>
                         <span className="text-right">₦2,000</span>
                       </div>
@@ -682,14 +831,22 @@ export default function Receipts() {
                       <div>Refund within {refundDays} days with receipt</div>
                     ) : null}
 
-                    {(qrDataUrl || qrUrl) ? (
+                    {(qrDataUrl || qrUrl || (qrMode === "per-location" && qrLocationId && locationQrData[qrLocationId]?.qrDataUrl)) ? (
                       <div className="mt-2">
                         {qrDescription ? <div>{qrDescription}</div> : null}
-                        {qrDataUrl ? (
-                          <img src={qrDataUrl} alt="QR Code" className="mx-auto my-2 h-16 w-16" />
-                        ) : (
-                          <div className="mt-2 break-all text-[0.8em]">{qrUrl}</div>
-                        )}
+                        {(() => {
+                          const previewQrDataUrl = qrMode === "per-location" && qrLocationId
+                            ? (locationQrData[qrLocationId]?.qrDataUrl || "")
+                            : qrDataUrl;
+                          const previewQrUrl = qrMode === "per-location" && qrLocationId
+                            ? (locationQrData[qrLocationId]?.qrUrl || "")
+                            : qrUrl;
+                          return previewQrDataUrl ? (
+                            <img src={previewQrDataUrl} alt="QR Code" className="mx-auto my-2 h-16 w-16" />
+                          ) : previewQrUrl ? (
+                            <div className="mt-2 break-all text-[0.8em]">{previewQrUrl}</div>
+                          ) : null;
+                        })()}
                       </div>
                     ) : null}
 

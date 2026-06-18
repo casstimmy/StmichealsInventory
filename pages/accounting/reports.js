@@ -123,20 +123,13 @@ export default function AccountingReportsPage() {
             <h1 className="page-title">Financial Reports</h1>
             <p className="page-subtitle">View your business financial statements</p>
           </div>
-          <div className="flex flex-col items-stretch sm:items-end gap-2 w-full sm:w-auto">
-            <div className="flex flex-wrap justify-end gap-2">
-              <button onClick={handleManualSync} disabled={syncing} className="btn-action btn-action-primary disabled:opacity-60 disabled:cursor-not-allowed">
-                <RefreshCw size={18} className={syncing ? "animate-spin" : ""} /> {syncing ? "Syncing..." : "Sync Accounting"}
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button onClick={handleManualSync} disabled={syncing} className="btn-action btn-action-primary disabled:opacity-60 disabled:cursor-not-allowed" title={`Last synced: ${formatSyncTime(syncStatus?.lastSyncAt)}${syncSummary ? ` | ${syncSummary}` : ""}`}>
+                <RefreshCw size={16} className={syncing ? "animate-spin" : ""} /> {syncing ? "Syncing..." : "Sync"}
               </button>
               <button onClick={() => window.print()} className="btn-action btn-action-secondary">
                 <Printer size={18} /> Print
               </button>
-            </div>
-            <div className="text-xs text-gray-500 sm:text-right">
-              <p>Last synced: {formatSyncTime(syncStatus?.lastSyncAt)}</p>
-              {syncStatus?.lastDurationMs ? <p>Latest sync duration: {(syncStatus.lastDurationMs / 1000).toFixed(1)}s</p> : null}
-              {syncSummary ? <p>{syncSummary}</p> : null}
-            </div>
           </div>
         </div>
 

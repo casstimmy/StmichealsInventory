@@ -13,7 +13,8 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === "GET") {
-      await ensureAccountingEntriesSynced();
+      // Trigger sync in background - don't block page load
+      ensureAccountingEntriesSynced().catch(() => {});
 
       const { status, referenceType, from, to, limit = 100, skip = 0 } = req.query;
       const filter = {};
@@ -74,13 +75,19 @@ export default async function handler(req, res) {
         });
       }
 
+      const VALID_REF_TYPES = ["SALE", "EXPENSE", "PURCHASE_ORDER", "SALARY", "REFUND", "OTHER"];
+      const normalizedRefType = referenceType || "OTHER";
+      if (!VALID_REF_TYPES.includes(normalizedRefType)) {
+        return res.status(400).json({ success: false, message: "A valid reference type is required. All entries must be tied to a payment form." });
+      }
+
       const entryStatus = status || "DRAFT";
       const entry = await createJournalEntry({
         date: date ? new Date(date) : new Date(),
         description,
         lines: resolvedLines,
         reference: reference || "",
-        referenceType: referenceType || "MANUAL",
+        referenceType: normalizedRefType,
         status: entryStatus,
         location: location || "",
         postedAt: entryStatus === "POSTED" ? new Date() : undefined,

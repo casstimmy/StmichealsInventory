@@ -66,7 +66,7 @@ export default async function handler(req, res) {
     const dateFilter = { createdAt: { $gte: start, $lte: end } };
 
     const [transactions, expenses, store] = await Promise.all([
-      Transaction.find(dateFilter).lean().exec(),
+      Transaction.find({ ...dateFilter, status: "completed" }).lean().exec(),
       Expense.find(dateFilter).lean().exec(),
       Store.findOne({}).lean(),
     ]);

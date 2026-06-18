@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 import { showConfirmDialog, showPromptDialog, showToast } from "@/lib/dialogs";
 import { Plus, Trash2, Check, X, FileText, Play, Ban, Eye, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 
-const REF_TYPES = ["MANUAL", "SALE", "EXPENSE", "PURCHASE_ORDER", "SALARY", "REFUND", "OTHER"];
+const REF_TYPES = ["SALE", "EXPENSE", "PURCHASE_ORDER", "SALARY", "REFUND", "OTHER"];
 const STATUS_COLORS = {
   DRAFT: "bg-yellow-100 text-yellow-800",
   POSTED: "bg-green-100 text-green-800",
@@ -41,7 +41,7 @@ export default function JournalEntriesPage() {
     date: new Date().toISOString().split("T")[0],
     description: "",
     reference: "",
-    referenceType: "MANUAL",
+    referenceType: "SALE",
     location: "",
     status: "DRAFT",
     lines: [
@@ -270,7 +270,7 @@ export default function JournalEntriesPage() {
       date: new Date().toISOString().split("T")[0],
       description: "",
       reference: "",
-      referenceType: "MANUAL",
+      referenceType: "SALE",
       location: "",
       status: "DRAFT",
       lines: [
@@ -304,20 +304,13 @@ export default function JournalEntriesPage() {
             <h1 className="page-title">Journal Entries</h1>
             <p className="page-subtitle">{total} entries total</p>
           </div>
-          <div className="flex flex-col items-stretch sm:items-end gap-2 w-full sm:w-auto">
-            <div className="flex flex-wrap justify-end gap-2">
-              <button onClick={handleManualSync} disabled={syncing} className="btn-action btn-action-secondary disabled:opacity-60 disabled:cursor-not-allowed">
-                <RefreshCw size={18} className={syncing ? "animate-spin" : ""} /> {syncing ? "Syncing..." : "Sync Accounting"}
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button onClick={handleManualSync} disabled={syncing} className="btn-action btn-action-secondary disabled:opacity-60 disabled:cursor-not-allowed" title={`Last synced: ${formatSyncTime(syncStatus?.lastSyncAt)}${syncSummary ? ` | ${syncSummary}` : ""}`}>
+                <RefreshCw size={16} className={syncing ? "animate-spin" : ""} /> {syncing ? "Syncing..." : "Sync"}
               </button>
               <button onClick={() => { resetForm(); setShowForm(!showForm); }} className="btn-action btn-action-primary">
                 <Plus size={18} /> {showForm ? "Close" : "New Entry"}
               </button>
-            </div>
-            <div className="text-xs text-gray-500 sm:text-right">
-              <p>Last synced: {formatSyncTime(syncStatus?.lastSyncAt)}</p>
-              {syncStatus?.lastDurationMs ? <p>Latest sync duration: {(syncStatus.lastDurationMs / 1000).toFixed(1)}s</p> : null}
-              {syncSummary ? <p>{syncSummary}</p> : null}
-            </div>
           </div>
         </div>
 

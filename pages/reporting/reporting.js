@@ -209,14 +209,14 @@ export default function Reporting() {
             color="green"
           />
           <Card 
-            title="Gross Margin" 
-            value={formatCurrency(summary?.grossMargin || 0)}
+            title="Gross Profit" 
+            value={formatCurrency(summary?.grossProfit || 0)}
             icon=""
             color="purple"
           />
           <Card 
-            title="Operating Margin" 
-            value={`${Math.round(summary?.operatingMargin || 0)}%`}
+            title="Gross Margin" 
+            value={`${Math.round(summary?.grossMargin || 0)}%`}
             icon=""
             color="orange"
           />

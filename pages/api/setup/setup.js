@@ -306,6 +306,9 @@ async function handlePost(req, res) {
         email: loc.email || "",
         code: loc.code || "",
         isActive: loc.isActive !== false,
+        // Per-location QR code data
+        qrUrl: loc.qrUrl ?? existingLocation?.qrUrl ?? "",
+        qrDataUrl: loc.qrDataUrl ?? existingLocation?.qrDataUrl ?? "",
         // Preserve location-linked references when saving company details.
         tenders: Array.isArray(loc.tenders) ? loc.tenders : existingLocation?.tenders || [],
         categories: Array.isArray(loc.categories) ? loc.categories : existingLocation?.categories || [],
@@ -320,6 +323,7 @@ async function handlePost(req, res) {
           refundDays: Number(receiptSettings.refundDays) || 0,
           receiptMessage: receiptSettings.receiptMessage || "Thank you for shopping with us!",
           fontSize: String(receiptSettings.fontSize || store?.fontSize || "8.0"),
+          fontFamily: String(receiptSettings.fontFamily || store?.fontFamily || "Arial"),
           barcodeType: receiptSettings.barcodeType || store?.barcodeType || "Default - Code 39",
           qrUrl: receiptSettings.qrUrl || "",
           qrDescription: receiptSettings.qrDescription || "",
@@ -370,6 +374,19 @@ async function handlePost(req, res) {
       }
       if (normalizedReceiptSettings) {
         Object.assign(store, normalizedReceiptSettings);
+      }
+      // Apply per-location QR data if provided
+      if (receiptSettings?.locationQrData && typeof receiptSettings.locationQrData === "object") {
+        const locQrData = receiptSettings.locationQrData;
+        if (Array.isArray(store.locations)) {
+          store.locations.forEach((loc) => {
+            const locId = String(loc._id);
+            if (locQrData[locId]) {
+              loc.qrUrl = locQrData[locId].qrUrl || "";
+              loc.qrDataUrl = locQrData[locId].qrDataUrl || "";
+            }
+          });
+        }
       }
       if (!store.devices) store.devices = [];
       if (!store.openingHours) store.openingHours = [];

@@ -181,11 +181,39 @@ export default async function handler(req, res) {
     /* ---------------------------------------------
        PROCESS TRANSACTIONS
     ---------------------------------------------- */
+    // Collect all product IDs for cost lookup
+    const productIdSet = new Set();
+    for (const tx of transactions) {
+      if (Array.isArray(tx.items)) {
+        for (const item of tx.items) {
+          if (item.productId) productIdSet.add(item.productId.toString());
+        }
+      }
+    }
+
+    // Fetch product costs
+    const productIds = Array.from(productIdSet);
+    const products = productIds.length > 0
+      ? await Product.find({ _id: { $in: productIds } }, { _id: 1, costPrice: 1 }).lean()
+      : [];
+    const costMap = new Map(products.map((p) => [p._id.toString(), p.costPrice || 0]));
+
+    let totalCOGS = 0;
+
     for (const tx of transactions) {
       const key = format(new Date(tx.createdAt), fmt);
 
       salesMap[key] = (salesMap[key] || 0) + (tx.total || 0);
       txMap[key] = (txMap[key] || 0) + 1;
+
+      // Calculate COGS from items
+      if (Array.isArray(tx.items)) {
+        for (const item of tx.items) {
+          const qty = item.qty || item.quantity || 1;
+          const cost = item.productId ? (costMap.get(item.productId.toString()) || 0) : 0;
+          totalCOGS += cost * qty;
+        }
+      }
 
       // Handle location - location is now stored as a string (name)
       if (tx.location) {
@@ -272,6 +300,9 @@ export default async function handler(req, res) {
     ---------------------------------------------- */
     const lowStockItems = await Product.countDocuments({ quantity: { $lte: 10 } });
 
+    const grossProfit = totalSales - totalCOGS;
+    const grossMarginPct = totalSales > 0 ? (grossProfit / totalSales) * 100 : 0;
+
     const response = {
       dates: periods,
       salesData,
@@ -292,11 +323,10 @@ export default async function handler(req, res) {
             ? Number((totalSales / totalTransactions).toFixed(2))
             : 0,
         lowStockItems,
-        grossMargin: totalSales * 0.35, // Assume 35% gross margin
-        operatingMargin:
-          totalSales > 0
-            ? (((totalSales * 0.35) - (totalSales * 0.15)) / totalSales) * 100
-            : 0, // 35% gross - 15% operating expenses
+        totalCOGS,
+        grossProfit,
+        grossMargin: grossMarginPct,
+        operatingMargin: grossMarginPct, // Gross margin serves as operating proxy without expense data
       },
     };
 

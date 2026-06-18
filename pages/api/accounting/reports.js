@@ -16,7 +16,8 @@ export default async function handler(req, res) {
   await mongooseConnect();
 
   try {
-    await ensureAccountingEntriesSynced();
+    // Trigger sync in background - don't block page load
+    ensureAccountingEntriesSynced().catch(() => {});
 
     const { report, from, to, accountId } = req.query;
 

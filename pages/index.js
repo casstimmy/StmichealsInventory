@@ -665,7 +665,7 @@ export default function Home() {
             title="Send daily mail report"
           >
             <Mail className="h-3.5 w-3.5" />
-            Send Monthly Mail report
+            Mail report
           </button>
         </header>
 

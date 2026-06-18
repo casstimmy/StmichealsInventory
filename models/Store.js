@@ -9,6 +9,9 @@ const LocationSchema = new mongoose.Schema(
     email: { type: String },                       
     code: { type: String },                        
     isActive: { type: Boolean, default: true },
+    // Per-location QR code for receipts
+    qrUrl: { type: String, default: "" },
+    qrDataUrl: { type: String, default: "" },
     // Tenders and Categories specific to this location
     tenders: [{ type: mongoose.Schema.Types.ObjectId, ref: "Tender" }],
     categories: [{ type: mongoose.Schema.Types.ObjectId, ref: "Category" }],
@@ -48,6 +51,7 @@ const StoreSchema = new mongoose.Schema(
     refundDays: { type: Number, default: 0 },
     receiptMessage: { type: String, default: "Thank you for shopping with us!" },
     fontSize: { type: String, default: "8.0" },
+    fontFamily: { type: String, default: "Arial" },
     barcodeType: { type: String, default: "Default - Code 39" },
     qrUrl: { type: String, default: "" },
     qrDescription: { type: String, default: "Please scan and leave us a review" },

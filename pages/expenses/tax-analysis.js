@@ -187,7 +187,7 @@ export default function TaxAnalysisPage() {
                   <div className="w-1.5 h-8 bg-cyan-600 rounded-full"></div>
                   Financial Summary
                 </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                   <DetailBox
                     label="Total Revenue"
                     value={`${(taxData.totalRevenue || 0).toLocaleString()}`}
@@ -195,22 +195,35 @@ export default function TaxAnalysisPage() {
                     iconColor="text-cyan-600"
                   />
                   <DetailBox
-                    label="Total Expenses"
-                    value={`${(taxData.totalExpenses || 0).toLocaleString()}`}
+                    label="Cost of Goods Sold"
+                    value={`${(taxData.totalCOGS || 0).toLocaleString()}`}
                     icon={faMoneyBillWave}
                     iconColor="text-orange-600"
                   />
                   <DetailBox
-                    label="Net Profit"
+                    label="Gross Profit (Revenue − COGS)"
+                    value={`${(taxData.grossProfit || 0).toLocaleString()}`}
+                    icon={faMoneyBillWave}
+                    iconColor="text-emerald-600"
+                  />
+                  <DetailBox
+                    label="Operating Expenses"
+                    value={`${(taxData.totalExpenses || 0).toLocaleString()}`}
+                    icon={faMoneyBillWave}
+                    iconColor="text-red-600"
+                  />
+                  <DetailBox
+                    label="Net Profit (Gross − Expenses)"
                     value={`${(taxData.netProfit || 0).toLocaleString()}`}
                     icon={faMoneyBillWave}
                     iconColor="text-green-600"
                   />
                   <DetailBox
-                    label="Company Income Tax"
-                    value={`${(taxData.companyIncomeTax || 0).toLocaleString()}`}
+                    label="VAT-able Revenue"
+                    value={`${(taxData.vatableRevenue || 0).toLocaleString()}`}
                     icon={faMoneyBillWave}
-                    iconColor="text-purple-600"
+                    iconColor="text-sky-600"
+                    subtitle="Revenue from taxed products only"
                   />
                 </div>
               </div>
@@ -221,25 +234,26 @@ export default function TaxAnalysisPage() {
                   <div className="w-1.5 h-8 bg-emerald-600 rounded-full"></div>
                   Tax Breakdown
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                  <DetailBox
+                    label="VAT on Taxable Sales (7.5%)"
+                    value={`${(taxData.vatOnSales || 0).toLocaleString()}`}
+                    icon={faCheckCircle}
+                    iconColor="text-emerald-600"
+                    subtitle="Applied only to VAT-registered products"
+                  />
+                  <DetailBox
+                    label="Company Income Tax"
+                    value={`${(taxData.companyIncomeTax || 0).toLocaleString()}`}
+                    icon={faCheckCircle}
+                    iconColor="text-purple-600"
+                  />
                   <DetailBox
                     label="National Health Insurance Levy (0.5%)"
                     value={`${(taxData.nhlAmount || 0).toLocaleString()}`}
                     icon={faCheckCircle}
                     iconColor="text-teal-600"
                   />
-                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all">
-                    <div className="flex items-start gap-3">
-                      <div className="text-2xl text-cyan-600 mt-1">
-                        <FontAwesomeIcon icon={faCheckCircle} />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold text-gray-600 mb-2">Compliance Status</p>
-                        <p className="text-gray-900 font-medium">All deductions & reliefs properly documented</p>
-                        <p className="text-xs text-gray-600 mt-2">Ensure records are retained for audit purposes</p>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
 
@@ -331,7 +345,7 @@ function StatBox({ icon, label, value, bgColor, borderColor, iconColor }) {
   );
 }
 
-function DetailBox({ label, value, icon, iconColor }) {
+function DetailBox({ label, value, icon, iconColor, subtitle }) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all">
       <div className="flex items-start gap-3">
@@ -341,6 +355,7 @@ function DetailBox({ label, value, icon, iconColor }) {
         <div className="flex-1">
           <p className="text-sm font-semibold text-gray-600 mb-2">{label}</p>
           <p className="text-2xl font-bold text-gray-900">{value}</p>
+          {subtitle && <p className="text-xs text-gray-500 mt-1">{subtitle}</p>}
         </div>
       </div>
     </div>

@@ -172,8 +172,7 @@ export default function AccountingReportsPage() {
             <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="form-input" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 border border-gray-200 rounded-lg text-sm text-gray-700">
-              <FileText size={14} className="text-gray-500 flex-shrink-0" />
+            <div className="inline-flex items-center gap-2 px-4 py-4 bg-gray-100 border border-gray-200 rounded-lg text-sm text-gray-700">
               <span className="font-medium">Reporting Period:</span>
               <span className="font-semibold text-gray-900">
                 {dateFrom && dateTo
@@ -208,26 +207,6 @@ export default function AccountingReportsPage() {
 /* ═══════════════════════════════════════
    PROFIT & LOSS TAB
 ═══════════════════════════════════════ */
-function ReportPeriodBanner({ dateFrom, dateTo, title }) {
-  const fromLabel = dateFrom
-    ? new Date(dateFrom + "T00:00:00").toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" })
-    : null;
-  const toLabel = dateTo
-    ? new Date(dateTo + "T00:00:00").toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" })
-    : null;
-
-  let periodText = "All time";
-  if (fromLabel && toLabel) periodText = `${fromLabel} — ${toLabel}`;
-  else if (fromLabel) periodText = `From ${fromLabel}`;
-  else if (toLabel) periodText = `Up to ${toLabel}`;
-
-  return (
-    <div className="mb-5 text-center">
-      <h2 className="text-lg font-bold text-gray-900">{title}</h2>
-      <p className="text-sm text-gray-500 mt-0.5">For the period: <span className="font-semibold text-gray-700">{periodText}</span></p>
-    </div>
-  );
-}
 
 function ExecutiveMetricCard({ title, value, helper, tone = "neutral" }) {
   const toneClasses = tone === "positive"

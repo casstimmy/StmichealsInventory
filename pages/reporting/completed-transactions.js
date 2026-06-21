@@ -340,6 +340,74 @@ function applyFilters() {
     });
   }
 
+  // Direct refund — restocks inventory immediately
+  async function handleDirectRefund(tx) {
+    const shouldRefund = await showConfirmDialog({
+      title: "Refund this transaction?",
+      message: `This will refund ${formatCurrency(tx.total)} and restock all ${tx.items?.length || 0} item(s) back to inventory.`,
+      tone: "danger",
+      confirmLabel: "Refund & Restock",
+      cancelLabel: "Cancel",
+    });
+    if (!shouldRefund) return;
+
+    try {
+      const res = await apiClient.put(`/api/transactions/${tx._id}`, {
+        status: "refunded",
+        refundReason: "Direct refund from admin",
+      });
+      if (res.data?.success) {
+        setAllTransactions((prev) =>
+          prev.map((t) => t._id === tx._id ? { ...t, status: "refunded", refundedAt: new Date().toISOString() } : t)
+        );
+        await showAlertDialog({
+          title: "Transaction Refunded",
+          message: "Product quantities have been restocked and a refund journal entry has been posted.",
+          tone: "success",
+        });
+      }
+    } catch (err) {
+      console.error("Error refunding transaction:", err);
+      await showAlertDialog({
+        title: "Refund Failed",
+        message: err?.response?.data?.error || "Failed to refund transaction. Please try again.",
+        tone: "danger",
+      });
+    }
+  }
+
+  // Delete refunded transaction — removes from all records
+  async function handleDeleteTransaction(tx) {
+    const shouldDelete = await showConfirmDialog({
+      title: "Permanently delete this transaction?",
+      message: "This will remove the transaction and all related accounting/journal entries. This action cannot be undone.",
+      tone: "danger",
+      confirmLabel: "Delete Permanently",
+      cancelLabel: "Cancel",
+    });
+    if (!shouldDelete) return;
+
+    try {
+      const res = await apiClient.delete(`/api/transactions/${tx._id}`);
+      if (res.data?.success) {
+        setAllTransactions((prev) => prev.filter((t) => t._id !== tx._id));
+        setExpandedTxId(null);
+        await showAlertDialog({
+          title: "Transaction Deleted",
+          message: "Transaction and all related records have been permanently removed.",
+          tone: "success",
+        });
+      }
+    } catch (err) {
+      console.error("Error deleting transaction:", err);
+      await showAlertDialog({
+        title: "Delete Failed",
+        message: err?.response?.data?.error || "Failed to delete transaction. Please try again.",
+        tone: "danger",
+      });
+    }
+  }
+
   // Compute sales total excluding refunded/voided
   function getSalesTotalExcludingRefunded(txList) {
     return txList
@@ -835,6 +903,31 @@ function applyFilters() {
                                     ))}
                                   </tbody>
                                 </table>
+                              </div>
+
+                              {/* Action Buttons */}
+                              <div className="mt-4 pt-3 border-t border-gray-200 flex items-center gap-3">
+                                {tx.status === "completed" && (
+                                  <button
+                                    className="btn-action btn-action-danger btn-sm"
+                                    onClick={() => handleDirectRefund(tx)}
+                                  >
+                                    Refund & Restock
+                                  </button>
+                                )}
+                                {tx.status === "refunded" && (
+                                  <button
+                                    className="btn-action btn-sm bg-gray-800 text-white hover:bg-gray-900"
+                                    onClick={() => handleDeleteTransaction(tx)}
+                                  >
+                                    Delete Permanently
+                                  </button>
+                                )}
+                                {tx.status === "refunded" && tx.refundedAt && (
+                                  <span className="text-xs text-gray-500">
+                                    Refunded: {new Date(tx.refundedAt).toLocaleString("en-NG", { timeZone: "Africa/Lagos" })}
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </td>

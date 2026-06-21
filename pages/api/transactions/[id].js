@@ -1,5 +1,6 @@
 import { mongooseConnect } from "@/lib/mongoose";
 import { Transaction } from "@/models/Transactions";
+import JournalEntry from "@/models/JournalEntry";
 import { authMiddleware, isStaff } from "@/lib/auth-middleware";
 import { applyInventoryDelta } from "@/lib/transaction-utils";
 import { postRefundEntry } from "@/lib/accounting";
@@ -100,6 +101,33 @@ export default async function handler(req, res) {
     } catch (err) {
       console.error("Error fetching transaction:", err);
       return res.status(500).json({ error: "Failed to fetch transaction" });
+    }
+  }
+
+  if (req.method === "DELETE") {
+    try {
+      const transaction = await Transaction.findById(id);
+      if (!transaction) {
+        return res.status(404).json({ error: "Transaction not found" });
+      }
+
+      // Only allow deletion of refunded transactions
+      if (transaction.status !== "refunded") {
+        return res.status(400).json({
+          error: "Only refunded transactions can be deleted. Refund the transaction first.",
+        });
+      }
+
+      // Remove all related journal entries (SALE, REFUND, CREDIT_SALE, CREDIT_PAYMENT)
+      await JournalEntry.deleteMany({ referenceId: transaction._id });
+
+      // Delete the transaction itself
+      await Transaction.findByIdAndDelete(id);
+
+      return res.status(200).json({ success: true, message: "Transaction and related records deleted." });
+    } catch (err) {
+      console.error("Error deleting transaction:", err);
+      return res.status(500).json({ error: "Failed to delete transaction" });
     }
   }
 

@@ -146,6 +146,11 @@ export default function TaxAnalysisPage() {
           ) : (
             <>
               {/* Key Metrics - Top Section */}
+              <div className="mb-6 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
+                <strong>Note:</strong> This dashboard calculates profit directly from completed transactions and product cost prices.
+                For the authoritative accounting figures (which rely on posted journal entries), refer to <a href="/accounting/reports" className="font-semibold underline hover:text-sky-900">Financial Reports</a>.
+                Values may differ if an accounting sync is pending.
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
                 <StatBox
                   icon={faScaleBalanced}

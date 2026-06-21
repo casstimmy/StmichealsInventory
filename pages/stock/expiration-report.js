@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import Layout from '@/components/Layout';
 import { Loader } from '@/components/ui';
 import useProgress from '@/lib/useProgress';
+import { showToastMessage } from '@/lib/toast-state';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faCalendarAlt, 
@@ -12,7 +13,8 @@ import {
   faDownload,
   faClock,
   faBox,
-  faExchangeAlt
+  faExchangeAlt,
+  faBell
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function ExpirationReport() {
@@ -23,6 +25,7 @@ export default function ExpirationReport() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'soldOut', 'critical', 'warning', 'ok'
   const [sortBy, setSortBy] = useState('daysRemaining'); // 'daysRemaining', 'expiryDate', 'name'
+  const [dismissedSoldOutAlert, setDismissedSoldOutAlert] = useState(false);
 
   // Fetch stock movements with batch details on mount
   useEffect(() => {
@@ -78,6 +81,16 @@ export default function ExpirationReport() {
         console.log(`Found ${expiringBatches.length} batches with expiry dates out of ${allBatches.length} total`);
         
         setBatches(expiringBatches);
+
+        // Notify if there are sold-out batches
+        const soldOutCount = expiringBatches.filter(b => b.soldOut || Number(b.remainingQuantity ?? b.quantity ?? 0) <= 0).length;
+        if (soldOutCount > 0) {
+          showToastMessage({
+            title: "Sold-Out Products",
+            text: `${soldOutCount} batch${soldOutCount > 1 ? 'es' : ''} sold out. Review the expiration report for details.`,
+            fallbackTone: "warning",
+          });
+        }
       } catch (err) {
         console.error('Error fetching batches:', err);
         setBatches([]);
@@ -257,6 +270,33 @@ export default function ExpirationReport() {
               Export CSV
             </button>
           </div>
+
+          {/* Sold-Out Alert Banner */}
+          {stats.soldOut > 0 && !dismissedSoldOutAlert && (
+            <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4 flex items-start gap-3">
+              <FontAwesomeIcon icon={faBell} className="text-amber-600 text-lg mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="font-semibold text-amber-800">Sold-Out Batches Detected</p>
+                <p className="text-sm text-amber-700 mt-1">
+                  {stats.soldOut} batch{stats.soldOut > 1 ? 'es have' : ' has'} been completely sold out.
+                  These products may need restocking or the expired batch records can be reviewed.
+                </p>
+                <button
+                  onClick={() => setFilterStatus('soldOut')}
+                  className="mt-2 text-sm font-medium text-amber-800 underline hover:text-amber-900"
+                >
+                  View sold-out batches
+                </button>
+              </div>
+              <button
+                onClick={() => setDismissedSoldOutAlert(true)}
+                className="text-amber-400 hover:text-amber-600 text-lg font-bold leading-none"
+                aria-label="Dismiss"
+              >
+                &times;
+              </button>
+            </div>
+          )}
 
           {/* Summary Cards */}
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
@@ -484,7 +524,11 @@ export default function ExpirationReport() {
           {/* Legend */}
           <div className="content-card mt-6">
             <h3 className="font-semibold text-gray-900 mb-4">Status Legend</h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div className="flex items-center gap-3">
+                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-300">Sold Out</span>
+                <span className="text-sm text-gray-600">Batch fully sold — restock needed</span>
+              </div>
               <div className="flex items-center gap-3">
                 <span className="px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-300">Expired</span>
                 <span className="text-sm text-gray-600">Product has already expired</span>

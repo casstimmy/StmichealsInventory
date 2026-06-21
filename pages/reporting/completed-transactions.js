@@ -8,7 +8,7 @@ import { formatCurrency, formatNumber } from "@/lib/format";
 import useProgress from "@/lib/useProgress";
 import { apiClient } from "@/lib/api-client";
 import { showAlertDialog, showConfirmDialog } from "@/lib/dialogs";
-import useAuth from "@/lib/useAuth";
+import { useAuth } from "@/lib/useAuth";
 
 const REPORT_TIME_ZONE = "Africa/Lagos";
 const reportDateFormatter = new Intl.DateTimeFormat("en-US", {

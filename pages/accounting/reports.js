@@ -162,7 +162,7 @@ export default function AccountingReportsPage() {
         </div>
 
         {/* Date Filters */}
-        <div className="flex gap-3 mb-6">
+        <div className="flex flex-wrap items-end gap-3 mb-6">
           <div>
             <label className="form-label">From</label>
             <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="form-input" />
@@ -170,6 +170,21 @@ export default function AccountingReportsPage() {
           <div>
             <label className="form-label">To</label>
             <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="form-input" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 border border-gray-200 rounded-lg text-sm text-gray-700">
+              <FileText size={14} className="text-gray-500 flex-shrink-0" />
+              <span className="font-medium">Reporting Period:</span>
+              <span className="font-semibold text-gray-900">
+                {dateFrom && dateTo
+                  ? `${new Date(dateFrom + "T00:00:00").toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" })} — ${new Date(dateTo + "T00:00:00").toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" })}`
+                  : dateFrom
+                    ? `From ${new Date(dateFrom + "T00:00:00").toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" })}`
+                    : dateTo
+                      ? `Up to ${new Date(dateTo + "T00:00:00").toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" })}`
+                      : "All time"}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -179,9 +194,9 @@ export default function AccountingReportsPage() {
           </div>
         ) : (
           <>
-            {tab === "profit-loss" && <ProfitLoss data={data} />}
-            {tab === "balance-sheet" && <BalanceSheet data={data} />}
-            {tab === "trial-balance" && <TrialBalance data={data} />}
+            {tab === "profit-loss" && <ProfitLoss data={data} dateFrom={dateFrom} dateTo={dateTo} />}
+            {tab === "balance-sheet" && <BalanceSheet data={data} dateFrom={dateFrom} dateTo={dateTo} />}
+            {tab === "trial-balance" && <TrialBalance data={data} dateFrom={dateFrom} dateTo={dateTo} />}
           </>
         )}
         </div>
@@ -193,6 +208,27 @@ export default function AccountingReportsPage() {
 /* ═══════════════════════════════════════
    PROFIT & LOSS TAB
 ═══════════════════════════════════════ */
+function ReportPeriodBanner({ dateFrom, dateTo, title }) {
+  const fromLabel = dateFrom
+    ? new Date(dateFrom + "T00:00:00").toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" })
+    : null;
+  const toLabel = dateTo
+    ? new Date(dateTo + "T00:00:00").toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" })
+    : null;
+
+  let periodText = "All time";
+  if (fromLabel && toLabel) periodText = `${fromLabel} — ${toLabel}`;
+  else if (fromLabel) periodText = `From ${fromLabel}`;
+  else if (toLabel) periodText = `Up to ${toLabel}`;
+
+  return (
+    <div className="mb-5 text-center">
+      <h2 className="text-lg font-bold text-gray-900">{title}</h2>
+      <p className="text-sm text-gray-500 mt-0.5">For the period: <span className="font-semibold text-gray-700">{periodText}</span></p>
+    </div>
+  );
+}
+
 function ExecutiveMetricCard({ title, value, helper, tone = "neutral" }) {
   const toneClasses = tone === "positive"
     ? { border: "border-green-500", value: "text-green-700" }
@@ -209,7 +245,7 @@ function ExecutiveMetricCard({ title, value, helper, tone = "neutral" }) {
   );
 }
 
-function ProfitLoss({ data }) {
+function ProfitLoss({ data, dateFrom, dateTo }) {
   if (!data) return null;
   const netIncome = data.netIncome || 0;
   const summary = data.summary || {};
@@ -219,6 +255,7 @@ function ProfitLoss({ data }) {
 
   return (
     <div>
+      <ReportPeriodBanner dateFrom={dateFrom} dateTo={dateTo} title="Profit & Loss Statement" />
       {/* Net Income Summary */}
       <div className={`content-card mb-6 border-l-4 ${netIncome >= 0 ? "border-green-500 bg-green-50" : "border-red-500 bg-red-50"}`}>
         <div className="flex items-center justify-between">
@@ -318,13 +355,14 @@ function PLSection({ title, items, total, color }) {
 /* ═══════════════════════════════════════
    BALANCE SHEET TAB
 ═══════════════════════════════════════ */
-function BalanceSheet({ data }) {
+function BalanceSheet({ data, dateFrom, dateTo }) {
   if (!data) return null;
   const totalLE = (data.totalLiabilities || 0) + (data.totalEquity || 0);
   const isBalanced = Math.abs((data.totalAssets || 0) - totalLE) < 0.01;
 
   return (
     <div>
+      <ReportPeriodBanner dateFrom={dateFrom} dateTo={dateTo} title="Balance Sheet" />
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="content-card text-center border-t-4" style={{ borderTopColor: "var(--btn-primary-bg, #0284c7)" }}>
@@ -389,13 +427,14 @@ function BSSection({ title, items, total, colorClass }) {
 /* ═══════════════════════════════════════
    TRIAL BALANCE TAB
 ═══════════════════════════════════════ */
-function TrialBalance({ data }) {
+function TrialBalance({ data, dateFrom, dateTo }) {
   if (!data) return null;
   const rows = (data.rows || []).sort((a, b) => a.code.localeCompare(b.code));
   const isBalanced = Math.abs((data.totalDebit || 0) - (data.totalCredit || 0)) < 0.01;
 
   return (
     <div>
+      <ReportPeriodBanner dateFrom={dateFrom} dateTo={dateTo} title="Trial Balance" />
       <div className={`mb-4 p-3 rounded-lg text-sm font-semibold ${isBalanced ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
         {isBalanced ? "✓ Books are balanced" : `✗ Out of balance by ${Math.abs((data.totalDebit || 0) - (data.totalCredit || 0)).toLocaleString()}`}
       </div>

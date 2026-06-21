@@ -6,6 +6,8 @@ import { formatCurrency } from "@/lib/format";
 import { useState, useEffect } from "react";
 import { BookOpen, RefreshCw } from "lucide-react";
 
+const PAGE_SIZE = 50;
+
 function formatSyncTime(value) {
   if (!value) return "No recent sync";
   return new Date(value).toLocaleString("en-NG");
@@ -23,6 +25,7 @@ export default function GeneralLedgerPage() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [error, setError] = useState("");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   useEffect(() => {
     fetchAccounts();
@@ -64,6 +67,7 @@ export default function GeneralLedgerPage() {
     try {
       setLoadingLedger(true);
       setError("");
+      setVisibleCount(PAGE_SIZE);
       const params = new URLSearchParams({ report: "general-ledger", accountId: selectedAccount });
       if (dateFrom) params.set("from", dateFrom);
       if (dateTo) params.set("to", dateTo);
@@ -231,7 +235,7 @@ export default function GeneralLedgerPage() {
                   </tr>
                   {ledgerData.rows?.length === 0 ? (
                     <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">No transactions found for this account</td></tr>
-                  ) : ledgerData.rows?.map((row, i) => (
+                  ) : ledgerData.rows?.slice(0, visibleCount).map((row, i) => (
                     <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="px-4 py-2 text-gray-600">{new Date(row.date).toLocaleDateString()}</td>
                       <td className="px-4 py-2 font-mono theme-accent-text">{row.entryNumber}</td>
@@ -256,6 +260,23 @@ export default function GeneralLedgerPage() {
                 </tbody>
               </table>
             </div>
+
+            {/* Load More + row count */}
+            {ledgerData.rows?.length > 0 && (
+              <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
+                <p className="text-sm text-gray-600">
+                  Showing <span className="font-semibold">{Math.min(visibleCount, ledgerData.rows.length)}</span> of <span className="font-semibold">{ledgerData.rows.length}</span> entries
+                </p>
+                {visibleCount < ledgerData.rows.length && (
+                  <button
+                    onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
+                    className="btn-action btn-action-primary min-w-[160px]"
+                  >
+                    Load More
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           <div className="content-card text-center py-12">

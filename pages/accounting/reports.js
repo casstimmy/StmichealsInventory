@@ -234,7 +234,6 @@ function ProfitLoss({ data, dateFrom, dateTo }) {
 
   return (
     <div>
-      <ReportPeriodBanner dateFrom={dateFrom} dateTo={dateTo} title="Profit & Loss Statement" />
       {/* Net Income Summary */}
       <div className={`content-card mb-6 border-l-4 ${netIncome >= 0 ? "border-green-500 bg-green-50" : "border-red-500 bg-red-50"}`}>
         <div className="flex items-center justify-between">
@@ -341,7 +340,6 @@ function BalanceSheet({ data, dateFrom, dateTo }) {
 
   return (
     <div>
-      <ReportPeriodBanner dateFrom={dateFrom} dateTo={dateTo} title="Balance Sheet" />
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="content-card text-center border-t-4" style={{ borderTopColor: "var(--btn-primary-bg, #0284c7)" }}>
@@ -413,7 +411,6 @@ function TrialBalance({ data, dateFrom, dateTo }) {
 
   return (
     <div>
-      <ReportPeriodBanner dateFrom={dateFrom} dateTo={dateTo} title="Trial Balance" />
       <div className={`mb-4 p-3 rounded-lg text-sm font-semibold ${isBalanced ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
         {isBalanced ? "✓ Books are balanced" : `✗ Out of balance by ${Math.abs((data.totalDebit || 0) - (data.totalCredit || 0)).toLocaleString()}`}
       </div>

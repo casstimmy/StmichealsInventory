@@ -290,10 +290,32 @@ async function handleGET(req, res) {
   try {
     await connectDB();
 
-    const transactions = await Transaction.find()
-      .populate("staff", "name")
-      .sort({ createdAt: -1 })
-      .lean();
+    const hasPaginationParams =
+      typeof req.query.page !== "undefined" ||
+      typeof req.query.limit !== "undefined";
+
+    const requestedPage = Math.max(1, Number(req.query.page) || 1);
+    const requestedLimit = Math.min(200, Math.max(1, Number(req.query.limit) || 50));
+    const skip = (requestedPage - 1) * requestedLimit;
+
+    let transactions = [];
+    let totalRecords = 0;
+
+    if (hasPaginationParams) {
+      totalRecords = await Transaction.countDocuments({});
+      transactions = await Transaction.find()
+        .populate("staff", "name")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(requestedLimit)
+        .lean();
+    } else {
+      transactions = await Transaction.find()
+        .populate("staff", "name")
+        .sort({ createdAt: -1 })
+        .lean();
+      totalRecords = transactions.length;
+    }
 
     const enrichedTransactions = transactions.map((tx) => ({
       ...tx,
@@ -344,11 +366,22 @@ async function handleGET(req, res) {
       byLocation[loc] = (byLocation[loc] || 0) + (tx.total || 0);
     });
 
+    const pagination = {
+      enabled: hasPaginationParams,
+      page: requestedPage,
+      limit: requestedLimit,
+      totalRecords,
+      totalPages: requestedLimit > 0 ? Math.ceil(totalRecords / requestedLimit) : 1,
+      hasMore: hasPaginationParams ? skip + enrichedTransactions.length < totalRecords : false,
+      loadedRecords: hasPaginationParams ? Math.min(skip + enrichedTransactions.length, totalRecords) : enrichedTransactions.length,
+    };
+
     return res.status(200).json({
       success: true,
       transactions: enrichedTransactions,
       summary,
       topProducts,
+      pagination,
       byStaff: Object.entries(byStaff).map(([staff, total]) => ({
         staff,
         total,

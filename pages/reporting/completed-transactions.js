@@ -17,6 +17,7 @@ const reportDateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "2-digit",
   day: "2-digit",
 });
+const TRANSACTIONS_PAGE_SIZE = 50;
 
 function parseDateKey(value) {
   if (!value) return null;
@@ -47,6 +48,10 @@ export default function CompletedTransactions() {
   const { isAdmin } = useAuth();
   const [transactions, setTransactions] = useState([]);
   const [allTransactions, setAllTransactions] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [totalRecords, setTotalRecords] = useState(0);
   const [expandedTxId, setExpandedTxId] = useState(null);
   const [locationFilter, setLocationFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -69,11 +74,11 @@ export default function CompletedTransactions() {
   const [actionMessage, setActionMessage] = useState({ text: "", type: "" });
   const abortRef = useRef(null);
 
-  // Fetch once, filter client-side — with AbortController for cleanup
+  // Fetch initial page, filter client-side on loaded records
   useEffect(() => {
     const controller = new AbortController();
     abortRef.current = controller;
-    fetchTransactions(controller.signal);
+    fetchTransactions(controller.signal, { page: 1, append: false });
     return () => { controller.abort(); };
   }, []);
 
@@ -82,25 +87,53 @@ export default function CompletedTransactions() {
     applyFilters();
   }, [locationFilter, statusFilter, selectedDate, startDate, endDate, allTransactions]);
 
-async function fetchTransactions(signal) {
+async function fetchTransactions(signal, options = {}) {
+  const { page = 1, append = false } = options;
   try {
-    setLoading(true);
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
     setError("");
     start();
-    const res = await apiClient.get("/api/transactions/transactions", { signal });
+    const res = await apiClient.get("/api/transactions/transactions", {
+      signal,
+      params: { page, limit: TRANSACTIONS_PAGE_SIZE },
+    });
     onFetch();
     if (signal?.aborted) return;
     const data = res?.data || {};
     onProcess();
-    const all = (Array.isArray(data.transactions) ? data.transactions : []).map((tx) => ({
+    const pageTransactions = (Array.isArray(data.transactions) ? data.transactions : []).map((tx) => ({
       ...tx,
       status: tx?.status ? String(tx.status).toLowerCase() : "completed",
       subStatus: tx?.subStatus || "none",
     }));
 
+    const mergedTransactions = append
+      ? (() => {
+          const seen = new Set(allTransactions.map((tx) => String(tx._id)));
+          const next = [...allTransactions];
+          pageTransactions.forEach((tx) => {
+            const id = String(tx._id);
+            if (!seen.has(id)) {
+              seen.add(id);
+              next.push(tx);
+            }
+          });
+          return next;
+        })()
+      : pageTransactions;
+
+    const pagination = data.pagination || {};
+    setCurrentPage(page);
+    setHasMore(Boolean(pagination.hasMore));
+    setTotalRecords(Number(pagination.totalRecords) || mergedTransactions.length);
+
     // Extract unique locations
     const locationSet = new Set();
-    all.forEach((tx) => {
+    mergedTransactions.forEach((tx) => {
       if (tx.location) locationSet.add(tx.location);
     });
     const uniqueLocations = Array.from(locationSet)
@@ -111,7 +144,7 @@ async function fetchTransactions(signal) {
       })
       .map((name) => ({ id: name, name }));
     setLocations(uniqueLocations);
-    setAllTransactions(all);
+    setAllTransactions(mergedTransactions);
     complete();
   } catch (err) {
     if (err?.name === "CanceledError" || err?.code === "ERR_CANCELED" || signal?.aborted) return;
@@ -120,9 +153,22 @@ async function fetchTransactions(signal) {
     setError(apiMessage || "Unable to load completed transactions.");
     complete();
   } finally {
-    if (!signal?.aborted) setLoading(false);
+    if (!signal?.aborted) {
+      if (append) {
+        setLoadingMore(false);
+      } else {
+        setLoading(false);
+      }
+    }
   }
 }
+
+  async function handleLoadMore() {
+    if (loadingMore || !hasMore) return;
+    const controller = new AbortController();
+    abortRef.current = controller;
+    await fetchTransactions(controller.signal, { page: currentPage + 1, append: true });
+  }
 
 function applyFilters() {
     let filtered = [...allTransactions];
@@ -751,6 +797,9 @@ function applyFilters() {
                 {formatNumber(transactions.length)}
                 <span className="text-sm font-normal text-gray-600 ml-2">transactions found</span>
               </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Loaded: {formatNumber(allTransactions.length)} of {formatNumber(totalRecords)} total records
+              </p>
               <p className="text-sm text-gray-500 mt-1">
                 Sales Total: <span className="font-semibold text-emerald-600">{formatCurrency(getSalesTotalExcludingRefunded(transactions))}</span>
                 <span className="text-xs text-gray-400 ml-1">(excl. refunded)</span>
@@ -804,24 +853,25 @@ function applyFilters() {
               </button>
             </div>
           ) : transactions.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="data-table">
-                <thead className="sticky top-0">
-                  <tr>
-                    <th className="px-4 py-3 text-left font-semibold">Staff</th>
-                    <th className="px-4 py-3 text-left font-semibold">Held By</th>
-                    <th className="px-4 py-3 text-left font-semibold">Location</th>
-                    <th className="px-4 py-3 text-left font-semibold">Date/Time</th>
-                    <th className="px-4 py-3 text-left font-semibold">Customer</th>
-                    <th className="px-4 py-3 text-center font-semibold">Status</th>
-                    <th className="px-4 py-3 text-right font-semibold">Total</th>
-                    <th className="px-4 py-3 text-left font-semibold">Tender</th>
-                    <th className="px-4 py-3 text-center font-semibold">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {transactions.map((tx, idx) => (
-                    [
+            <>
+              <div className="overflow-x-auto">
+                <table className="data-table">
+                  <thead className="sticky top-0">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-semibold">Staff</th>
+                      <th className="px-4 py-3 text-left font-semibold">Held By</th>
+                      <th className="px-4 py-3 text-left font-semibold">Location</th>
+                      <th className="px-4 py-3 text-left font-semibold">Date/Time</th>
+                      <th className="px-4 py-3 text-left font-semibold">Customer</th>
+                      <th className="px-4 py-3 text-center font-semibold">Status</th>
+                      <th className="px-4 py-3 text-right font-semibold">Total</th>
+                      <th className="px-4 py-3 text-left font-semibold">Tender</th>
+                      <th className="px-4 py-3 text-center font-semibold">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {transactions.map((tx, idx) => (
+                      [
                       <tr key={tx._id} className={`transition-colors ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-gray-50`}>
                         <td className="px-4 py-3 font-medium text-gray-800">{tx.staff?.name || tx.staffName || tx.staff || "N/A"}</td>
                         <td className="px-4 py-3 text-gray-600 text-xs">{tx.heldByStaffName || "-"}</td>
@@ -981,11 +1031,24 @@ function applyFilters() {
                           </td>
                         </tr>
                       ) : null,
-                    ]
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      ]
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {(hasMore || loadingMore) && (
+                <div className="flex justify-center p-4 border-t border-gray-200 bg-white">
+                  <button
+                    onClick={handleLoadMore}
+                    disabled={loadingMore}
+                    className="btn-action btn-action-primary min-w-[180px] disabled:opacity-60"
+                  >
+                    {loadingMore ? "Loading more..." : "Load More Transactions"}
+                  </button>
+                </div>
+              )}
+            </>
           ) : (
             <div className="p-8 text-center">
               <p className="text-gray-500 text-lg font-medium">No transactions found</p>

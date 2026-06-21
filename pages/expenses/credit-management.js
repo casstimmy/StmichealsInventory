@@ -33,7 +33,7 @@ export default function CreditManagement() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
-  const [filters, setFilters] = useState({ search: "", status: "active" });
+  const [filters, setFilters] = useState({ search: "", status: "" });
   const [customerForm, setCustomerForm] = useState({ name: "", phone: "", email: "", address: "", creditLimit: "", creditNotes: "" });
   const [debtForm, setDebtForm] = useState({ customerId: "", amount: "", dueDate: "", reference: "", notes: "" });
   const [paymentForm, setPaymentForm] = useState({ transactionId: "", amount: "", tenderType: "", reference: "", notes: "", paidAt: todayKey() });
@@ -224,12 +224,12 @@ export default function CreditManagement() {
                   <input value={filters.search} onChange={(event) => setFilters((prev) => ({ ...prev, search: event.target.value }))} placeholder="Search customer" className="pl-9 pr-3 py-2 border border-gray-300 rounded-lg" />
                 </div>
                 <select value={filters.status} onChange={(event) => setFilters((prev) => ({ ...prev, status: event.target.value }))} className="px-3 py-2 border border-gray-300 rounded-lg">
+                  <option value="">All</option>
                   <option value="active">Active</option>
                   <option value="open">Open</option>
                   <option value="partly_paid">Partly paid</option>
                   <option value="paid">Recovered</option>
                   <option value="written_off">Written off</option>
-                  <option value="">All</option>
                 </select>
                 <button onClick={fetchCredits} className="btn-action-secondary flex items-center justify-center gap-2"><RefreshCw className="w-4 h-4" /> Refresh</button>
               </div>

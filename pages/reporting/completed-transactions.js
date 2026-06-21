@@ -8,6 +8,7 @@ import { formatCurrency, formatNumber } from "@/lib/format";
 import useProgress from "@/lib/useProgress";
 import { apiClient } from "@/lib/api-client";
 import { showAlertDialog, showConfirmDialog } from "@/lib/dialogs";
+import useAuth from "@/lib/useAuth";
 
 const REPORT_TIME_ZONE = "Africa/Lagos";
 const reportDateFormatter = new Intl.DateTimeFormat("en-US", {
@@ -43,6 +44,7 @@ function getReportDateKey(value) {
 }
 
 export default function CompletedTransactions() {
+  const { isAdmin } = useAuth();
   const [transactions, setTransactions] = useState([]);
   const [allTransactions, setAllTransactions] = useState([]);
   const [expandedTxId, setExpandedTxId] = useState(null);
@@ -133,6 +135,10 @@ function applyFilters() {
         filtered = filtered.filter(
           (tx) => tx.status === "completed" && tx.subStatus === "edited"
         );
+      } else if (statusFilter === "credit-recovered") {
+        filtered = filtered.filter((tx) => tx.creditStatus === "paid");
+      } else if (statusFilter === "credit") {
+        filtered = filtered.filter((tx) => tx.status === "credit" || (tx.creditStatus && tx.creditStatus !== "none" && tx.creditStatus !== "paid"));
       } else {
         filtered = filtered.filter((tx) => tx.status === statusFilter);
       }
@@ -189,8 +195,11 @@ function applyFilters() {
     setTransactions(filtered);
 }
 
-  // Get display status (voided → Refunded, subStatus for edited/void)
-  function getDisplayStatus(status, subStatus) {
+  // Get display status (voided → Refunded, subStatus for edited/void, credit recovered)
+  function getDisplayStatus(status, subStatus, creditStatus) {
+    if (creditStatus === "paid") return "Credit Recovered";
+    if (creditStatus === "partly_paid") return "Partly Recovered";
+    if (creditStatus === "open") return "Credit (Open)";
     if (status === "voided") return "Refunded";
     if (subStatus === "edited") return "Edited";
     if (subStatus === "void") return "Refunded (Void)";
@@ -198,7 +207,10 @@ function applyFilters() {
     return status.charAt(0).toUpperCase() + status.slice(1);
   }
 
-  function getStatusBadgeClass(status, subStatus) {
+  function getStatusBadgeClass(status, subStatus, creditStatus) {
+    if (creditStatus === "paid") return "bg-teal-100 text-teal-800";
+    if (creditStatus === "partly_paid") return "bg-orange-100 text-orange-800";
+    if (creditStatus === "open") return "bg-yellow-100 text-yellow-800";
     if (subStatus === "edited") return "bg-blue-100 text-blue-800";
     if (subStatus === "void") return "bg-purple-100 text-purple-800";
     switch (status) {
@@ -207,6 +219,7 @@ function applyFilters() {
       case "refunded":
       case "voided": return "bg-red-100 text-red-800";
       case "edited": return "bg-blue-100 text-blue-800";
+      case "credit": return "bg-yellow-100 text-yellow-800";
       default: return "bg-gray-100 text-gray-800";
     }
   }
@@ -700,6 +713,8 @@ function applyFilters() {
                 <option value="held">Held</option>
                 <option value="refunded">Refunded</option>
                 <option value="edited">Edited</option>
+                <option value="credit">Credit (Open/Partial)</option>
+                <option value="credit-recovered">Credit Recovered</option>
               </select>
             </div>
 
@@ -818,8 +833,8 @@ function applyFilters() {
                         <td className="px-4 py-3 text-gray-600 text-xs">{new Date(tx.createdAt).toLocaleString("en-NG", { timeZone: "Africa/Lagos" })}</td>
                         <td className="px-4 py-3 text-gray-800">{tx.customerName || "Walk-in"}</td>
                         <td className="px-4 py-3 text-center">
-                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadgeClass(tx.status, tx.subStatus)}`}>
-                            {getDisplayStatus(tx.status, tx.subStatus)}
+                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadgeClass(tx.status, tx.subStatus, tx.creditStatus)}`}>
+                            {getDisplayStatus(tx.status, tx.subStatus, tx.creditStatus)}
                           </span>
                         </td>
                         <td className={`px-4 py-3 text-right font-bold ${(tx.status === "voided" || tx.status === "refunded") ? "text-red-400 line-through" : "text-cyan-600"}`}>
@@ -905,30 +920,63 @@ function applyFilters() {
                                 </table>
                               </div>
 
-                              {/* Action Buttons */}
-                              <div className="mt-4 pt-3 border-t border-gray-200 flex items-center gap-3">
-                                {tx.status === "completed" && (
-                                  <button
-                                    className="btn-action btn-action-danger btn-sm"
-                                    onClick={() => handleDirectRefund(tx)}
-                                  >
-                                    Refund & Restock
-                                  </button>
-                                )}
-                                {tx.status === "refunded" && (
-                                  <button
-                                    className="btn-action btn-sm bg-gray-800 text-white hover:bg-gray-900"
-                                    onClick={() => handleDeleteTransaction(tx)}
-                                  >
-                                    Delete Permanently
-                                  </button>
-                                )}
-                                {tx.status === "refunded" && tx.refundedAt && (
-                                  <span className="text-xs text-gray-500">
-                                    Refunded: {new Date(tx.refundedAt).toLocaleString("en-NG", { timeZone: "Africa/Lagos" })}
-                                  </span>
-                                )}
-                              </div>
+                              {/* Credit Recovery Details */}
+                              {tx.creditStatus && tx.creditStatus !== "none" && (
+                                <div className="mt-4 pt-3 border-t border-gray-200">
+                                  <p className="text-sm font-semibold text-gray-700 mb-2">Credit Recovery Details</p>
+                                  <div className="grid gap-2 text-sm text-gray-600 sm:grid-cols-2">
+                                    <div>
+                                      <span className="font-semibold text-gray-700">Credit Date:</span>{" "}
+                                      {tx.createdAt ? new Date(tx.createdAt).toLocaleString("en-NG", { timeZone: "Africa/Lagos" }) : "-"}
+                                    </div>
+                                    <div>
+                                      <span className="font-semibold text-gray-700">Recovery Date:</span>{" "}
+                                      {tx.creditPaidAt ? new Date(tx.creditPaidAt).toLocaleString("en-NG", { timeZone: "Africa/Lagos" }) : "Not yet recovered"}
+                                    </div>
+                                    <div>
+                                      <span className="font-semibold text-gray-700">Credit Customer:</span>{" "}
+                                      {tx.creditCustomerName || "-"}
+                                    </div>
+                                    <div>
+                                      <span className="font-semibold text-gray-700">Recovery Tender:</span>{" "}
+                                      {tx.creditPayments?.length > 0
+                                        ? tx.creditPayments.map((p, i) => (
+                                            <span key={i} className="inline-block badge badge-primary mr-1 text-xs">
+                                              {p.tenderName || p.tenderType || "Unknown"} - {formatCurrency(p.amount)}
+                                            </span>
+                                          ))
+                                        : "No payments recorded"}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Action Buttons — Admin Only */}
+                              {isAdmin && (
+                                <div className="mt-4 pt-3 border-t border-gray-200 flex items-center gap-3">
+                                  {tx.status === "completed" && tx.creditStatus !== "paid" && (
+                                    <button
+                                      className="btn-action btn-action-danger btn-sm"
+                                      onClick={() => handleDirectRefund(tx)}
+                                    >
+                                      Refund & Restock
+                                    </button>
+                                  )}
+                                  {tx.status === "refunded" && (
+                                    <button
+                                      className="btn-action btn-sm bg-gray-800 text-white hover:bg-gray-900"
+                                      onClick={() => handleDeleteTransaction(tx)}
+                                    >
+                                      Delete Permanently
+                                    </button>
+                                  )}
+                                  {tx.status === "refunded" && tx.refundedAt && (
+                                    <span className="text-xs text-gray-500">
+                                      Refunded: {new Date(tx.refundedAt).toLocaleString("en-NG", { timeZone: "Africa/Lagos" })}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </td>
                         </tr>

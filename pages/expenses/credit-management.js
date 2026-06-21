@@ -137,32 +137,32 @@ export default function CreditManagement() {
           </div>
 
           {message.text && (
-            <div className={`content-card border-l-4 ${message.type === "success" ? "border-emerald-500 text-emerald-700" : "border-red-500 text-red-700"}`}>
+            <div className={`content-card mb-6 border-l-4 ${message.type === "success" ? "border-emerald-500 text-emerald-700" : "border-red-500 text-red-700"}`}>
               {message.text}
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="content-card border-l-4 border-blue-500">
+          <div className="mb-8 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+            <div className="content-card border-l-4 border-blue-500 p-5 md:p-6">
               <p className="text-xs font-semibold text-gray-500 uppercase">Credit Customers</p>
               <p className="mt-1 text-2xl font-bold text-gray-900">{summary.creditCustomers || 0}</p>
             </div>
-            <div className="content-card border-l-4 border-amber-500">
+            <div className="content-card border-l-4 border-amber-500 p-5 md:p-6">
               <p className="text-xs font-semibold text-gray-500 uppercase">Outstanding</p>
               <p className="mt-1 text-2xl font-bold text-amber-700">{formatCurrency(summary.outstandingBalance || 0)}</p>
             </div>
-            <div className="content-card border-l-4 border-emerald-500">
+            <div className="content-card border-l-4 border-emerald-500 p-5 md:p-6">
               <p className="text-xs font-semibold text-gray-500 uppercase">Recovered</p>
               <p className="mt-1 text-2xl font-bold text-emerald-700">{formatCurrency(summary.totalRecovered || 0)}</p>
             </div>
-            <div className="content-card border-l-4 border-purple-500">
+            <div className="content-card border-l-4 border-purple-500 p-5 md:p-6">
               <p className="text-xs font-semibold text-gray-500 uppercase">Credit Issued</p>
               <p className="mt-1 text-2xl font-bold text-purple-700">{formatCurrency(summary.totalCreditIssued || 0)}</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-            <form onSubmit={createCustomer} className="content-card space-y-3">
+          <div className="mb-8 grid grid-cols-1 gap-6 xl:grid-cols-3">
+            <form onSubmit={createCustomer} className="content-card space-y-4 p-5 md:p-6">
               <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2"><Plus className="w-5 h-5 text-blue-600" /> Create Credit Customer</h2>
               <input required placeholder="Customer name" value={customerForm.name} onChange={(event) => setCustomerForm((prev) => ({ ...prev, name: event.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
               <input required placeholder="Phone" value={customerForm.phone} onChange={(event) => setCustomerForm((prev) => ({ ...prev, phone: event.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
@@ -173,7 +173,7 @@ export default function CreditManagement() {
               <button disabled={saving} className="btn-action-primary w-full">Create Customer</button>
             </form>
 
-            <form onSubmit={createDebt} className="content-card space-y-3">
+            <form onSubmit={createDebt} className="content-card space-y-4 p-5 md:p-6">
               <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2"><CreditCard className="w-5 h-5 text-amber-600" /> Record Credit Debt</h2>
               <select required value={debtForm.customerId} onChange={(event) => setDebtForm((prev) => ({ ...prev, customerId: event.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
                 <option value="">Select credit customer</option>
@@ -188,7 +188,7 @@ export default function CreditManagement() {
               <button disabled={saving} className="btn-action-primary w-full">Record Debt</button>
             </form>
 
-            <form onSubmit={recordPayment} className="content-card space-y-3">
+            <form onSubmit={recordPayment} className="content-card space-y-4 p-5 md:p-6">
               <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2"><WalletCards className="w-5 h-5 text-emerald-600" /> Record Recovery</h2>
               <select required value={paymentForm.transactionId} onChange={(event) => setPaymentForm((prev) => ({ ...prev, transactionId: event.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
                 <option value="">Select open credit</option>
@@ -215,8 +215,8 @@ export default function CreditManagement() {
             </form>
           </div>
 
-          <div className="content-card">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+          <div className="content-card p-5 md:p-6">
+            <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <h2 className="text-lg font-semibold text-gray-900">Credit Recovery Report</h2>
               <div className="flex flex-col sm:flex-row gap-2">
                 <div className="relative">

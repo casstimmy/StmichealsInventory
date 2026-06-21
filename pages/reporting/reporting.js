@@ -291,7 +291,7 @@ export default function Reporting() {
         {/* LOWER CHARTS */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
           <PieChart title="Tender Split" data={salesByTender || {}} />
-          <BarChart title="Sales by Location" data={salesByLocation || {}} />
+          <BarChart title="Sales by Location" data={salesByLocation || {}} borderRadius={2} />
           <div className="content-card">
             <div className="mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Top Products</h3>
@@ -312,7 +312,7 @@ export default function Reporting() {
                         "#ef4444",
                         "#8b5cf6",
                       ],
-                      borderRadius: 8,
+                      borderRadius: 4,
                       borderSkipped: false,
                     },
                   ],
@@ -358,7 +358,7 @@ export default function Reporting() {
                         backgroundColor: hourlyOfDay.map((v) =>
                           v === Math.max(...hourlyOfDay) ? "#0891b2" : "rgba(8,145,178,0.45)"
                         ),
-                        borderRadius: 6,
+                        borderRadius: 4,
                         borderSkipped: false,
                       },
                     ],

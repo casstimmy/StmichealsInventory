@@ -2,7 +2,7 @@
 
 import Layout from "@/components/Layout";
 import { Loader } from "@/components/ui";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Printer, RefreshCw, TrendingUp, TrendingDown, Scale, FileText } from "lucide-react";
 
 const TABS = [
@@ -41,6 +41,80 @@ export default function AccountingReportsPage() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [error, setError] = useState("");
+  const printRef = useRef(null);
+
+  function getPeriodLabel() {
+    if (dateFrom && dateTo) {
+      const from = new Date(dateFrom + "T00:00:00").toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" });
+      const to = new Date(dateTo + "T00:00:00").toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" });
+      return `${from} — ${to}`;
+    }
+    if (dateFrom) return `From ${new Date(dateFrom + "T00:00:00").toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" })}`;
+    if (dateTo) return `Up to ${new Date(dateTo + "T00:00:00").toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" })}`;
+    return "All time";
+  }
+
+  function getTabLabel() {
+    const found = TABS.find((t) => t.key === tab);
+    return found ? found.label : "Financial Report";
+  }
+
+  function handlePrint() {
+    if (!printRef.current) return;
+    const reportTitle = getTabLabel();
+    const periodLabel = getPeriodLabel();
+    const content = printRef.current.innerHTML;
+    const printWindow = window.open("", "_blank", "width=900,height=700");
+    if (!printWindow) return;
+    printWindow.document.write(`<!DOCTYPE html>
+<html><head><title>${reportTitle}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #111; padding: 32px; font-size: 12px; line-height: 1.5; }
+  .print-header { text-align: center; margin-bottom: 24px; border-bottom: 2px solid #111; padding-bottom: 16px; }
+  .print-header h1 { font-size: 22px; font-weight: 700; }
+  .print-header p { font-size: 13px; color: #555; margin-top: 4px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+  th, td { padding: 6px 10px; border-bottom: 1px solid #ddd; text-align: left; }
+  th { font-weight: 600; background: #f5f5f5; }
+  .text-right { text-align: right; }
+  .font-bold { font-weight: 700; }
+  .font-semibold { font-weight: 600; }
+  .font-mono { font-family: monospace; }
+  .grid { display: grid; gap: 16px; margin-bottom: 16px; }
+  .grid-cols-2 { grid-template-columns: 1fr 1fr; }
+  .grid-cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .content-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+  .border-t-4 { border-top: 4px solid; }
+  .mb-6 { margin-bottom: 20px; }
+  .text-green-700 { color: #15803d; }
+  .text-red-700 { color: #b91c1c; }
+  .text-2xl { font-size: 18px; }
+  .text-3xl { font-size: 22px; }
+  .text-sm { font-size: 11px; }
+  .text-xs { font-size: 10px; }
+  .text-lg { font-size: 15px; }
+  .border-green-500 { border-top-color: #22c55e; }
+  .border-red-500 { border-top-color: #ef4444; }
+  .border-sky-500 { border-top-color: #0ea5e9; }
+  .border-purple-500 { border-top-color: #a855f7; }
+  .bg-green-50 { background: #f0fdf4; }
+  .bg-red-50 { background: #fef2f2; }
+  .print-footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #ccc; font-size: 10px; color: #888; text-align: center; }
+  @media print { body { padding: 16px; } }
+</style>
+</head><body>
+<div class="print-header">
+  <h1>${reportTitle}</h1>
+  <p>Reporting Period: ${periodLabel}</p>
+  <p style="margin-top:2px;font-size:11px;color:#888">Generated: ${new Date().toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+</div>
+${content}
+<div class="print-footer">This report was generated from the Financial Reports module.</div>
+</body></html>`);
+    printWindow.document.close();
+    setTimeout(() => { printWindow.print(); printWindow.close(); }, 400);
+  }
 
   useEffect(() => {
     fetchReport();
@@ -127,7 +201,7 @@ export default function AccountingReportsPage() {
               <button onClick={handleManualSync} disabled={syncing} className="btn-action btn-action-primary disabled:opacity-60 disabled:cursor-not-allowed" title={`Last synced: ${formatSyncTime(syncStatus?.lastSyncAt)}${syncSummary ? ` | ${syncSummary}` : ""}`}>
                 <RefreshCw size={16} className={syncing ? "animate-spin" : ""} /> {syncing ? "Syncing..." : "Sync"}
               </button>
-              <button onClick={() => window.print()} className="btn-action btn-action-secondary">
+              <button onClick={handlePrint} disabled={loading || !data} className="btn-action btn-action-secondary disabled:opacity-50">
                 <Printer size={18} /> Print
               </button>
           </div>
@@ -192,11 +266,11 @@ export default function AccountingReportsPage() {
             <Loader size="lg" text="Loading report..." />
           </div>
         ) : (
-          <>
+          <div ref={printRef}>
             {tab === "profit-loss" && <ProfitLoss data={data} dateFrom={dateFrom} dateTo={dateTo} />}
             {tab === "balance-sheet" && <BalanceSheet data={data} dateFrom={dateFrom} dateTo={dateTo} />}
             {tab === "trial-balance" && <TrialBalance data={data} dateFrom={dateFrom} dateTo={dateTo} />}
-          </>
+          </div>
         )}
         </div>
       </div>

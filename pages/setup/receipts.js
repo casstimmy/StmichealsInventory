@@ -491,6 +491,9 @@ export default function Receipts() {
                         onChange={(e) => setFontSize(e.target.value)}
                         className="form-select"
                       >
+                        <option value="4.0">Ultra Micro - 4.0pt</option>
+                        <option value="4.5">Nano - 4.5pt</option>
+                        <option value="5.0">Sub Micro - 5.0pt</option>
                         <option value="5.5">Micro - 5.5pt</option>
                         <option value="6.0">Tiny - 6.0pt</option>
                         <option value="6.5">Eco Compact - 6.5pt</option>

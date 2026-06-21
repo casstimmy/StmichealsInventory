@@ -190,7 +190,7 @@ export default function StockTakeReport() {
           <div className="content-card mb-6">
             <div className="flex flex-col md:flex-row gap-3">
               <div className="relative flex-1">
-                <FontAwesomeIcon icon={faSearch} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <FontAwesomeIcon icon={faSearch} className="absolute gap-2 left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
                   type="text"
                   placeholder="Search by title, reference, or location..."

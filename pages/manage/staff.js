@@ -420,8 +420,8 @@ export default function StaffPage() {
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex justify-end gap-2">
-                            <button onClick={() => startEdit(staff)} className="text-xs px-3 py-1 border border-blue-500 text-blue-600 rounded-full hover:bg-blue-500 hover:text-white transition font-semibold">Edit</button>
-                            <button onClick={() => handleDelete(staff._id)} className="text-xs px-3 py-1 border border-red-500 text-red-600 rounded-full hover:bg-red-500 hover:text-white transition font-semibold">Delete</button>
+                            <button onClick={() => startEdit(staff)} className="text-xs px-3 py-1 border border-blue-500 text-blue-600 rounded-md hover:bg-blue-500 hover:text-white transition font-semibold">Edit</button>
+                            <button onClick={() => handleDelete(staff._id)} className="text-xs px-3 py-1 border border-red-500 text-red-600 rounded-md hover:bg-red-500 hover:text-white transition font-semibold">Delete</button>
                           </div>
                         </td>
                         </>
@@ -478,8 +478,8 @@ export default function StaffPage() {
             <div className="bg-white p-6 shadow rounded-lg w-full lg:w-1/3">
               <h2 className="text-xl font-semibold mb-4 text-blue-700">Staff Penalty</h2>
               <div className="flex space-x-4 mb-6">
-                <button className={`px-4 py-2 rounded-full font-semibold transition ${activeTab === "list" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300"}`} onClick={() => setActiveTab("list")}>Penalty List</button>
-                <button className={`px-4 py-2 rounded-full font-semibold transition ${activeTab === "form" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300"}`} onClick={() => setActiveTab("form")}>Add Penalty</button>
+                <button className={`px-4 py-2 rounded-md font-semibold transition ${activeTab === "list" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300"}`} onClick={() => setActiveTab("list")}>Penalty List</button>
+                <button className={`px-4 py-2 rounded-md font-semibold transition ${activeTab === "form" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300"}`} onClick={() => setActiveTab("form")}>Add Penalty</button>
               </div>
 
               {activeTab === "list" && (
@@ -491,7 +491,7 @@ export default function StaffPage() {
                       <div key={staff._id} className="bg-white border border-gray-200 p-5 rounded-lg shadow hover:shadow-md transition">
                         <div className="flex justify-between items-center mb-2">
                           <h3 className="text-lg font-semibold text-blue-800">{staff.name} <span className="text-sm text-gray-500 ml-2">({staff.role})</span></h3>
-                          <span className="text-sm bg-red-100 text-red-600 px-2 py-1 rounded-full">{staff.penalty.length} Penalt{staff.penalty.length > 1 ? "ies" : "y"}</span>
+                          <span className="text-sm bg-red-100 text-red-600 px-2 py-1 rounded-md">{staff.penalty.length} Penalt{staff.penalty.length > 1 ? "ies" : "y"}</span>
                         </div>
                         <ul className="space-y-2 pl-4 border-l-2 border-blue-100">
                           {staff.penalty.map((p, i) => (

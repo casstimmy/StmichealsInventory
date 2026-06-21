@@ -177,7 +177,8 @@ export default function ProductsSales() {
       label: "Total Sales",
       data: top10.map((p) => p.totalSales),
       backgroundColor: chartColors.slice(0, top10.length),
-      borderRadius: 2,
+      borderRadius: { topLeft: 3, topRight: 3, bottomLeft: 0, bottomRight: 0 },
+      borderSkipped: "bottom",
     }],
   } : null;
 

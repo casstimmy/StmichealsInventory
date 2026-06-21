@@ -487,6 +487,7 @@ export default async function handler(req, res) {
       },
       summary,
       rows,
+      totalRows: rows.length,
       products: products
         .filter((product) => !isDerivedChild(product))
         .map((product) => ({

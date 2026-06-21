@@ -11,6 +11,8 @@ const PERIODS = [
   { value: "half-hourly", label: "Half hourly" },
 ];
 
+const PAGE_SIZE = 50;
+
 function formatDateKey(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
@@ -44,10 +46,12 @@ export default function StockHistoryLevelsReport() {
   const [report, setReport] = useState({ rows: [], summary: {}, products: [], categories: [], locations: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const fetchReport = async () => {
     setLoading(true);
     setError("");
+    setVisibleCount(PAGE_SIZE);
     try {
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
@@ -306,6 +310,7 @@ export default function StockHistoryLevelsReport() {
             ) : !report.rows?.length ? (
               <div className="p-6 text-gray-500">No stock movements found for this filter set.</div>
             ) : (
+              <>
               <div className="overflow-x-auto">
                 <table className="data-table min-w-[1200px]">
                   <thead>
@@ -326,7 +331,7 @@ export default function StockHistoryLevelsReport() {
                     </tr>
                   </thead>
                   <tbody>
-                    {report.rows.map((row) => (
+                    {report.rows.slice(0, visibleCount).map((row) => (
                       <tr key={row.key}>
                         <td className="font-semibold text-gray-700">{row.periodLabel}</td>
                         <td>
@@ -349,6 +354,22 @@ export default function StockHistoryLevelsReport() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Load More + row count */}
+              <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
+                <p className="text-sm text-gray-600">
+                  Showing <span className="font-semibold">{Math.min(visibleCount, report.rows.length)}</span> of <span className="font-semibold">{report.rows.length}</span> rows
+                </p>
+                {visibleCount < report.rows.length && (
+                  <button
+                    onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
+                    className="btn-action btn-action-primary min-w-[160px]"
+                  >
+                    Load More
+                  </button>
+                )}
+              </div>
+              </>
             )}
           </div>
         </div>

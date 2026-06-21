@@ -289,8 +289,8 @@ export default function CategoriesSales() {
                       label: "Sales Value",
                       data: categories.map((category) => category.sales),
                       backgroundColor: "#06B6D4",
-                      borderRadius: 2,
-                      borderSkipped: false,
+                      borderRadius: { topLeft: 0, topRight: 3, bottomLeft: 0, bottomRight: 3 },
+                      borderSkipped: "start",
                     }],
                   }}
                   options={{

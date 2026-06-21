@@ -404,13 +404,13 @@ export default function CustomersPage() {
                         <div className="flex justify-center gap-2">
                           <button
                             onClick={() => handleEdit(customer)}
-                            className="text-xs px-3 py-1 border border-blue-500 text-blue-600 rounded-full hover:bg-blue-500 hover:text-white transition font-semibold"
+                            className="text-xs px-3 py-1 border border-blue-500 text-blue-600 rounded-md hover:bg-blue-500 hover:text-white transition font-semibold"
                           >
                             Edit
                           </button>
                           <button
                             onClick={() => handleDelete(customer._id)}
-                            className="text-xs px-3 py-1 border border-red-500 text-red-600 rounded-full hover:bg-red-500 hover:text-white transition font-semibold"
+                            className="text-xs px-3 py-1 border border-red-500 text-red-600 rounded-md hover:bg-red-500 hover:text-white transition font-semibold"
                           >
                             Delete
                           </button>

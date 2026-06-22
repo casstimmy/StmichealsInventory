@@ -742,100 +742,100 @@ export default function Receipts() {
               <div className="content-card sticky top-6">
                 <h2 className="text-lg font-bold mb-4 text-gray-800">Receipt Preview</h2>
               <div 
-                className="bg-white p-4 rounded border border-gray-300 overflow-y-auto max-h-[700px] leading-[1.2] text-[11px]"
-                style={{ fontSize: `${fontSize}pt`, fontFamily: fontFamily === 'Mono' || fontFamily === 'Courier New' ? '"Courier New", monospace' : fontFamily === 'Times New Roman' ? '"Times New Roman", serif' : `"${fontFamily}", sans-serif` }}
+                className="bg-white rounded border border-gray-300 overflow-y-auto max-h-[700px]"
+                style={{ fontSize: `${fontSize}pt`, fontFamily: fontFamily === 'Mono' || fontFamily === 'Courier New' ? '"Courier New", monospace' : fontFamily === 'Times New Roman' ? '"Times New Roman", serif' : `"${fontFamily}", sans-serif`, lineHeight: '1.2', padding: '1em' }}
               >
                 <div className="mx-auto w-full max-w-[280px] text-gray-900">
                   {companyLogo && (
                     <img
                       src={companyLogo}
-                      className="mx-auto mb-3 h-12 object-contain"
                       alt="Logo"
-                      style={{ filter: 'grayscale(100%) contrast(1.05)' }}
+                      className="mx-auto object-contain"
+                      style={{ filter: 'grayscale(100%) contrast(1.05)', marginBottom: '0.6em', maxHeight: '4em' }}
                     />
                   )}
 
-                  <div className="text-center border-b border-dashed border-black pb-3">
+                  <div className="text-center border-b border-dashed border-black" style={{ paddingBottom: '1em' }}>
                     <div className="font-bold text-[1.15em] tracking-[0.18em] uppercase">
                       {previewDisplayName}
                     </div>
-                    <div className="mt-1 text-[0.86em]">{selectedLocation || "[Location from Transaction]"}</div>
+                    <div style={{ marginTop: '0.3em', fontSize: '0.86em' }}>{selectedLocation || "[Location from Transaction]"}</div>
                     {previewLocation?.address && (
-                      <div className="mt-1 text-[0.84em]">{previewLocation.address}</div>
+                      <div style={{ marginTop: '0.2em', fontSize: '0.84em' }}>{previewLocation.address}</div>
                     )}
                     {previewContactLine && (
-                      <div className="mt-1 text-[0.82em] break-words">{previewContactLine}</div>
+                      <div className="break-words" style={{ marginTop: '0.2em', fontSize: '0.82em' }}>{previewContactLine}</div>
                     )}
                     {taxNumber && (
-                      <div className="mt-1 text-[0.82em]">Tax ID: {taxNumber}</div>
+                      <div style={{ marginTop: '0.2em', fontSize: '0.82em' }}>Tax ID: {taxNumber}</div>
                     )}
                   </div>
 
-                  <div className="mt-3 border-t border-dashed border-black pt-3 text-left">
+                  <div className="border-t border-dashed border-black text-left" style={{ marginTop: '0.8em', paddingTop: '0.8em' }}>
                     <div className="font-bold uppercase">Sales Receipt</div>
-                    <div className="mt-1 flex justify-between gap-3">
+                    <div className="flex justify-between gap-3" style={{ marginTop: '0.2em' }}>
                       <span>03/07/2022 12:24:57</span>
                       <span>SAMPLE</span>
                     </div>
-                    <div className="mt-1 flex justify-between gap-3">
+                    <div className="flex justify-between gap-3" style={{ marginTop: '0.2em' }}>
                       <span>Staff: {staffName ? staffName : '[Staff Name]'}</span>
                       <span>{paymentStatus.toUpperCase()}</span>
                     </div>
                   </div>
 
-                  <div className="mt-3 border-t border-dashed border-black pt-3">
-                    <div className="grid grid-cols-[1fr_54px_32px_58px] gap-1 font-bold uppercase">
+                  <div className="border-t border-dashed border-black" style={{ marginTop: '0.8em', paddingTop: '0.8em' }}>
+                    <div className="grid grid-cols-[2.4fr_1fr_0.5fr_1fr] font-bold uppercase" style={{ gap: '0.2em', marginBottom: '0.4em' }}>
                       <span>Item</span>
                       <span className="text-right">Rate</span>
                       <span className="text-center">Qty</span>
                       <span className="text-right">Total</span>
                     </div>
-                    <div className="mt-2 space-y-1">
-                      <div className="grid grid-cols-[1fr_54px_32px_58px] gap-1">
+                    <div style={{ marginTop: '0.3em' }}>
+                      <div className="grid grid-cols-[2.4fr_1fr_0.5fr_1fr]" style={{ gap: '0.2em', margin: '0.1em 0' }}>
                         <span>SAMPLE ITEM 1</span>
                         <span className="text-right">₦1,500</span>
                         <span className="text-center">1</span>
                         <span className="text-right">₦1,500</span>
                       </div>
-                      <div className="grid grid-cols-[1fr_54px_32px_58px] gap-1">
+                      <div className="grid grid-cols-[2.4fr_1fr_0.5fr_1fr]" style={{ gap: '0.2em', margin: '0.1em 0' }}>
                         <span>SAMPLE ITEM 2</span>
                         <span className="text-right">₦2,000</span>
                         <span className="text-center">1</span>
                         <span className="text-right">₦2,000</span>
                       </div>
                     </div>
-                    <div className="mt-2 flex justify-between border-t border-gray-300 pt-2 text-[0.84em]">
+                    <div className="flex justify-between border-t border-dashed border-black" style={{ marginTop: '0.5em', paddingTop: '0.5em', fontSize: '0.84em' }}>
                       <span>Total Qty</span>
                       <span>2</span>
                     </div>
                   </div>
 
-                  <div className="mt-3 border-t border-dashed border-black pt-3 space-y-1 text-left">
-                    <div className="flex justify-between">
+                  <div className="border-t border-dashed border-black text-left" style={{ marginTop: '0.8em', paddingTop: '0.8em' }}>
+                    <div className="flex justify-between" style={{ margin: '0.15em 0' }}>
                       <span>Subtotal</span>
                       <span>₦3,500.00</span>
                     </div>
-                    <div className="flex justify-between border-t border-gray-300 pt-2 font-bold text-[1.02em]">
+                    <div className="flex justify-between border-t border-dashed border-black font-bold text-[1.02em]" style={{ paddingTop: '0.5em', marginTop: '0.5em' }}>
                       <span>Total</span>
                       <span>₦3,500.00</span>
                     </div>
                   </div>
 
-                  <div className="mt-3 border-t border-dashed border-black pt-3 text-left">
+                  <div className="border-t border-dashed border-black text-left" style={{ marginTop: '0.8em', paddingTop: '0.8em' }}>
                     <div className="font-bold uppercase">Payment</div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between" style={{ margin: '0.15em 0' }}>
                       <span>CASH</span>
                       <span>₦3,500.00</span>
                     </div>
                   </div>
 
-                  <div className="mt-3 border-t border-dashed border-black pt-3 text-center text-[0.84em]">
+                  <div className="border-t border-dashed border-black text-center" style={{ marginTop: '0.8em', paddingTop: '0.8em', fontSize: '0.84em' }}>
                     {refundDays > 0 ? (
                       <div>Refund within {refundDays} days with receipt</div>
                     ) : null}
 
                     {(qrDataUrl || qrUrl || (qrMode === "per-location" && qrLocationId && locationQrData[qrLocationId]?.qrDataUrl)) ? (
-                      <div className="mt-2">
+                      <div style={{ marginTop: '0.5em' }}>
                         {qrDescription ? <div>{qrDescription}</div> : null}
                         {(() => {
                           const previewQrDataUrl = qrMode === "per-location" && qrLocationId
@@ -854,15 +854,16 @@ export default function Receipts() {
                     ) : null}
 
                     {receiptMessage ? (
-                      <div className="mt-2 whitespace-pre-wrap">{receiptMessage}</div>
+                      <div style={{ marginTop: '0.5em' }} className="whitespace-pre-wrap">{receiptMessage}</div>
                     ) : null}
 
-                    <div className="mt-3 font-bold text-[0.95em] uppercase tracking-[0.14em]">
+                    <div className="font-bold text-[0.95em] uppercase tracking-[0.14em]" style={{ marginTop: '0.8em' }}>
                       Thank You
                     </div>
 
                     <div
-                      className={`mt-3 border-t border-dashed border-black pt-3 font-bold uppercase tracking-[0.16em] ${paymentStatus === 'paid' ? '' : 'border border-black bg-gray-100 py-2'}`}
+                      className={`border-t border-dashed border-black font-bold uppercase tracking-[0.16em] ${paymentStatus === 'paid' ? '' : 'border border-black bg-gray-100'}`}
+                      style={{ marginTop: '0.8em', paddingTop: '0.6em', paddingBottom: paymentStatus === 'paid' ? '0' : '0.5em' }}
                     >
                       {paymentStatus.toUpperCase()}
                     </div>

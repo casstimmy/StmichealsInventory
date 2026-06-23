@@ -6,20 +6,28 @@ import { showConfirmDialog } from "@/lib/dialogs";
 import { showToastMessage } from "@/lib/toast-state";
 import { useState, useEffect } from "react";
 
+const defaultCampaignForm = {
+  name: "",
+  description: "",
+  discount: 0,
+  targetCustomers: "all",
+  targetCategories: "all",
+  targetProducts: "all",
+  targetLocations: "all",
+  startDate: "",
+  endDate: "",
+};
+
+function formatCampaignDate(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "-" : date.toLocaleDateString();
+}
+
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState([]);
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    discount: 0,
-    targetCustomers: "all",
-    targetCategories: "all",
-    targetProducts: "all",
-    targetLocations: "all",
-    startDate: "",
-    endDate: "",
-  });
+  const [formData, setFormData] = useState(defaultCampaignForm);
   const [editing, setEditing] = useState(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -42,18 +50,19 @@ export default function CampaignsPage() {
 
   async function fetchCampaigns() {
     try {
-      // This would fetch campaigns from API when backend is ready
-      // For now, just load from localStorage
-      const saved = localStorage.getItem("campaigns");
-      if (saved) {
-        setCampaigns(JSON.parse(saved));
+      const res = await fetch("/api/campaigns");
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to load campaigns");
       }
+      setCampaigns(Array.isArray(data.campaigns) ? data.campaigns : []);
     } catch (err) {
       console.error("Error fetching campaigns:", err);
+      setError(err.message || "Failed to load campaigns");
     }
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     setError("");
     setSuccess("");
@@ -63,39 +72,40 @@ export default function CampaignsPage() {
       return;
     }
 
-    let updatedCampaigns;
-    if (editing) {
-      updatedCampaigns = campaigns.map(c =>
-        c.id === editing ? { ...formData, id: editing, updatedAt: new Date().toISOString() } : c
-      );
-    } else {
-      updatedCampaigns = [
-        ...campaigns,
-        { ...formData, id: Date.now().toString(), createdAt: new Date().toISOString() },
-      ];
-    }
+    try {
+      const res = await fetch(editing ? `/api/campaigns/${editing}` : "/api/campaigns", {
+        method: editing ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to save campaign");
+      }
 
-    setCampaigns(updatedCampaigns);
-    localStorage.setItem("campaigns", JSON.stringify(updatedCampaigns));
-    setSuccess(`Campaign ${editing ? "updated" : "created"} successfully!`);
-    setFormData({
-      name: "",
-      description: "",
-      discount: 0,
-      targetCustomers: "all",
-      targetCategories: "all",
-      targetProducts: "all",
-      targetLocations: "all",
-      startDate: "",
-      endDate: "",
-    });
-    setEditing(null);
-    setShowForm(false);
+      setSuccess(`Campaign ${editing ? "updated" : "created"} successfully!`);
+      setFormData(defaultCampaignForm);
+      setEditing(null);
+      setShowForm(false);
+      fetchCampaigns();
+    } catch (err) {
+      setError(err.message || "Failed to save campaign");
+    }
   }
 
   function handleEdit(campaign) {
-    setFormData(campaign);
-    setEditing(campaign.id);
+    setFormData({
+      name: campaign.name || "",
+      description: campaign.description || "",
+      discount: campaign.discount || 0,
+      targetCustomers: campaign.targetCustomers || "all",
+      targetCategories: campaign.targetCategories || "all",
+      targetProducts: campaign.targetProducts || "all",
+      targetLocations: campaign.targetLocations || "all",
+      startDate: campaign.startDate ? campaign.startDate.slice(0, 10) : "",
+      endDate: campaign.endDate ? campaign.endDate.slice(0, 10) : "",
+    });
+    setEditing(campaign._id);
     setShowForm(true);
   }
 
@@ -108,10 +118,15 @@ export default function CampaignsPage() {
       cancelLabel: "Keep campaign",
     });
     if (!shouldDelete) return;
-    const updated = campaigns.filter(c => c.id !== id);
-    setCampaigns(updated);
-    localStorage.setItem("campaigns", JSON.stringify(updated));
-    setSuccess("Campaign deleted successfully!");
+    try {
+      const res = await fetch(`/api/campaigns/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to delete campaign");
+      setCampaigns((prev) => prev.filter(c => c._id !== id));
+      setSuccess("Campaign deleted successfully!");
+    } catch (err) {
+      setError(err.message || "Failed to delete campaign");
+    }
   }
 
   return (
@@ -127,17 +142,7 @@ export default function CampaignsPage() {
               onClick={() => {
                 setShowForm(!showForm);
                 setEditing(null);
-                setFormData({
-                  name: "",
-                  description: "",
-                  discount: 0,
-                  targetCustomers: "all",
-                  targetCategories: "all",
-                  targetProducts: "all",
-                  targetLocations: "all",
-                  startDate: "",
-                  endDate: "",
-                });
+                setFormData(defaultCampaignForm);
               }}
               className="btn-action-primary"
             >
@@ -267,15 +272,7 @@ export default function CampaignsPage() {
                     onClick={() => {
                       setShowForm(false);
                       setEditing(null);
-                      setFormData({
-                        name: "",
-                        description: "",
-                        discount: 0,
-                        targetCustomers: "all",                        targetCategories: "all",
-                        targetProducts: "all",
-                        targetLocations: "all",                        startDate: "",
-                        endDate: "",
-                      });
+                      setFormData(defaultCampaignForm);
                     }}
                     className="btn-action-secondary flex-1"
                   >
@@ -294,7 +291,7 @@ export default function CampaignsPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {campaigns.map((campaign) => (
-                <div key={campaign.id} className="content-card border-l-4 border-sky-600">
+                <div key={campaign._id} className="content-card border-l-4 border-sky-600">
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">{campaign.name}</h3>
                   <p className="text-sm text-gray-600 mb-3">{campaign.description}</p>
                   <div className="mb-3">
@@ -307,7 +304,7 @@ export default function CampaignsPage() {
                     <p><span className="font-medium">Categories:</span> <span className="capitalize">{campaign.targetCategories || "all"}</span></p>
                     <p><span className="font-medium">Products:</span> <span className="capitalize">{campaign.targetProducts || "all"}</span></p>
                     <p><span className="font-medium">Locations:</span> <span className="capitalize">{campaign.targetLocations || "all"}</span></p>
-                    <p><span className="font-medium">Period:</span> {campaign.startDate} to {campaign.endDate}</p>
+                    <p><span className="font-medium">Period:</span> {formatCampaignDate(campaign.startDate)} to {formatCampaignDate(campaign.endDate)}</p>
                   </div>
                   <div className="flex gap-2 pt-4 border-t border-gray-200">
                     <button
@@ -317,7 +314,7 @@ export default function CampaignsPage() {
                       Edit
                     </button>
                     <button
-                      onClick={() => handleDelete(campaign.id)}
+                      onClick={() => handleDelete(campaign._id)}
                       className="btn-action-danger flex-1 text-sm py-2"
                     >
                       Delete

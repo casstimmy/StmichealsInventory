@@ -1,491 +1,528 @@
 "use client";
 
 import axios from "axios";
-import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Layout from "@/components/Layout";
-import { motion, AnimatePresence } from "framer-motion";
-import { useDrag } from "@use-gesture/react";
-import { showAlertDialog } from "@/lib/dialogs";
-import PromotionManagement from "../../components/PromotionManagement";
+import { showAlertDialog, showConfirmDialog } from "@/lib/dialogs";
 
-export default function HeroSetup() {
-  const [heroPages, setHeroPages] = useState([]);
-  const [heroTitle, setHeroTitle] = useState("");
-  const [heroSubtitle, setHeroSubtitle] = useState("");
-  const [heroImage, setHeroImage] = useState([]);
-  const [heroBgImage, setHeroBgImage] = useState([]);
-  const [ctaText, setCtaText] = useState("Shop Now");
-  const [ctaLink, setCtaLink] = useState("/shop/shop");
-  const [order, setOrder] = useState(0);
-  const [status, setStatus] = useState("active");
-  const [heroProgress, setHeroProgress] = useState(0);
-  const [heroBgProgress, setHeroBgProgress] = useState(0);
+const SOCIAL_PLATFORMS = ["Instagram", "Facebook", "TikTok", "X", "YouTube", "WhatsApp", "LinkedIn", "Website"];
+
+const emptyForm = {
+  title: "",
+  subtitle: "",
+  image: [],
+  bgImage: [],
+  ctaText: "Shop Now",
+  ctaLink: "/shop/shop",
+  targetSystem: "ecommerce",
+  bannerType: "standard",
+  linkedPromotion: "",
+  linkedCampaign: "",
+  startDate: "",
+  endDate: "",
+  socialLinks: [],
+  order: 0,
+  status: "active",
+};
+
+function getRecordId(record) {
+  if (!record) return "";
+  if (typeof record === "string") return record;
+  return record._id || record.id || "";
+}
+
+function toDateInput(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString().slice(0, 10);
+}
+
+function dateLabel(value) {
+  if (!value) return "Not set";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Not set" : date.toLocaleDateString();
+}
+
+function normalizeHero(hero) {
+  return {
+    ...hero,
+    image: Array.isArray(hero.image) ? hero.image : [],
+    bgImage: Array.isArray(hero.bgImage) ? hero.bgImage : [],
+    socialLinks: Array.isArray(hero.socialLinks) ? hero.socialLinks : [],
+    targetSystem: hero.targetSystem || "ecommerce",
+    bannerType: hero.bannerType || "standard",
+  };
+}
+
+function linkedRecord(hero) {
+  if (hero.bannerType === "promotion") return hero.linkedPromotion;
+  if (hero.bannerType === "campaign") return hero.linkedCampaign;
+  return null;
+}
+
+function scheduleFor(hero) {
+  const record = linkedRecord(hero);
+  return {
+    startDate: record?.startDate || hero.startDate,
+    endDate: record?.indefinite ? null : record?.endDate || hero.endDate,
+    indefinite: Boolean(record?.indefinite),
+  };
+}
+
+function scheduleState(hero) {
+  if (hero.status !== "active") return "Inactive";
+  const { startDate, endDate, indefinite } = scheduleFor(hero);
+  const now = new Date();
+  if (startDate && new Date(startDate) > now) return "Queued";
+  if (!indefinite && endDate && new Date(endDate) < now) return "Expired";
+  return "Live";
+}
+
+function linkedLabel(hero) {
+  const record = linkedRecord(hero);
+  return record?.name || "Standard banner";
+}
+
+function formFromHero(hero) {
+  return {
+    title: hero.title || "",
+    subtitle: hero.subtitle || "",
+    image: hero.image || [],
+    bgImage: hero.bgImage || [],
+    ctaText: hero.ctaText || "Shop Now",
+    ctaLink: hero.ctaLink || "/shop/shop",
+    targetSystem: hero.targetSystem || "ecommerce",
+    bannerType: hero.bannerType || "standard",
+    linkedPromotion: getRecordId(hero.linkedPromotion),
+    linkedCampaign: getRecordId(hero.linkedCampaign),
+    startDate: toDateInput(hero.startDate),
+    endDate: toDateInput(hero.endDate),
+    socialLinks: hero.socialLinks || [],
+    order: hero.order || 0,
+    status: hero.status || "active",
+  };
+}
+
+export default function HeroPromoSetup() {
+  const [heroes, setHeroes] = useState([]);
+  const [promotions, setPromotions] = useState([]);
+  const [campaigns, setCampaigns] = useState([]);
+  const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [heroProgress, setHeroProgress] = useState(0);
+  const [bgProgress, setBgProgress] = useState(0);
+  const heroInputRef = useRef(null);
+  const bgInputRef = useRef(null);
 
-  const heroImageRef = useRef(null);
-  const heroBgImageRef = useRef(null);
+  const selectedPromotion = useMemo(
+    () => promotions.find((promotion) => promotion._id === form.linkedPromotion),
+    [promotions, form.linkedPromotion]
+  );
+  const selectedCampaign = useMemo(
+    () => campaigns.find((campaign) => campaign._id === form.linkedCampaign),
+    [campaigns, form.linkedCampaign]
+  );
+  const scheduleLocked = form.bannerType !== "standard";
 
   useEffect(() => {
-    async function fetchHeroes() {
-      try {
-        const res = await fetch("/api/heroes");
-        if (!res.ok) throw new Error("Failed to load heroes");
-        const data = await res.json();
-        const normalized = (data || []).map((h) => ({
-          ...h,
-          image: Array.isArray(h.image) ? h.image : [],
-          bgImage: Array.isArray(h.bgImage) ? h.bgImage : [],
-        }));
-        setHeroPages(normalized);
-      } catch (err) {
-        console.error("Fetch heroes error:", err);
-      }
-    }
-    fetchHeroes();
+    loadData();
   }, []);
 
-  // Upload Helper
-  const uploadFileToS3 = async (file, setState, setProgress) => {
-    const formData = new FormData();
-    formData.append("file", file);
+  async function loadData() {
+    const [heroRes, promotionRes, campaignRes] = await Promise.allSettled([
+      fetch("/api/heroes"),
+      fetch("/api/promotions"),
+      fetch("/api/campaigns"),
+    ]);
+
+    if (heroRes.status === "fulfilled" && heroRes.value.ok) {
+      const data = await heroRes.value.json();
+      setHeroes((Array.isArray(data) ? data : []).map(normalizeHero));
+    }
+    if (promotionRes.status === "fulfilled" && promotionRes.value.ok) {
+      const data = await promotionRes.value.json();
+      setPromotions(Array.isArray(data.promotions) ? data.promotions : []);
+    }
+    if (campaignRes.status === "fulfilled" && campaignRes.value.ok) {
+      const data = await campaignRes.value.json();
+      setCampaigns(Array.isArray(data.campaigns) ? data.campaigns : []);
+    }
+  }
+
+  function updateForm(field, value) {
+    setForm((previous) => ({ ...previous, [field]: value }));
+  }
+
+  async function uploadImage(file, field, setProgress) {
+    if (!file) return;
+    const data = new FormData();
+    data.append("file", file);
     try {
-      const res = await axios.post("/api/upload", formData, {
+      const response = await axios.post("/api/upload", data, {
         headers: { "Content-Type": "multipart/form-data" },
-        onUploadProgress: (progressEvent) => {
-          if (setProgress) {
-            const percent = Math.round(
-              (progressEvent.loaded * 100) / progressEvent.total
-            );
-            setProgress(percent);
-          }
+        onUploadProgress: (event) => {
+          if (event.total) setProgress(Math.round((event.loaded * 100) / event.total));
         },
       });
-
-      const links = res.data.links;
-      if (!links || !links[0]?.full) throw new Error("Invalid upload response");
-
-      const finalObj = {
-        full: links[0].full,
-        thumb: links[0].thumb || links[0].full,
-      };
-
-      setState((prev) => [...prev, finalObj]);
-      if (setProgress) setProgress(100);
-    } catch (error) {
-      console.error("Upload error:", error);
-      throw error;
-    }
-  };
-
-  const removeImage = (index, setImageFn) => {
-    setImageFn((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleHeroImageChange = async (file) => {
-    if (!file) return;
-    try {
-      await uploadFileToS3(file, setHeroImage, setHeroProgress);
+      const link = response.data.links?.[0];
+      if (!link?.full) throw new Error("Invalid upload response");
+      setForm((previous) => ({
+        ...previous,
+        [field]: [...previous[field], { full: link.full, thumb: link.thumb || link.full }],
+      }));
+      setProgress(100);
     } catch {
-      await showAlertDialog({
-        title: "Upload failed",
-        message: "Hero image upload failed.",
-        tone: "danger",
-      });
+      await showAlertDialog({ title: "Upload failed", message: "Image upload failed.", tone: "danger" });
     }
-  };
+  }
 
-  const handleBgImageChange = async (file) => {
-    if (!file) return;
-    try {
-      await uploadFileToS3(file, setHeroBgImage, setHeroBgProgress);
-    } catch {
-      await showAlertDialog({
-        title: "Upload failed",
-        message: "Background image upload failed.",
-        tone: "danger",
-      });
+  function selectBannerType(value) {
+    setForm((previous) => ({
+      ...previous,
+      bannerType: value,
+      linkedPromotion: "",
+      linkedCampaign: "",
+      ctaText: value === "standard" ? "Shop Now" : previous.ctaText,
+      ctaLink: value === "standard" ? "/shop/shop" : previous.ctaLink,
+      startDate: value === "standard" ? previous.startDate : "",
+      endDate: value === "standard" ? previous.endDate : "",
+    }));
+  }
+
+  function selectPromotion(id) {
+    const promotion = promotions.find((item) => item._id === id);
+    setForm((previous) => ({
+      ...previous,
+      linkedPromotion: id,
+      linkedCampaign: "",
+      title: previous.title || promotion?.name || "",
+      subtitle: previous.subtitle || promotion?.description || "",
+      ctaText: "Shop Promotion",
+      ctaLink: id ? `/shop/shop?promotion=${id}` : previous.ctaLink,
+      startDate: toDateInput(promotion?.startDate),
+      endDate: promotion?.indefinite ? "" : toDateInput(promotion?.endDate),
+    }));
+  }
+
+  function selectCampaign(id) {
+    const campaign = campaigns.find((item) => item._id === id);
+    setForm((previous) => ({
+      ...previous,
+      linkedCampaign: id,
+      linkedPromotion: "",
+      title: previous.title || campaign?.name || "",
+      subtitle: previous.subtitle || campaign?.description || "",
+      ctaText: "View Campaign",
+      ctaLink: id ? `/shop/shop?campaign=${id}` : previous.ctaLink,
+      startDate: toDateInput(campaign?.startDate),
+      endDate: toDateInput(campaign?.endDate),
+    }));
+  }
+
+  function addSocialLink() {
+    setForm((previous) => ({
+      ...previous,
+      socialLinks: [
+        ...previous.socialLinks,
+        { platform: "Instagram", label: "", handle: "", url: "", active: true, order: previous.socialLinks.length },
+      ],
+    }));
+  }
+
+  function updateSocialLink(index, field, value) {
+    setForm((previous) => ({
+      ...previous,
+      socialLinks: previous.socialLinks.map((link, linkIndex) =>
+        linkIndex === index ? { ...link, [field]: value } : link
+      ),
+    }));
+  }
+
+  function removeSocialLink(index) {
+    setForm((previous) => ({
+      ...previous,
+      socialLinks: previous.socialLinks.filter((_, linkIndex) => linkIndex !== index),
+    }));
+  }
+
+  async function saveHero() {
+    if (!form.title.trim() || form.image.length === 0) {
+      await showAlertDialog({ title: "Missing hero details", message: "Title and Hero Image are required.", tone: "warning" });
+      return;
     }
-  };
-
-  const addOrUpdateHeroPage = async () => {
-    if (!heroTitle.trim() || heroImage.length === 0) {
-      await showAlertDialog({
-        title: "Missing hero details",
-        message: "Title and Hero Image are required.",
-        tone: "warning",
-      });
+    if (form.bannerType === "promotion" && !form.linkedPromotion) {
+      await showAlertDialog({ title: "Missing linked promotion", message: "Select a promotion for this banner.", tone: "warning" });
+      return;
+    }
+    if (form.bannerType === "campaign" && !form.linkedCampaign) {
+      await showAlertDialog({ title: "Missing linked campaign", message: "Select a campaign for this banner.", tone: "warning" });
       return;
     }
 
     const payload = {
-      title: heroTitle,
-      subtitle: heroSubtitle,
-      image: heroImage.map(({ full, thumb }) => ({ full, thumb })),
-      bgImage: heroBgImage.map(({ full, thumb }) => ({ full, thumb })),
-      ctaText,
-      ctaLink,
-      order,
-      status,
+      title: form.title.trim(),
+      subtitle: form.subtitle.trim(),
+      image: form.image.map(({ full, thumb }) => ({ full, thumb })),
+      bgImage: form.bgImage.map(({ full, thumb }) => ({ full, thumb })),
+      ctaText: form.ctaText,
+      ctaLink: form.ctaLink,
+      targetSystem: form.targetSystem,
+      bannerType: form.bannerType,
+      linkedPromotion: form.bannerType === "promotion" ? form.linkedPromotion : null,
+      linkedCampaign: form.bannerType === "campaign" ? form.linkedCampaign : null,
+      startDate: form.startDate || null,
+      endDate: form.endDate || null,
+      socialLinks: form.socialLinks,
+      order: form.order,
+      status: form.status,
     };
 
-    setUploading(true);
+    setSaving(true);
     try {
-      let res;
-      if (editId) {
-        res = await fetch(`/api/heroes/${editId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-      } else {
-        res = await fetch("/api/heroes", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-      }
-      if (!res.ok) throw new Error("Save error");
-      const result = await res.json();
-      const normalized = {
-        ...result,
-        image: Array.isArray(result.image) ? result.image : [],
-        bgImage: Array.isArray(result.bgImage) ? result.bgImage : [],
-      };
-      if (editId)
-        setHeroPages((prev) =>
-          prev.map((h) => (h._id === editId ? normalized : h))
-        );
-      else setHeroPages((prev) => [normalized, ...prev]);
+      const response = await fetch(editId ? `/api/heroes/${editId}` : "/api/heroes", {
+        method: editId ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Save failed");
+      const normalized = normalizeHero(result);
+      setHeroes((previous) =>
+        editId ? previous.map((hero) => (hero._id === editId ? normalized : hero)) : [normalized, ...previous]
+      );
       resetForm();
-    } catch (err) {
-      await showAlertDialog({
-        title: "Save failed",
-        message: err.message || "Save error",
-        tone: "danger",
-      });
+    } catch (error) {
+      await showAlertDialog({ title: "Save failed", message: error.message, tone: "danger" });
     } finally {
-      setUploading(false);
+      setSaving(false);
     }
-  };
+  }
 
-  const removeHeroPage = async (id) => {
-    const res = await fetch(`/api/heroes/${id}`, { method: "DELETE" });
-    if (res.ok)
-      setHeroPages((prev) => prev.filter((h) => h._id !== id));
-    else {
-      await showAlertDialog({
-        title: "Delete failed",
-        message: "Failed to delete hero.",
-        tone: "danger",
-      });
-    }
-  };
+  async function deleteHero(id) {
+    const confirmed = await showConfirmDialog({
+      title: "Delete hero banner?",
+      message: "This removes only the banner setup. Linked promotions and campaigns stay intact.",
+      tone: "danger",
+      confirmLabel: "Delete banner",
+      cancelLabel: "Keep banner",
+    });
+    if (!confirmed) return;
+    const response = await fetch(`/api/heroes/${id}`, { method: "DELETE" });
+    if (response.ok) setHeroes((previous) => previous.filter((hero) => hero._id !== id));
+  }
 
-  const editHeroPage = (hero) => {
-    setHeroTitle(hero.title);
-    setHeroSubtitle(hero.subtitle);
-    setHeroImage(hero.image || []);
-    setHeroBgImage(hero.bgImage || []);
-    setCtaText(hero.ctaText || "Shop Now");
-    setCtaLink(hero.ctaLink || "/shop/shop");
-    setOrder(hero.order || 0);
-    setStatus(hero.status || "active");
+  function editHero(hero) {
     setEditId(hero._id);
-  };
+    setForm(formFromHero(hero));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
-  const resetForm = () => {
-    setHeroTitle("");
-    setHeroSubtitle("");
-    setHeroImage([]);
-    setHeroBgImage([]);
-    setCtaText("Shop Now");
-    setCtaLink("/shop/shop");
-    setOrder(0);
-    setStatus("active");
+  function resetForm() {
+    setForm(emptyForm);
     setEditId(null);
     setHeroProgress(0);
-    setHeroBgProgress(0);
-    heroImageRef.current.value = null;
-    heroBgImageRef.current.value = null;
-  };
-
-  const prevHero = () =>
-    setCurrentIndex((prev) => (prev === 0 ? heroPages.length - 1 : prev - 1));
-  const nextHero = () =>
-    setCurrentIndex((prev) => (prev === heroPages.length - 1 ? 0 : prev + 1));
-
-  const currentHero = heroPages[currentIndex] || {};
-  const bind = useDrag(
-    ({ down, movement: [mx], direction: [xDir], distance, velocity }) => {
-      if (!down && distance > 100 && velocity > 0.2)
-        xDir < 0 ? nextHero() : prevHero();
-    }
-  );
+    setBgProgress(0);
+    if (heroInputRef.current) heroInputRef.current.value = null;
+    if (bgInputRef.current) bgInputRef.current.value = null;
+  }
 
   return (
     <Layout>
       <div className="page-container">
-        <div className="page-content space-y-8">
-        {/* Hero Carousel */}
-        <div className="relative w-full">
-          {heroPages.length === 0 ? (
-            <p className="text-gray-500 italic text-center">No Hero Pages Yet</p>
-          ) : (
-            <div className="relative rounded-2xl overflow-hidden shadow-xl border border-gray-200">
-              <AnimatePresence mode="wait">
-                {currentHero && (
-                  <motion.section
-                    key={currentHero._id}
-                    {...bind()}
-                    initial={{ opacity: 0, x: 200 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -200 }}
-                    transition={{ duration: 0.5 }}
-                    className="relative w-full h-[420px] flex items-center justify-center bg-gray-200 overflow-hidden rounded-2xl"
-                  >
-                    {/* Background */}
-                    <div className="absolute inset-0 overflow-hidden">
-                      {currentHero.bgImage?.[0]?.full ? (
-                        <img
-                          src={currentHero.bgImage[0].full}
-                          alt="Hero background"
-                          className="w-full h-full object-cover scale-105 blur-sm brightness-95 transition-all duration-700"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gray-200 animate-pulse" />
-                      )}
-                      <div className="absolute inset-0 bg-gray-950/30" />
+        <div className="page-content space-y-6">
+          <div className="page-header">
+            <div>
+              <h1 className="page-title">Hero & Promo Setup</h1>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/manage/promotions" className="btn-action-secondary">Product Promotions</Link>
+              <Link href="/manage/promotions-management" className="btn-action-secondary">Campaign Promotions</Link>
+              <Link href="/manage/campaigns" className="btn-action-secondary">Marketing Campaigns</Link>
+            </div>
+          </div>
+
+          <section className="content-card space-y-5">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold text-gray-900">{editId ? "Edit Banner" : "Create Banner"}</h2>
+              {editId && <button onClick={resetForm} className="btn-action-secondary">Cancel Edit</button>}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Field label="Target System">
+                <select value={form.targetSystem} onChange={(event) => updateForm("targetSystem", event.target.value)} className="form-select">
+                  <option value="ecommerce">E-commerce</option>
+                  <option value="web">Web</option>
+                  <option value="both">Both</option>
+                </select>
+              </Field>
+              <Field label="Banner Source">
+                <select value={form.bannerType} onChange={(event) => selectBannerType(event.target.value)} className="form-select">
+                  <option value="standard">Standard hero</option>
+                  <option value="promotion">Link to promotion</option>
+                  <option value="campaign">Link to campaign</option>
+                </select>
+              </Field>
+              <Field label="Status">
+                <select value={form.status} onChange={(event) => updateForm("status", event.target.value)} className="form-select">
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </Field>
+            </div>
+
+            {form.bannerType === "promotion" && (
+              <Field label="Linked Promotion">
+                <select value={form.linkedPromotion} onChange={(event) => selectPromotion(event.target.value)} className="form-select">
+                  <option value="">Select promotion</option>
+                  {promotions.map((promotion) => (
+                    <option key={promotion._id} value={promotion._id}>
+                      {promotion.name} ({dateLabel(promotion.startDate)} to {promotion.indefinite ? "Indefinite" : dateLabel(promotion.endDate)})
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
+
+            {form.bannerType === "campaign" && (
+              <Field label="Linked Campaign">
+                <select value={form.linkedCampaign} onChange={(event) => selectCampaign(event.target.value)} className="form-select">
+                  <option value="">Select campaign</option>
+                  {campaigns.map((campaign) => (
+                    <option key={campaign._id} value={campaign._id}>
+                      {campaign.name} ({dateLabel(campaign.startDate)} to {dateLabel(campaign.endDate)})
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Field label="Hero Title">
+                <input value={form.title} onChange={(event) => updateForm("title", event.target.value)} className="form-input" placeholder="Hero title" />
+              </Field>
+              <Field label="Hero Subtitle">
+                <input value={form.subtitle} onChange={(event) => updateForm("subtitle", event.target.value)} className="form-input" placeholder="Hero subtitle" />
+              </Field>
+              <Field label="CTA Text">
+                <input value={form.ctaText} onChange={(event) => updateForm("ctaText", event.target.value)} className="form-input" placeholder="Shop Now" />
+              </Field>
+              <Field label="CTA Link">
+                <input value={form.ctaLink} onChange={(event) => updateForm("ctaLink", event.target.value)} className="form-input" placeholder="/shop/shop" />
+              </Field>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Field label="Start Date">
+                <input
+                  type="date"
+                  value={scheduleLocked && selectedPromotion ? toDateInput(selectedPromotion.startDate) : scheduleLocked && selectedCampaign ? toDateInput(selectedCampaign.startDate) : form.startDate}
+                  onChange={(event) => updateForm("startDate", event.target.value)}
+                  disabled={scheduleLocked}
+                  className="form-input disabled:bg-gray-100"
+                />
+              </Field>
+              <Field label="End Date">
+                <input
+                  type="date"
+                  value={scheduleLocked && selectedPromotion ? (selectedPromotion.indefinite ? "" : toDateInput(selectedPromotion.endDate)) : scheduleLocked && selectedCampaign ? toDateInput(selectedCampaign.endDate) : form.endDate}
+                  onChange={(event) => updateForm("endDate", event.target.value)}
+                  disabled={scheduleLocked}
+                  className="form-input disabled:bg-gray-100"
+                />
+              </Field>
+              <Field label="Display Order">
+                <input type="number" value={form.order} onChange={(event) => updateForm("order", Number(event.target.value))} className="form-input" />
+              </Field>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <Uploader
+                label="Hero Image"
+                inputRef={heroInputRef}
+                progress={heroProgress}
+                images={form.image}
+                onUpload={(file) => uploadImage(file, "image", setHeroProgress)}
+                onRemove={(index) => updateForm("image", form.image.filter((_, imageIndex) => imageIndex !== index))}
+              />
+              <Uploader
+                label="Background Image"
+                inputRef={bgInputRef}
+                progress={bgProgress}
+                images={form.bgImage}
+                onUpload={(file) => uploadImage(file, "bgImage", setBgProgress)}
+                onRemove={(index) => updateForm("bgImage", form.bgImage.filter((_, imageIndex) => imageIndex !== index))}
+              />
+            </div>
+
+            <div className="border-t border-gray-200 pt-5 space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-base font-semibold text-gray-900">E-commerce Social Details</h3>
+                <button type="button" onClick={addSocialLink} className="btn-action-secondary">Add Social Link</button>
+              </div>
+              {form.socialLinks.length === 0 ? (
+                <p className="text-sm text-gray-500 italic">No social links added.</p>
+              ) : (
+                <div className="space-y-3">
+                  {form.socialLinks.map((link, index) => (
+                    <div key={index} className="grid grid-cols-1 md:grid-cols-[150px_1fr_1fr_1fr_auto] gap-3 items-center rounded-lg border border-gray-200 p-3">
+                      <select value={link.platform || "Instagram"} onChange={(event) => updateSocialLink(index, "platform", event.target.value)} className="form-select">
+                        {SOCIAL_PLATFORMS.map((platform) => <option key={platform} value={platform}>{platform}</option>)}
+                      </select>
+                      <input value={link.label || ""} onChange={(event) => updateSocialLink(index, "label", event.target.value)} className="form-input" placeholder="Label" />
+                      <input value={link.handle || ""} onChange={(event) => updateSocialLink(index, "handle", event.target.value)} className="form-input" placeholder="Handle" />
+                      <input value={link.url || ""} onChange={(event) => updateSocialLink(index, "url", event.target.value)} className="form-input" placeholder="https://" />
+                      <button type="button" onClick={() => removeSocialLink(index)} className="btn-action-danger">Remove</button>
                     </div>
-
-                    {/* Content */}
-                    <div className="relative flex flex-col md:flex-row items-center justify-between max-w-4xl mx-auto px-6 w-full text-white">
-                      <motion.div
-                        initial={{ opacity: 0, y: 40 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6 }}
-                        className="hidden md:flex flex-1 justify-center md:justify-start"
-                      >
-                        <img
-                          src={
-                            currentHero.image?.[0]?.full ||
-                            "/images/placeholder.PNG"
-                          }
-                          alt="Model"
-                          className="max-w-xs md:max-w-md object-contain drop-shadow-2xl rounded-lg"
-                        />
-                      </motion.div>
-
-                      <motion.div
-                        initial={{ opacity: 0, x: 50 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.6, delay: 0.2 }}
-                        className="flex-1 text-center md:text-left py-6"
-                      >
-                        <h1 className="font-serif text-4xl md:text-5xl font-bold mb-4 leading-tight drop-shadow-lg">
-                          {currentHero.title}
-                        </h1>
-                        <p className="text-lg md:text-xl mb-8 text-white max-w-xl mx-auto md:mx-0 leading-relaxed">
-                          {currentHero.subtitle}
-                        </p>
-                        <div className="mt-4">
-                          <a
-                            href="#"
-                            className="px-8 py-3 rounded-full bg-cyan-700 text-white font-semibold shadow-lg hover:bg-cyan-800 transition-all"
-                          >
-                            {currentHero.ctaText}
-                          </a>
-                        </div>
-                      </motion.div>
-                    </div>
-
-                    {/* Controls */}
-                    {heroPages.length > 1 && (
-                      <>
-                        <button
-                          onClick={prevHero}
-                          className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-cyan-100 text-cyan-700 rounded-full p-3 shadow-md transition"
-                        >
-                          &#8592;
-                        </button>
-                        <button
-                          onClick={nextHero}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-cyan-100 text-cyan-700 rounded-full p-3 shadow-md transition"
-                        >
-                          &#8594;
-                        </button>
-                      </>
-                    )}
-
-                    {/* Actions */}
-                    <div className="absolute top-4 right-4 flex space-x-2">
-                      <button
-                        onClick={() => editHeroPage(currentHero)}
-                        className="px-3 py-1 bg-cyan-600 text-white rounded hover:bg-cyan-700 text-sm transition"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => removeHeroPage(currentHero._id)}
-                        className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </motion.section>
-                )}
-              </AnimatePresence>
-            </div>
-          )}
-        </div>
-
-        {/* Add/Edit Form */}
-        <div className="w-full flex flex-col lg:flex-row items-start justify-center gap-6">
-          <div className="content-card space-y-5 w-full lg:w-1/2">
-            <h2 className="text-lg font-semibold text-gray-900">
-              {editId ? "Edit Hero" : "Add New Hero"}
-            </h2>
-
-            <div className="form-group">
-              <input
-                type="text"
-                value={heroTitle}
-                onChange={(e) => setHeroTitle(e.target.value)}
-                placeholder="Hero Title"
-                className="form-input min-h-[80px]"
-              />
-            </div>
-
-            <div className="form-group">
-              <input
-                type="text"
-                value={heroSubtitle}
-                onChange={(e) => setHeroSubtitle(e.target.value)}
-                placeholder="Hero Subtitle"
-                className="form-input"
-              />
-            </div>
-
-            <div className="form-group">
-              <input
-                type="text"
-                value={ctaText}
-                onChange={(e) => setCtaText(e.target.value)}
-                placeholder="CTA Text"
-                className="form-input"
-              />
-            </div>
-
-            <div className="form-group">
-              <input
-                type="text"
-                value={ctaLink}
-                onChange={(e) => setCtaLink(e.target.value)}
-                placeholder="CTA Link"
-                className="form-input"
-              />
-            </div>
-
-            <div className="form-group">
-              <input
-                type="number"
-                value={order}
-                onChange={(e) => setOrder(Number(e.target.value))}
-                placeholder="Order"
-                className="form-input"
-              />
-            </div>
-
-            <div className="form-group">
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="form-select"
-              >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </div>
-
-            {/* Upload Sections */}
-            {renderUploader("Hero Image", heroImageRef, handleHeroImageChange, heroProgress, heroImage, setHeroImage)}
-            {renderUploader("Background Image", heroBgImageRef, handleBgImageChange, heroBgProgress, heroBgImage, setHeroBgImage)}
-
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={addOrUpdateHeroPage}
-                disabled={uploading}
-                className={`btn-action-primary ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                {uploading ? "Saving..." : editId ? "Update Hero" : "Add Hero"}
-              </button>
-
-              {editId && (
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="btn-action-secondary"
-                >
-                  Cancel
-                </button>
+                  ))}
+                </div>
               )}
             </div>
-          </div>
 
-          <div className="content-card w-full lg:w-1/2">
-            <PromotionManagement />
-          </div>
-        </div>
+            <button onClick={saveHero} disabled={saving} className={`btn-action-primary ${saving ? "opacity-50" : ""}`}>
+              {saving ? "Saving..." : editId ? "Update Banner" : "Save Banner"}
+            </button>
+          </section>
+
+          <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {heroes.length === 0 ? (
+              <div className="content-card text-center py-10 text-gray-500 italic">No hero banners stored yet.</div>
+            ) : heroes.map((hero) => (
+              <HeroCard key={hero._id} hero={hero} onEdit={editHero} onDelete={deleteHero} />
+            ))}
+          </section>
         </div>
       </div>
     </Layout>
   );
 }
 
-function renderUploader(label, ref, handleChange, progress, images, setImages) {
+function Field({ label, children }) {
   return (
-    <div className="form-group">
+    <label className="form-group">
       <span className="form-label">{label}</span>
-      <button
-        type="button"
-        onClick={() => ref.current?.click()}
-        className="btn-action-secondary"
-      >
-        Upload {label}
-      </button>
-      <input
-        type="file"
-        ref={ref}
-        onChange={(e) => {
-          const file = e.target.files[0];
-          if (file) handleChange(file);
-        }}
-        className="hidden"
-      />
+      {children}
+    </label>
+  );
+}
+
+function Uploader({ label, inputRef, progress, images, onUpload, onRemove }) {
+  return (
+    <div className="form-group rounded-lg border border-gray-200 p-4">
+      <span className="form-label">{label}</span>
+      <button type="button" onClick={() => inputRef.current?.click()} className="btn-action-secondary">Upload {label}</button>
+      <input type="file" ref={inputRef} onChange={(event) => onUpload(event.target.files[0])} className="hidden" />
       {progress > 0 && progress < 100 && (
-        <div className="theme-progress-track w-full h-2 mt-2">
-          <div
-            className="theme-progress-fill h-2 rounded-full transition-all"
-            style={{ width: `${progress}%` }}
-          />
+        <div className="theme-progress-track w-full h-2 mt-3">
+          <div className="theme-progress-fill h-2 rounded-full transition-all" style={{ width: `${progress}%` }} />
         </div>
       )}
-      <div className="flex flex-wrap gap-2 mt-2">
-        {images.map((img, idx) => (
-          <div key={idx} className="relative">
-            <img
-              src={img.full}
-              alt={label}
-              className="w-20 h-20 object-cover rounded-lg border border-gray-200 shadow"
-            />
-            <button
-              type="button"
-              onClick={() => setImages((prev) => prev.filter((_, i) => i !== idx))}
-              className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center active:scale-95 transition-transform"
-            >
-              ✕
-            </button>
+      <div className="flex flex-wrap gap-3 mt-3">
+        {images.map((image, index) => (
+          <div key={index} className="relative pr-12 pt-2">
+            <img src={image.full} alt={label} className="w-24 h-24 object-cover rounded-lg border border-gray-200" />
+            <button type="button" onClick={() => onRemove(index)} className="absolute right-0 top-0 rounded bg-red-600 px-2 py-1 text-xs text-white">Remove</button>
           </div>
         ))}
       </div>
@@ -493,3 +530,36 @@ function renderUploader(label, ref, handleChange, progress, images, setImages) {
   );
 }
 
+function HeroCard({ hero, onEdit, onDelete }) {
+  const period = scheduleFor(hero);
+  const image = hero.bgImage?.[0]?.full || hero.image?.[0]?.full;
+  const socialCount = (hero.socialLinks || []).filter((link) => link.active !== false).length;
+
+  return (
+    <article className="content-card overflow-hidden p-0">
+      <div className="relative min-h-[220px] bg-gray-900">
+        {image && <img src={image} alt={hero.title} className="absolute inset-0 h-full w-full object-cover opacity-70" />}
+        <div className="relative p-5 text-white">
+          <div className="mb-4 flex flex-wrap gap-2 text-xs font-semibold">
+            <span className="rounded-full bg-white/90 px-3 py-1 text-gray-800 capitalize">{hero.targetSystem}</span>
+            <span className="rounded-full bg-white/90 px-3 py-1 text-gray-800 capitalize">{hero.bannerType}</span>
+            <span className="rounded-full bg-white/90 px-3 py-1 text-gray-800">{scheduleState(hero)}</span>
+          </div>
+          <p className="text-xs uppercase tracking-wide text-white/80">{linkedLabel(hero)}</p>
+          <h2 className="mt-1 text-2xl font-bold">{hero.title}</h2>
+          <p className="mt-2 max-w-xl text-sm text-white/90">{hero.subtitle}</p>
+          <p className="mt-4 text-xs text-white/80">
+            {dateLabel(period.startDate)} to {period.indefinite ? "Indefinite" : dateLabel(period.endDate)} / {socialCount} social link{socialCount === 1 ? "" : "s"}
+          </p>
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-3 p-4">
+        <span className="text-sm text-gray-600">Order #{hero.order || 0}</span>
+        <div className="flex gap-2">
+          <button type="button" onClick={() => onEdit(hero)} className="btn-action-secondary">Edit</button>
+          <button type="button" onClick={() => onDelete(hero._id)} className="btn-action-danger">Delete</button>
+        </div>
+      </div>
+    </article>
+  );
+}

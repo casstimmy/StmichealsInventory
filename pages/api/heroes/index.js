@@ -1,17 +1,122 @@
 import { mongooseConnect } from "@/lib/mongodb";
 import Hero from "@/models/Hero";
+import "@/models/Campaign";
+import "@/models/Promotion";
+
+function normalizeSocialLinks(links) {
+  if (!Array.isArray(links)) return [];
+  return links
+    .map((link, index) => ({
+      platform: String(link?.platform || "").trim(),
+      label: String(link?.label || "").trim(),
+      handle: String(link?.handle || "").trim(),
+      url: String(link?.url || "").trim(),
+      active: link?.active !== false,
+      order: Number.isFinite(Number(link?.order)) ? Number(link.order) : index,
+    }))
+    .filter((link) => link.platform && (link.url || link.handle));
+}
+
+function parseScheduleDate(value, endOfDay = false) {
+  if (!value) return null;
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split("-").map(Number);
+    return new Date(Date.UTC(year, month - 1, day, endOfDay ? 23 : 0, endOfDay ? 59 : 0, endOfDay ? 59 : 0, endOfDay ? 999 : 0));
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  if (endOfDay && date.getUTCHours() === 0 && date.getUTCMinutes() === 0 && date.getUTCSeconds() === 0 && date.getUTCMilliseconds() === 0) {
+    date.setUTCHours(23, 59, 59, 999);
+  }
+  return date;
+}
+
+function buildHeroPayload(body) {
+  const bannerType = ["standard", "promotion", "campaign"].includes(body.bannerType)
+    ? body.bannerType
+    : "standard";
+
+  return {
+    title: body.title,
+    subtitle: body.subtitle,
+    image: body.image,
+    bgImage: body.bgImage,
+    ctaText: body.ctaText,
+    ctaLink: body.ctaLink,
+    targetSystem: ["ecommerce", "web", "both"].includes(body.targetSystem)
+      ? body.targetSystem
+      : "ecommerce",
+    bannerType,
+    linkedPromotion: bannerType === "promotion" && body.linkedPromotion ? body.linkedPromotion : null,
+    linkedCampaign: bannerType === "campaign" && body.linkedCampaign ? body.linkedCampaign : null,
+    startDate: parseScheduleDate(body.startDate),
+    endDate: parseScheduleDate(body.endDate, true),
+    socialLinks: normalizeSocialLinks(body.socialLinks),
+    order: body.order,
+    status: body.status,
+  };
+}
+
+function activeHeroQuery(system) {
+  const query = {
+    status: "active",
+  };
+
+  if (["ecommerce", "web"].includes(system)) {
+    query.targetSystem = { $in: [system, "both"] };
+  }
+
+  return query;
+}
+
+function isDateInRange(startDate, endDate, now) {
+  const startsAt = parseScheduleDate(startDate);
+  const endsAt = parseScheduleDate(endDate, true);
+  const startsOk = !startsAt || startsAt <= now;
+  const endsOk = !endsAt || endsAt >= now;
+  return startsOk && endsOk;
+}
+
+function isLinkedScheduleActive(hero, now) {
+  if (hero.bannerType === "promotion") {
+    const promotion = hero.linkedPromotion;
+    if (!promotion || promotion.active === false) return false;
+    return promotion.indefinite || isDateInRange(promotion.startDate, promotion.endDate, now);
+  }
+
+  if (hero.bannerType === "campaign") {
+    const campaign = hero.linkedCampaign;
+    if (!campaign || campaign.active === false) return false;
+    return isDateInRange(campaign.startDate, campaign.endDate, now);
+  }
+
+  return isDateInRange(hero.startDate, hero.endDate, now);
+}
 
 export default async function handler(req, res) {
   await mongooseConnect();
 
   try {
     if (req.method === "GET") {
-      const heroes = await Hero.find().sort({ order: 1, createdAt: -1 });
+      const { activeOnly, system } = req.query;
+      const query = activeOnly === "true" ? activeHeroQuery(system) : {};
+      let heroes = await Hero.find(query)
+        .populate("linkedPromotion", "name description valueType discountType discountValue startDate endDate indefinite active")
+        .populate("linkedCampaign", "name description discount startDate endDate active")
+        .sort({ order: 1, createdAt: -1 });
+
+      if (activeOnly === "true") {
+        const now = new Date();
+        heroes = heroes.filter((hero) => isLinkedScheduleActive(hero, now));
+      }
+
       return res.json(heroes);
     }
 
     if (req.method === "POST") {
-      const { title, subtitle, image, bgImage, ctaText, ctaLink, order, status } = req.body;
+      const payload = buildHeroPayload(req.body);
+      const { title, image, bgImage, bannerType, linkedPromotion, linkedCampaign } = payload;
 
       if (!title || !Array.isArray(image) || image.length === 0 || !image[0]?.full || !image[0]?.thumb) {
         return res.status(400).json({ error: "Title and at least one Hero Image (full + thumb) are required" });
@@ -21,7 +126,17 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "Background image must include full + thumb" });
       }
 
-      const hero = await Hero.create({ title, subtitle, image, bgImage, ctaText, ctaLink, order, status });
+      if (bannerType === "promotion" && !linkedPromotion) {
+        return res.status(400).json({ error: "Select a promotion to link this banner" });
+      }
+
+      if (bannerType === "campaign" && !linkedCampaign) {
+        return res.status(400).json({ error: "Select a campaign to link this banner" });
+      }
+
+      const hero = await Hero.create(payload);
+      await hero.populate("linkedPromotion", "name description valueType discountType discountValue startDate endDate indefinite active");
+      await hero.populate("linkedCampaign", "name description discount startDate endDate active");
       return res.status(201).json(hero);
     }
 

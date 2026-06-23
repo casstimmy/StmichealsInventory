@@ -50,7 +50,7 @@ function buildHeroPayload(body) {
     : "standard";
   const usesPromotionRecord = bannerType === "promotion" || bannerType === "campaign";
 
-  return {
+  const payload = {
     title: body.title,
     subtitle: body.subtitle,
     image: body.image,
@@ -65,10 +65,15 @@ function buildHeroPayload(body) {
     linkedCampaign: null,
     startDate: parseScheduleDate(body.startDate),
     endDate: parseScheduleDate(body.endDate, true),
-    socialLinks: normalizeSocialLinks(body.socialLinks),
     order: body.order,
     status: body.status,
   };
+
+  if (Object.prototype.hasOwnProperty.call(body, "socialLinks")) {
+    payload.socialLinks = normalizeSocialLinks(body.socialLinks);
+  }
+
+  return payload;
 }
 
 export default async function handler(req, res) {

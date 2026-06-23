@@ -27,7 +27,6 @@ const emptyForm = {
   linkedCampaign: "",
   startDate: "",
   endDate: "",
-  socialLinks: [],
   order: 0,
   status: "active",
 };
@@ -149,7 +148,6 @@ function formFromHero(hero) {
     linkedCampaign: getRecordId(hero.linkedCampaign),
     startDate: toDateInput(hero.startDate),
     endDate: toDateInput(hero.endDate),
-    socialLinks: Array.isArray(hero.socialLinks) ? hero.socialLinks.map(normalizeSocialLink) : [],
     order: hero.order || 0,
     status: hero.status || "active",
   };
@@ -161,6 +159,8 @@ export default function HeroPromoSetup() {
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [socialLinks, setSocialLinks] = useState([]);
+  const [savingSocials, setSavingSocials] = useState(false);
   const [heroProgress, setHeroProgress] = useState(0);
   const [bgProgress, setBgProgress] = useState(0);
   const heroInputRef = useRef(null);
@@ -181,9 +181,10 @@ export default function HeroPromoSetup() {
   }, []);
 
   async function loadData() {
-    const [heroRes, promotionRes] = await Promise.allSettled([
+    const [heroRes, promotionRes, socialRes] = await Promise.allSettled([
       fetch("/api/heroes"),
       fetch("/api/promotions"),
+      fetch("/api/site-social-links"),
     ]);
 
     if (heroRes.status === "fulfilled" && heroRes.value.ok) {
@@ -193,6 +194,10 @@ export default function HeroPromoSetup() {
     if (promotionRes.status === "fulfilled" && promotionRes.value.ok) {
       const data = await promotionRes.value.json();
       setPromotions(Array.isArray(data.promotions) ? data.promotions : []);
+    }
+    if (socialRes.status === "fulfilled" && socialRes.value.ok) {
+      const data = await socialRes.value.json();
+      setSocialLinks(Array.isArray(data.socialLinks) ? data.socialLinks.map(normalizeSocialLink) : []);
     }
   }
 
@@ -258,29 +263,45 @@ export default function HeroPromoSetup() {
   }
 
   function addSocialLink() {
-    setForm((previous) => ({
+    setSocialLinks((previous) => [
       ...previous,
-      socialLinks: [
-        ...previous.socialLinks,
-        normalizeSocialLink({ platform: "Instagram", scope: previous.targetSystem === "web" ? "hotel" : "warehouse" }, previous.socialLinks.length),
-      ],
-    }));
+      normalizeSocialLink({ platform: "Instagram", scope: "warehouse" }, previous.length),
+    ]);
   }
 
   function updateSocialLink(index, field, value) {
-    setForm((previous) => ({
-      ...previous,
-      socialLinks: previous.socialLinks.map((link, linkIndex) =>
+    setSocialLinks((previous) =>
+      previous.map((link, linkIndex) =>
         linkIndex === index ? { ...link, [field]: value } : link
-      ),
-    }));
+      )
+    );
   }
 
   function removeSocialLink(index) {
-    setForm((previous) => ({
-      ...previous,
-      socialLinks: previous.socialLinks.filter((_, linkIndex) => linkIndex !== index),
-    }));
+    setSocialLinks((previous) => previous.filter((_, linkIndex) => linkIndex !== index));
+  }
+
+  async function saveSocialLinks() {
+    setSavingSocials(true);
+    try {
+      const response = await fetch("/api/site-social-links", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ socialLinks: socialLinks.map(normalizeSocialLink) }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Social media save failed");
+      setSocialLinks(Array.isArray(result.socialLinks) ? result.socialLinks.map(normalizeSocialLink) : []);
+      await showAlertDialog({
+        title: "Social media saved",
+        message: "Social media links are now saved independently from hero banners.",
+        tone: "success",
+      });
+    } catch (error) {
+      await showAlertDialog({ title: "Save failed", message: error.message, tone: "danger" });
+    } finally {
+      setSavingSocials(false);
+    }
   }
 
   async function saveHero() {
@@ -310,7 +331,6 @@ export default function HeroPromoSetup() {
       linkedCampaign: null,
       startDate: form.startDate || null,
       endDate: form.endDate || null,
-      socialLinks: form.socialLinks.map(normalizeSocialLink),
       order: form.order,
       status: form.status,
     };
@@ -498,18 +518,23 @@ export default function HeroPromoSetup() {
           </section>
 
           <section className="content-card space-y-4">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">Social Media Details</h2>
                   <p className="mt-1 text-sm text-gray-500">Choose which links show on the warehouse/e-commerce site, the hotel site, or both.</p>
                 </div>
-                <button type="button" onClick={addSocialLink} className="btn-action-secondary">Add Social Link</button>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={addSocialLink} className="btn-action-secondary">Add Social Link</button>
+                  <button type="button" onClick={saveSocialLinks} disabled={savingSocials} className={`btn-action-primary ${savingSocials ? "opacity-50" : ""}`}>
+                    {savingSocials ? "Saving..." : "Save Social Details"}
+                  </button>
+                </div>
               </div>
-              {form.socialLinks.length === 0 ? (
+              {socialLinks.length === 0 ? (
                 <p className="text-sm text-gray-500 italic">No social links added.</p>
               ) : (
                 <div className="space-y-3">
-                  {form.socialLinks.map((link, index) => (
+                  {socialLinks.map((link, index) => (
                     <div key={index} className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 p-3 lg:grid-cols-[150px_170px_1fr_1fr_1.2fr_auto_auto] lg:items-center">
                       <select value={link.platform || "Instagram"} onChange={(event) => updateSocialLink(index, "platform", event.target.value)} className="form-select">
                         {SOCIAL_PLATFORMS.map((platform) => <option key={platform} value={platform}>{platform}</option>)}
@@ -584,7 +609,6 @@ function Uploader({ label, inputRef, progress, images, onUpload, onRemove }) {
 function HeroCard({ hero, onEdit, onDelete }) {
   const period = scheduleFor(hero);
   const image = hero.bgImage?.[0]?.full || hero.image?.[0]?.full;
-  const socialCount = (hero.socialLinks || []).filter((link) => link.active !== false).length;
 
   return (
     <article className="content-card overflow-hidden p-0">
@@ -600,7 +624,7 @@ function HeroCard({ hero, onEdit, onDelete }) {
           <h2 className="mt-1 text-2xl font-bold">{hero.title}</h2>
           <p className="mt-2 max-w-xl text-sm text-white/90">{hero.subtitle}</p>
           <p className="mt-4 text-xs text-white/80">
-            {dateLabel(period.startDate)} to {period.indefinite ? "Indefinite" : dateLabel(period.endDate)} / {socialCount} social link{socialCount === 1 ? "" : "s"}
+            {dateLabel(period.startDate)} to {period.indefinite ? "Indefinite" : dateLabel(period.endDate)}
           </p>
         </div>
       </div>

@@ -5,6 +5,15 @@ import "@/models/Campaign";
 import "@/models/Promotion";
 import { deleteProductImages } from "@/lib/s3";
 
+const SOCIAL_SCOPES = new Set(["warehouse", "hotel", "both"]);
+
+function normalizeSocialScope(value) {
+  const scope = String(value || "").trim().toLowerCase();
+  if (scope === "ecommerce" || scope === "store") return "warehouse";
+  if (scope === "web" || scope === "all") return "both";
+  return SOCIAL_SCOPES.has(scope) ? scope : "warehouse";
+}
+
 function normalizeSocialLinks(links) {
   if (!Array.isArray(links)) return [];
   return links
@@ -13,6 +22,7 @@ function normalizeSocialLinks(links) {
       label: String(link?.label || "").trim(),
       handle: String(link?.handle || "").trim(),
       url: String(link?.url || "").trim(),
+      scope: normalizeSocialScope(link?.scope),
       active: link?.active !== false,
       order: Number.isFinite(Number(link?.order)) ? Number(link.order) : index,
     }))
@@ -38,6 +48,7 @@ function buildHeroPayload(body) {
   const bannerType = ["standard", "promotion", "campaign"].includes(body.bannerType)
     ? body.bannerType
     : "standard";
+  const usesPromotionRecord = bannerType === "promotion" || bannerType === "campaign";
 
   return {
     title: body.title,
@@ -50,8 +61,8 @@ function buildHeroPayload(body) {
       ? body.targetSystem
       : "ecommerce",
     bannerType,
-    linkedPromotion: bannerType === "promotion" && body.linkedPromotion ? body.linkedPromotion : null,
-    linkedCampaign: bannerType === "campaign" && body.linkedCampaign ? body.linkedCampaign : null,
+    linkedPromotion: usesPromotionRecord && body.linkedPromotion ? body.linkedPromotion : null,
+    linkedCampaign: null,
     startDate: parseScheduleDate(body.startDate),
     endDate: parseScheduleDate(body.endDate, true),
     socialLinks: normalizeSocialLinks(body.socialLinks),
@@ -80,7 +91,7 @@ export default async function handler(req, res) {
 
     if (req.method === "PUT") {
       const payload = buildHeroPayload(req.body);
-      const { title, image, bgImage, bannerType, linkedPromotion, linkedCampaign } = payload;
+      const { title, image, bgImage, bannerType, linkedPromotion } = payload;
 
       // ✅ validate required fields
       if (!title || !Array.isArray(image) || image.length === 0 || !image[0]?.full || !image[0]?.thumb) {
@@ -91,12 +102,8 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "Background image must include full + thumb" });
       }
 
-      if (bannerType === "promotion" && !linkedPromotion) {
+      if ((bannerType === "promotion" || bannerType === "campaign") && !linkedPromotion) {
         return res.status(400).json({ error: "Select a promotion to link this banner" });
-      }
-
-      if (bannerType === "campaign" && !linkedCampaign) {
-        return res.status(400).json({ error: "Select a campaign to link this banner" });
       }
 
       // Fetch existing hero to detect removed images

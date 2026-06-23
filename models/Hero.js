@@ -6,6 +6,7 @@ const SocialLinkSchema = new Schema(
     label: { type: String },
     handle: { type: String },
     url: { type: String },
+    scope: { type: String, enum: ["warehouse", "hotel", "both"], default: "warehouse" },
     active: { type: Boolean, default: true },
     order: { type: Number, default: 0 },
   },
@@ -53,6 +54,7 @@ const HeroSchema = new Schema(
 
 HeroSchema.index({ targetSystem: 1, status: 1, order: 1 });
 HeroSchema.index({ bannerType: 1, linkedPromotion: 1, linkedCampaign: 1 });
+HeroSchema.index({ "socialLinks.scope": 1, "socialLinks.active": 1 });
 
 const Hero = models.Hero || mongoose.model("Hero", HeroSchema);
 

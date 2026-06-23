@@ -7,6 +7,12 @@ import Layout from "@/components/Layout";
 import { showAlertDialog, showConfirmDialog } from "@/lib/dialogs";
 
 const SOCIAL_PLATFORMS = ["Instagram", "Facebook", "TikTok", "X", "YouTube", "WhatsApp", "LinkedIn", "Website"];
+const SOCIAL_SCOPES = [
+  { value: "warehouse", label: "Warehouse / E-commerce" },
+  { value: "hotel", label: "Hotel" },
+  { value: "both", label: "Both" },
+];
+const PROMOTION_BANNER_TYPES = new Set(["promotion", "campaign"]);
 
 const emptyForm = {
   title: "",
@@ -14,7 +20,7 @@ const emptyForm = {
   image: [],
   bgImage: [],
   ctaText: "Shop Now",
-  ctaLink: "/shop/shop",
+  ctaLink: "/store/products",
   targetSystem: "ecommerce",
   bannerType: "standard",
   linkedPromotion: "",
@@ -49,15 +55,60 @@ function normalizeHero(hero) {
     ...hero,
     image: Array.isArray(hero.image) ? hero.image : [],
     bgImage: Array.isArray(hero.bgImage) ? hero.bgImage : [],
-    socialLinks: Array.isArray(hero.socialLinks) ? hero.socialLinks : [],
+    socialLinks: Array.isArray(hero.socialLinks) ? hero.socialLinks.map(normalizeSocialLink) : [],
     targetSystem: hero.targetSystem || "ecommerce",
     bannerType: hero.bannerType || "standard",
   };
 }
 
+function normalizeSocialScope(value) {
+  const scope = String(value || "").trim().toLowerCase();
+  if (scope === "ecommerce" || scope === "store") return "warehouse";
+  if (scope === "web" || scope === "all") return "both";
+  return SOCIAL_SCOPES.some((option) => option.value === scope) ? scope : "warehouse";
+}
+
+function normalizeSocialLink(link, index = 0) {
+  return {
+    platform: link?.platform || "Instagram",
+    label: link?.label || "",
+    handle: link?.handle || "",
+    url: link?.url || "",
+    scope: normalizeSocialScope(link?.scope),
+    active: link?.active !== false,
+    order: Number.isFinite(Number(link?.order)) ? Number(link.order) : index,
+  };
+}
+
+function isPromotionBannerType(type) {
+  return PROMOTION_BANNER_TYPES.has(type);
+}
+
+function isPromotionActive(promotion) {
+  if (!promotion || promotion.active === false) return false;
+  const now = new Date();
+  const startsAt = promotion.startDate ? new Date(promotion.startDate) : null;
+  const endsAt = promotion.endDate ? new Date(promotion.endDate) : null;
+  if (endsAt && endsAt.getUTCHours() === 0 && endsAt.getUTCMinutes() === 0 && endsAt.getUTCSeconds() === 0 && endsAt.getUTCMilliseconds() === 0) {
+    endsAt.setUTCHours(23, 59, 59, 999);
+  }
+  if (startsAt && startsAt > now) return false;
+  if (!promotion.indefinite && endsAt && endsAt < now) return false;
+  return true;
+}
+
+function promotionCtaLabel(type) {
+  return type === "campaign" ? "Shop Campaign" : "Shop Promotion";
+}
+
+function buildPromotionCtaLink(promotionId, targetSystem) {
+  const basePath = targetSystem === "web" ? "/hotel/products" : "/store/products";
+  return promotionId ? `${basePath}?promotion=${promotionId}` : basePath;
+}
+
 function linkedRecord(hero) {
   if (hero.bannerType === "promotion") return hero.linkedPromotion;
-  if (hero.bannerType === "campaign") return hero.linkedCampaign;
+  if (hero.bannerType === "campaign") return hero.linkedPromotion || hero.linkedCampaign;
   return null;
 }
 
@@ -91,14 +142,14 @@ function formFromHero(hero) {
     image: hero.image || [],
     bgImage: hero.bgImage || [],
     ctaText: hero.ctaText || "Shop Now",
-    ctaLink: hero.ctaLink || "/shop/shop",
+    ctaLink: hero.ctaLink || "/store/products",
     targetSystem: hero.targetSystem || "ecommerce",
     bannerType: hero.bannerType || "standard",
     linkedPromotion: getRecordId(hero.linkedPromotion),
     linkedCampaign: getRecordId(hero.linkedCampaign),
     startDate: toDateInput(hero.startDate),
     endDate: toDateInput(hero.endDate),
-    socialLinks: hero.socialLinks || [],
+    socialLinks: Array.isArray(hero.socialLinks) ? hero.socialLinks.map(normalizeSocialLink) : [],
     order: hero.order || 0,
     status: hero.status || "active",
   };
@@ -107,7 +158,6 @@ function formFromHero(hero) {
 export default function HeroPromoSetup() {
   const [heroes, setHeroes] = useState([]);
   const [promotions, setPromotions] = useState([]);
-  const [campaigns, setCampaigns] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -120,21 +170,20 @@ export default function HeroPromoSetup() {
     () => promotions.find((promotion) => promotion._id === form.linkedPromotion),
     [promotions, form.linkedPromotion]
   );
-  const selectedCampaign = useMemo(
-    () => campaigns.find((campaign) => campaign._id === form.linkedCampaign),
-    [campaigns, form.linkedCampaign]
+  const activePromotions = useMemo(
+    () => promotions.filter(isPromotionActive),
+    [promotions]
   );
-  const scheduleLocked = form.bannerType !== "standard";
+  const scheduleLocked = isPromotionBannerType(form.bannerType);
 
   useEffect(() => {
     loadData();
   }, []);
 
   async function loadData() {
-    const [heroRes, promotionRes, campaignRes] = await Promise.allSettled([
+    const [heroRes, promotionRes] = await Promise.allSettled([
       fetch("/api/heroes"),
       fetch("/api/promotions"),
-      fetch("/api/campaigns"),
     ]);
 
     if (heroRes.status === "fulfilled" && heroRes.value.ok) {
@@ -145,14 +194,16 @@ export default function HeroPromoSetup() {
       const data = await promotionRes.value.json();
       setPromotions(Array.isArray(data.promotions) ? data.promotions : []);
     }
-    if (campaignRes.status === "fulfilled" && campaignRes.value.ok) {
-      const data = await campaignRes.value.json();
-      setCampaigns(Array.isArray(data.campaigns) ? data.campaigns : []);
-    }
   }
 
   function updateForm(field, value) {
-    setForm((previous) => ({ ...previous, [field]: value }));
+    setForm((previous) => {
+      const next = { ...previous, [field]: value };
+      if (field === "targetSystem" && isPromotionBannerType(previous.bannerType) && previous.linkedPromotion) {
+        next.ctaLink = buildPromotionCtaLink(previous.linkedPromotion, value);
+      }
+      return next;
+    });
   }
 
   async function uploadImage(file, field, setProgress) {
@@ -185,7 +236,7 @@ export default function HeroPromoSetup() {
       linkedPromotion: "",
       linkedCampaign: "",
       ctaText: value === "standard" ? "Shop Now" : previous.ctaText,
-      ctaLink: value === "standard" ? "/shop/shop" : previous.ctaLink,
+      ctaLink: value === "standard" ? "/store/products" : buildPromotionCtaLink("", previous.targetSystem),
       startDate: value === "standard" ? previous.startDate : "",
       endDate: value === "standard" ? previous.endDate : "",
     }));
@@ -199,25 +250,10 @@ export default function HeroPromoSetup() {
       linkedCampaign: "",
       title: previous.title || promotion?.name || "",
       subtitle: previous.subtitle || promotion?.description || "",
-      ctaText: "Shop Promotion",
-      ctaLink: id ? `/shop/shop?promotion=${id}` : previous.ctaLink,
+      ctaText: promotionCtaLabel(previous.bannerType),
+      ctaLink: buildPromotionCtaLink(id, previous.targetSystem),
       startDate: toDateInput(promotion?.startDate),
       endDate: promotion?.indefinite ? "" : toDateInput(promotion?.endDate),
-    }));
-  }
-
-  function selectCampaign(id) {
-    const campaign = campaigns.find((item) => item._id === id);
-    setForm((previous) => ({
-      ...previous,
-      linkedCampaign: id,
-      linkedPromotion: "",
-      title: previous.title || campaign?.name || "",
-      subtitle: previous.subtitle || campaign?.description || "",
-      ctaText: "View Campaign",
-      ctaLink: id ? `/shop/shop?campaign=${id}` : previous.ctaLink,
-      startDate: toDateInput(campaign?.startDate),
-      endDate: toDateInput(campaign?.endDate),
     }));
   }
 
@@ -226,7 +262,7 @@ export default function HeroPromoSetup() {
       ...previous,
       socialLinks: [
         ...previous.socialLinks,
-        { platform: "Instagram", label: "", handle: "", url: "", active: true, order: previous.socialLinks.length },
+        normalizeSocialLink({ platform: "Instagram", scope: previous.targetSystem === "web" ? "hotel" : "warehouse" }, previous.socialLinks.length),
       ],
     }));
   }
@@ -252,12 +288,12 @@ export default function HeroPromoSetup() {
       await showAlertDialog({ title: "Missing hero details", message: "Title and Hero Image are required.", tone: "warning" });
       return;
     }
-    if (form.bannerType === "promotion" && !form.linkedPromotion) {
-      await showAlertDialog({ title: "Missing linked promotion", message: "Select a promotion for this banner.", tone: "warning" });
-      return;
-    }
-    if (form.bannerType === "campaign" && !form.linkedCampaign) {
-      await showAlertDialog({ title: "Missing linked campaign", message: "Select a campaign for this banner.", tone: "warning" });
+    if (isPromotionBannerType(form.bannerType) && !form.linkedPromotion) {
+      await showAlertDialog({
+        title: "Missing linked promotion",
+        message: "Select an active promotion or campaign promotion for this banner.",
+        tone: "warning",
+      });
       return;
     }
 
@@ -270,11 +306,11 @@ export default function HeroPromoSetup() {
       ctaLink: form.ctaLink,
       targetSystem: form.targetSystem,
       bannerType: form.bannerType,
-      linkedPromotion: form.bannerType === "promotion" ? form.linkedPromotion : null,
-      linkedCampaign: form.bannerType === "campaign" ? form.linkedCampaign : null,
+      linkedPromotion: isPromotionBannerType(form.bannerType) ? form.linkedPromotion : null,
+      linkedCampaign: null,
       startDate: form.startDate || null,
       endDate: form.endDate || null,
-      socialLinks: form.socialLinks,
+      socialLinks: form.socialLinks.map(normalizeSocialLink),
       order: form.order,
       status: form.status,
     };
@@ -303,7 +339,7 @@ export default function HeroPromoSetup() {
   async function deleteHero(id) {
     const confirmed = await showConfirmDialog({
       title: "Delete hero banner?",
-      message: "This removes only the banner setup. Linked promotions and campaigns stay intact.",
+      message: "This removes only the banner setup. Linked promotions stay intact.",
       tone: "danger",
       confirmLabel: "Delete banner",
       cancelLabel: "Keep banner",
@@ -339,7 +375,6 @@ export default function HeroPromoSetup() {
             <div className="flex flex-wrap gap-2">
               <Link href="/manage/promotions" className="btn-action-secondary">Product Promotions</Link>
               <Link href="/manage/promotions-management" className="btn-action-secondary">Campaign Promotions</Link>
-              <Link href="/manage/campaigns" className="btn-action-secondary">Marketing Campaigns</Link>
             </div>
           </div>
 
@@ -361,7 +396,7 @@ export default function HeroPromoSetup() {
                 <select value={form.bannerType} onChange={(event) => selectBannerType(event.target.value)} className="form-select">
                   <option value="standard">Standard hero</option>
                   <option value="promotion">Link to promotion</option>
-                  <option value="campaign">Link to campaign</option>
+                  <option value="campaign">Link to campaign promotion</option>
                 </select>
               </Field>
               <Field label="Status">
@@ -372,26 +407,13 @@ export default function HeroPromoSetup() {
               </Field>
             </div>
 
-            {form.bannerType === "promotion" && (
-              <Field label="Linked Promotion">
+            {isPromotionBannerType(form.bannerType) && (
+              <Field label={form.bannerType === "campaign" ? "Active Campaign Promotion" : "Active Promotion"}>
                 <select value={form.linkedPromotion} onChange={(event) => selectPromotion(event.target.value)} className="form-select">
-                  <option value="">Select promotion</option>
-                  {promotions.map((promotion) => (
+                  <option value="">Select active promotion</option>
+                  {activePromotions.map((promotion) => (
                     <option key={promotion._id} value={promotion._id}>
                       {promotion.name} ({dateLabel(promotion.startDate)} to {promotion.indefinite ? "Indefinite" : dateLabel(promotion.endDate)})
-                    </option>
-                  ))}
-                </select>
-              </Field>
-            )}
-
-            {form.bannerType === "campaign" && (
-              <Field label="Linked Campaign">
-                <select value={form.linkedCampaign} onChange={(event) => selectCampaign(event.target.value)} className="form-select">
-                  <option value="">Select campaign</option>
-                  {campaigns.map((campaign) => (
-                    <option key={campaign._id} value={campaign._id}>
-                      {campaign.name} ({dateLabel(campaign.startDate)} to {dateLabel(campaign.endDate)})
                     </option>
                   ))}
                 </select>
@@ -409,7 +431,18 @@ export default function HeroPromoSetup() {
                 <input value={form.ctaText} onChange={(event) => updateForm("ctaText", event.target.value)} className="form-input" placeholder="Shop Now" />
               </Field>
               <Field label="CTA Link">
-                <input value={form.ctaLink} onChange={(event) => updateForm("ctaLink", event.target.value)} className="form-input" placeholder="/shop/shop" />
+                {isPromotionBannerType(form.bannerType) ? (
+                  <select value={form.ctaLink} onChange={(event) => updateForm("ctaLink", event.target.value)} className="form-select">
+                    <option value={buildPromotionCtaLink("", form.targetSystem)}>Product list</option>
+                    {activePromotions.map((promotion) => (
+                      <option key={promotion._id} value={buildPromotionCtaLink(promotion._id, form.targetSystem)}>
+                        {promotion.name} product list
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input value={form.ctaLink} onChange={(event) => updateForm("ctaLink", event.target.value)} className="form-input" placeholder="/store/products" />
+                )}
               </Field>
             </div>
 
@@ -417,7 +450,7 @@ export default function HeroPromoSetup() {
               <Field label="Start Date">
                 <input
                   type="date"
-                  value={scheduleLocked && selectedPromotion ? toDateInput(selectedPromotion.startDate) : scheduleLocked && selectedCampaign ? toDateInput(selectedCampaign.startDate) : form.startDate}
+                  value={scheduleLocked && selectedPromotion ? toDateInput(selectedPromotion.startDate) : form.startDate}
                   onChange={(event) => updateForm("startDate", event.target.value)}
                   disabled={scheduleLocked}
                   className="form-input disabled:bg-gray-100"
@@ -426,7 +459,7 @@ export default function HeroPromoSetup() {
               <Field label="End Date">
                 <input
                   type="date"
-                  value={scheduleLocked && selectedPromotion ? (selectedPromotion.indefinite ? "" : toDateInput(selectedPromotion.endDate)) : scheduleLocked && selectedCampaign ? toDateInput(selectedCampaign.endDate) : form.endDate}
+                  value={scheduleLocked && selectedPromotion ? (selectedPromotion.indefinite ? "" : toDateInput(selectedPromotion.endDate)) : form.endDate}
                   onChange={(event) => updateForm("endDate", event.target.value)}
                   disabled={scheduleLocked}
                   className="form-input disabled:bg-gray-100"
@@ -456,9 +489,20 @@ export default function HeroPromoSetup() {
               />
             </div>
 
-            <div className="border-t border-gray-200 pt-5 space-y-4">
+            <div className="flex flex-wrap items-center gap-3 border-t border-gray-200 pt-5">
+              <button onClick={saveHero} disabled={saving} className={`btn-action-primary ${saving ? "opacity-50" : ""}`}>
+                {saving ? "Saving..." : editId ? "Update Banner" : "Save Banner"}
+              </button>
+              {editId && <button type="button" onClick={resetForm} className="btn-action-secondary">Cancel Edit</button>}
+            </div>
+          </section>
+
+          <section className="content-card space-y-4">
               <div className="flex items-center justify-between gap-3">
-                <h3 className="text-base font-semibold text-gray-900">E-commerce Social Details</h3>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Social Media Details</h2>
+                  <p className="mt-1 text-sm text-gray-500">Choose which links show on the warehouse/e-commerce site, the hotel site, or both.</p>
+                </div>
                 <button type="button" onClick={addSocialLink} className="btn-action-secondary">Add Social Link</button>
               </div>
               {form.socialLinks.length === 0 ? (
@@ -466,23 +510,30 @@ export default function HeroPromoSetup() {
               ) : (
                 <div className="space-y-3">
                   {form.socialLinks.map((link, index) => (
-                    <div key={index} className="grid grid-cols-1 md:grid-cols-[150px_1fr_1fr_1fr_auto] gap-3 items-center rounded-lg border border-gray-200 p-3">
+                    <div key={index} className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 p-3 lg:grid-cols-[150px_170px_1fr_1fr_1.2fr_auto_auto] lg:items-center">
                       <select value={link.platform || "Instagram"} onChange={(event) => updateSocialLink(index, "platform", event.target.value)} className="form-select">
                         {SOCIAL_PLATFORMS.map((platform) => <option key={platform} value={platform}>{platform}</option>)}
+                      </select>
+                      <select value={normalizeSocialScope(link.scope)} onChange={(event) => updateSocialLink(index, "scope", event.target.value)} className="form-select">
+                        {SOCIAL_SCOPES.map((scope) => <option key={scope.value} value={scope.value}>{scope.label}</option>)}
                       </select>
                       <input value={link.label || ""} onChange={(event) => updateSocialLink(index, "label", event.target.value)} className="form-input" placeholder="Label" />
                       <input value={link.handle || ""} onChange={(event) => updateSocialLink(index, "handle", event.target.value)} className="form-input" placeholder="Handle" />
                       <input value={link.url || ""} onChange={(event) => updateSocialLink(index, "url", event.target.value)} className="form-input" placeholder="https://" />
+                      <label className="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={link.active !== false}
+                          onChange={(event) => updateSocialLink(index, "active", event.target.checked)}
+                          className="h-4 w-4 rounded border-gray-300 text-sky-600 focus:ring-sky-500"
+                        />
+                        Show
+                      </label>
                       <button type="button" onClick={() => removeSocialLink(index)} className="btn-action-danger">Remove</button>
                     </div>
                   ))}
                 </div>
               )}
-            </div>
-
-            <button onClick={saveHero} disabled={saving} className={`btn-action-primary ${saving ? "opacity-50" : ""}`}>
-              {saving ? "Saving..." : editId ? "Update Banner" : "Save Banner"}
-            </button>
           </section>
 
           <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">

@@ -1,4 +1,5 @@
 import { mongooseConnect } from "@/lib/mongodb";
+import mongoose from "mongoose";
 import PurchaseOrder from "@/models/PurchaseOrder";
 import StockMovement from "@/models/StockMovement";
 import Product from "@/models/Product";
@@ -117,27 +118,37 @@ export default async function handler(req, res) {
                   notes: `From PO: ${order.orderRef}`,
                 }));
 
-        // Create stock movement from this purchase order — skip child products
-        const childIds = new Set();
-        // Pre-fetch to identify child products
+        // Create stock movement from this purchase order — resolve child products to parent
+        const parentResolutions = new Map();
         if (sourceProducts.length > 0) {
           const productDocs = await Product.find({
             _id: { $in: sourceProducts.map((product) => product.productId) },
-          }).select("_id isChildProduct packType").lean();
+          }).select("_id isChildProduct parentProduct packType").lean();
           for (const doc of productDocs) {
-            // Only skip true derived children (unit from pack), not pack products
-            if (doc.isChildProduct && doc.packType !== "pack") childIds.add(String(doc._id));
+            if (doc.isChildProduct && doc.parentProduct) {
+              parentResolutions.set(String(doc._id), String(doc.parentProduct));
+            }
           }
         }
-        const movementProducts = sourceProducts
-          .filter((product) => !childIds.has(String(product.productId)))
-          .map((product) => ({
-            productId: product.productId,
-            quantity: product.quantity,
-            expiryDate: product.expiryDate,
-            costPrice: product.costPrice,
-            notes: product.notes || `From PO: ${order.orderRef}`,
-          }));
+
+        // Build movement products, merging children into their parent entries
+        const movementProductMap = new Map();
+        for (const product of sourceProducts) {
+          const resolvedId = parentResolutions.get(String(product.productId)) || String(product.productId);
+          const existing = movementProductMap.get(resolvedId);
+          if (existing) {
+            existing.quantity += product.quantity;
+          } else {
+            movementProductMap.set(resolvedId, {
+              productId: resolvedId,
+              quantity: product.quantity,
+              expiryDate: product.expiryDate,
+              costPrice: product.costPrice,
+              notes: product.notes || `From PO: ${order.orderRef}`,
+            });
+          }
+        }
+        const movementProducts = [...movementProductMap.values()];
 
         if (movementProducts.length === 0) {
           return res.status(400).json({ error: "No valid products available to receive" });
@@ -155,47 +166,84 @@ export default async function handler(req, res) {
           .filter(Boolean)
           .join("\n");
 
-        const stockMovement = await StockMovement.create({
-          transRef: generateTransRef(),
-          fromLocationId: null, // Vendor (external)
-          vendorName: order.vendorName || "",
-          toLocationId: toLocationId || null,
-          staffId: staffId || req.user?.id || order.staff || null,
-          reason: "Restock",
-          status: "Received",
-          totalCostPrice,
-          dateSent: new Date(),
-          dateReceived: new Date(),
-          products: movementProducts,
-          notes: movementNotes,
-        });
+        // Use a transaction to ensure movement + stock update are atomic
+        const session = await mongoose.startSession();
+        let stockMovement = null;
 
-        // Update product quantities
-        for (const item of movementProducts) {
-          await Product.findByIdAndUpdate(item.productId, {
-            $inc: { quantity: item.quantity },
+        try {
+          await session.withTransaction(async () => {
+            // 1. Create the stock movement
+            const [created] = await StockMovement.create(
+              [
+                {
+                  transRef: generateTransRef(),
+                  fromLocationId: null,
+                  vendorName: order.vendorName || "",
+                  toLocationId: toLocationId || null,
+                  staffId: staffId || req.user?.id || order.staff || null,
+                  reason: "Restock",
+                  status: "Received",
+                  totalCostPrice,
+                  dateSent: new Date(),
+                  dateReceived: new Date(),
+                  products: movementProducts,
+                  notes: movementNotes,
+                },
+              ],
+              { session }
+            );
+            stockMovement = created;
+
+            // 2. Bulk update product quantities
+            const bulkOps = movementProducts.map((item) => ({
+              updateOne: {
+                filter: { _id: item.productId },
+                update: { $inc: { quantity: item.quantity } },
+              },
+            }));
+
+            const bulkResult = await Product.bulkWrite(bulkOps, { session });
+
+            // 3. Verify all products were updated
+            const expectedUpdates = bulkOps.length;
+            const actualUpdates = (bulkResult.modifiedCount || 0) + (bulkResult.matchedCount || 0);
+            if (actualUpdates < expectedUpdates) {
+              const failedCount = expectedUpdates - actualUpdates;
+              throw new Error(
+                `PO stock update verification failed: ${failedCount} of ${expectedUpdates} products were not updated. Rolling back.`
+              );
+            }
+
+            // 4. Update the PO status within the same transaction
+            order.stockMovementId = stockMovement._id;
+            order.receivedStatus = "Received";
+            order.receivedAt = new Date();
+            order.status = derivePaymentStatus({
+              paymentMade: order.paymentMade,
+              grandTotal: order.grandTotal,
+              payBeforeSupply: order.payBeforeSupply,
+              receivedStatus: "Received",
+            });
+            await order.save({ session });
           });
-          // Sync parent-child qty after restock
-          await deriveChildQty(item.productId);
+        } finally {
+          await session.endSession();
         }
 
-        order.stockMovementId = stockMovement._id;
-
-        order.receivedStatus = "Received";
-        order.receivedAt = new Date();
-        order.status = derivePaymentStatus({
-          paymentMade: order.paymentMade,
-          grandTotal: order.grandTotal,
-          payBeforeSupply: order.payBeforeSupply,
-          receivedStatus: "Received",
-        });
-        await order.save();
+        // 5. Post-transaction: derive child quantities (safe outside transaction)
+        for (const item of movementProducts) {
+          try {
+            await deriveChildQty(item.productId);
+          } catch (deriveErr) {
+            console.warn(`⚠️ deriveChildQty failed for ${item.productId}:`, deriveErr.message);
+          }
+        }
 
         return res.status(200).json({
           success: true,
           message: "Order received and stock updated",
           order,
-          stockMovementId: order.stockMovementId,
+          stockMovementId: stockMovement._id,
         });
       }
 

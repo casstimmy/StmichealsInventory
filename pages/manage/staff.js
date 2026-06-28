@@ -9,7 +9,7 @@ import { Printer, Mail, Camera, Copy, CheckCircle, ChevronDown, ChevronUp, Loade
 import { useRouter } from "next/router";
 import { apiClient } from "@/lib/api-client";
 import { showConfirmDialog } from "@/lib/dialogs";
-import { STAFF_ROLE_OPTIONS, normalizeStaffRole } from "@/lib/pos-permissions";
+import { STAFF_ROLE_OPTIONS, normalizeStaffRole, POS_PERMISSION_KEYS, POS_PERMISSION_LABELS, getDefaultPosPermissions, normalizePosPermissions } from "@/lib/pos-permissions";
 import { showToastMessage } from "@/lib/toast-state";
 
 function toCamelCase(str) {
@@ -57,6 +57,7 @@ export default function StaffPage() {
   const [editForm, setEditForm] = useState({
     name: "", password: "", location: "", role: "staff",
     accountName: "", accountNumber: "", bankName: "", salary: "", photo: "",
+    posPermissions: getDefaultPosPermissions("staff"),
   });
 
   const [penaltyForm, setPenaltyForm] = useState({
@@ -174,7 +175,15 @@ export default function StaffPage() {
     const { name, value } = e.target;
     if (name === "name") setEditForm((prev) => ({ ...prev, name: toCamelCase(value) }));
     else if (name === "password") { if (/^\d{0,4}$/.test(value)) setEditForm((prev) => ({ ...prev, [name]: value })); }
+    else if (name === "role") setEditForm((prev) => ({ ...prev, role: value, posPermissions: getDefaultPosPermissions(value) }));
     else setEditForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleEditPermissionToggle = (key) => {
+    setEditForm((prev) => ({
+      ...prev,
+      posPermissions: { ...prev.posPermissions, [key]: !prev.posPermissions[key] },
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -230,15 +239,23 @@ export default function StaffPage() {
 
   const startEdit = (staff) => {
     setEditingId(staff._id);
-    setEditForm({ name: staff.name || "", password: "", location: staff.location || "", role: normalizeStaffRole(staff.role) || "staff", accountName: staff.accountName || "", accountNumber: staff.accountNumber || "", bankName: staff.bankName || "", salary: staff.salary || "", photo: staff.photo || "" });
+    const role = normalizeStaffRole(staff.role) || "staff";
+    setEditForm({ name: staff.name || "", password: "", location: staff.location || "", role, accountName: staff.accountName || "", accountNumber: staff.accountNumber || "", bankName: staff.bankName || "", salary: staff.salary || "", photo: staff.photo || "", posPermissions: normalizePosPermissions(role, staff.posPermissions) });
     setEditPhotoPreview(staff.photo || null);
   };
 
-  const cancelEdit = () => { setEditingId(null); setEditPhotoPreview(null); setEditForm({ name: "", password: "", location: "", role: "staff", accountName: "", accountNumber: "", bankName: "", salary: "", photo: "" }); };
+  const cancelEdit = () => { setEditingId(null); setEditPhotoPreview(null); setEditForm({ name: "", password: "", location: "", role: "staff", accountName: "", accountNumber: "", bankName: "", salary: "", photo: "", posPermissions: getDefaultPosPermissions("staff") }); };
 
   const saveEdit = async (id) => {
     try { await apiClient.put(`/api/staff/${id}`, editForm); setMessage("Staff updated."); setEditingId(null); fetchStaff(); }
     catch (err) { setMessage(err.response?.data?.error || "Error updating staff"); }
+  };
+
+  const toggleShowOnPos = async (id, currentValue) => {
+    try {
+      await apiClient.patch(`/api/staff/${id}`, { showOnPos: !currentValue });
+      setStaffList((prev) => prev.map((s) => s._id === id ? { ...s, showOnPos: !currentValue } : s));
+    } catch (err) { setMessage(err.response?.data?.error || "Error updating POS visibility"); }
   };
 
   const handleDelete = async (id) => {
@@ -334,6 +351,7 @@ export default function StaffPage() {
                         <th className="text-left px-4 py-3 font-semibold">Staff</th>
                         <th className="text-left px-4 py-3 font-semibold">Location</th>
                         <th className="text-left px-4 py-3 font-semibold">Role</th>
+                        <th className="text-center px-4 py-3 font-semibold">POS</th>
                         <th className="text-left px-4 py-3 font-semibold">Status</th>
                         <th className="text-left px-4 py-3 font-semibold">Onboarding</th>
                         <th className="text-right px-4 py-3 font-semibold">Actions</th>
@@ -344,7 +362,7 @@ export default function StaffPage() {
                     <React.Fragment key={staff._id}>
                     <tr className="border-b border-gray-100 hover:bg-gray-50">
                       {editingId === staff._id ? (
-                        <td colSpan={6} className="px-4 py-4">
+                        <td colSpan={7} className="px-4 py-4">
                         <div className="space-y-3 max-w-xl">
                           <div className="flex items-center gap-3">
                             <div onClick={() => editPhotoRef.current?.click()} className="w-14 h-14 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-blue-400 transition overflow-hidden shrink-0">
@@ -366,6 +384,17 @@ export default function StaffPage() {
                           <input type="text" name="accountNumber" placeholder="Account Number" value={editForm.accountNumber} onChange={handleEditChange} className="form-input w-full" />
                           <input type="text" name="bankName" placeholder="Bank Name" value={editForm.bankName} onChange={handleEditChange} className="form-input w-full" />
                           <input type="number" name="salary" placeholder="Salary" value={editForm.salary} onChange={handleEditChange} className="form-input w-full" />
+                          <div className="border rounded-lg p-3 bg-gray-50">
+                            <div className="text-xs font-semibold text-gray-600 mb-2">POS Permissions</div>
+                            <div className="grid grid-cols-2 gap-2">
+                              {POS_PERMISSION_KEYS.map((key) => (
+                                <label key={key} className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+                                  <input type="checkbox" checked={!!editForm.posPermissions?.[key]} onChange={() => handleEditPermissionToggle(key)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                                  {POS_PERMISSION_LABELS[key] || key}
+                                </label>
+                              ))}
+                            </div>
+                          </div>
                           <div className="flex justify-end gap-2 pt-2">
                             <button onClick={() => saveEdit(staff._id)} className="bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700 text-sm font-semibold">Save</button>
                             <button onClick={cancelEdit} className="bg-gray-400 text-white px-4 py-1 rounded hover:bg-gray-500 text-sm font-semibold">Cancel</button>
@@ -388,6 +417,15 @@ export default function StaffPage() {
                           <span className={`text-xs font-medium px-2 py-1 rounded-full ${staff.role === "admin" || staff.role === "manager" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"}`}>
                             {toCamelCase(STAFF_ROLE_OPTIONS.find((o) => o.value === staff.role)?.label || staff.role)}
                           </span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            onClick={() => toggleShowOnPos(staff._id, staff.showOnPos !== false)}
+                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${staff.showOnPos !== false ? "bg-green-500" : "bg-gray-300"}`}
+                            title={staff.showOnPos !== false ? "Visible on POS" : "Hidden from POS"}
+                          >
+                            <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${staff.showOnPos !== false ? "translate-x-4.5" : "translate-x-0.5"}`} />
+                          </button>
                         </td>
                         <td className="px-4 py-3">
                           {staff.onboardingComplete ? (
@@ -420,8 +458,8 @@ export default function StaffPage() {
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex justify-end gap-2">
-                            <button onClick={() => startEdit(staff)} className="text-xs px-3 py-1 border border-blue-500 text-blue-600 rounded-md hover:bg-blue-500 hover:text-white transition font-semibold">Edit</button>
-                            <button onClick={() => handleDelete(staff._id)} className="text-xs px-3 py-1 border border-red-500 text-red-600 rounded-md hover:bg-red-500 hover:text-white transition font-semibold">Delete</button>
+                            <button onClick={() => startEdit(staff)} className="text-xs px-3 py-1 border border-blue-500 text-blue-600 rounded-full hover:bg-blue-500 hover:text-white transition font-semibold">Edit</button>
+                            <button onClick={() => handleDelete(staff._id)} className="text-xs px-3 py-1 border border-red-500 text-red-600 rounded-full hover:bg-red-500 hover:text-white transition font-semibold">Delete</button>
                           </div>
                         </td>
                         </>
@@ -429,7 +467,7 @@ export default function StaffPage() {
                     </tr>
                     {expandedProfile === staff._id && staff.onboardingComplete && (
                       <tr>
-                        <td colSpan={6} className="px-4 pb-4">
+                        <td colSpan={7} className="px-4 pb-4">
                           <div className="bg-gray-50 rounded-lg p-3 text-xs space-y-3">
                             {staff.onboardingData && (
                               <div>
@@ -478,8 +516,8 @@ export default function StaffPage() {
             <div className="bg-white p-6 shadow rounded-lg w-full lg:w-1/3">
               <h2 className="text-xl font-semibold mb-4 text-blue-700">Staff Penalty</h2>
               <div className="flex space-x-4 mb-6">
-                <button className={`px-4 py-2 rounded-md font-semibold transition ${activeTab === "list" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300"}`} onClick={() => setActiveTab("list")}>Penalty List</button>
-                <button className={`px-4 py-2 rounded-md font-semibold transition ${activeTab === "form" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300"}`} onClick={() => setActiveTab("form")}>Add Penalty</button>
+                <button className={`px-4 py-2 rounded-full font-semibold transition ${activeTab === "list" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300"}`} onClick={() => setActiveTab("list")}>Penalty List</button>
+                <button className={`px-4 py-2 rounded-full font-semibold transition ${activeTab === "form" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300"}`} onClick={() => setActiveTab("form")}>Add Penalty</button>
               </div>
 
               {activeTab === "list" && (
@@ -491,7 +529,7 @@ export default function StaffPage() {
                       <div key={staff._id} className="bg-white border border-gray-200 p-5 rounded-lg shadow hover:shadow-md transition">
                         <div className="flex justify-between items-center mb-2">
                           <h3 className="text-lg font-semibold text-blue-800">{staff.name} <span className="text-sm text-gray-500 ml-2">({staff.role})</span></h3>
-                          <span className="text-sm bg-red-100 text-red-600 px-2 py-1 rounded-md">{staff.penalty.length} Penalt{staff.penalty.length > 1 ? "ies" : "y"}</span>
+                          <span className="text-sm bg-red-100 text-red-600 px-2 py-1 rounded-full">{staff.penalty.length} Penalt{staff.penalty.length > 1 ? "ies" : "y"}</span>
                         </div>
                         <ul className="space-y-2 pl-4 border-l-2 border-blue-100">
                           {staff.penalty.map((p, i) => (

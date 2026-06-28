@@ -38,11 +38,26 @@ export default async function handler(req, res) {
       }
 
       const normalizedRole = normalizeStaffRole(role);
+
+      // Only recalculate posPermissions if explicitly provided or role changed
+      const existingStaff = await Staff.findById(id).select("role posPermissions").lean();
+      let resolvedPermissions;
+      if (posPermissions !== undefined) {
+        // Explicit permissions sent — normalize them
+        resolvedPermissions = normalizePosPermissions(normalizedRole, posPermissions);
+      } else if (existingStaff && normalizeStaffRole(existingStaff.role) !== normalizedRole) {
+        // Role changed but no explicit permissions — apply new role defaults
+        resolvedPermissions = normalizePosPermissions(normalizedRole, {});
+      } else {
+        // Neither permissions nor role changed — preserve existing
+        resolvedPermissions = existingStaff?.posPermissions || normalizePosPermissions(normalizedRole, {});
+      }
+
       const updateData = {
         name,
         location: location || "",
         role: normalizedRole,
-        posPermissions: normalizePosPermissions(normalizedRole, posPermissions),
+        posPermissions: resolvedPermissions,
         accountName: accountName || "",
         accountNumber: accountNumber || "",
         bankName: bankName || "",
@@ -85,8 +100,27 @@ export default async function handler(req, res) {
       console.error("Delete failed:", err);
       return res.status(500).json({ error: "Server error." });
     }
+  } else if (req.method === "PATCH") {
+    try {
+      const { showOnPos } = req.body;
+      if (typeof showOnPos !== "boolean") {
+        return res.status(400).json({ error: "showOnPos must be a boolean." });
+      }
+      const updated = await Staff.findByIdAndUpdate(
+        id,
+        { showOnPos },
+        { new: true, select: "-password" }
+      );
+      if (!updated) {
+        return res.status(404).json({ error: "Staff not found." });
+      }
+      return res.status(200).json(updated);
+    } catch (err) {
+      console.error("Patch failed:", err);
+      return res.status(500).json({ error: "Server error." });
+    }
   } else {
-    res.setHeader("Allow", ["PUT", "DELETE"]);
+    res.setHeader("Allow", ["PUT", "DELETE", "PATCH"]);
     res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 }

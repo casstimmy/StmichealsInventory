@@ -1,4 +1,5 @@
 import { mongooseConnect } from "@/lib/mongodb";
+import mongoose from "mongoose";
 import Product from "@/models/Product";
 import StockMovement from "@/models/StockMovement";
 import { deriveChildQty } from "@/lib/syncPackQty";
@@ -95,18 +96,37 @@ export default async function handler(req, res) {
         });
       }
 
-      const product = await Product.findById(id).select("_id costPrice isStockManaged isChildProduct packType");
+      const product = await Product.findById(id).select("_id name costPrice isStockManaged isChildProduct parentProduct packType qtyPerPack");
       if (!product) {
         return res.status(404).json({
           message: `Product not found with ID: ${id}`,
         });
       }
 
-      // Only true derived children (unit from pack) cannot have independent stock movements
-      if (product.isChildProduct && product.packType !== "pack") {
-        return res.status(400).json({
-          message: `"${product.name || id}" is a unit product linked to a pack. Adjust the pack product instead.`,
-        });
+      // If product is a child, resolve to parent and add qty to parent instead
+      if (product.isChildProduct && product.parentProduct) {
+        const parentProduct = await Product.findById(product.parentProduct).select("_id name costPrice isStockManaged packType qtyPerPack");
+        if (!parentProduct) {
+          return res.status(400).json({
+            message: `"${product.name || id}" is a child product but its parent could not be found. Please use the parent product directly.`,
+          });
+        }
+
+        // Merge qty into existing parent entry or create a new one
+        const existingParent = productsToCreate.find(p => String(p.productId) === String(parentProduct._id));
+        if (existingParent) {
+          existingParent.quantity += quantity;
+        } else {
+          totalCostPrice += (parentProduct.costPrice || 0) * quantity;
+          productsToCreate.push({
+            productId: String(parentProduct._id),
+            quantity,
+            expiryDate: expiryDate || null,
+            notes: item.notes || "",
+            isStockManaged: parentProduct.isStockManaged !== false,
+          });
+        }
+        continue;
       }
 
       totalCostPrice += (product.costPrice || 0) * quantity;
@@ -121,94 +141,106 @@ export default async function handler(req, res) {
     }
 
     /* =========================
-       CREATE STOCK MOVEMENT
+       CREATE STOCK MOVEMENT & UPDATE STOCK
+       (Wrapped in a transaction for atomicity)
     ========================= */
     const transRef = Date.now().toString();
     const now = new Date();
+    const session = await mongoose.startSession();
+    let movement = null;
 
-    const movement = await StockMovement.create({
-      transRef,
-      fromLocationId: isFromLocationVendor ? null : fromLocationId,
-      vendorName: isFromLocationVendor ? sanitizePlainText(vendorName) : "",
-      toLocationId: isOperationalLoss || isToLocationVendor ? null : toLocationId,
-      staffId: staffId || null,
-      reason,
-      status: "Received",
-      totalCostPrice,
-      dateSent: now,
-      dateReceived: now,
-      barcode: transRef,
-      products: productsToCreate,
-      notes: sanitizeMultilineText(notes),
-    });
-
-    /* =========================
-       UPDATE PRODUCT STOCK
-       (ALLOW NEGATIVE STOCK)
-    ========================= */
-    // Process updates without negative stock restriction
-    const bulkOps = productsToCreate
-      .filter(({ isStockManaged }) => isStockManaged)
-      .map(({ productId, quantity }) => {
-      let qtyChange = 0;
-
-      if (reason === "Restock") {
-        qtyChange = quantity;
-      } else if (reason === "Return") {
-        qtyChange = -quantity;
-      } else if (reason === "Adjustment" || reason === "Operational Loss") {
-        // Adjustment reduces stock (e.g., expired product write-off)
-        qtyChange = -quantity;
-      } else if (reason === "Transfer") {
-        qtyChange = 0; // ❗ NO GLOBAL STOCK CHANGE
-      }
-
-        return {
-          updateOne: {
-            filter: { _id: productId },
-            update: { $inc: { quantity: qtyChange } },
-          },
-        };
-      });
-
-    if (bulkOps.length > 0) {
-      const bulkResult = await Product.bulkWrite(bulkOps);
-      console.log("📦 Stock update result:", bulkResult);
-
-      // Sync parent-child quantities for all affected products
-      for (const { productId } of productsToCreate.filter(p => p.isStockManaged)) {
-        await deriveChildQty(productId);
-      }
-      
-      // Check for low stock items and send notification
-      const updatedProducts = await Product.find({
-        _id: { $in: productsToCreate.map(p => p.productId) }
-      });
-      
-      const lowStockItems = updatedProducts.filter(
-        p => p.quantity < (p.minStock || 0) && p.quantity >= 0
-      );
-      
-      if (lowStockItems.length > 0) {
-        console.log("⚠️ Low stock alert for:", lowStockItems.map(p => p.name).join(", "));
-        
-        // Trigger email notification for low stock
-        try {
-          await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/notify-low-stock`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(req.headers.authorization ? { Authorization: req.headers.authorization } : {}),
+    try {
+      await session.withTransaction(async () => {
+        // 1. Create the movement record
+        const [created] = await StockMovement.create(
+          [
+            {
+              transRef,
+              fromLocationId: isFromLocationVendor ? null : fromLocationId,
+              vendorName: isFromLocationVendor ? sanitizePlainText(vendorName) : "",
+              toLocationId: isOperationalLoss || isToLocationVendor ? null : toLocationId,
+              staffId: staffId || null,
+              reason,
+              status: "Received",
+              totalCostPrice,
+              dateSent: now,
+              dateReceived: now,
+              barcode: transRef,
+              products: productsToCreate,
+              notes: sanitizeMultilineText(notes),
             },
-            body: JSON.stringify({ 
-              products: lowStockItems,
-              movementId: movement._id 
-            }),
-          }).catch(err => console.warn("⚠️ Low stock email notification failed:", err.message));
-        } catch (emailErr) {
-          console.warn("⚠️ Could not send low stock notification:", emailErr.message);
+          ],
+          { session }
+        );
+        movement = created;
+
+        // 2. Build qty updates for stock-managed products
+        const stockManagedProducts = productsToCreate.filter(({ isStockManaged }) => isStockManaged);
+        const bulkOps = stockManagedProducts.map(({ productId, quantity }) => {
+          let qtyChange = 0;
+          if (reason === "Restock") qtyChange = quantity;
+          else if (reason === "Return") qtyChange = -quantity;
+          else if (reason === "Adjustment" || reason === "Operational Loss") qtyChange = -quantity;
+          // Transfer = 0 (no global change)
+
+          return {
+            updateOne: {
+              filter: { _id: productId },
+              update: { $inc: { quantity: qtyChange } },
+            },
+          };
+        });
+
+        if (bulkOps.length > 0) {
+          const bulkResult = await Product.bulkWrite(bulkOps, { session });
+
+          // 3. Verify ALL products were actually updated
+          const expectedUpdates = bulkOps.length;
+          const actualUpdates = (bulkResult.modifiedCount || 0) + (bulkResult.matchedCount || 0);
+          if (actualUpdates < expectedUpdates) {
+            const failedCount = expectedUpdates - actualUpdates;
+            throw new Error(
+              `Stock update verification failed: ${failedCount} of ${expectedUpdates} products were not updated. Rolling back.`
+            );
+          }
         }
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    // 4. Post-transaction: derive child quantities (safe to do outside transaction)
+    for (const { productId } of productsToCreate.filter((p) => p.isStockManaged)) {
+      try {
+        await deriveChildQty(productId);
+      } catch (deriveErr) {
+        console.warn(`⚠️ deriveChildQty failed for ${productId}:`, deriveErr.message);
       }
+    }
+
+    // 5. Post-transaction: low stock notifications (non-critical)
+    try {
+      const updatedProducts = await Product.find({
+        _id: { $in: productsToCreate.map((p) => p.productId) },
+      }).lean();
+
+      const lowStockItems = updatedProducts.filter(
+        (p) => p.quantity < (p.minStock || 0) && p.quantity >= 0
+      );
+
+      if (lowStockItems.length > 0) {
+        console.log("⚠️ Low stock alert for:", lowStockItems.map((p) => p.name).join(", "));
+        fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/notify-low-stock`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(req.headers.authorization ? { Authorization: req.headers.authorization } : {}),
+          },
+          body: JSON.stringify({ products: lowStockItems, movementId: movement._id }),
+        }).catch((err) => console.warn("⚠️ Low stock email notification failed:", err.message));
+      }
+    } catch (notifyErr) {
+      console.warn("⚠️ Low stock check failed (non-critical):", notifyErr.message);
     }
 
     /* =========================

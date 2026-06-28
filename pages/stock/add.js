@@ -92,7 +92,19 @@ export default function StockMovementAdd() {
                 const idRes = await apiClient.get(`/api/products?id=${poProduct.productId}`);
                 const product = idRes.data?.data || idRes.data;
                 if (product && product._id) {
-                  match = product;
+                  // If product is a child, resolve to parent
+                  if (product.isChildProduct && product.parentProduct) {
+                    const parentId = typeof product.parentProduct === 'object' ? product.parentProduct._id : product.parentProduct;
+                    const parentRes = await apiClient.get(`/api/products?id=${parentId}`);
+                    const parentProduct = parentRes.data?.data || parentRes.data;
+                    if (parentProduct && parentProduct._id) {
+                      match = parentProduct;
+                    } else {
+                      match = product;
+                    }
+                  } else {
+                    match = product;
+                  }
                 }
               } catch {
                 // productId lookup failed, fall through to name search
@@ -101,7 +113,7 @@ export default function StockMovementAdd() {
 
             // 2. Fallback: search by name if productId didn't match
             if (!match && poProduct.name) {
-              const pRes = await apiClient.get(`/api/products?search=${encodeURIComponent(poProduct.name)}`);
+              const pRes = await apiClient.get(`/api/products?search=${encodeURIComponent(poProduct.name)}&excludeChild=true`);
               const productList = pRes.data?.data || (Array.isArray(pRes.data) ? pRes.data : []);
               const exactMatch = productList.find(p => p.name.toLowerCase() === poProduct.name.toLowerCase());
               const partialMatch = productList.find(p => p.name.toLowerCase().includes(poProduct.name.toLowerCase()) || poProduct.name.toLowerCase().includes(p.name.toLowerCase()));

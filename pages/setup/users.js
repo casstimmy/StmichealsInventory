@@ -18,14 +18,17 @@ const ALL_PERMISSIONS = [
     { key: "setup.location-items", label: "Location Tenders" },
     { key: "setup.assets", label: "Assets" },
     { key: "setup.users", label: "Users" },
+    { key: "setup.color-theme", label: "Color Theme" },
   ]},
   { key: "manage", label: "Manage", description: "Products, categories, promotions, orders, customers", children: [
     { key: "manage.products", label: "Product List" },
     { key: "manage.archived", label: "Archived Products" },
     { key: "manage.categories", label: "Categories" },
-    { key: "manage.promotions", label: "Promotions" },
+    { key: "manage.promotions", label: "Product Promotions" },
+    { key: "manage.promotions-management", label: "Campaign Promotions" },
     { key: "manage.customer-promotions", label: "Customer Promotions" },
     { key: "manage.orders", label: "Orders" },
+    { key: "manage.hotel-reservations", label: "Hotel Reservations" },
     { key: "manage.customers", label: "Customers" },
     { key: "manage.campaigns", label: "Campaigns" },
     { key: "manage.staff", label: "Staff" },
@@ -39,6 +42,7 @@ const ALL_PERMISSIONS = [
     { key: "stock.stock-take", label: "Stock Take" },
     { key: "stock.stock-take-report", label: "Stock Take Report" },
     { key: "stock.expiration-report", label: "Expiration Report" },
+    { key: "stock.stock-history-levels", label: "Stock History Levels" },
   ]},
   { key: "reporting", label: "Reporting", description: "Sales reports, EOD reports, transactions", children: [
     { key: "reporting.sales-report", label: "Sales Report" },
@@ -50,12 +54,20 @@ const ALL_PERMISSIONS = [
     { key: "reporting.locations", label: "Locations" },
     { key: "reporting.categories", label: "Categories" },
     { key: "reporting.transactions", label: "Completed Transactions" },
+    { key: "reporting.stock-history-levels", label: "Stock History Levels" },
   ]},
-  { key: "expenses", label: "Expenses", description: "Expense entry, analysis, tax", children: [
+  { key: "expenses", label: "Expenses", description: "Expense entry, analysis, tax, credit", children: [
     { key: "expenses.entry", label: "Expenses Entry" },
     { key: "expenses.analysis", label: "Expenses Analysis" },
     { key: "expenses.tax-analysis", label: "Tax Analysis" },
     { key: "expenses.tax-personal", label: "Personal Tax Calculator" },
+    { key: "expenses.credit-management", label: "Credit Management" },
+  ]},
+  { key: "accounting", label: "Accounting", description: "Chart of accounts, journals, ledger, reports", children: [
+    { key: "accounting.chart-of-accounts", label: "Chart of Accounts" },
+    { key: "accounting.journal-entries", label: "Journal Entries" },
+    { key: "accounting.general-ledger", label: "General Ledger" },
+    { key: "accounting.reports", label: "Financial Reports" },
   ]},
   { key: "support", label: "Support", description: "Support tickets" },
 ];
@@ -93,12 +105,13 @@ function getDefaultPermissions(role) {
   switch (role) {
     case "admin": return getAllPermissionKeys();
     case "inventory": return [
-      "manage", "manage.products", "manage.archived", "manage.categories",
-      "stock", "stock.management", "stock.movement", "stock.stock-take", "stock.stock-take-report", "stock.expiration-report",
+      "manage", "manage.products", "manage.archived", "manage.categories", "manage.vendors", "manage.purchase-orders",
+      "stock", "stock.management", "stock.movement", "stock.stock-take", "stock.stock-take-report", "stock.expiration-report", "stock.stock-history-levels",
     ];
     case "account": return [
-      "expenses", "expenses.entry", "expenses.analysis", "expenses.tax-analysis", "expenses.tax-personal",
-      "reporting", "reporting.sales-report", "reporting.eod", "reporting.transactions",
+      "expenses", "expenses.entry", "expenses.analysis", "expenses.tax-analysis", "expenses.tax-personal", "expenses.credit-management",
+      "reporting", "reporting.sales-report", "reporting.eod", "reporting.transactions", "reporting.stock-history-levels",
+      "accounting", "accounting.chart-of-accounts", "accounting.journal-entries", "accounting.general-ledger", "accounting.reports",
     ];
     default: return [];
   }

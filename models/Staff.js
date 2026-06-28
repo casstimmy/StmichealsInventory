@@ -111,6 +111,11 @@ const StaffSchema = new Schema(
       type: Boolean,
       default: true,
     },
+
+    showOnPos: {
+      type: Boolean,
+      default: true,
+    },
   },
   { timestamps: true }
 );
